@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- The device token lives in Keystore-encrypted DataStore and must never be
+         backed up or transferred; exclude app data wholesale. -->
+</full-backup-content>

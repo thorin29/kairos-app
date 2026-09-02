@@ -1,0 +1,39 @@
+package com.kairos.app.data.remote
+
+import com.kairos.app.data.remote.dto.EnrollRequest
+import com.kairos.app.data.remote.dto.EnrollResponse
+import com.kairos.app.data.remote.dto.MetaDto
+import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.RevokeResponse
+import com.kairos.app.data.remote.dto.TokenResponse
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+
+/**
+ * The built /api/v1 surface (docs/API.md "Auth & identity — built"). Read
+ * endpoints (dashboard, chores, …) get added here as each screen lands and its
+ * server endpoint is built. Responses are returned as Retrofit [Response] so
+ * the calling layer can map status + body to a single [ApiError].
+ *
+ * The Bearer header is attached by AuthInterceptor, not declared per-method, so
+ * there is one place that knows the auth rule.
+ */
+interface ApiService {
+
+    @GET("meta")
+    suspend fun meta(): Response<MetaDto>
+
+    @POST("auth/enroll")
+    suspend fun enroll(@Body body: EnrollRequest): Response<EnrollResponse>
+
+    @POST("auth/refresh")
+    suspend fun refresh(): Response<TokenResponse>
+
+    @POST("auth/revoke")
+    suspend fun revoke(): Response<RevokeResponse>
+
+    @GET("me")
+    suspend fun me(): Response<PersonDto>
+}
