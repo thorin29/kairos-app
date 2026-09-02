@@ -5,8 +5,11 @@ import com.kairos.app.data.remote.ApiError
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.ApiService
 import com.kairos.app.data.remote.apiCall
+import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.TaskStatusDto
+import retrofit2.Response
 import com.kairos.app.data.secure.TokenStore
 import com.kairos.app.data.settings.SettingsStore
 import kotlinx.coroutines.CoroutineScope
@@ -133,6 +136,32 @@ class SessionRepository(
         _state.value = SessionState.NeedsSetup
     }
 
+    /** Load the day. A 401 here means the token died server-side, so we drop it
+     *  and fall back to enrollment; the error is rethrown for the caller too. */
+    suspend fun loadDashboard(date: String? = null): DashboardDto =
+        runAuthed { requireService().dashboard(date) }
+
+    suspend fun completeTask(id: String): TaskStatusDto =
+        runAuthed { requireService().completeTask(id) }
+
+    suspend fun uncompleteTask(id: String): TaskStatusDto =
+        runAuthed { requireService().uncompleteTask(id) }
+
+    private fun requireService() =
+        service ?: throw ApiException(ApiError.Unknown("No server configured."))
+
+    private suspend fun <T> runAuthed(block: suspend () -> Response<T>): T {
+        try {
+            return apiCall(block)
+        } catch (e: ApiException) {
+            if (e.error is ApiError.Unauthenticated) {
+                tokens.clear()
+                _state.value = SessionState.NeedsEnroll
+            }
+            throw e
+        }
+    }
+
     suspend fun refreshMe() {
         val svc = service ?: return
         try {
@@ -148,6 +177,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 1
+        const val CLIENT_BUILD = 2
     }
 }

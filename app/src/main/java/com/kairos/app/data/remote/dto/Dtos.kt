@@ -52,6 +52,63 @@ data class RevokeResponse(
     val revoked: Boolean,
 )
 
+// --- Dashboard (GET /dashboard) ---
+
+@Serializable
+data class DashboardDto(
+    val date: String,
+    val percent: Int? = null,
+    val categories: List<CategoryBarDto> = emptyList(),
+    val overdue: List<TaskDto> = emptyList(),
+    val groups: List<TaskGroupDto> = emptyList(),
+)
+
+@Serializable
+data class CategoryBarDto(
+    val category: String,
+    val label: String,
+    val total: Int,
+    val complete: Int,
+    val overdue: Int,
+    val percent: Int,
+)
+
+@Serializable
+data class TaskGroupDto(
+    val category: String,
+    val label: String,
+    val items: List<TaskDto> = emptyList(),
+)
+
+@Serializable
+data class TaskDto(
+    val id: String,
+    val title: String,
+    val category: String,
+    val status: String,
+    val dueDate: String,
+    val subtitle: String? = null,
+    val isOverdue: Boolean = false,
+    val stale: Boolean = false,
+    val locked: Boolean = false,
+    val isWorkout: Boolean = false,
+    val completable: Boolean = false,
+    val test: TaskTestDto? = null,
+)
+
+@Serializable
+data class TaskTestDto(
+    val score: Int? = null,
+    val scoreMax: Int = 100,
+)
+
+/** Response of the task complete/uncomplete endpoints. */
+@Serializable
+data class TaskStatusDto(
+    val id: String,
+    val status: String,
+)
+
 /** Error envelope: { "error": { code, message, fields? } }. */
 @Serializable
 data class ApiErrorEnvelope(

@@ -1,15 +1,19 @@
 package com.kairos.app.data.remote
 
+import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.EnrollResponse
 import com.kairos.app.data.remote.dto.MetaDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.RevokeResponse
+import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.TokenResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
  * The built /api/v1 surface (docs/API.md "Auth & identity — built"). Read
@@ -36,4 +40,13 @@ interface ApiService {
 
     @GET("me")
     suspend fun me(): Response<PersonDto>
+
+    @GET("dashboard")
+    suspend fun dashboard(@Query("date") date: String? = null): Response<DashboardDto>
+
+    @POST("tasks/{id}/complete")
+    suspend fun completeTask(@Path("id") id: String): Response<TaskStatusDto>
+
+    @POST("tasks/{id}/uncomplete")
+    suspend fun uncompleteTask(@Path("id") id: String): Response<TaskStatusDto>
 }
