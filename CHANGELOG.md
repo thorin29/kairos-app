@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 — stable release signing (install over the top)
+- CI now builds a *signed release* APK with one stable key (stored as GitHub
+  secrets), so future updates install over the existing app and keep enrollment.
+- One-time transition: this build's package id is `com.kairos.app` (the debug
+  builds were `com.kairos.app.debug`), so uninstall the current app and enroll
+  once more. Every update after this installs cleanly on top.
+
 ## 0.3.0 — workouts (day-level)
 - Workout prompts on Home now open an action sheet: Mark as done, Rest day, or
   undo. Backed by `POST /api/v1/workouts/complete` / `/uncomplete` / `/rest`.

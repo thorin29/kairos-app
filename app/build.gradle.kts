@@ -13,18 +13,40 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // The release key is supplied by CI through environment variables
+        // (decoded from GitHub secrets). Kept out of the repo entirely. When the
+        // env vars are absent (e.g. a local debug build), this stays empty and
+        // the release type simply goes unsigned rather than failing to configure.
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_FILE")
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // No server secrets ship in the app; the only stored secret is the
-            // per-device token, held in the Android Keystore at runtime.
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Sign with the stable release key when CI provides it, so every
+            // build installs over the last one and enrollment persists.
+            if (System.getenv("KEYSTORE_FILE") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            // R8 minify/shrink left off until we can verify on-device that no
+            // Compose/serialization/Retrofit member gets stripped; the keep
+            // rules in proguard-rules.pro are ready for when we enable it.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
