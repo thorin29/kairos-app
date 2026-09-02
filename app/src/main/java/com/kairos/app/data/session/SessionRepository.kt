@@ -9,6 +9,8 @@ import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskStatusDto
+import com.kairos.app.data.remote.dto.WorkoutAckDto
+import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
 import com.kairos.app.data.secure.TokenStore
 import com.kairos.app.data.settings.SettingsStore
@@ -147,6 +149,15 @@ class SessionRepository(
     suspend fun uncompleteTask(id: String): TaskStatusDto =
         runAuthed { requireService().uncompleteTask(id) }
 
+    suspend fun workoutComplete(date: String): WorkoutAckDto =
+        runAuthed { requireService().workoutComplete(WorkoutDateRequest(date)) }
+
+    suspend fun workoutUncomplete(date: String): WorkoutAckDto =
+        runAuthed { requireService().workoutUncomplete(WorkoutDateRequest(date)) }
+
+    suspend fun workoutRest(date: String): WorkoutAckDto =
+        runAuthed { requireService().workoutRest(WorkoutDateRequest(date)) }
+
     private fun requireService() =
         service ?: throw ApiException(ApiError.Unknown("No server configured."))
 
@@ -177,6 +188,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 2
+        const val CLIENT_BUILD = 3
     }
 }

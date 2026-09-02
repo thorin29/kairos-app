@@ -8,6 +8,8 @@ import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.RevokeResponse
 import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.TokenResponse
+import com.kairos.app.data.remote.dto.WorkoutAckDto
+import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -49,4 +51,13 @@ interface ApiService {
 
     @POST("tasks/{id}/uncomplete")
     suspend fun uncompleteTask(@Path("id") id: String): Response<TaskStatusDto>
+
+    @POST("workouts/complete")
+    suspend fun workoutComplete(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/uncomplete")
+    suspend fun workoutUncomplete(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/rest")
+    suspend fun workoutRest(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
 }

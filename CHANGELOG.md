@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 — workouts (day-level)
+- Workout prompts on Home now open an action sheet: Mark as done, Rest day, or
+  undo. Backed by `POST /api/v1/workouts/complete` / `/uncomplete` / `/rest`.
+- Set-by-set logging (exercises, weights, reps) is the next workout increment.
+
 ## 0.2.0 — home dashboard + tap-to-complete
 - Home now shows the personal day from `GET /api/v1/dashboard`: an overall
   completion percent, per-category progress bars, an overdue section, and the

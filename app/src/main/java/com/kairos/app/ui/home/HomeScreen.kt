@@ -1,5 +1,6 @@
 package com.kairos.app.ui.home
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,8 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -25,12 +28,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,6 +101,53 @@ fun HomeScreen(person: PersonDto) {
                 }
                 ui.dashboard == null -> ErrorState(ui.loadError, onRetry = vm::load)
                 else -> DashboardContent(person, ui, vm)
+            }
+
+            ui.workoutSheet?.let { WorkoutSheet(it, vm) }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(onDismissRequest = vm::dismissWorkout, sheetState = sheetState) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(task.title, style = MaterialTheme.typography.titleLarge)
+            when (task.status) {
+                "COMPLETE" -> {
+                    OutlinedButton(
+                        onClick = { vm.undoWorkout(task) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Mark as not done") }
+                }
+                "SKIPPED" -> {
+                    Text(
+                        "Marked as a rest day.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = { vm.markWorkoutDone(task) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Mark as done") }
+                }
+                else -> {
+                    Button(
+                        onClick = { vm.markWorkoutDone(task) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Mark as done") }
+                    OutlinedButton(
+                        onClick = { vm.restDay(task) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Rest day") }
+                }
             }
         }
     }
@@ -222,20 +275,29 @@ private fun SectionHeader(label: String) {
 @Composable
 private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
     val done = task.status == "COMPLETE"
-    val tappable = task.completable && !busy
+    // Workout prompts open the action sheet; ordinary completable rows toggle.
+    val tappable = !busy && (task.isWorkout || task.completable)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = tappable) { vm.toggle(task.id, done) }
+            .clickable(enabled = tappable) {
+                if (task.isWorkout) vm.openWorkout(task) else vm.toggle(task.id, done)
+            }
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
             when {
                 busy -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                task.completable -> Checkbox(checked = done, onCheckedChange = null)
-                else -> Text("•", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                done -> Icon(
+                    Icons.Filled.Check,
+                    contentDescription = "Done",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                task.isWorkout -> HollowMarker()
+                task.completable -> Checkbox(checked = false, onCheckedChange = null)
+                else -> HollowMarker()
             }
         }
         Spacer(Modifier.width(12.dp))
@@ -266,11 +328,28 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
     }
 }
 
-/** Secondary line: school detail and/or an overdue due-date, else nothing. */
+/** A small hollow circle used where a checkbox would be, for non-toggle rows. */
+@Composable
+private fun HollowMarker() {
+    Box(
+        Modifier
+            .size(18.dp)
+            .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
+    )
+}
+
+/** Secondary line: school detail, workout state, and/or an overdue due-date. */
 private fun buildSecondary(task: TaskDto): String? {
     val parts = mutableListOf<String>()
     task.subtitle?.let { parts += it }
     if (task.stale) parts += "expired"
+    if (task.isWorkout) {
+        when (task.status) {
+            "SKIPPED" -> parts += "rest day"
+            "COMPLETE" -> {} // strike-through already conveys done
+            else -> parts += "tap to log"
+        }
+    }
     if (task.isOverdue) parts += "due ${shortDate(task.dueDate)}"
     return parts.joinToString(" · ").ifBlank { null }
 }

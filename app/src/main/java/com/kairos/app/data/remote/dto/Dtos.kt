@@ -109,6 +109,19 @@ data class TaskStatusDto(
     val status: String,
 )
 
+/** Body for the day-level workout endpoints. */
+@Serializable
+data class WorkoutDateRequest(
+    val date: String,
+)
+
+/** Response of the workout complete/uncomplete/rest endpoints. */
+@Serializable
+data class WorkoutAckDto(
+    val date: String,
+    val status: String,
+)
+
 /** Error envelope: { "error": { code, message, fields? } }. */
 @Serializable
 data class ApiErrorEnvelope(

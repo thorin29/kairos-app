@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.DashboardDto
+import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,8 @@ data class HomeUiState(
     val actionError: String? = null,
     /** Task ids with an in-flight complete/uncomplete, for per-row spinners. */
     val busyIds: Set<String> = emptySet(),
+    /** The workout prompt whose action sheet is open, if any. */
+    val workoutSheet: TaskDto? = null,
     val signingOut: Boolean = false,
 )
 
@@ -75,6 +78,37 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
 
     fun clearActionError() {
         _ui.update { it.copy(actionError = null) }
+    }
+
+    // --- Workout prompts: a small action sheet instead of a plain checkbox ---
+
+    fun openWorkout(task: TaskDto) {
+        _ui.update { it.copy(workoutSheet = task) }
+    }
+
+    fun dismissWorkout() {
+        _ui.update { it.copy(workoutSheet = null) }
+    }
+
+    fun markWorkoutDone(task: TaskDto) = workoutOp(task) { session.workoutComplete(task.dueDate) }
+
+    fun undoWorkout(task: TaskDto) = workoutOp(task) { session.workoutUncomplete(task.dueDate) }
+
+    fun restDay(task: TaskDto) = workoutOp(task) { session.workoutRest(task.dueDate) }
+
+    private fun workoutOp(task: TaskDto, block: suspend () -> Unit) {
+        _ui.update {
+            it.copy(workoutSheet = null, busyIds = it.busyIds + task.id, actionError = null)
+        }
+        viewModelScope.launch {
+            try {
+                block()
+                val data = session.loadDashboard()
+                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - task.id) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - task.id, actionError = e.error.message) }
+            }
+        }
     }
 
     fun signOut() {
