@@ -2,7 +2,6 @@ package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,7 +57,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Log workout") },
+                title = { Text(ui.planName ?: "Log workout") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -71,7 +70,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
     }
 }
 
-/** The shared today's-log body: per-exercise weight/reps, save, mark done/rest.
+/** Shared body: today's planned movements (one value each), save, mark/rest.
  *  Reused by the Workouts page and the pushed log screen. */
 @Composable
 fun WorkoutLogContent(modifier: Modifier, vm: WorkoutLogViewModel) {
@@ -94,14 +93,23 @@ fun WorkoutLogContent(modifier: Modifier, vm: WorkoutLogViewModel) {
                 if (!ui.loggable || ui.inputs.isEmpty()) {
                     item {
                         Text(
-                            "No exercises are scheduled to log today. You can still mark the day.",
+                            "No scheduled workouts today. You can still mark the day.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
-                    items(ui.inputs, key = { it.exerciseId }) { ex ->
-                        ExerciseInputRow(ex, vm)
+                    if (ui.planName != null) {
+                        item {
+                            Text(
+                                ui.planName!!,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                    items(ui.inputs, key = { it.poolExerciseId }) { m ->
+                        MovementRow(m, vm)
                     }
                     item {
                         Button(
@@ -151,29 +159,13 @@ fun WorkoutLogContent(modifier: Modifier, vm: WorkoutLogViewModel) {
 }
 
 @Composable
-private fun ExerciseInputRow(ex: ExerciseInput, vm: WorkoutLogViewModel) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(ex.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-        Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedTextField(
-                value = ex.weight,
-                onValueChange = { vm.onWeight(ex.exerciseId, it) },
-                label = { Text("Weight (${ex.unit})") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedTextField(
-                value = ex.reps,
-                onValueChange = { vm.onReps(ex.exerciseId, it) },
-                label = { Text("Reps") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+private fun MovementRow(m: MovementInput, vm: WorkoutLogViewModel) {
+    OutlinedTextField(
+        value = m.value,
+        onValueChange = { vm.onValue(m.poolExerciseId, it) },
+        label = { Text("${m.name} (${m.unit})") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

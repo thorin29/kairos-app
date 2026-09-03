@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1 — Workouts: log planned workouts
+- Fixed: the Workouts page now loads your planned workout (e.g. "Legs") and logs
+  one value per movement, matching how workouts are actually scheduled — instead
+  of only the (unused) per-exercise weekday model, which showed "nothing today".
+- Empty state now reads "No scheduled workouts today."
+
 ## 0.12.0 — logout confirm + Workouts page (step 1)
 - Signing out now asks to confirm (Cancel / Sign out) instead of logging out on
   the first tap.
