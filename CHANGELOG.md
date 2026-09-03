@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 — Workouts: recent history
+- The Workouts page now shows a "Recent workouts" list below today's log, with
+  each session's name, result, and date. Backed by a new workout history +
+  weight-progress read; the progress graph uses the same data and lands next.
+
 ## 0.12.1 — Workouts: log planned workouts
 - Fixed: the Workouts page now loads your planned workout (e.g. "Legs") and logs
   one value per movement, matching how workouts are actually scheduled — instead

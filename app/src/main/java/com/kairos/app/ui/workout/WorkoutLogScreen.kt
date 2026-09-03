@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -66,94 +67,88 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
             )
         },
     ) { inner ->
-        WorkoutLogContent(Modifier.padding(inner), vm)
+        Box(Modifier.padding(inner).fillMaxSize()) {
+            when {
+                ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                ui.loadError != null -> Text(
+                    ui.loadError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                )
+                else -> LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    workoutLogItems(ui, vm)
+                }
+            }
+        }
     }
 }
 
-/** Shared body: today's planned movements (one value each), save, mark/rest.
- *  Reused by the Workouts page and the pushed log screen. */
-@Composable
-fun WorkoutLogContent(modifier: Modifier, vm: WorkoutLogViewModel) {
-    val ui by vm.ui.collectAsStateWithLifecycle()
-    Box(modifier.fillMaxSize()) {
-        when {
-            ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            ui.loadError != null -> Text(
-                ui.loadError!!,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+/** The today's-log items (plan name, movement fields, save, mark/rest), added to
+ *  any LazyColumn so the Workouts page can stack history below them. */
+fun LazyListScope.workoutLogItems(ui: WorkoutLogUiState, vm: WorkoutLogViewModel) {
+    if (!ui.loggable || ui.inputs.isEmpty()) {
+        item(key = "empty") {
+            Text(
+                "No scheduled workouts today. You can still mark the day.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            else -> LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (!ui.loggable || ui.inputs.isEmpty()) {
-                    item {
-                        Text(
-                            "No scheduled workouts today. You can still mark the day.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    if (ui.planName != null) {
-                        item {
-                            Text(
-                                ui.planName!!,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                    items(ui.inputs, key = { it.poolExerciseId }) { m ->
-                        MovementRow(m, vm)
-                    }
-                    item {
-                        Button(
-                            onClick = vm::save,
-                            enabled = !ui.saving,
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        ) {
-                            if (ui.saving) {
-                                CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            Text("Save workout")
-                        }
-                    }
-                }
-                item {
-                    Row(
-                        Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = vm::markDone,
-                            enabled = !ui.saving,
-                            modifier = Modifier.weight(1f),
-                        ) { Text("Mark done") }
-                        OutlinedButton(
-                            onClick = vm::restDay,
-                            enabled = !ui.saving,
-                            modifier = Modifier.weight(1f),
-                        ) { Text("Rest day") }
-                    }
-                }
-                if (ui.actionError != null) {
-                    item {
-                        Text(
-                            ui.actionError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
+        }
+    } else {
+        if (ui.planName != null) {
+            item(key = "planName") {
+                Text(
+                    ui.planName!!,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
+        }
+        items(ui.inputs, key = { "mv-${it.poolExerciseId}" }) { m ->
+            MovementRow(m, vm)
+        }
+        item(key = "save") {
+            Button(
+                onClick = vm::save,
+                enabled = !ui.saving,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                if (ui.saving) {
+                    CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text("Save workout")
+            }
+        }
+    }
+    item(key = "quick") {
+        Row(
+            Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedButton(onClick = vm::markDone, enabled = !ui.saving, modifier = Modifier.weight(1f)) {
+                Text("Mark done")
+            }
+            OutlinedButton(onClick = vm::restDay, enabled = !ui.saving, modifier = Modifier.weight(1f)) {
+                Text("Rest day")
+            }
+        }
+    }
+    if (ui.actionError != null) {
+        item(key = "actionError") {
+            Text(
+                ui.actionError!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

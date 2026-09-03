@@ -201,6 +201,38 @@ data class PlannedEntryDto(
     val unit: String,
 )
 
+// --- Workout history + progress ---
+
+@Serializable
+data class WorkoutProgressDto(
+    val series: List<ProgressSeriesDto> = emptyList(),
+    val history: List<WorkoutHistoryDto> = emptyList(),
+)
+
+@Serializable
+data class ProgressSeriesDto(
+    val poolExerciseId: String,
+    val name: String,
+    val unit: String,
+    val points: List<GraphPointDto> = emptyList(),
+)
+
+@Serializable
+data class GraphPointDto(
+    val date: String,
+    val value: Double,
+)
+
+@Serializable
+data class WorkoutHistoryDto(
+    val id: String,
+    val date: String,
+    val label: String,
+    val result: String = "",
+    val isRest: Boolean = false,
+)
+
+
 /** Error envelope: { "error": { code, message, fields? } }. */
 @Serializable
 data class ApiErrorEnvelope(
