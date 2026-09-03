@@ -17,13 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,9 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -66,7 +62,7 @@ import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit, onLogWorkout: (String) -> Unit) {
+fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (String) -> Unit) {
     val container = rememberContainer()
     val vm: HomeViewModel = viewModel(
         factory = viewModelFactory {
@@ -75,7 +71,6 @@ fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit, onLogWorkout: (Stri
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    var menuOpen by remember { mutableStateOf(false) }
 
     // Reload the day whenever Home is (re)shown — e.g. returning from logging a
     // workout — so it reflects changes made on other screens.
@@ -98,27 +93,10 @@ fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit, onLogWorkout: (Stri
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kairos") },
-                actions = {
-                    IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "More")
-                    }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Devices") },
-                            onClick = {
-                                menuOpen = false
-                                onOpenDevices()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Sign out") },
-                            enabled = !ui.signingOut,
-                            onClick = {
-                                menuOpen = false
-                                vm.signOut()
-                            },
-                        )
+                title = { Text("Home") },
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
                     }
                 },
             )

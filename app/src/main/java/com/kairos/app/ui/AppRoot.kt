@@ -17,6 +17,31 @@ import com.kairos.app.ui.devices.DevicesScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.nav.Route
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.kairos.app.ui.common.PlaceholderScreen
+import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.nav.APP_SECTIONS
+import com.kairos.app.ui.nav.sectionFor
+import kotlinx.coroutines.launch
 import com.kairos.app.ui.setup.SetupScreen
 
 /**
@@ -39,28 +64,101 @@ fun AppRoot(container: AppContainer) {
     }
 }
 
-/** The authenticated area. A NavHost so it can grow bottom-nav destinations as
- *  read screens land; for now it holds only Home. */
+/** The authenticated area: a navigation drawer (opened by the top-left menu)
+ *  over a NavHost. Home is real; other sections are placeholders until built. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val navController = rememberNavController()
-    val startRoute = remember { Route.Home }
-    NavHost(navController = navController, startDestination = startRoute) {
-        composable<Route.Home> {
-            HomeScreen(
-                person = person,
-                onOpenDevices = { navController.navigate(Route.Devices) },
-                onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
-            )
-        }
-        composable<Route.Devices> {
-            DevicesScreen(onBack = { navController.popBackStack() })
-        }
-        composable<Route.WorkoutLog> { entry ->
-            WorkoutLogScreen(
-                date = entry.toRoute<Route.WorkoutLog>().date,
-                onDone = { navController.popBackStack() },
-            )
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val container = rememberContainer()
+    var selectedKey by remember { mutableStateOf("home") }
+
+    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+    fun go(route: Route, key: String) {
+        selectedKey = key
+        scope.launch { drawerState.close() }
+        navController.navigate(route) {
+            popUpTo(Route.Home)
+            launchSingleTop = true
         }
     }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text(
+                    "Kairos",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(24.dp),
+                )
+                APP_SECTIONS.forEach { section ->
+                    NavigationDrawerItem(
+                        label = { Text(section.label) },
+                        selected = section.key == selectedKey,
+                        icon = { ColorDot(section.color) },
+                        onClick = {
+                            if (section.key == "home") go(Route.Home, "home")
+                            else go(Route.Section(section.key), section.key)
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                NavigationDrawerItem(
+                    label = { Text("Devices") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(Route.Devices) { launchSingleTop = true }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+                NavigationDrawerItem(
+                    label = { Text("Sign out") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        scope.launch { container.sessionRepository.signOut() }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+        },
+    ) {
+        NavHost(navController = navController, startDestination = Route.Home) {
+            composable<Route.Home> {
+                HomeScreen(
+                    person = person,
+                    onOpenDrawer = openDrawer,
+                    onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
+                )
+            }
+            composable<Route.Section> { entry ->
+                val key = entry.toRoute<Route.Section>().key
+                PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = openDrawer)
+            }
+            composable<Route.Devices> {
+                DevicesScreen(onBack = { navController.popBackStack() })
+            }
+            composable<Route.WorkoutLog> { entry ->
+                WorkoutLogScreen(
+                    date = entry.toRoute<Route.WorkoutLog>().date,
+                    onDone = { navController.popBackStack() },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColorDot(color: androidx.compose.ui.graphics.Color) {
+    Box(
+        Modifier
+            .size(12.dp)
+            .clip(CircleShape)
+            .background(color),
+    )
 }

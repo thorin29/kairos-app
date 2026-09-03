@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 — navigation shell
+- The top-left menu now opens a drawer with all your sections (Home, Calendar,
+  Chores, Bible reading, Reading, School, Game time, Workouts, Groceries, Money,
+  Characters), each in its section colour. Devices and Sign out moved into it.
+- Home is the built page; other sections show a placeholder and get filled in
+  one at a time — Workouts to full parity is next.
+
 ## 0.7.0 — log your workout
 - Workout prompts now offer "Log workout": a screen to enter weight and reps for
   each of the day's scheduled exercises (prefilled with anything already logged),
