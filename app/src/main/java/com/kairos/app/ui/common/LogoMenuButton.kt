@@ -20,7 +20,7 @@ fun LogoMenuButton(onClick: () -> Unit) {
             painter = painterResource(R.drawable.kairos_logo),
             contentDescription = "Menu",
             modifier = Modifier
-                .size(32.dp)
+                .size(36.dp)
                 .clip(RoundedCornerShape(8.dp)),
         )
     }

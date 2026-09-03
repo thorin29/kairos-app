@@ -155,10 +155,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 },
                 onToggleExpanded = { container.navExpanded.value = !container.navExpanded.value },
                 onLogoClick = { open = false },
-                onDevices = {
-                    open = false
-                    navController.navigate(Route.Devices) { launchSingleTop = true }
-                },
                 onSignOut = {
                     open = false
                     scope.launch { container.sessionRepository.signOut() }

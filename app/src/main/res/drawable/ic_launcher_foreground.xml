@@ -1,13 +1,4 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- Placeholder geometric "K" mark on the brand background; replace with the
-         real Kairos hexagonal mosaic logo when it's ready. -->
-    <group android:scaleX="0.62" android:scaleY="0.62" android:pivotX="54" android:pivotY="54">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M40,30 L40,78 L48,78 L48,58 L52,58 L68,78 L79,78 L60,55 L78,30 L67,30 L52,50 L48,50 L48,30 Z" />
-    </group>
-</vector>
+<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/kairos_logo"
+    android:inset="20dp" />

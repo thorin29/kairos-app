@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Kairos teal-green brand seed, used for the adaptive launcher icon
-         background. In-app colors are defined in the Compose theme. -->
-    <color name="ic_launcher_background">#0F766E</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

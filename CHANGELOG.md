@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1 — nav polish + app icon
+- The logo now stays put when the rail opens (status-bar-aligned header), so the
+  menu unfurls out of the logo instead of the logo jumping up.
+- Sign out is now the switch-arrows icon to the right of your name (expanded).
+- Devices removed from the rail (it'll live in a future Settings menu); the
+  collapse/expand control keeps a consistent spot in both states.
+- The Kairos logo is now the app's launcher icon on the home screen.
+
 ## 0.10.0 — nav rail: width, collapse/expand, roll-out, light theme
 - The rail now has two widths like the web: a narrow icon-only collapsed rail and
   a wider expanded rail with labels, with a collapse/expand toggle.

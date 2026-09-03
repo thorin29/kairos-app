@@ -1,6 +1,5 @@
 package com.kairos.app.ui.nav
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,21 +28,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kairos.app.BuildConfig
-import com.kairos.app.R
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.ui.common.LogoMenuButton
 
 private val SidebarColor = Color(0xFF86A0A3) // --color-sidebar
 private val OnSidebar = Color.White
 
 /**
- * The nav rail, matching the web sidebar in both states: a narrow icon-only
- * collapsed rail and a wider expanded rail with labels. Active row turns white
- * with the section's brand colour. Caller animates width + the roll-out.
+ * The nav rail, matching the web sidebar in both states. The logo sits at the
+ * same place as the top-bar logo (status-bar inset + 64dp header, start-aligned),
+ * so opening the rail looks like the menu unfurls out of the logo rather than the
+ * logo jumping. Collapsed = icon-only; expanded = labels + person + version.
  */
 @Composable
 fun KairosRail(
@@ -53,74 +54,63 @@ fun KairosRail(
     onSection: (AppSection) -> Unit,
     onToggleExpanded: () -> Unit,
     onLogoClick: () -> Unit,
-    onDevices: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    Column(
-        modifier
-            .background(SidebarColor)
-            .padding(vertical = 8.dp),
-    ) {
-        // Header: logo (tap to close) + current page name when expanded.
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .padding(horizontal = if (expanded) 16.dp else 0.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = if (expanded) Arrangement.Start else Arrangement.Center,
-        ) {
-            Image(
-                painter = painterResource(R.drawable.kairos_logo),
-                contentDescription = "Close menu",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable(onClick = onLogoClick),
-            )
-            if (expanded) {
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    activeLabel,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OnSidebar,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-
+    Column(modifier.background(SidebarColor)) {
         Column(
             Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp),
+                .statusBarsPadding()
+                .fillMaxHeight()
+                .padding(bottom = 8.dp),
         ) {
-            APP_SECTIONS.forEach { section ->
-                RailRow(section, section.key == selectedKey, expanded) { onSection(section) }
+            // Header: logo aligned with the top-bar logo, + page name when open.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .padding(start = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LogoMenuButton(onClick = onLogoClick)
+                if (expanded) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        activeLabel,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OnSidebar,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
 
-        HorizontalDivider(color = OnSidebar.copy(alpha = 0.2f))
-
-        // Footer: person, then the collapse/expand control (+ version when open).
-        Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-            FooterPerson(person, expanded)
-            ToggleRow(expanded, onToggleExpanded)
-            if (expanded) {
-                Text(
-                    "v${BuildConfig.VERSION_NAME}",
-                    color = OnSidebar.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp, end = 8.dp),
-                )
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                APP_SECTIONS.forEach { section ->
+                    RailRow(section, section.key == selectedKey, expanded) { onSection(section) }
+                }
             }
-            if (expanded) {
-                FooterTextRow("Devices", onDevices)
-                FooterTextRow("Sign out", onSignOut)
+
+            HorizontalDivider(color = OnSidebar.copy(alpha = 0.2f))
+
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                FooterPerson(person, expanded, onSignOut)
+                ToggleRow(expanded, onToggleExpanded)
+                if (expanded) {
+                    Text(
+                        "v${BuildConfig.VERSION_NAME}",
+                        color = OnSidebar.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp, end = 8.dp),
+                    )
+                }
             }
         }
     }
@@ -158,12 +148,7 @@ private fun RailRow(
             )
         }
     } else {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
             Box(
                 Modifier
                     .size(44.dp)
@@ -179,14 +164,14 @@ private fun RailRow(
 }
 
 @Composable
-private fun FooterPerson(person: PersonDto, expanded: Boolean) {
+private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> Unit) {
     val label = person.avatarIcon ?: initials(person.name)
     if (expanded) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .padding(horizontal = 2.dp),
+                .padding(start = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(label)
@@ -198,7 +183,16 @@ private fun FooterPerson(person: PersonDto, expanded: Boolean) {
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onSignOut) {
+                Icon(
+                    KairosIcons.Switch,
+                    contentDescription = "Sign out / switch",
+                    tint = OnSidebar.copy(alpha = 0.85f),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     } else {
         Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
@@ -237,12 +231,7 @@ private fun ToggleRow(expanded: Boolean, onToggle: () -> Unit) {
             Text("Collapse", color = OnSidebar.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium)
         }
     } else {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(40.dp),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
             Box(
                 Modifier
                     .size(40.dp)
@@ -253,21 +242,6 @@ private fun ToggleRow(expanded: Boolean, onToggle: () -> Unit) {
                 Icon(KairosIcons.ChevronRight, "Expand", tint = OnSidebar.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
             }
         }
-    }
-}
-
-@Composable
-private fun FooterTextRow(label: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .height(40.dp)
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = OnSidebar.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
