@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
 
+/** Pushed screen (from a Home workout prompt) for a specific day; pops on save. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
@@ -52,9 +53,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
 
-    LaunchedEffect(ui.done) {
-        if (ui.done) onDone()
-    }
+    LaunchedEffect(ui.done) { if (ui.done) onDone() }
 
     Scaffold(
         topBar = {
@@ -68,82 +67,82 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
             )
         },
     ) { inner ->
-        Box(
-            Modifier
-                .padding(inner)
-                .fillMaxSize(),
-        ) {
-            when {
-                ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                ui.loadError != null -> Text(
-                    ui.loadError!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                )
-                else -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    if (!ui.loggable || ui.inputs.isEmpty()) {
-                        item {
-                            Text(
-                                "No exercises are scheduled to log today. You can still mark the day.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    } else {
-                        items(ui.inputs, key = { it.exerciseId }) { ex ->
-                            ExerciseInputRow(ex, vm)
-                        }
-                        item {
-                            Button(
-                                onClick = vm::save,
-                                enabled = !ui.saving,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                            ) {
-                                if (ui.saving) {
-                                    CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text("Save workout")
-                            }
-                        }
-                    }
+        WorkoutLogContent(Modifier.padding(inner), vm)
+    }
+}
 
+/** The shared today's-log body: per-exercise weight/reps, save, mark done/rest.
+ *  Reused by the Workouts page and the pushed log screen. */
+@Composable
+fun WorkoutLogContent(modifier: Modifier, vm: WorkoutLogViewModel) {
+    val ui by vm.ui.collectAsStateWithLifecycle()
+    Box(modifier.fillMaxSize()) {
+        when {
+            ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            ui.loadError != null -> Text(
+                ui.loadError!!,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+            )
+            else -> LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (!ui.loggable || ui.inputs.isEmpty()) {
                     item {
-                        Row(
-                            Modifier.fillMaxWidth().padding(top = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        Text(
+                            "No exercises are scheduled to log today. You can still mark the day.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    items(ui.inputs, key = { it.exerciseId }) { ex ->
+                        ExerciseInputRow(ex, vm)
+                    }
+                    item {
+                        Button(
+                            onClick = vm::save,
+                            enabled = !ui.saving,
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         ) {
-                            OutlinedButton(
-                                onClick = vm::markDone,
-                                enabled = !ui.saving,
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Mark done") }
-                            OutlinedButton(
-                                onClick = vm::restDay,
-                                enabled = !ui.saving,
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Rest day") }
+                            if (ui.saving) {
+                                CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text("Save workout")
                         }
                     }
-
-                    if (ui.actionError != null) {
-                        item {
-                            Text(
-                                ui.actionError!!,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
+                }
+                item {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = vm::markDone,
+                            enabled = !ui.saving,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Mark done") }
+                        OutlinedButton(
+                            onClick = vm::restDay,
+                            enabled = !ui.saving,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Rest day") }
+                    }
+                }
+                if (ui.actionError != null) {
+                    item {
+                        Text(
+                            ui.actionError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
             }

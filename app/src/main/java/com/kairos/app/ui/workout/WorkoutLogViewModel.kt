@@ -28,26 +28,38 @@ data class WorkoutLogUiState(
     val loadError: String? = null,
     val saving: Boolean = false,
     val actionError: String? = null,
+    /** Set when a save/mark/rest succeeds; a pushed screen pops on this. */
     val done: Boolean = false,
+    /** True after the most recent save/mark/rest succeeded (for in-place pages). */
+    val savedTick: Int = 0,
 )
 
+/**
+ * Shared logging state for both the pushed log screen (a specific day) and the
+ * Workouts page (today). [initialDate] null means "today" — the server resolves
+ * it and returns the concrete date, which is then used for all writes.
+ */
 class WorkoutLogViewModel(
     private val session: SessionRepository,
-    private val date: String,
+    private val initialDate: String?,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(WorkoutLogUiState())
     val ui: StateFlow<WorkoutLogUiState> = _ui.asStateFlow()
 
+    /** Concrete date the server resolved the plan to; used for all writes. */
+    private var date: String? = initialDate
+
     init {
         load()
     }
 
-    private fun load() {
-        _ui.update { it.copy(loading = true, loadError = null) }
+    fun load() {
+        _ui.update { it.copy(loading = it.inputs.isEmpty(), loadError = null) }
         viewModelScope.launch {
             try {
-                val plan = session.loadWorkout(date)
+                val plan = session.loadWorkout(initialDate)
+                date = plan.date
                 val inputs = plan.exercises.map { e ->
                     ExerciseInput(
                         exerciseId = e.exerciseId,
@@ -77,6 +89,7 @@ class WorkoutLogViewModel(
     }
 
     fun save() {
+        val d = date ?: return
         _ui.update { it.copy(saving = true, actionError = null) }
         viewModelScope.launch {
             try {
@@ -87,23 +100,25 @@ class WorkoutLogViewModel(
                         reps = it.reps.trim().toIntOrNull(),
                     )
                 }
-                session.logWorkout(date, entries, null)
-                _ui.update { it.copy(saving = false, done = true) }
+                session.logWorkout(d, entries, null)
+                _ui.update { it.copy(saving = false, done = true, savedTick = it.savedTick + 1) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(saving = false, actionError = e.error.message) }
             }
         }
     }
 
-    fun markDone() = quick { session.workoutComplete(date) }
-    fun restDay() = quick { session.workoutRest(date) }
+    fun markDone() = quick { session.workoutComplete(it) }
+    fun restDay() = quick { session.workoutRest(it) }
 
-    private fun quick(block: suspend () -> Unit) {
+    private fun quick(block: suspend (String) -> Unit) {
+        val d = date ?: return
         _ui.update { it.copy(saving = true, actionError = null) }
         viewModelScope.launch {
             try {
-                block()
-                _ui.update { it.copy(saving = false, done = true) }
+                block(d)
+                _ui.update { it.copy(saving = false, done = true, savedTick = it.savedTick + 1) }
+                load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(saving = false, actionError = e.error.message) }
             }

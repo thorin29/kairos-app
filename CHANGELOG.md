@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0 — logout confirm + Workouts page (step 1)
+- Signing out now asks to confirm (Cancel / Sign out) instead of logging out on
+  the first tap.
+- The Workouts section is now a real page (step 1 of full parity): today's
+  scheduled exercises with inline weight/reps logging, plus mark done / rest.
+  History, progress graph, weight calculator, browse, and plan/rotation are next.
+
 ## 0.11.1 — menu sits below the top bar
 - The menu now starts right at the bottom edge of the status bar, with its
   rounded top-right corner in line just below it, instead of running up behind

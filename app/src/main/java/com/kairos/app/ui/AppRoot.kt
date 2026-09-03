@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +47,7 @@ import com.kairos.app.ui.nav.sectionFor
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
+import com.kairos.app.ui.workout.WorkoutsScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -81,6 +85,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val container = rememberContainer()
 
     var open by remember { mutableStateOf(false) }
+    var confirmSignOut by remember { mutableStateOf(false) }
     val expanded by container.navExpanded.collectAsStateWithLifecycle()
     var selectedKey by remember { mutableStateOf("home") }
 
@@ -117,7 +122,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.Section> { entry ->
                     val key = entry.toRoute<Route.Section>().key
-                    PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
+                    if (key == "workouts") {
+                        WorkoutsScreen(onOpenDrawer = { open = true })
+                    } else {
+                        PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
+                    }
                 }
                 composable<Route.Devices> {
                     DevicesScreen(onBack = { navController.popBackStack() })
@@ -156,10 +165,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 },
                 onToggleExpanded = { container.navExpanded.value = !container.navExpanded.value },
                 onLogoClick = { open = false },
-                onSignOut = {
-                    open = false
-                    scope.launch { container.sessionRepository.signOut() }
-                },
+                onSignOut = { confirmSignOut = true },
             )
             // Subtle darker shade over the status-bar strip for icon readability.
             Box(
@@ -167,6 +173,24 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     .fillMaxWidth()
                     .windowInsetsTopHeight(WindowInsets.statusBars)
                     .background(Color.Black.copy(alpha = 0.18f * openProgress)),
+            )
+        }
+
+        if (confirmSignOut) {
+            AlertDialog(
+                onDismissRequest = { confirmSignOut = false },
+                title = { Text("Sign out?") },
+                text = { Text("You'll need your password and a device code to sign in again on this phone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmSignOut = false
+                        open = false
+                        scope.launch { container.sessionRepository.signOut() }
+                    }) { Text("Sign out") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") }
+                },
             )
         }
     }
