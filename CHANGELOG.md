@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0 — rail slides, rounds, blurs
+- The menu now slides straight in/out from the left (no more drop-down feel),
+  with a rounded top-right corner.
+- It runs full-height under the status bar, with a subtle darker shade over the
+  status-bar strip so time/battery/wifi stay readable.
+- Everything behind the menu blurs and dims while it's open.
+
 ## 0.10.2 — rail top/bottom polish
 - The teal panel now starts just below the status bar (flat top above the logo)
   and runs to the bottom, which also cleans up the open animation.

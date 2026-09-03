@@ -56,13 +56,14 @@ fun KairosRail(
     onLogoClick: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    Column(modifier) {
+    Column(modifier.background(SidebarColor)) {
+        // Teal fills the full height (rounded on the top-right by the caller's
+        // clip and slid in horizontally); content is inset from the system bars.
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()          // transparent strip above the teal
-                .background(SidebarColor)      // teal: below status bar -> full bottom
-                .navigationBarsPadding()       // keep content out of the gesture/curve zone
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(bottom = 6.dp),
         ) {
             // Header: logo aligned with the top-bar logo, + page name when open.

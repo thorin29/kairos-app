@@ -6,9 +6,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,8 +21,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -65,9 +71,10 @@ private val COLLAPSED_WIDTH = 76.dp
 private val EXPANDED_WIDTH = 224.dp
 
 /**
- * The authenticated area: the NavHost content with the Kairos rail as an overlay
- * that rolls out from the top-left (matching the web) when the logo is tapped.
- * Opens collapsed; expanding sticks for the session until collapsed or relaunch.
+ * The authenticated area. The rail slides straight in from the left (rounded on
+ * the top-right, full-height under the status bar); the content behind blurs and
+ * dims, and a subtle scrim over the status-bar strip keeps the system icons
+ * readable. Opens collapsed; expanding sticks for the session.
  */
 @Composable
 private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
@@ -81,7 +88,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
 
     val openProgress by animateFloatAsState(
         targetValue = if (open) 1f else 0f,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = 220),
         label = "navOpen",
     )
     val railWidth by animateDpAsState(
@@ -100,51 +107,48 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        NavHost(navController = navController, startDestination = Route.Home) {
-            composable<Route.Home> {
-                HomeScreen(
-                    person = person,
-                    onOpenDrawer = { open = true },
-                    onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
-                )
-            }
-            composable<Route.Section> { entry ->
-                val key = entry.toRoute<Route.Section>().key
-                PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
-            }
-            composable<Route.Devices> {
-                DevicesScreen(onBack = { navController.popBackStack() })
-            }
-            composable<Route.WorkoutLog> { entry ->
-                WorkoutLogScreen(
-                    date = entry.toRoute<Route.WorkoutLog>().date,
-                    onDone = { navController.popBackStack() },
-                )
+        // Content — blurred and dimmed while the menu is open.
+        Box(Modifier.fillMaxSize().blur(radius = (openProgress * 6f).dp)) {
+            NavHost(navController = navController, startDestination = Route.Home) {
+                composable<Route.Home> {
+                    HomeScreen(
+                        person = person,
+                        onOpenDrawer = { open = true },
+                        onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
+                    )
+                }
+                composable<Route.Section> { entry ->
+                    val key = entry.toRoute<Route.Section>().key
+                    PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
+                }
+                composable<Route.Devices> {
+                    DevicesScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.WorkoutLog> { entry ->
+                    WorkoutLogScreen(
+                        date = entry.toRoute<Route.WorkoutLog>().date,
+                        onDone = { navController.popBackStack() },
+                    )
+                }
             }
         }
 
         if (openProgress > 0.001f) {
-            // Scrim — tap to close.
+            // Dim scrim over the (blurred) content — tap to close.
             Box(
                 Modifier
                     .fillMaxSize()
                     .graphicsLayer { alpha = openProgress }
-                    .background(Color.Black.copy(alpha = 0.32f))
-                    .pointerInput(Unit) {
-                        detectTapGestures { open = false }
-                    },
+                    .background(Color.Black.copy(alpha = 0.28f))
+                    .pointerInput(Unit) { detectTapGestures { open = false } },
             )
-            // The rail, scaling out from the top-left corner.
+            // The rail: slides in from the left, rounded on the top-right.
             KairosRail(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(railWidth)
-                    .graphicsLayer {
-                        scaleX = openProgress
-                        scaleY = openProgress
-                        alpha = openProgress
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    },
+                    .graphicsLayer { translationX = (openProgress - 1f) * size.width }
+                    .clip(RoundedCornerShape(topEnd = 22.dp)),
                 expanded = expanded,
                 person = person,
                 selectedKey = selectedKey,
@@ -159,6 +163,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     open = false
                     scope.launch { container.sessionRepository.signOut() }
                 },
+            )
+            // Subtle darker shade over the status-bar strip for icon readability.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .background(Color.Black.copy(alpha = 0.18f * openProgress)),
             )
         }
     }
