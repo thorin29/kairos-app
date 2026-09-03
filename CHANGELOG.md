@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 — Kairos look for the nav
+- The nav rail now matches the web: the real Kairos logo (top-left, not a
+  hamburger), your section icons ported from the web icon set, the sage sidebar
+  colour, and an active row that turns white with the section's brand colour.
+  Person name and app version sit at the bottom.
+
 ## 0.8.0 — navigation shell
 - The top-left menu now opens a drawer with all your sections (Home, Calendar,
   Chores, Bible reading, Reading, School, Game time, Workouts, Groceries, Money,

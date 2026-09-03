@@ -17,30 +17,18 @@ import com.kairos.app.ui.devices.DevicesScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.nav.Route
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import com.kairos.app.ui.common.PlaceholderScreen
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.APP_SECTIONS
 import com.kairos.app.ui.nav.sectionFor
+import com.kairos.app.ui.nav.KairosDrawerContent
 import kotlinx.coroutines.launch
 import com.kairos.app.ui.setup.SetupScreen
 
@@ -88,44 +76,22 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
-                Text(
-                    "Kairos",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(24.dp),
-                )
-                APP_SECTIONS.forEach { section ->
-                    NavigationDrawerItem(
-                        label = { Text(section.label) },
-                        selected = section.key == selectedKey,
-                        icon = { ColorDot(section.color) },
-                        onClick = {
-                            if (section.key == "home") go(Route.Home, "home")
-                            else go(Route.Section(section.key), section.key)
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                }
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                NavigationDrawerItem(
-                    label = { Text("Devices") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate(Route.Devices) { launchSingleTop = true }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-                NavigationDrawerItem(
-                    label = { Text("Sign out") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        scope.launch { container.sessionRepository.signOut() }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-            }
+            KairosDrawerContent(
+                personName = person.name,
+                selectedKey = selectedKey,
+                onSection = { section ->
+                    if (section.key == "home") go(Route.Home, "home")
+                    else go(Route.Section(section.key), section.key)
+                },
+                onDevices = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate(Route.Devices) { launchSingleTop = true }
+                },
+                onSignOut = {
+                    scope.launch { drawerState.close() }
+                    scope.launch { container.sessionRepository.signOut() }
+                },
+            )
         },
     ) {
         NavHost(navController = navController, startDestination = Route.Home) {
@@ -153,12 +119,3 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
 }
 
-@Composable
-private fun ColorDot(color: androidx.compose.ui.graphics.Color) {
-    Box(
-        Modifier
-            .size(12.dp)
-            .clip(CircleShape)
-            .background(color),
-    )
-}
