@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 — re-login on password change
+- If your account password changes, the app now asks you to sign in again while
+  the device stays enrolled — no re-pairing. Backed by `POST /api/v1/auth/reauth`
+  and a `reauth_required` response the app handles distinctly from a full sign-out.
+- Passwordless child devices are unaffected.
+
 ## 0.4.0 — sign-in (layered login + code)
 - People with a password now sign in (username/email + password) and then pair
   the device with a code — both factors, for the same person.

@@ -85,6 +85,7 @@ fun <T> Response<T>.bodyOrThrow(): T {
     throw ApiException(
         when (parsed?.code) {
             "unauthenticated" -> ApiError.Unauthenticated
+            "reauth_required" -> ApiError.ReauthRequired
             "forbidden" -> ApiError.Forbidden(message)
             "not_found" -> ApiError.NotFound(message)
             "rate_limited" -> ApiError.RateLimited(

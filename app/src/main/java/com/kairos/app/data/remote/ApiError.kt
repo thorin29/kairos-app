@@ -9,6 +9,10 @@ sealed class ApiError(open val message: String) {
     /** 401 — token missing/invalid/expired. Triggers a forced sign-out. */
     data object Unauthenticated : ApiError("Signed out on the server.")
 
+    /** 401 reauth_required — device still enrolled, but the account password
+     *  changed; re-enter the password (keep the device). */
+    data object ReauthRequired : ApiError("Please sign in again.")
+
     /** 403 — e.g. enrollment code invalid or expired (never says which). */
     data class Forbidden(override val message: String) : ApiError(message)
 

@@ -48,6 +48,16 @@ data class LoginResponse(
 )
 
 @Serializable
+data class ReauthRequest(
+    val password: String,
+)
+
+@Serializable
+data class ReauthResponse(
+    val person: PersonDto? = null,
+)
+
+@Serializable
 data class EnrollResponse(
     val token: String,
     val expiresAt: String,

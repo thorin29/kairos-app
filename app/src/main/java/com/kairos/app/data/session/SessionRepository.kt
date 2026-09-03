@@ -9,6 +9,7 @@ import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.LoginRequest
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.ReauthRequest
 import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.WorkoutAckDto
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
@@ -28,6 +29,8 @@ sealed interface SessionState {
     data object NeedsSetup : SessionState
     /** Server known, but no valid device token — needs to redeem a code. */
     data object NeedsEnroll : SessionState
+    /** Device still enrolled, but the account password changed — re-enter it. */
+    data class NeedsReauth(val person: PersonDto?) : SessionState
     /** Enrolled; [person] came from /me. */
     data class Ready(val person: PersonDto) : SessionState
 }
@@ -85,14 +88,17 @@ class SessionRepository(
             val person = apiCall { service!!.me() }
             _state.value = SessionState.Ready(person)
         } catch (e: ApiException) {
-            if (e.error is ApiError.Unauthenticated) {
-                tokens.clear()
-                _state.value = SessionState.NeedsEnroll
-            } else {
-                // Network/server hiccup on a known-good token: stay enrolled in
-                // spirit but let the caller retry. We fall back to NeedsEnroll
-                // only for auth failures, not transient ones.
-                _state.value = SessionState.NeedsEnroll
+            when (e.error) {
+                is ApiError.ReauthRequired ->
+                    // Device still enrolled; the password changed. Keep the token.
+                    _state.value = SessionState.NeedsReauth(null)
+                is ApiError.Unauthenticated -> {
+                    tokens.clear()
+                    _state.value = SessionState.NeedsEnroll
+                }
+                else ->
+                    // Transient network/server issue on a known-good token.
+                    _state.value = SessionState.NeedsEnroll
             }
         }
     }
@@ -191,12 +197,27 @@ class SessionRepository(
         try {
             return apiCall(block)
         } catch (e: ApiException) {
-            if (e.error is ApiError.Unauthenticated) {
-                tokens.clear()
-                _state.value = SessionState.NeedsEnroll
+            when (e.error) {
+                is ApiError.ReauthRequired ->
+                    // Keep the device token; the app shows a password prompt.
+                    _state.value = SessionState.NeedsReauth(null)
+                is ApiError.Unauthenticated -> {
+                    tokens.clear()
+                    _state.value = SessionState.NeedsEnroll
+                }
+                else -> {}
             }
             throw e
         }
+    }
+
+    /** Re-confirm the password on an enrolled device whose account password
+     *  changed. Keeps the same device token; on success returns to Ready. */
+    suspend fun reauth(password: String) {
+        val svc = requireService()
+        val res = apiCall { svc.reauth(ReauthRequest(password)) }
+        val person = res.person ?: apiCall { svc.me() }
+        _state.value = SessionState.Ready(person)
     }
 
     suspend fun refreshMe() {
@@ -214,6 +235,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 5
+        const val CLIENT_BUILD = 6
     }
 }

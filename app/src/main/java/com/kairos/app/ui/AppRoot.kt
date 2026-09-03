@@ -12,6 +12,7 @@ import com.kairos.app.di.AppContainer
 import com.kairos.app.ui.common.LoadingScreen
 import com.kairos.app.ui.auth.AuthFlow
 import com.kairos.app.ui.home.HomeScreen
+import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.nav.Route
 import com.kairos.app.ui.setup.SetupScreen
 
@@ -30,6 +31,7 @@ fun AppRoot(container: AppContainer) {
         is SessionState.Loading -> LoadingScreen()
         is SessionState.NeedsSetup -> SetupScreen()
         is SessionState.NeedsEnroll -> AuthFlow()
+        is SessionState.NeedsReauth -> ReauthScreen(person = s.person)
         is SessionState.Ready -> AuthenticatedApp(person = s.person)
     }
 }

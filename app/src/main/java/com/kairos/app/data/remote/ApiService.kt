@@ -7,6 +7,8 @@ import com.kairos.app.data.remote.dto.LoginRequest
 import com.kairos.app.data.remote.dto.LoginResponse
 import com.kairos.app.data.remote.dto.MetaDto
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.ReauthRequest
+import com.kairos.app.data.remote.dto.ReauthResponse
 import com.kairos.app.data.remote.dto.RevokeResponse
 import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.TokenResponse
@@ -44,6 +46,9 @@ interface ApiService {
 
     @POST("auth/revoke")
     suspend fun revoke(): Response<RevokeResponse>
+
+    @POST("auth/reauth")
+    suspend fun reauth(@Body body: ReauthRequest): Response<ReauthResponse>
 
     @GET("me")
     suspend fun me(): Response<PersonDto>
