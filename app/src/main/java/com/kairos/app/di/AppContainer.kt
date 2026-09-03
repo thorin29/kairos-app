@@ -8,6 +8,7 @@ import com.kairos.app.data.settings.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Manual dependency container, built once in [com.kairos.app.KairosApp]. Chosen
@@ -28,4 +29,8 @@ class AppContainer(context: Context) {
         tokens = tokenStore,
         appScope = appScope,
     )
+
+    /** Nav rail expanded/collapsed, session-scoped: survives navigation and
+     *  drawer open/close, resets to collapsed when the app is relaunched. */
+    val navExpanded = MutableStateFlow(false)
 }

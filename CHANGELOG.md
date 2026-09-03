@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0 — nav rail: width, collapse/expand, roll-out, light theme
+- The rail now has two widths like the web: a narrow icon-only collapsed rail and
+  a wider expanded rail with labels, with a collapse/expand toggle.
+- Tapping the logo rolls the rail out from the top-left corner. It opens collapsed
+  by default; expanding sticks across navigation and reopen until you collapse it
+  or relaunch the app.
+- The app now uses the single light Kairos design and no longer follows the
+  phone's dark mode (the web has one design).
+- Your emoji/initials avatar shows in the rail footer. Real uploaded photos need
+  a token-authed avatar endpoint (they stay behind Authelia) — a later piece.
+
 ## 0.9.0 — Kairos look for the nav
 - The nav rail now matches the web: the real Kairos logo (top-left, not a
   hamburger), your section icons ported from the web icon set, the sage sidebar

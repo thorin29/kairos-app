@@ -99,4 +99,6 @@ object KairosIcons {
         "M17 6h2.5A1.5 1.5 0 0 1 21 7.5c0 1.9-1.6 3.5-3.5 3.5H17",
         "M12 14v3M9 20h6M10 17h4l.5 3h-5l.5-3Z",
     )
+    val ChevronLeft = stroked("ChevronLeft", "M15 6l-6 6 6 6")
+    val ChevronRight = stroked("ChevronRight", "M9 6l6 6-6 6")
 }

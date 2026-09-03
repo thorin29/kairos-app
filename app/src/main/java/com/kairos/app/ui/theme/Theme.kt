@@ -1,6 +1,5 @@
 package com.kairos.app.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -28,7 +27,9 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun KairosTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // Kairos has one design — the light scheme, matching the web. We deliberately
+    // don't follow the system dark setting until a dark theme is designed.
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
