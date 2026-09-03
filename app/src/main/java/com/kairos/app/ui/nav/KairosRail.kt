@@ -56,13 +56,16 @@ fun KairosRail(
     onLogoClick: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    Column(modifier.background(SidebarColor)) {
-        // Teal fills the full height (rounded on the top-right by the caller's
-        // clip and slid in horizontally); content is inset from the system bars.
+    Column(modifier) {
+        // Teal starts at the status-bar bottom (right under the top bar) with the
+        // rounded top-right corner there, and runs to the bottom; content is
+        // further inset from the nav bar.
         Column(
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .clip(RoundedCornerShape(topEnd = 22.dp))
+                .background(SidebarColor)
                 .navigationBarsPadding()
                 .padding(bottom = 6.dp),
         ) {

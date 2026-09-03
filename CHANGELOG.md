@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1 — menu sits below the top bar
+- The menu now starts right at the bottom edge of the status bar, with its
+  rounded top-right corner in line just below it, instead of running up behind
+  the top bar.
+
 ## 0.11.0 — rail slides, rounds, blurs
 - The menu now slides straight in/out from the left (no more drop-down feel),
   with a rounded top-right corner.
