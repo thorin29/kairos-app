@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kairos.app.data.session.SessionState
 import com.kairos.app.di.AppContainer
@@ -13,6 +14,7 @@ import com.kairos.app.ui.common.LoadingScreen
 import com.kairos.app.ui.auth.AuthFlow
 import com.kairos.app.ui.home.HomeScreen
 import com.kairos.app.ui.devices.DevicesScreen
+import com.kairos.app.ui.workout.WorkoutLogScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.nav.Route
 import com.kairos.app.ui.setup.SetupScreen
@@ -48,10 +50,17 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             HomeScreen(
                 person = person,
                 onOpenDevices = { navController.navigate(Route.Devices) },
+                onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
             )
         }
         composable<Route.Devices> {
             DevicesScreen(onBack = { navController.popBackStack() })
+        }
+        composable<Route.WorkoutLog> { entry ->
+            WorkoutLogScreen(
+                date = entry.toRoute<Route.WorkoutLog>().date,
+                onDone = { navController.popBackStack() },
+            )
         }
     }
 }

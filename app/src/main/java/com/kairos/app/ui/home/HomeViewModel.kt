@@ -32,10 +32,6 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
     private val _ui = MutableStateFlow(HomeUiState())
     val ui: StateFlow<HomeUiState> = _ui.asStateFlow()
 
-    init {
-        load()
-    }
-
     fun load() {
         _ui.update { it.copy(loading = it.dashboard == null, loadError = null) }
         viewModelScope.launch {

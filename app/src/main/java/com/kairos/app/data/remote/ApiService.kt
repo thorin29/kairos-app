@@ -16,6 +16,8 @@ import com.kairos.app.data.remote.dto.RevokeResponse
 import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.TokenResponse
 import com.kairos.app.data.remote.dto.WorkoutAckDto
+import com.kairos.app.data.remote.dto.WorkoutLogRequest
+import com.kairos.app.data.remote.dto.WorkoutPlanDto
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -73,6 +75,12 @@ interface ApiService {
 
     @POST("workouts/rest")
     suspend fun workoutRest(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
+
+    @GET("workouts")
+    suspend fun workoutPlan(@Query("date") date: String? = null): Response<WorkoutPlanDto>
+
+    @POST("workouts/log")
+    suspend fun logWorkout(@Body body: WorkoutLogRequest): Response<WorkoutAckDto>
 
     @GET("devices")
     suspend fun devices(): Response<DevicesResponse>

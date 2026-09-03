@@ -166,6 +166,44 @@ data class WorkoutAckDto(
     val status: String,
 )
 
+// --- Detailed workout logging ---
+
+@Serializable
+data class WorkoutPlanDto(
+    val date: String,
+    val loggable: Boolean = false,
+    val exercises: List<WorkoutExerciseDto> = emptyList(),
+)
+
+@Serializable
+data class WorkoutExerciseDto(
+    val exerciseId: String,
+    val name: String,
+    val unit: String,
+    val metric: String,
+    val logged: LoggedSetDto? = null,
+)
+
+@Serializable
+data class LoggedSetDto(
+    val weight: Double? = null,
+    val reps: Int? = null,
+)
+
+@Serializable
+data class WorkoutLogRequest(
+    val date: String,
+    val entries: List<LogEntryDto>,
+    val notes: String? = null,
+)
+
+@Serializable
+data class LogEntryDto(
+    val exerciseId: String,
+    val weight: Double? = null,
+    val reps: Int? = null,
+)
+
 /** Error envelope: { "error": { code, message, fields? } }. */
 @Serializable
 data class ApiErrorEnvelope(

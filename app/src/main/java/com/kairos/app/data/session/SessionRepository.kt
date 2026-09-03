@@ -190,6 +190,20 @@ class SessionRepository(
     suspend fun workoutRest(date: String): WorkoutAckDto =
         runAuthed { requireService().workoutRest(WorkoutDateRequest(date)) }
 
+    suspend fun loadWorkout(date: String): com.kairos.app.data.remote.dto.WorkoutPlanDto =
+        runAuthed { requireService().workoutPlan(date) }
+
+    suspend fun logWorkout(
+        date: String,
+        entries: List<com.kairos.app.data.remote.dto.LogEntryDto>,
+        notes: String?,
+    ): WorkoutAckDto =
+        runAuthed {
+            requireService().logWorkout(
+                com.kairos.app.data.remote.dto.WorkoutLogRequest(date, entries, notes),
+            )
+        }
+
     suspend fun listDevices(): List<com.kairos.app.data.remote.dto.DeviceDto> =
         runAuthed { requireService().devices() }.devices
 
@@ -242,6 +256,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 7
+        const val CLIENT_BUILD = 8
     }
 }

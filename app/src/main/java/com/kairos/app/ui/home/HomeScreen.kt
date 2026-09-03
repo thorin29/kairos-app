@@ -40,6 +40,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +52,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -62,7 +66,7 @@ import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit) {
+fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit, onLogWorkout: (String) -> Unit) {
     val container = rememberContainer()
     val vm: HomeViewModel = viewModel(
         factory = viewModelFactory {
@@ -72,6 +76,17 @@ fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
+
+    // Reload the day whenever Home is (re)shown — e.g. returning from logging a
+    // workout — so it reflects changes made on other screens.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) vm.load()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(ui.actionError) {
         ui.actionError?.let {
@@ -125,14 +140,14 @@ fun HomeScreen(person: PersonDto, onOpenDevices: () -> Unit) {
                 else -> DashboardContent(person, ui, vm)
             }
 
-            ui.workoutSheet?.let { WorkoutSheet(it, vm) }
+            ui.workoutSheet?.let { WorkoutSheet(it, vm, onLogWorkout) }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel) {
+private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
     val sheetState = rememberModalBottomSheetState()
     ModalBottomSheet(onDismissRequest = vm::dismissWorkout, sheetState = sheetState) {
         Column(
@@ -142,6 +157,15 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(task.title, style = MaterialTheme.typography.titleLarge)
+
+            Button(
+                onClick = {
+                    vm.dismissWorkout()
+                    onLogWorkout(task.dueDate)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Log workout") }
+
             when (task.status) {
                 "COMPLETE" -> {
                     OutlinedButton(
@@ -155,13 +179,13 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(
+                    OutlinedButton(
                         onClick = { vm.markWorkoutDone(task) },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Mark as done") }
                 }
                 else -> {
-                    Button(
+                    OutlinedButton(
                         onClick = { vm.markWorkoutDone(task) },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Mark as done") }

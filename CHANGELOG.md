@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 — log your workout
+- Workout prompts now offer "Log workout": a screen to enter weight and reps for
+  each of the day's scheduled exercises (prefilled with anything already logged),
+  then save — which also completes the workout. Mark done / Rest day are still
+  there for days with nothing to log in detail.
+- Home refreshes when you return from logging.
+- New endpoints: `GET /api/v1/workouts` and `POST /api/v1/workouts/log`.
+- Non-weight metrics, multiple sets, and HIIT logging come in a later phase.
+
 ## 0.6.0 — your devices
 - New Devices screen (top-right menu → Devices): see every device enrolled to
   your account, when it enrolled and last activity, which one is this phone, and
