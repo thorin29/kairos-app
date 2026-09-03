@@ -12,6 +12,7 @@ import com.kairos.app.di.AppContainer
 import com.kairos.app.ui.common.LoadingScreen
 import com.kairos.app.ui.auth.AuthFlow
 import com.kairos.app.ui.home.HomeScreen
+import com.kairos.app.ui.devices.DevicesScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.nav.Route
 import com.kairos.app.ui.setup.SetupScreen
@@ -44,7 +45,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val startRoute = remember { Route.Home }
     NavHost(navController = navController, startDestination = startRoute) {
         composable<Route.Home> {
-            HomeScreen(person = person)
+            HomeScreen(
+                person = person,
+                onOpenDevices = { navController.navigate(Route.Devices) },
+            )
+        }
+        composable<Route.Devices> {
+            DevicesScreen(onBack = { navController.popBackStack() })
         }
     }
 }

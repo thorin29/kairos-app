@@ -1,6 +1,8 @@
 package com.kairos.app.data.remote
 
 import com.kairos.app.data.remote.dto.DashboardDto
+import com.kairos.app.data.remote.dto.DeviceDto
+import com.kairos.app.data.remote.dto.DevicesResponse
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.EnrollResponse
 import com.kairos.app.data.remote.dto.LoginRequest
@@ -8,6 +10,7 @@ import com.kairos.app.data.remote.dto.LoginResponse
 import com.kairos.app.data.remote.dto.MetaDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.ReauthRequest
+import com.kairos.app.data.remote.dto.RevokeDeviceResponse
 import com.kairos.app.data.remote.dto.ReauthResponse
 import com.kairos.app.data.remote.dto.RevokeResponse
 import com.kairos.app.data.remote.dto.TaskStatusDto
@@ -70,4 +73,10 @@ interface ApiService {
 
     @POST("workouts/rest")
     suspend fun workoutRest(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
+
+    @GET("devices")
+    suspend fun devices(): Response<DevicesResponse>
+
+    @POST("devices/{id}/revoke")
+    suspend fun revokeDevice(@Path("id") id: String): Response<RevokeDeviceResponse>
 }

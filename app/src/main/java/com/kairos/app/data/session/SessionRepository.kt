@@ -190,6 +190,13 @@ class SessionRepository(
     suspend fun workoutRest(date: String): WorkoutAckDto =
         runAuthed { requireService().workoutRest(WorkoutDateRequest(date)) }
 
+    suspend fun listDevices(): List<com.kairos.app.data.remote.dto.DeviceDto> =
+        runAuthed { requireService().devices() }.devices
+
+    suspend fun revokeDevice(id: String) {
+        runAuthed { requireService().revokeDevice(id) }
+    }
+
     private fun requireService() =
         service ?: throw ApiException(ApiError.Unknown("No server configured."))
 
@@ -235,6 +242,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 6
+        const val CLIENT_BUILD = 7
     }
 }

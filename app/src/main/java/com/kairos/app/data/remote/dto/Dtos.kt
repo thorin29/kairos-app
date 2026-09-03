@@ -58,6 +58,27 @@ data class ReauthResponse(
 )
 
 @Serializable
+data class DeviceDto(
+    val id: String,
+    val name: String? = null,
+    val enrolledAt: String,
+    val lastSeenAt: String? = null,
+    val status: String,
+    val current: Boolean = false,
+)
+
+@Serializable
+data class DevicesResponse(
+    val devices: List<DeviceDto> = emptyList(),
+)
+
+@Serializable
+data class RevokeDeviceResponse(
+    val id: String,
+    val revoked: Boolean = false,
+)
+
+@Serializable
 data class EnrollResponse(
     val token: String,
     val expiresAt: String,

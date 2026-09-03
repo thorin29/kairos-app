@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — your devices
+- New Devices screen (top-right menu → Devices): see every device enrolled to
+  your account, when it enrolled and last activity, which one is this phone, and
+  revoke any you don't recognise. Backed by `GET /api/v1/devices` and
+  `POST /api/v1/devices/{id}/revoke`.
+- Home's sign-out moved into that overflow menu.
+
 ## 0.5.0 — re-login on password change
 - If your account password changes, the app now asks you to sign in again while
   the device stays enrolled — no re-pairing. Backed by `POST /api/v1/auth/reauth`
