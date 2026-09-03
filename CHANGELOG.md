@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.2 — rail top/bottom polish
+- The teal panel now starts just below the status bar (flat top above the logo)
+  and runs to the bottom, which also cleans up the open animation.
+- The version moved to the far-right of the bottom and content is inset from the
+  navigation bar, so nothing is clipped by the rounded corner.
+
 ## 0.10.1 — nav polish + app icon
 - The logo now stays put when the rail opens (status-bar-aligned header), so the
   menu unfurls out of the logo instead of the logo jumping up.

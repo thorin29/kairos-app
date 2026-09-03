@@ -2,18 +2,17 @@ package com.kairos.app.ui.nav
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,10 +38,10 @@ private val SidebarColor = Color(0xFF86A0A3) // --color-sidebar
 private val OnSidebar = Color.White
 
 /**
- * The nav rail, matching the web sidebar in both states. The logo sits at the
- * same place as the top-bar logo (status-bar inset + 64dp header, start-aligned),
- * so opening the rail looks like the menu unfurls out of the logo rather than the
- * logo jumping. Collapsed = icon-only; expanded = labels + person + version.
+ * The nav rail, matching the web sidebar in both states. The teal panel starts
+ * just below the status bar (a flat top above the logo) and runs to the bottom;
+ * content is inset from the nav bar so nothing lands in the curved corner. The
+ * logo sits where the top-bar logo is, so opening looks like it unfurls from it.
  */
 @Composable
 fun KairosRail(
@@ -56,12 +55,14 @@ fun KairosRail(
     onLogoClick: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    Column(modifier.background(SidebarColor)) {
+    Column(modifier) {
         Column(
             Modifier
-                .statusBarsPadding()
-                .fillMaxHeight()
-                .padding(bottom = 8.dp),
+                .fillMaxSize()
+                .statusBarsPadding()          // transparent strip above the teal
+                .background(SidebarColor)      // teal: below status bar -> full bottom
+                .navigationBarsPadding()       // keep content out of the gesture/curve zone
+                .padding(bottom = 6.dp),
         ) {
             // Header: logo aligned with the top-bar logo, + page name when open.
             Row(
@@ -100,16 +101,56 @@ fun KairosRail(
 
             Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
                 FooterPerson(person, expanded, onSignOut)
-                ToggleRow(expanded, onToggleExpanded)
                 if (expanded) {
-                    Text(
-                        "v${BuildConfig.VERSION_NAME}",
-                        color = OnSidebar.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 2.dp, end = 8.dp),
-                    )
+                    // Collapse control on the left, version pinned far-right.
+                    Row(
+                        Modifier.fillMaxWidth().height(40.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(onClick = onToggleExpanded)
+                                .height(40.dp)
+                                .padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                KairosIcons.ChevronLeft, "Collapse",
+                                tint = OnSidebar.copy(alpha = 0.85f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                "Collapse",
+                                color = OnSidebar.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Text(
+                            "v${BuildConfig.VERSION_NAME}",
+                            color = OnSidebar.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                    }
+                } else {
+                    Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(onClick = onToggleExpanded),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                KairosIcons.ChevronRight, "Expand",
+                                tint = OnSidebar.copy(alpha = 0.85f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -211,37 +252,6 @@ private fun Avatar(label: String) {
         contentAlignment = Alignment.Center,
     ) {
         Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-@Composable
-private fun ToggleRow(expanded: Boolean, onToggle: () -> Unit) {
-    if (expanded) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onToggle)
-                .height(40.dp)
-                .padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(KairosIcons.ChevronLeft, "Collapse", tint = OnSidebar.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(12.dp))
-            Text("Collapse", color = OnSidebar.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium)
-        }
-    } else {
-        Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(onClick = onToggle),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(KairosIcons.ChevronRight, "Expand", tint = OnSidebar.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
-            }
-        }
     }
 }
 
