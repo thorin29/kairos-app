@@ -10,7 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kairos.app.data.session.SessionState
 import com.kairos.app.di.AppContainer
 import com.kairos.app.ui.common.LoadingScreen
-import com.kairos.app.ui.enroll.EnrollScreen
+import com.kairos.app.ui.auth.AuthFlow
 import com.kairos.app.ui.home.HomeScreen
 import com.kairos.app.ui.nav.Route
 import com.kairos.app.ui.setup.SetupScreen
@@ -29,7 +29,7 @@ fun AppRoot(container: AppContainer) {
     when (val s = state) {
         is SessionState.Loading -> LoadingScreen()
         is SessionState.NeedsSetup -> SetupScreen()
-        is SessionState.NeedsEnroll -> EnrollScreen()
+        is SessionState.NeedsEnroll -> AuthFlow()
         is SessionState.Ready -> AuthenticatedApp(person = s.person)
     }
 }

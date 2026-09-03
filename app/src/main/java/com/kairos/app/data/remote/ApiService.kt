@@ -3,6 +3,8 @@ package com.kairos.app.data.remote
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.EnrollResponse
+import com.kairos.app.data.remote.dto.LoginRequest
+import com.kairos.app.data.remote.dto.LoginResponse
 import com.kairos.app.data.remote.dto.MetaDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.RevokeResponse
@@ -30,6 +32,9 @@ interface ApiService {
 
     @GET("meta")
     suspend fun meta(): Response<MetaDto>
+
+    @POST("auth/login")
+    suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
 
     @POST("auth/enroll")
     suspend fun enroll(@Body body: EnrollRequest): Response<EnrollResponse>

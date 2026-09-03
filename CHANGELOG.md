@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — sign-in (layered login + code)
+- People with a password now sign in (username/email + password) and then pair
+  the device with a code — both factors, for the same person.
+- Passwordless children still enroll by code alone (a parent provisions it from
+  the admin panel); the "child device" link skips the sign-in step.
+- Enroll now tells you when an account needs a password sign-in first.
+- New endpoint: `POST /api/v1/auth/login`.
+
 ## 0.3.1 — stable release signing (install over the top)
 - CI now builds a *signed release* APK with one stable key (stored as GitHub
   secrets), so future updates install over the existing app and keep enrollment.

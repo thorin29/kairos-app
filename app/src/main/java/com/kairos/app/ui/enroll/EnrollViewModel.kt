@@ -17,6 +17,8 @@ data class EnrollUiState(
     val deviceName: String = defaultDeviceName(),
     val enrolling: Boolean = false,
     val error: String? = null,
+    /** Server said this account needs a password sign-in before the code. */
+    val needSignIn: Boolean = false,
 )
 
 private fun defaultDeviceName(): String {
@@ -31,7 +33,7 @@ class EnrollViewModel(private val session: SessionRepository) : ViewModel() {
     val ui: StateFlow<EnrollUiState> = _ui.asStateFlow()
 
     fun onCodeChange(value: String) {
-        _ui.update { it.copy(code = value, error = null) }
+        _ui.update { it.copy(code = value, error = null, needSignIn = false) }
     }
 
     fun onDeviceNameChange(value: String) {
@@ -44,19 +46,22 @@ class EnrollViewModel(private val session: SessionRepository) : ViewModel() {
             _ui.update { it.copy(error = "Enter the code from the enrollment screen.") }
             return
         }
-        _ui.update { it.copy(enrolling = true, error = null) }
+        _ui.update { it.copy(enrolling = true, error = null, needSignIn = false) }
         viewModelScope.launch {
             try {
                 session.enroll(code, _ui.value.deviceName)
                 // Success flips session state to Ready; the app swaps to Home.
             } catch (e: ApiException) {
-                _ui.update { it.copy(enrolling = false, error = friendly(e)) }
+                if (e.error is ApiError.Unauthenticated) {
+                    // Password account with no valid proof — must sign in first.
+                    _ui.update {
+                        it.copy(enrolling = false, needSignIn = true, error = e.error.message)
+                    }
+                } else {
+                    _ui.update { it.copy(enrolling = false, error = friendly(e)) }
+                }
             }
         }
-    }
-
-    fun changeServer() {
-        viewModelScope.launch { session.changeServer() }
     }
 
     private fun friendly(e: ApiException): String = when (val err = e.error) {

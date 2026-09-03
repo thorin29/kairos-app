@@ -7,6 +7,7 @@ import com.kairos.app.data.remote.ApiService
 import com.kairos.app.data.remote.apiCall
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
+import com.kairos.app.data.remote.dto.LoginRequest
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.WorkoutAckDto
@@ -51,6 +52,11 @@ class SessionRepository(
         private set
 
     private var service: ApiService? = null
+
+    /** Short-lived login proof from /auth/login, held only between sign-in and
+     *  the code step of enrollment. Never persisted. */
+    @Volatile
+    private var loginToken: String? = null
 
     init {
         appScope.launch { bootstrap() }
@@ -106,11 +112,30 @@ class SessionRepository(
         _state.value = SessionState.NeedsEnroll
     }
 
-    /** Redeem an enrollment code for a device token, store it, and go Ready. */
+    /** Verify a password and hold the returned proof for the code step. */
+    suspend fun login(identifier: String, password: String): PersonDto? {
+        val svc = requireService()
+        val res = apiCall { svc.login(LoginRequest(identifier.trim(), password)) }
+        loginToken = res.loginToken
+        return res.person
+    }
+
+    /** Redeem an enrollment code for a device token, store it, and go Ready. The
+     *  held login proof (if any) is sent so password accounts pass the gate;
+     *  passwordless children enroll with no proof. */
     suspend fun enroll(code: String, deviceName: String?) {
-        val svc = service ?: throw ApiException(ApiError.Unknown("No server configured."))
-        val res = apiCall { svc.enroll(EnrollRequest(code = code.trim(), deviceName = deviceName?.trim())) }
+        val svc = requireService()
+        val res = apiCall {
+            svc.enroll(
+                EnrollRequest(
+                    code = code.trim(),
+                    deviceName = deviceName?.trim(),
+                    loginToken = loginToken,
+                ),
+            )
+        }
         tokens.save(res.token)
+        loginToken = null
         _state.value = SessionState.Ready(res.person)
     }
 
@@ -135,6 +160,7 @@ class SessionRepository(
         settings.clearBaseUrl()
         service = null
         baseUrlRaw = null
+        loginToken = null
         _state.value = SessionState.NeedsSetup
     }
 
@@ -188,6 +214,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 4
+        const val CLIENT_BUILD = 5
     }
 }
