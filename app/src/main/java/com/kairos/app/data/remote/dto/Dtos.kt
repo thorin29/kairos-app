@@ -227,6 +227,32 @@ data class GraphPointDto(
 
 // --- This week + browse ---
 
+
+// --- Weekly plan (Edit plan) ---
+
+@Serializable
+data class PlanWorkoutDto(
+    val id: String,
+    val name: String,
+    val isRest: Boolean = false,
+    val detail: String = "",
+)
+
+@Serializable
+data class PlanDayDto(
+    val day: Int,
+    val workouts: List<PlanWorkoutDto> = emptyList(),
+)
+
+@Serializable
+data class PlanResponse(val days: List<PlanDayDto> = emptyList())
+
+@Serializable
+data class PlanRestRequest(val day: Int)
+
+@Serializable
+data class PlanCopyRequest(val from: Int, val to: Int)
+
 @Serializable
 data class WeeklyActivityDto(
     val label: String,

@@ -209,6 +209,21 @@ class SessionRepository(
     suspend fun loadBrowse(): List<com.kairos.app.data.remote.dto.BrowseWorkoutDto> =
         runAuthed { requireService().workoutBrowse() }.items
 
+    suspend fun loadPlan(): List<com.kairos.app.data.remote.dto.PlanDayDto> =
+        runAuthed { requireService().workoutPlan() }.days
+
+    suspend fun planMarkRest(day: Int) {
+        runAuthed { requireService().planRest(com.kairos.app.data.remote.dto.PlanRestRequest(day)) }
+    }
+
+    suspend fun planCopyDay(from: Int, to: Int) {
+        runAuthed { requireService().planCopy(com.kairos.app.data.remote.dto.PlanCopyRequest(from, to)) }
+    }
+
+    suspend fun planRemove(id: String) {
+        runAuthed { requireService().planRemove(id) }
+    }
+
     suspend fun logCustom(body: com.kairos.app.data.remote.dto.CustomLogRequest): WorkoutAckDto =
         runAuthed { requireService().logCustom(body) }
 
@@ -275,6 +290,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 30
+        const val CLIENT_BUILD = 31
     }
 }

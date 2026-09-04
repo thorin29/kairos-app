@@ -67,6 +67,7 @@ fun WorkoutsScreen(
     onOpenRecent: () -> Unit,
     onOpenCalculator: () -> Unit,
     onOpenBrowse: () -> Unit,
+    onOpenEditPlan: () -> Unit,
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -164,7 +165,7 @@ fun WorkoutsScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
                             KairosIcons.Calendar, "Edit plan", Modifier.weight(1f),
-                        ) { scope.launch { snackbar.showSnackbar("Edit plan is coming soon") } }
+                        ) { onOpenEditPlan() }
                         ActionCard(
                             KairosIcons.Dumbbell, "Log workout", Modifier.weight(1f),
                             highlighted = true,

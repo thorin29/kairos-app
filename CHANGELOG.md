@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0 — Edit plan (step 1: view, remove, rest, copy)
+- New Workout plan editor (from the Edit plan button): the 7-day plan with each
+  workout's name + detail, remove a workout, mark a day as rest, and copy another
+  day's plan onto a day. Backed by GET /workouts/plan and rest/copy/remove routes.
+- Next: adding workouts (the category -> exercise picker), then rotation mode.
+
 ## 0.20.0 — Workouts: This week + Browse
 - The Workouts page now shows "This week" (your non-weights sessions grouped, e.g.
   "Punishers @ Gun Slingers 1\u00d7") between the graph and Today.

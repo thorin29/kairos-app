@@ -23,6 +23,9 @@ import com.kairos.app.data.remote.dto.WorkoutProgressDto
 import com.kairos.app.data.remote.dto.WorkoutPoolDto
 import com.kairos.app.data.remote.dto.WeekResponse
 import com.kairos.app.data.remote.dto.BrowseResponse
+import com.kairos.app.data.remote.dto.PlanResponse
+import com.kairos.app.data.remote.dto.PlanRestRequest
+import com.kairos.app.data.remote.dto.PlanCopyRequest
 import com.kairos.app.data.remote.dto.CustomLogRequest
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
@@ -99,6 +102,18 @@ interface ApiService {
 
     @GET("workouts/browse")
     suspend fun workoutBrowse(): Response<BrowseResponse>
+
+    @GET("workouts/plan")
+    suspend fun workoutPlan(): Response<PlanResponse>
+
+    @POST("workouts/plan/rest")
+    suspend fun planRest(@Body body: PlanRestRequest): Response<TaskStatusDto>
+
+    @POST("workouts/plan/copy")
+    suspend fun planCopy(@Body body: PlanCopyRequest): Response<TaskStatusDto>
+
+    @POST("workouts/plan/{id}/remove")
+    suspend fun planRemove(@Path("id") id: String): Response<DeleteAckDto>
 
     @POST("workouts/log-custom")
     suspend fun logCustom(@Body body: CustomLogRequest): Response<WorkoutAckDto>
