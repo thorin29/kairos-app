@@ -47,6 +47,7 @@ import com.kairos.app.data.remote.dto.AlwaysOpenRequest
 import com.kairos.app.data.remote.dto.CalendarDto
 import com.kairos.app.data.remote.dto.CalendarPrefsRequest
 import com.kairos.app.data.remote.dto.CreateEventRequest
+import com.kairos.app.data.remote.dto.DeleteEventRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -202,6 +203,9 @@ interface ApiService {
 
     @POST("calendar/event")
     suspend fun createEvent(@Body body: CreateEventRequest): Response<TaskStatusDto>
+
+    @POST("calendar/event/delete")
+    suspend fun deleteEvent(@Body body: DeleteEventRequest): Response<TaskStatusDto>
 
     @POST("chores/claim")
     suspend fun claimChore(@Body body: ClaimChoreRequest): Response<TaskStatusDto>

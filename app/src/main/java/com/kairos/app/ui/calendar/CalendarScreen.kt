@@ -85,6 +85,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
     var showSettings by remember { mutableStateOf(false) }
     var showDefaultPicker by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
+    var selectedEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
     val data = ui.data
 
     Box(Modifier.fillMaxSize()) {
@@ -147,6 +148,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
                         vm = vm,
                         monthExpanded = monthExpanded && ui.tab != CalTab.MONTH,
                         onCollapseMonth = { monthExpanded = false },
+                        onEventClick = { selectedEvent = it },
                     )
                 }
             }
@@ -189,6 +191,15 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
     if (showAdd && data != null) {
         AddEventOverlay(vm, data, ui, onClose = { showAdd = false; vm.clearCreateError() })
     }
+
+    selectedEvent?.let { ev ->
+        EventDetailDialog(
+            event = ev,
+            ui = ui,
+            vm = vm,
+            onDismiss = { selectedEvent = null; vm.clearDeleteError() },
+        )
+    }
 }
 
 @Composable
@@ -230,6 +241,7 @@ private fun CalendarBody(
     vm: CalendarViewModel,
     monthExpanded: Boolean,
     onCollapseMonth: () -> Unit,
+    onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
 ) {
     val localEvents = remember(data.events, data.timezone) {
         localizeEvents(data.events, data.timezone)
@@ -260,9 +272,9 @@ private fun CalendarBody(
                 },
         ) {
             when (ui.tab) {
-                CalTab.MONTH -> MonthChipsView(data, localEvents, vm)
-                CalTab.AGENDA -> AgendaView(localEvents, data.date)
-                else -> TimeGrid(data, localEvents)
+                CalTab.MONTH -> MonthChipsView(data, localEvents, vm, onEventClick)
+                CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
+                else -> TimeGrid(data, localEvents, onEventClick)
             }
         }
     }
@@ -349,7 +361,7 @@ private fun MiniCell(
 // ---- Month view (full page, uniform cells filling the screen, chips) ----
 
 @Composable
-private fun MonthChipsView(data: CalendarDto, events: List<CalEventDto>, vm: CalendarViewModel) {
+private fun MonthChipsView(data: CalendarDto, events: List<CalEventDto>, vm: CalendarViewModel, onEventClick: (CalEventDto) -> Unit) {
     val currentMonth = data.date.take(7)
     val byDay = remember(events) { events.groupBy { it.dayISO } }
     Column(Modifier.fillMaxSize().padding(horizontal = 4.dp)) {
@@ -373,6 +385,7 @@ private fun MonthChipsView(data: CalendarDto, events: List<CalEventDto>, vm: Cal
                         isToday = iso == data.today,
                         events = byDay[iso].orEmpty(),
                         modifier = Modifier.weight(1f).fillMaxHeight(),
+                        onEventClick = onEventClick,
                     ) { vm.openDay(iso) }
                 }
             }
@@ -387,6 +400,7 @@ private fun MonthDayCell(
     isToday: Boolean,
     events: List<CalEventDto>,
     modifier: Modifier,
+    onEventClick: (CalEventDto) -> Unit,
     onClick: () -> Unit,
 ) {
     val num = iso.substringAfterLast('-').trimStart('0').ifEmpty { "0" }
@@ -416,7 +430,7 @@ private fun MonthDayCell(
         }
         Spacer(Modifier.height(2.dp))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            sorted.take(4).forEach { MonthChip(it) }
+            sorted.take(4).forEach { ev -> MonthChip(ev) { onEventClick(ev) } }
             if (sorted.size > 4) {
                 Text(
                     "+${sorted.size - 4}",
@@ -430,12 +444,12 @@ private fun MonthDayCell(
 }
 
 @Composable
-private fun MonthChip(e: CalEventDto) {
+private fun MonthChip(e: CalEventDto, onClick: () -> Unit) {
     val color = parseColor(e.color)
     if (e.external) {
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.width(3.dp).height(14.dp).background(color))
@@ -450,7 +464,7 @@ private fun MonthChip(e: CalEventDto) {
     } else {
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp)).background(color)
-                .padding(horizontal = 4.dp, vertical = 1.dp),
+                .clickable { onClick() }.padding(horizontal = 4.dp, vertical = 1.dp),
         ) {
             Text(
                 e.title,
@@ -466,7 +480,7 @@ private fun MonthChip(e: CalEventDto) {
 // ---- Agenda ----
 
 @Composable
-private fun AgendaView(events: List<CalEventDto>, date: String) {
+private fun AgendaView(events: List<CalEventDto>, date: String, onEventClick: (CalEventDto) -> Unit) {
     val shown = events
         .filter { it.dayISO == date }
         .sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
@@ -482,14 +496,14 @@ private fun AgendaView(events: List<CalEventDto>, date: String) {
                 Text("Nothing scheduled.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            shown.forEach { EventRow(it) }
+            shown.forEach { ev -> EventRow(ev) { onEventClick(ev) } }
         }
     }
 }
 
 @Composable
-private fun EventRow(e: CalEventDto) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
+private fun EventRow(e: CalEventDto, onClick: () -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth().clickable { onClick() }) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(parseColor(e.color)))
             Spacer(Modifier.width(12.dp))
@@ -660,6 +674,52 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+// ---- Event detail + delete ----
+
+@Composable
+private fun EventDetailDialog(event: CalEventDto, ui: CalendarUiState, vm: CalendarViewModel, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(event.title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    if (event.allDay) "All day" else event.timeLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                event.location?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (event.ownerName.isNotBlank()) {
+                    Text(event.ownerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                event.recurLabel?.takeIf { it.isNotBlank() }?.let {
+                    Text("Repeats: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (event.recurring) {
+                    Text(
+                        "Deleting removes the whole repeating event.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                ui.deleteError?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !ui.deleting && !event.external,
+                onClick = { vm.deleteEvent(event.eventId) { onDismiss() } },
+            ) {
+                Text(if (ui.deleting) "Deleting\u2026" else "Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     )
 }
 

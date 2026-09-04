@@ -291,6 +291,14 @@ class SessionRepository(
         runAuthed { requireService().createEvent(body) }
     }
 
+    suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
+        runAuthed {
+            requireService().deleteEvent(
+                com.kairos.app.data.remote.dto.DeleteEventRequest(eventId, scope, occurrenceISO),
+            )
+        }
+    }
+
     suspend fun claimChore(taskId: String) {
         runAuthed {
             requireService().claimChore(
@@ -393,6 +401,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 48
+        const val CLIENT_BUILD = 49
     }
 }

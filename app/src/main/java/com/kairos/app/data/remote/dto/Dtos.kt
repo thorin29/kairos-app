@@ -763,3 +763,10 @@ data class CreateEventRequest(
     val location: String? = null,
     val timezone: String? = null,
 )
+
+@Serializable
+data class DeleteEventRequest(
+    val eventId: String,
+    val scope: String? = null,
+    val occurrenceISO: String? = null,
+)

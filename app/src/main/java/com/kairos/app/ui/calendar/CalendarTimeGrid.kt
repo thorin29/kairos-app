@@ -1,6 +1,7 @@
 package com.kairos.app.ui.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -73,7 +74,7 @@ private fun placeEvents(evs: List<CalEventDto>): List<Placed> {
 }
 
 @Composable
-fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, modifier: Modifier = Modifier) {
+fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, onEventClick: (CalEventDto) -> Unit, modifier: Modifier = Modifier) {
     val days = data.rangeDays
     val now = data.nowColor
     val gridColor = MaterialTheme.colorScheme.outlineVariant
@@ -99,7 +100,7 @@ fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, modifier: Modifier = 
                         Modifier.weight(1f).padding(horizontal = 2.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        allDayByDay[iso].orEmpty().take(3).forEach { e -> AllDayChip(e) }
+                        allDayByDay[iso].orEmpty().take(3).forEach { e -> AllDayChip(e) { onEventClick(e) } }
                     }
                 }
             }
@@ -135,6 +136,7 @@ fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, modifier: Modifier = 
                         isToday = iso == data.today,
                         nowColor = now,
                         gridColor = gridColor,
+                        onEventClick = onEventClick,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -171,10 +173,10 @@ private fun DayHeader(iso: String, isToday: Boolean, modifier: Modifier) {
 }
 
 @Composable
-private fun AllDayChip(e: CalEventDto) {
+private fun AllDayChip(e: CalEventDto, onClick: () -> Unit) {
     Box(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(parseGridColor(e.color))
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .clickable { onClick() }.padding(horizontal = 5.dp, vertical = 2.dp),
     ) {
         Text(
             e.title,
@@ -193,6 +195,7 @@ private fun DayColumn(
     isToday: Boolean,
     nowColor: String,
     gridColor: Color,
+    onEventClick: (CalEventDto) -> Unit,
     modifier: Modifier,
 ) {
     val placed = remember(events) { placeEvents(events) }
@@ -224,6 +227,7 @@ private fun DayColumn(
                     .height(h)
                     .clip(RoundedCornerShape(4.dp))
                     .background(parseGridColor(e.color).copy(alpha = 0.9f))
+                    .clickable { onEventClick(e) }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 Text(

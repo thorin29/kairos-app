@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.34.0 — Delete calendar events
+- Tap any event (in any view) to see its details — time, location, who it's for,
+  and whether it repeats — and delete it from there.
+- You can remove your own and family events; repeating events and birthdays stay
+  parent-only, and subscribed-feed events point you to unsubscribing instead.
+
 ## 0.33.0 — Today's schedule on Home
 - Home now shows "Today's schedule" at the bottom: the whole household's events
   for the day (all-day first, then by time), each with its colour, time/location,

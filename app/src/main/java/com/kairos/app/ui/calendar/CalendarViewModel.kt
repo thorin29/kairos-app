@@ -37,6 +37,8 @@ data class CalendarUiState(
     val defaultView: String = "last",
     val creating: Boolean = false,
     val createError: String? = null,
+    val deleting: Boolean = false,
+    val deleteError: String? = null,
 )
 
 /**
@@ -90,6 +92,24 @@ class CalendarViewModel(
     }
 
     fun clearCreateError() = _ui.update { it.copy(createError = null) }
+
+    fun clearDeleteError() = _ui.update { it.copy(deleteError = null) }
+
+    /** Delete an event; on success reload and call [onDone]. */
+    fun deleteEvent(eventId: String, onDone: () -> Unit) {
+        if (_ui.value.deleting) return
+        _ui.update { it.copy(deleting = true, deleteError = null) }
+        viewModelScope.launch {
+            try {
+                session.deleteCalendarEvent(eventId, scope = "all", occurrenceISO = null)
+                _ui.update { it.copy(deleting = false) }
+                onDone()
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(deleting = false, deleteError = e.error.message) }
+            }
+        }
+    }
 
     /** Create a basic event; on success reload the calendar and call [onDone]. */
     fun createEvent(req: com.kairos.app.data.remote.dto.CreateEventRequest, onDone: () -> Unit) {
