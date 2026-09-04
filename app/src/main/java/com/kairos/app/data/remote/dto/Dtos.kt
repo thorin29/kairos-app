@@ -110,6 +110,18 @@ data class DashboardDto(
     val personalReading: PersonalReadingDto? = null,
     val upForGrabs: List<UpForGrabsDto> = emptyList(),
     val alwaysOpen: List<AlwaysOpenDashDto> = emptyList(),
+    val schedule: List<ScheduleItemDto> = emptyList(),
+)
+
+@Serializable
+data class ScheduleItemDto(
+    val title: String = "",
+    val allDay: Boolean = false,
+    val timeLabel: String = "",
+    val startMin: Int = 0,
+    val color: String = "#64748b",
+    val ownerName: String = "",
+    val location: String? = null,
 )
 
 @Serializable

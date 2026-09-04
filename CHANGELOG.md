@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.33.0 — Today's schedule on Home
+- Home now shows "Today's schedule" at the bottom: the whole household's events
+  for the day (all-day first, then by time), each with its colour, time/location,
+  and who it belongs to.
+
 ## 0.32.0 — Add calendar events
 - The "+" button is back on the calendar: create an event with a title, all-day
   or a start/end time, a date, and an optional location.

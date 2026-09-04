@@ -11,11 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
@@ -44,8 +47,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -237,6 +243,20 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                     AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm)
                 }
             }
+
+            item(key = "h-schedule") { SectionHeader("Today's schedule") }
+            if (d.schedule.isEmpty()) {
+                item(key = "schedule-empty") {
+                    Text(
+                        "Nothing scheduled today.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                    )
+                }
+            } else {
+                items(d.schedule) { ev -> ScheduleRow(ev) }
+            }
         }
     }
 }
@@ -421,6 +441,49 @@ private fun AlwaysOpenRow(c: com.kairos.app.data.remote.dto.AlwaysOpenDashDto, b
         OutlinedButton(onClick = { vm.completeAlwaysOpen(c.id) }, enabled = !busy && !onCooldown) {
             Text(if (busy) "\u2026" else if (onCooldown) "Not back yet" else "Done")
         }
+    }
+}
+
+@Composable
+private fun ScheduleRow(ev: com.kairos.app.data.remote.dto.ScheduleItemDto) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
+            Modifier.padding(top = 2.dp).width(4.dp).height(36.dp)
+                .clip(RoundedCornerShape(2.dp)).background(parseScheduleColor(ev.color)),
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(ev.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val sub = buildString {
+                append(if (ev.allDay) "All day" else ev.timeLabel)
+                if (!ev.location.isNullOrBlank()) append(" \u00b7 ${ev.location}")
+            }
+            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (ev.ownerName.isNotBlank()) {
+            Text(
+                ev.ownerName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    }
+}
+
+private fun parseScheduleColor(hex: String?): Color {
+    val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)
+    return try {
+        when (s.length) {
+            6 -> Color(("FF$s").toLong(16))
+            8 -> Color(s.toLong(16))
+            else -> Color(0xFF64748B)
+        }
+    } catch (_: NumberFormatException) {
+        Color(0xFF64748B)
     }
 }
 
