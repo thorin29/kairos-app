@@ -24,8 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -33,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +45,6 @@ import com.kairos.app.data.remote.dto.PlanDayDto
 import com.kairos.app.data.remote.dto.PlanWorkoutDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -61,9 +57,8 @@ fun EditPlanScreen(onBack: () -> Unit) {
         factory = viewModelFactory { initializer { EditPlanViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val todayDow = remember { LocalDate.now().dayOfWeek.value % 7 }
+    var addingDay by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
         topBar = {
@@ -76,7 +71,6 @@ fun EditPlanScreen(onBack: () -> Unit) {
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
             when {
@@ -100,10 +94,24 @@ fun EditPlanScreen(onBack: () -> Unit) {
                             onCopyFrom = { from -> vm.copyDay(from, d.day) },
                             onRemove = { id -> vm.remove(id) },
                             onMarkRest = { vm.markRest(d.day) },
-                            onAdd = { scope.launch { snackbar.showSnackbar("Adding workouts is coming next") } },
+                            onAdd = { addingDay = d.day },
                         )
                     }
                 }
+            }
+
+            val opts = ui.options
+            val ad = addingDay
+            if (ad != null && opts != null) {
+                AddWorkoutSheet(
+                    day = ad,
+                    options = opts,
+                    busy = ui.busy,
+                    onAddPool = { vm.addPool(it); addingDay = null },
+                    onAddHiit = { hid -> vm.addHiit(ad, hid); addingDay = null },
+                    onMarkRest = { vm.markRest(ad); addingDay = null },
+                    onDismiss = { addingDay = null },
+                )
             }
         }
     }

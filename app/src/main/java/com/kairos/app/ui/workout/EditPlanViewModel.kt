@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class EditPlanUiState(
     val loading: Boolean = true,
     val days: List<PlanDayDto> = emptyList(),
+    val options: com.kairos.app.data.remote.dto.PlanOptionsDto? = null,
     val busy: Boolean = false,
     val error: String? = null,
 )
@@ -30,7 +31,9 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
         if (initial) _ui.update { it.copy(loading = true) }
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(loading = false, busy = false, days = session.loadPlan(), error = null) }
+                val plan = session.loadPlan()
+                val opts = if (_ui.value.options == null) runCatching { session.loadPlanOptions() }.getOrNull() else _ui.value.options
+                _ui.update { it.copy(loading = false, busy = false, days = plan, options = opts, error = null) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, busy = false, error = e.error.message) }
             }
@@ -53,4 +56,6 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
     fun markRest(day: Int) = act { session.planMarkRest(day) }
     fun copyDay(from: Int, to: Int) = act { session.planCopyDay(from, to) }
     fun remove(id: String) = act { session.planRemove(id) }
+    fun addPool(body: com.kairos.app.data.remote.dto.AddPoolRequest) = act { session.planAddPool(body) }
+    fun addHiit(day: Int, hiitWorkoutId: String) = act { session.planAddHiit(day, hiitWorkoutId) }
 }

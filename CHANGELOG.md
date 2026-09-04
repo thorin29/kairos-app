@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.22.0 — Edit plan (step 2: add workouts)
+- The Edit plan "Add workout" button now opens a picker: choose a category (or
+  Rest), pick a muscle group + exercises for weights (each with a "log a metric"
+  toggle and metric), a named workout for HIIT, or a metric-only day. Backed by
+  GET /workouts/plan/options and add-pool / add-hiit routes.
+- Next: rotation mode (step 3).
+
 ## 0.21.0 — Edit plan (step 1: view, remove, rest, copy)
 - New Workout plan editor (from the Edit plan button): the 7-day plan with each
   workout's name + detail, remove a workout, mark a day as rest, and copy another

@@ -224,6 +224,17 @@ class SessionRepository(
         runAuthed { requireService().planRemove(id) }
     }
 
+    suspend fun loadPlanOptions(): com.kairos.app.data.remote.dto.PlanOptionsDto =
+        runAuthed { requireService().planOptions() }
+
+    suspend fun planAddPool(body: com.kairos.app.data.remote.dto.AddPoolRequest) {
+        runAuthed { requireService().planAddPool(body) }
+    }
+
+    suspend fun planAddHiit(day: Int, hiitWorkoutId: String) {
+        runAuthed { requireService().planAddHiit(com.kairos.app.data.remote.dto.AddHiitRequest(day, hiitWorkoutId)) }
+    }
+
     suspend fun logCustom(body: com.kairos.app.data.remote.dto.CustomLogRequest): WorkoutAckDto =
         runAuthed { requireService().logCustom(body) }
 
@@ -290,6 +301,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 31
+        const val CLIENT_BUILD = 32
     }
 }

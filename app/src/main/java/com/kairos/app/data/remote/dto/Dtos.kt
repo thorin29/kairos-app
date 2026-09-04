@@ -230,6 +230,61 @@ data class GraphPointDto(
 
 // --- Weekly plan (Edit plan) ---
 
+
+// --- Add-workout picker (plan options) ---
+
+@Serializable
+data class PlanMetricDto(val key: String, val label: String)
+
+@Serializable
+data class PlanCategoryDto(
+    val key: String,
+    val label: String,
+    val kind: String,
+    val metrics: List<PlanMetricDto> = emptyList(),
+    val defaultMetric: String = "",
+)
+
+@Serializable
+data class MuscleGroupDto(val key: String, val label: String)
+
+@Serializable
+data class PlanExerciseDto(
+    val id: String,
+    val name: String,
+    val category: String,
+    val muscleGroup: String? = null,
+)
+
+@Serializable
+data class HiitOptionDto(val id: String, val name: String, val personal: Boolean = false)
+
+@Serializable
+data class PlanOptionsDto(
+    val categories: List<PlanCategoryDto> = emptyList(),
+    val muscleGroups: List<MuscleGroupDto> = emptyList(),
+    val exercises: List<PlanExerciseDto> = emptyList(),
+    val hiitWorkouts: List<HiitOptionDto> = emptyList(),
+)
+
+@Serializable
+data class AddPoolExercise(
+    val poolExerciseId: String,
+    val tracked: Boolean = true,
+    val metric: String? = null,
+)
+
+@Serializable
+data class AddPoolRequest(
+    val day: Int,
+    val category: String,
+    val muscleGroup: String? = null,
+    val exercises: List<AddPoolExercise> = emptyList(),
+)
+
+@Serializable
+data class AddHiitRequest(val day: Int, val hiitWorkoutId: String)
+
 @Serializable
 data class PlanWorkoutDto(
     val id: String,
