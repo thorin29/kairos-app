@@ -17,8 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,9 +33,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -92,26 +99,28 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
 
 @Composable
 private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: CalendarViewModel) {
+    val dayLike = ui.tab == CalTab.AGENDA || ui.tab == CalTab.DAY
     Column(Modifier.fillMaxSize()) {
-        // View switcher
+        // View selector + Today
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            SwitchPill("Agenda", ui.tab == CalTab.AGENDA) { vm.setTab(CalTab.AGENDA) }
-            SwitchPill("Month", ui.tab == CalTab.MONTH) { vm.setTab(CalTab.MONTH) }
+            ViewMenu(ui.tab, onSelect = { vm.setTab(it) })
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { vm.goToday() }) { Text("Today") }
         }
 
         // Nav row
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = { vm.goPrev() }) {
                 Icon(KairosIcons.ChevronLeft, contentDescription = "Previous")
             }
             Text(
-                if (ui.tab == CalTab.AGENDA) dayHeading(data.date) else data.heading,
+                if (dayLike) dayHeading(data.date) else data.heading,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
@@ -123,37 +132,56 @@ private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: Calendar
                 Icon(KairosIcons.ChevronRight, contentDescription = "Next")
             }
         }
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            TextButton(onClick = { vm.goToday() }) { Text("Today") }
-        }
 
-        when (ui.tab) {
-            CalTab.AGENDA -> AgendaView(data)
-            CalTab.MONTH -> MonthView(data, vm)
+        // Content — horizontal swipe pages prev/next (coexists with vertical scroll).
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .pointerInput(ui.tab, data.date) {
+                    var dx = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { dx = 0f },
+                        onDragEnd = {
+                            val threshold = 64.dp.toPx()
+                            if (dx <= -threshold) vm.goNext()
+                            else if (dx >= threshold) vm.goPrev()
+                        },
+                    ) { _, amount -> dx += amount }
+                },
+        ) {
+            when (ui.tab) {
+                CalTab.AGENDA -> AgendaView(data)
+                CalTab.MONTH -> MonthView(data, vm)
+                else -> TimeGrid(data)
+            }
         }
     }
 }
 
 @Composable
-private fun SwitchPill(label: String, active: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .then(
-                if (active) Modifier.background(MaterialTheme.colorScheme.primary)
-                else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp)),
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun ViewMenu(tab: CalTab, onSelect: (CalTab) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+                .clickable { open = true }
+                .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(tab.label, style = MaterialTheme.typography.labelLarge)
+            Icon(KairosIcons.ChevronDown, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            CalTab.entries.forEach { t ->
+                DropdownMenuItem(
+                    text = { Text(t.label) },
+                    onClick = { open = false; onSelect(t) },
+                )
+            }
+        }
     }
 }
 

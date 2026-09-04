@@ -11,9 +11,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Phase 1 views the app renders. The saved web view (which may be a time-grid)
- *  isn't used to pick the initial view yet; that arrives with Phase 2. */
-enum class CalTab(val serverValue: String) { AGENDA("agenda"), MONTH("month") }
+/** The calendar views. `serverValue` is the `view` param the API expects. */
+enum class CalTab(val serverValue: String, val label: String) {
+    AGENDA("agenda", "Agenda"),
+    DAY("day", "Day"),
+    THREE_DAY("three_day", "3-day"),
+    WEEK("week", "Week"),
+    MONTH("month", "Month"),
+}
 
 data class CalendarUiState(
     val loading: Boolean = true,

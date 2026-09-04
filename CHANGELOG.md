@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.28.0 — Calendar time-grids
+- Calendar now has Day, 3-day, and Week time-grid views with an hour axis, an
+  all-day strip, a live "now" line, and side-by-side layout for overlapping
+  events. Pick a view from the menu at the top.
+- Swipe left/right anywhere on the calendar to move to the next/previous day,
+  week, or month (the arrows still work too).
+
 ## 0.27.0 — Calendar (Month & Agenda)
 - New Calendar section (read-only for now): an Agenda view of a day's events with
   prev/today/next, and a Month grid with coloured event dots — tap a day to open

@@ -699,6 +699,7 @@ data class CalendarDto(
     val prevDate: String = "",
     val nextDate: String = "",
     val events: List<CalEventDto> = emptyList(),
+    val nowColor: String = "#ef4444",
     val monthDays: List<String> = emptyList(),
     val monthDots: Map<String, List<String>> = emptyMap(),
 )
