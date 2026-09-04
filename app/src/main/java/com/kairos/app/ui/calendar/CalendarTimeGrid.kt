@@ -34,7 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.CalEventDto
 import com.kairos.app.data.remote.dto.CalendarDto
 import java.time.LocalDate
-import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 private val HOUR_H = 56.dp
 private val GUTTER = 44.dp
@@ -133,6 +134,7 @@ fun TimeGrid(data: CalendarDto, modifier: Modifier = Modifier) {
                         events = data.events.filter { !it.allDay && it.dayISO == iso },
                         isToday = iso == data.today,
                         nowColor = now,
+                        timezone = data.timezone,
                         gridColor = gridColor,
                         modifier = Modifier.weight(1f),
                     )
@@ -191,11 +193,12 @@ private fun DayColumn(
     events: List<CalEventDto>,
     isToday: Boolean,
     nowColor: String,
+    timezone: String,
     gridColor: Color,
     modifier: Modifier,
 ) {
     val placed = remember(events) { placeEvents(events) }
-    val nowMin = if (isToday) LocalTime.now().let { it.hour * 60 + it.minute } else -1
+    val nowMin = if (isToday) nowMinutesIn(timezone) else -1
     val nowC = remember(nowColor) { parseGridColor(nowColor) }
 
     BoxWithConstraints(
@@ -240,6 +243,15 @@ private fun DayColumn(
             Box(Modifier.offset(x = (-3).dp, y = y - 3.dp).height(7.dp).width(7.dp).clip(CircleShape).background(nowC))
         }
     }
+}
+
+/** Minutes-from-midnight right now in the household timezone, so the now-line
+ *  lines up with events (which the server sends in household time) even when the
+ *  device is in another zone. Falls back to device time if the id is unknown. */
+private fun nowMinutesIn(tz: String): Int {
+    val zone = runCatching { ZoneId.of(tz) }.getOrElse { ZoneId.systemDefault() }
+    val t = ZonedDateTime.now(zone)
+    return t.hour * 60 + t.minute
 }
 
 private fun hourLabel(h: Int): String = when {

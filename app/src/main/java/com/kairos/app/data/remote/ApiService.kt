@@ -45,6 +45,7 @@ import com.kairos.app.data.remote.dto.ChoresDto
 import com.kairos.app.data.remote.dto.ClaimChoreRequest
 import com.kairos.app.data.remote.dto.AlwaysOpenRequest
 import com.kairos.app.data.remote.dto.CalendarDto
+import com.kairos.app.data.remote.dto.CalendarPrefsRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -194,6 +195,9 @@ interface ApiService {
         @Query("view") view: String?,
         @Query("date") date: String?,
     ): Response<CalendarDto>
+
+    @POST("calendar/prefs")
+    suspend fun saveCalendarPrefs(@Body body: CalendarPrefsRequest): Response<TaskStatusDto>
 
     @POST("chores/claim")
     suspend fun claimChore(@Body body: ClaimChoreRequest): Response<TaskStatusDto>

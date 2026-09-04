@@ -80,4 +80,28 @@ class CalendarViewModel(
         _ui.update { it.copy(tab = CalTab.AGENDA, date = iso) }
         load()
     }
+
+    /** Persist a filter/view change, then reload so the grid reflects it. */
+    fun savePrefs(
+        shownPeople: List<String>? = null,
+        shownSubs: List<String>? = null,
+        showFamily: Boolean? = null,
+        showSchoolWork: Boolean? = null,
+    ) {
+        viewModelScope.launch {
+            try {
+                session.saveCalendarPrefs(
+                    com.kairos.app.data.remote.dto.CalendarPrefsRequest(
+                        shownPeople = shownPeople,
+                        shownSubs = shownSubs,
+                        showFamily = showFamily,
+                        showSchoolWork = showSchoolWork,
+                    ),
+                )
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(loadError = e.error.message) }
+            }
+        }
+    }
 }

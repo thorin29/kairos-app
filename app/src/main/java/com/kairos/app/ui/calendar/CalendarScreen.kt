@@ -20,14 +20,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -100,14 +103,16 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
 @Composable
 private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: CalendarViewModel) {
     val dayLike = ui.tab == CalTab.AGENDA || ui.tab == CalTab.DAY
+    var showOptions by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        // View selector + Today
+        // View selector + filters + Today
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ViewMenu(ui.tab, onSelect = { vm.setTab(it) })
             Spacer(Modifier.weight(1f))
+            TextButton(onClick = { showOptions = true }) { Text("Filters") }
             TextButton(onClick = { vm.goToday() }) { Text("Today") }
         }
 
@@ -157,7 +162,77 @@ private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: Calendar
             }
         }
     }
+
+    if (showOptions) {
+        OptionsSheet(data, vm, onDismiss = { showOptions = false })
+    }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OptionsSheet(data: CalendarDto, vm: CalendarViewModel, onDismiss: () -> Unit) {
+    val opt = data.options
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text("Show", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            ToggleRow("Family events", opt.showFamily) { vm.savePrefs(showFamily = it) }
+            ToggleRow("School work", opt.showSchoolWork) { vm.savePrefs(showSchoolWork = it) }
+
+            Spacer(Modifier.height(8.dp))
+            Text("People", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            opt.people.forEach { p ->
+                CheckRow(p.name, parseColor(p.color), p.id in opt.shownPeople) {
+                    vm.savePrefs(shownPeople = toggleId(opt.shownPeople, p.id))
+                }
+            }
+
+            if (opt.subscriptions.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text("Subscriptions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                opt.subscriptions.forEach { s ->
+                    val label = if (s.ownerName != null) "${s.name} \u00b7 ${s.ownerName}" else s.name
+                    CheckRow(label, parseColor(s.color), s.id in opt.shownSubs) {
+                        vm.savePrefs(shownSubs = toggleId(opt.shownSubs, s.id))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = { onChange(it) })
+    }
+}
+
+@Composable
+private fun CheckRow(label: String, dot: Color, checked: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onToggle() }.padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Box(Modifier.size(10.dp).clip(CircleShape).background(dot))
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun toggleId(list: List<String>, id: String): List<String> =
+    if (id in list) list - id else list + id
 
 @Composable
 private fun ViewMenu(tab: CalTab, onSelect: (CalTab) -> Unit) {

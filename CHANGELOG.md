@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.29.0 — Calendar filters & timezone fix
+- New Filters panel on the calendar: choose which people to show, toggle Family
+  events and School work, and pick which subscribed calendars appear. Your
+  choices are saved and shared with the web.
+- The "now" line is now placed in the household's timezone, so it stays correct
+  even if your phone is set to a different zone.
+
 ## 0.28.0 — Calendar time-grids
 - Calendar now has Day, 3-day, and Week time-grid views with an hour axis, an
   all-day strip, a live "now" line, and side-by-side layout for overlapping

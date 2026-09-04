@@ -690,11 +690,37 @@ data class CalEventDto(
 )
 
 @Serializable
+data class CalOptionPersonDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String = "#64748b",
+)
+
+@Serializable
+data class CalOptionSubDto(
+    val id: String = "",
+    val name: String = "",
+    val ownerName: String? = null,
+    val color: String = "#64748b",
+)
+
+@Serializable
+data class CalOptionsDto(
+    val people: List<CalOptionPersonDto> = emptyList(),
+    val subscriptions: List<CalOptionSubDto> = emptyList(),
+    val shownPeople: List<String> = emptyList(),
+    val shownSubs: List<String> = emptyList(),
+    val showFamily: Boolean = false,
+    val showSchoolWork: Boolean = false,
+)
+
+@Serializable
 data class CalendarDto(
     val today: String = "",
     val view: String = "agenda",
     val date: String = "",
     val heading: String = "",
+    val timezone: String = "UTC",
     val rangeDays: List<String> = emptyList(),
     val prevDate: String = "",
     val nextDate: String = "",
@@ -702,4 +728,14 @@ data class CalendarDto(
     val nowColor: String = "#ef4444",
     val monthDays: List<String> = emptyList(),
     val monthDots: Map<String, List<String>> = emptyMap(),
+    val options: CalOptionsDto = CalOptionsDto(),
+)
+
+@Serializable
+data class CalendarPrefsRequest(
+    val shownPeople: List<String>? = null,
+    val shownSubs: List<String>? = null,
+    val showFamily: Boolean? = null,
+    val showSchoolWork: Boolean? = null,
+    val view: String? = null,
 )
