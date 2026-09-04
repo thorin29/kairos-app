@@ -58,6 +58,7 @@ import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val WEEKDAYS = listOf("S", "M", "T", "W", "T", "F", "S")
@@ -104,6 +105,9 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
 private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: CalendarViewModel) {
     val dayLike = ui.tab == CalTab.AGENDA || ui.tab == CalTab.DAY
     var showOptions by remember { mutableStateOf(false) }
+    val localEvents = remember(data.events, data.timezone) {
+        localizeEvents(data.events, data.timezone)
+    }
     Column(Modifier.fillMaxSize()) {
         // View selector + filters + Today
         Row(
@@ -156,9 +160,9 @@ private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: Calendar
                 },
         ) {
             when (ui.tab) {
-                CalTab.AGENDA -> AgendaView(data)
+                CalTab.AGENDA -> AgendaView(localEvents, data.date)
                 CalTab.MONTH -> MonthView(data, vm)
-                else -> TimeGrid(data)
+                else -> TimeGrid(data, localEvents)
             }
         }
     }
@@ -263,9 +267,9 @@ private fun ViewMenu(tab: CalTab, onSelect: (CalTab) -> Unit) {
 // ---- Agenda ----
 
 @Composable
-private fun AgendaView(data: CalendarDto) {
-    val events = data.events
-        .filter { it.dayISO == data.date }
+private fun AgendaView(events: List<CalEventDto>, date: String) {
+    val shown = events
+        .filter { it.dayISO == date }
         .sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
 
     Column(
@@ -275,12 +279,12 @@ private fun AgendaView(data: CalendarDto) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (events.isEmpty()) {
+        if (shown.isEmpty()) {
             Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
                 Text("Nothing scheduled.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            events.forEach { EventRow(it) }
+            shown.forEach { EventRow(it) }
         }
     }
 }
@@ -409,6 +413,45 @@ private fun dayHeading(iso: String): String =
     } catch (_: Exception) {
         iso
     }
+
+/**
+ * Converts each timed event from the home timezone to the device's current
+ * timezone via its real instant (DST-safe), so events show at the wall-clock
+ * time they actually occur where you are. All-day events don't move. When the
+ * device and home share a zone (i.e. at home) nothing shifts.
+ */
+private fun localizeEvents(events: List<CalEventDto>, homeTz: String): List<CalEventDto> {
+    val home = runCatching { ZoneId.of(homeTz) }.getOrElse { return events }
+    val device = ZoneId.systemDefault()
+    if (home == device) return events
+    return events.map { e ->
+        if (e.allDay) return@map e
+        val homeStart = runCatching {
+            LocalDate.parse(e.dayISO).atStartOfDay(home).plusMinutes(e.startMin.toLong())
+        }.getOrNull() ?: return@map e
+        val dev = homeStart.withZoneSameInstant(device)
+        val newStart = dev.hour * 60 + dev.minute
+        val dur = e.endMin - e.startMin
+        e.copy(
+            dayISO = dev.toLocalDate().toString(),
+            startMin = newStart,
+            endMin = newStart + dur,
+            timeLabel = formatTime(newStart),
+        )
+    }
+}
+
+private fun formatTime(min: Int): String {
+    val h = (min / 60) % 24
+    val m = min % 60
+    val ampm = if (h < 12) "AM" else "PM"
+    val h12 = when {
+        h == 0 -> 12
+        h > 12 -> h - 12
+        else -> h
+    }
+    return "%d:%02d %s".format(h12, m, ampm)
+}
 
 private fun parseColor(hex: String?): Color {
     val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)

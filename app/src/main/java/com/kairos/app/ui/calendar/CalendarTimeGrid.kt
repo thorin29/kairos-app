@@ -73,7 +73,7 @@ private fun placeEvents(evs: List<CalEventDto>): List<Placed> {
 }
 
 @Composable
-fun TimeGrid(data: CalendarDto, modifier: Modifier = Modifier) {
+fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, modifier: Modifier = Modifier) {
     val days = data.rangeDays
     val now = data.nowColor
     val gridColor = MaterialTheme.colorScheme.outlineVariant
@@ -89,7 +89,7 @@ fun TimeGrid(data: CalendarDto, modifier: Modifier = Modifier) {
 
         // All-day strip (only when there's something).
         val allDayByDay = days.associateWith { d ->
-            data.events.filter { it.allDay && it.dayISO == d }
+            events.filter { it.allDay && it.dayISO == d }
         }
         if (allDayByDay.values.any { it.isNotEmpty() }) {
             Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
@@ -131,10 +131,9 @@ fun TimeGrid(data: CalendarDto, modifier: Modifier = Modifier) {
                 days.forEach { iso ->
                     DayColumn(
                         iso = iso,
-                        events = data.events.filter { !it.allDay && it.dayISO == iso },
+                        events = events.filter { !it.allDay && it.dayISO == iso },
                         isToday = iso == data.today,
                         nowColor = now,
-                        timezone = data.timezone,
                         gridColor = gridColor,
                         modifier = Modifier.weight(1f),
                     )
@@ -193,12 +192,11 @@ private fun DayColumn(
     events: List<CalEventDto>,
     isToday: Boolean,
     nowColor: String,
-    timezone: String,
     gridColor: Color,
     modifier: Modifier,
 ) {
     val placed = remember(events) { placeEvents(events) }
-    val nowMin = if (isToday) nowMinutesIn(timezone) else -1
+    val nowMin = if (isToday) deviceNowMinutes() else -1
     val nowC = remember(nowColor) { parseGridColor(nowColor) }
 
     BoxWithConstraints(
@@ -245,12 +243,10 @@ private fun DayColumn(
     }
 }
 
-/** Minutes-from-midnight right now in the household timezone, so the now-line
- *  lines up with events (which the server sends in household time) even when the
- *  device is in another zone. Falls back to device time if the id is unknown. */
-private fun nowMinutesIn(tz: String): Int {
-    val zone = runCatching { ZoneId.of(tz) }.getOrElse { ZoneId.systemDefault() }
-    val t = ZonedDateTime.now(zone)
+/** Minutes-from-midnight right now in the device's timezone. Events are localised
+ *  to device time before they reach the grid, so the now-line matches them. */
+private fun deviceNowMinutes(): Int {
+    val t = ZonedDateTime.now(ZoneId.systemDefault())
     return t.hour * 60 + t.minute
 }
 

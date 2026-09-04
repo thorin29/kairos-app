@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.29.1 — Calendar travel timezones
+- When your phone is in a different timezone from home, timed events now shift to
+  show at the wall-clock time they actually happen where you are (e.g. a 9 AM
+  home event shows at 10 AM one zone east), and the "now" line follows your phone.
+- At home (phone and home in the same zone) nothing changes. All-day events never
+  shift.
+
 ## 0.29.0 — Calendar filters & timezone fix
 - New Filters panel on the calendar: choose which people to show, toggle Family
   events and School work, and pick which subscribed calendars appear. Your
