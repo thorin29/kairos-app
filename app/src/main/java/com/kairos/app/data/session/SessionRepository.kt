@@ -267,6 +267,43 @@ class SessionRepository(
             )
         }
 
+    suspend fun loadReading(): com.kairos.app.data.remote.dto.ReadingDto =
+        runAuthed { requireService().reading() }
+
+    suspend fun createReadingPlan(
+        body: com.kairos.app.data.remote.dto.PersonalPlanRequest,
+    ) {
+        runAuthed { requireService().createReadingPlan(body) }
+    }
+
+    suspend fun deleteReadingPlan() {
+        runAuthed { requireService().deleteReadingPlan() }
+    }
+
+    suspend fun markReading(passage: String, read: Boolean) {
+        runAuthed {
+            requireService().markReading(
+                com.kairos.app.data.remote.dto.MarkReadingRequest(passage, read),
+            )
+        }
+    }
+
+    suspend fun saveReadingBook(bookName: String, chapters: List<Int>) {
+        runAuthed {
+            requireService().saveReadingBook(
+                com.kairos.app.data.remote.dto.SaveBookRequest(bookName, chapters),
+            )
+        }
+    }
+
+    suspend fun saveReadingBooks(bookNames: List<String>, read: Boolean) {
+        runAuthed {
+            requireService().saveReadingBooks(
+                com.kairos.app.data.remote.dto.SaveBooksRequest(bookNames, read),
+            )
+        }
+    }
+
     suspend fun listDevices(): List<com.kairos.app.data.remote.dto.DeviceDto> =
         runAuthed { requireService().devices() }.devices
 
@@ -319,6 +356,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 35
+        const val CLIENT_BUILD = 36
     }
 }

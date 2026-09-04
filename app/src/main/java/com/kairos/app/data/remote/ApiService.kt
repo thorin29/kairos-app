@@ -36,6 +36,11 @@ import com.kairos.app.data.remote.dto.SlotIdRequest
 import com.kairos.app.data.remote.dto.MoveSlotRequest
 import com.kairos.app.data.remote.dto.CustomLogRequest
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
+import com.kairos.app.data.remote.dto.ReadingDto
+import com.kairos.app.data.remote.dto.PersonalPlanRequest
+import com.kairos.app.data.remote.dto.MarkReadingRequest
+import com.kairos.app.data.remote.dto.SaveBookRequest
+import com.kairos.app.data.remote.dto.SaveBooksRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -158,6 +163,24 @@ interface ApiService {
 
     @POST("workouts/sessions/{id}/delete")
     suspend fun deleteWorkoutSession(@Path("id") id: String): Response<DeleteAckDto>
+
+    @GET("reading")
+    suspend fun reading(): Response<ReadingDto>
+
+    @POST("reading/plan")
+    suspend fun createReadingPlan(@Body body: PersonalPlanRequest): Response<TaskStatusDto>
+
+    @POST("reading/plan/delete")
+    suspend fun deleteReadingPlan(): Response<TaskStatusDto>
+
+    @POST("reading/mark")
+    suspend fun markReading(@Body body: MarkReadingRequest): Response<TaskStatusDto>
+
+    @POST("reading/books")
+    suspend fun saveReadingBook(@Body body: SaveBookRequest): Response<TaskStatusDto>
+
+    @POST("reading/books/bulk")
+    suspend fun saveReadingBooks(@Body body: SaveBooksRequest): Response<TaskStatusDto>
 
     @GET("devices")
     suspend fun devices(): Response<DevicesResponse>

@@ -25,6 +25,7 @@ data class PersonDto(
     val avatarUrl: String? = null,
     val avatarPosition: String? = null,
     val avatarIcon: String? = null,
+    val color: String? = null,
     val role: String,
     val kind: String,
 )
@@ -449,4 +450,98 @@ data class ApiErrorBody(
     val code: String,
     val message: String,
     val fields: Map<String, String>? = null,
+)
+
+// --- Bible reading (GET /reading + reading writes) ---
+
+@Serializable
+data class ReadingGroupDto(
+    val label: String = "",
+    val chapters: Int = 0,
+    val read: Int = 0,
+    val percent: Int = 0,
+)
+
+@Serializable
+data class ReadingStatsDto(
+    val totalChapters: Int = 0,
+    val readChapters: Int = 0,
+    val wholeBible: Boolean = false,
+    val ot: ReadingGroupDto = ReadingGroupDto(),
+    val nt: ReadingGroupDto = ReadingGroupDto(),
+    val groups: List<ReadingGroupDto> = emptyList(),
+)
+
+@Serializable
+data class ReadingCardDto(
+    val iso: String = "",
+    val passage: String = "",
+    val label: String = "",
+)
+
+@Serializable
+data class ReadingFamilyDto(
+    val havePlan: Boolean = false,
+    val cards: List<ReadingCardDto> = emptyList(),
+    val todayIndex: Int = 0,
+    val remaining: Int = 0,
+    val lastDayISO: String? = null,
+    val stats: ReadingStatsDto = ReadingStatsDto(),
+)
+
+@Serializable
+data class PersonalPlanDayDto(
+    val iso: String = "",
+    val label: String = "",
+    val passage: String = "",
+    val read: Boolean = false,
+)
+
+@Serializable
+data class PersonalPlanDto(
+    val id: String = "",
+    val name: String = "",
+    val remaining: Int = 0,
+    val days: List<PersonalPlanDayDto> = emptyList(),
+)
+
+@Serializable
+data class ReadingPersonalDto(
+    val color: String = "#0f5c63",
+    val stats: ReadingStatsDto = ReadingStatsDto(),
+    val plan: PersonalPlanDto? = null,
+    val readKeys: List<String> = emptyList(),
+)
+
+@Serializable
+data class ReadingDto(
+    val today: String = "",
+    val family: ReadingFamilyDto = ReadingFamilyDto(),
+    val personal: ReadingPersonalDto? = null,
+)
+
+@Serializable
+data class PersonalPlanRequest(
+    val name: String,
+    val bookNames: List<String>,
+    val startISO: String,
+    val chaptersPerDay: Int,
+)
+
+@Serializable
+data class MarkReadingRequest(
+    val passage: String,
+    val read: Boolean,
+)
+
+@Serializable
+data class SaveBookRequest(
+    val bookName: String,
+    val chapters: List<Int>,
+)
+
+@Serializable
+data class SaveBooksRequest(
+    val bookNames: List<String>,
+    val read: Boolean,
 )

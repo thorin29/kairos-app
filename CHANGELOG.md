@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.25.0 — Bible reading
+- New Bible reading section, to full parity with the web personal view. Two tabs:
+  - Family Progress: the reading deck (swipe or use the arrows through the days,
+    with a "Back to today"), how many days are left in the family plan, and the
+    Old/New Testament and by-group coverage bars.
+  - Personal Progress: your own coverage; "Your plan" — create a personal
+    reading plan (pick books, a start date and chapters/day, with a live chapter
+    and day estimate) or work through the one you have, ticking each day off
+    (deleting a plan is confirmed and keeps your read chapters); and "Mark what
+    you've read" — tick whole books or open a book to mark individual chapters,
+    plus quick "Mark Old/New Testament read" and "Clear hand-marked".
+- Backed by the new GET /api/v1/reading aggregate and the reading write endpoints
+  (plan, plan/delete, mark, books, books/bulk); /me now carries your colour.
+
 ## 0.24.1 — Avatar position
 - Avatars now honour the web's position/zoom adjustment (the API now sends
   avatarPosition and the app applies the same transform), so a centred photo
