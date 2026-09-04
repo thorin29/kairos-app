@@ -206,6 +206,7 @@ data class PlannedEntryDto(
 @Serializable
 data class WorkoutProgressDto(
     val series: List<ProgressSeriesDto> = emptyList(),
+    val defaultId: String? = null,
     val history: List<WorkoutHistoryDto> = emptyList(),
 )
 

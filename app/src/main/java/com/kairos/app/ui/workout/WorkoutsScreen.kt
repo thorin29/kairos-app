@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
+import com.kairos.app.data.remote.dto.WorkoutProgressDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
@@ -71,11 +72,11 @@ fun WorkoutsScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var series by remember { mutableStateOf<List<ProgressSeriesDto>>(emptyList()) }
+    var progress by remember { mutableStateOf<WorkoutProgressDto?>(null) }
 
     LaunchedEffect(ui.savedTick) {
         runCatching { container.sessionRepository.loadWorkoutProgress() }
-            .getOrNull()?.let { series = it.series }
+            .getOrNull()?.let { progress = it }
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
     }
 
@@ -101,13 +102,13 @@ fun WorkoutsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    if (series.isNotEmpty()) {
+                    progress?.takeIf { it.series.isNotEmpty() }?.let { p ->
                         Text(
                             "Progress",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        WorkoutChart(series)
+                        WorkoutChart(p.series, p.defaultId)
                     }
 
                     Text(

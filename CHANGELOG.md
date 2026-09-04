@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.1 — Workouts graph: fixes to match the web
+- Graph now shows one tracked movement at a time, defaulting to today's weights
+  (or the next day that has some). Tap the movement name below the chart to
+  switch between your tracked movements.
+- Fixed the left scale to round to nice steps (nearest 10 lb / 5 kg).
+- Bigger points; tap one to see its date and weight. Removed the caption line.
+
 ## 0.18.0 — Workouts: progress graph
 - The Workouts page now shows the weight-progress line chart at the top (max
   weight per day, per movement) with a tap-to-toggle legend, mirroring the web.
