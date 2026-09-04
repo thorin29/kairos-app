@@ -45,6 +45,7 @@ import com.kairos.app.ui.nav.KairosRail
 import com.kairos.app.ui.nav.Route
 import com.kairos.app.ui.nav.sectionFor
 import com.kairos.app.ui.bible.BibleScreen
+import com.kairos.app.ui.calendar.CalendarScreen
 import com.kairos.app.ui.chores.ChoresScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
@@ -142,6 +143,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         BibleScreen(onOpenDrawer = { open = true })
                     } else if (key == "chores") {
                         ChoresScreen(onOpenDrawer = { open = true })
+                    } else if (key == "calendar") {
+                        CalendarScreen(onOpenDrawer = { open = true })
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
                     }

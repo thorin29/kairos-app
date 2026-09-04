@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.27.0 — Calendar (Month & Agenda)
+- New Calendar section (read-only for now): an Agenda view of a day's events with
+  prev/today/next, and a Month grid with coloured event dots — tap a day to open
+  its agenda. Events use the colours and filters you've set on the web.
+- Time-grid views (week / 3-day), adding and editing events, the options drawer,
+  and colour controls are coming in later updates.
+
 ## 0.26.2 — Up for grabs & always-open on Home
 - Home now shows household chores anyone can pick up: "Up for grabs" (shared
   chores and any chore released to the household) with a Take it button, and

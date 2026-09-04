@@ -661,3 +661,44 @@ data class ClaimChoreRequest(
 data class AlwaysOpenRequest(
     val choreId: String,
 )
+
+// --- Calendar (GET /calendar, read-only Phase 1) ---
+
+@Serializable
+data class CalEventDto(
+    val id: String = "",
+    val eventId: String = "",
+    val title: String = "",
+    val location: String? = null,
+    val dayISO: String = "",
+    val allDay: Boolean = false,
+    val startMin: Int = 0,
+    val endMin: Int = 0,
+    val timeLabel: String = "",
+    val color: String = "#64748b",
+    val memberColors: List<String> = emptyList(),
+    val isFamily: Boolean = false,
+    val shade: Boolean = false,
+    val kind: String = "",
+    val ownerName: String = "",
+    val calendarName: String? = null,
+    val recurring: Boolean = false,
+    val recurLabel: String? = null,
+    val external: Boolean = false,
+    val schoolType: String? = null,
+    val schoolClassName: String? = null,
+)
+
+@Serializable
+data class CalendarDto(
+    val today: String = "",
+    val view: String = "agenda",
+    val date: String = "",
+    val heading: String = "",
+    val rangeDays: List<String> = emptyList(),
+    val prevDate: String = "",
+    val nextDate: String = "",
+    val events: List<CalEventDto> = emptyList(),
+    val monthDays: List<String> = emptyList(),
+    val monthDots: Map<String, List<String>> = emptyMap(),
+)

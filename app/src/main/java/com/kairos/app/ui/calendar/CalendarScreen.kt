@@ -1,0 +1,321 @@
+package com.kairos.app.ui.calendar
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.kairos.app.data.remote.dto.CalEventDto
+import com.kairos.app.data.remote.dto.CalendarDto
+import com.kairos.app.ui.common.LogoMenuButton
+import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.nav.KairosIcons
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+private val WEEKDAYS = listOf("S", "M", "T", "W", "T", "F", "S")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarScreen(onOpenDrawer: () -> Unit) {
+    val container = rememberContainer()
+    val vm: CalendarViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer { CalendarViewModel(container.sessionRepository) }
+        },
+    )
+    val ui by vm.ui.collectAsStateWithLifecycle()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Calendar") },
+                navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+            )
+        },
+    ) { inner ->
+        Box(Modifier.padding(inner).fillMaxSize()) {
+            val data = ui.data
+            when {
+                ui.loading && data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(ui.loadError ?: "Couldn't load your calendar.")
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = { vm.setTab(ui.tab) }) { Text("Retry") }
+                    }
+                }
+                else -> CalendarContent(ui, data, vm)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarContent(ui: CalendarUiState, data: CalendarDto, vm: CalendarViewModel) {
+    Column(Modifier.fillMaxSize()) {
+        // View switcher
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SwitchPill("Agenda", ui.tab == CalTab.AGENDA) { vm.setTab(CalTab.AGENDA) }
+            SwitchPill("Month", ui.tab == CalTab.MONTH) { vm.setTab(CalTab.MONTH) }
+        }
+
+        // Nav row
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = { vm.goPrev() }) {
+                Icon(KairosIcons.ChevronLeft, contentDescription = "Previous")
+            }
+            Text(
+                if (ui.tab == CalTab.AGENDA) dayHeading(data.date) else data.heading,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            IconButton(onClick = { vm.goNext() }) {
+                Icon(KairosIcons.ChevronRight, contentDescription = "Next")
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            TextButton(onClick = { vm.goToday() }) { Text("Today") }
+        }
+
+        when (ui.tab) {
+            CalTab.AGENDA -> AgendaView(data)
+            CalTab.MONTH -> MonthView(data, vm)
+        }
+    }
+}
+
+@Composable
+private fun SwitchPill(label: String, active: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .then(
+                if (active) Modifier.background(MaterialTheme.colorScheme.primary)
+                else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp)),
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+// ---- Agenda ----
+
+@Composable
+private fun AgendaView(data: CalendarDto) {
+    val events = data.events
+        .filter { it.dayISO == data.date }
+        .sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (events.isEmpty()) {
+            Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
+                Text("Nothing scheduled.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            events.forEach { EventRow(it) }
+        }
+    }
+}
+
+@Composable
+private fun EventRow(e: CalEventDto) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(parseColor(e.color)),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(e.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val secondary = buildEventSecondary(e)
+                if (secondary != null) {
+                    Text(secondary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+private fun buildEventSecondary(e: CalEventDto): String? {
+    val parts = mutableListOf<String>()
+    parts += if (e.allDay) "All day" else e.timeLabel
+    e.location?.takeIf { it.isNotBlank() }?.let { parts += it }
+    e.recurLabel?.takeIf { it.isNotBlank() }?.let { parts += it }
+    if (e.isFamily) parts += "Family"
+    return parts.filter { it.isNotBlank() }.joinToString(" \u00b7 ").ifBlank { null }
+}
+
+// ---- Month ----
+
+@Composable
+private fun MonthView(data: CalendarDto, vm: CalendarViewModel) {
+    val currentMonth = data.date.take(7) // YYYY-MM
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+    ) {
+        Row(Modifier.fillMaxWidth()) {
+            WEEKDAYS.forEach { d ->
+                Text(
+                    d,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f).padding(vertical = 6.dp),
+                )
+            }
+        }
+        data.monthDays.chunked(7).forEach { week ->
+            Row(Modifier.fillMaxWidth()) {
+                week.forEach { iso ->
+                    MonthCell(
+                        iso = iso,
+                        inMonth = iso.take(7) == currentMonth,
+                        isToday = iso == data.today,
+                        dots = data.monthDots[iso].orEmpty(),
+                        modifier = Modifier.weight(1f),
+                        onClick = { vm.openDay(iso) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthCell(
+    iso: String,
+    inMonth: Boolean,
+    isToday: Boolean,
+    dots: List<String>,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    val dayNum = iso.substringAfterLast('-').trimStart('0').ifEmpty { "0" }
+    Column(
+        modifier
+            .height(58.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.size(24.dp).clip(CircleShape)
+                .then(if (isToday) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                dayNum,
+                style = MaterialTheme.typography.bodySmall,
+                color = when {
+                    isToday -> Color.White
+                    inMonth -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                },
+                fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
+            )
+        }
+        Spacer(Modifier.height(3.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            dots.take(3).forEach { c ->
+                Box(Modifier.size(5.dp).clip(CircleShape).background(parseColor(c)))
+            }
+        }
+    }
+}
+
+// ---- helpers ----
+
+private val DAY_HEADING = DateTimeFormatter.ofPattern("EEE, MMM d")
+
+private fun dayHeading(iso: String): String =
+    try {
+        LocalDate.parse(iso).format(DAY_HEADING)
+    } catch (_: Exception) {
+        iso
+    }
+
+private fun parseColor(hex: String?): Color {
+    val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)
+    return try {
+        when (s.length) {
+            6 -> Color(("FF$s").toLong(16))
+            8 -> Color(s.toLong(16))
+            else -> Color(0xFF64748B)
+        }
+    } catch (_: NumberFormatException) {
+        Color(0xFF64748B)
+    }
+}
