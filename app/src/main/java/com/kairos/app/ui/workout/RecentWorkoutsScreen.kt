@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -19,9 +20,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +49,8 @@ fun RecentWorkoutsScreen(onBack: () -> Unit) {
         },
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
+    var editMode by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<WorkoutHistoryDto?>(null) }
 
     Scaffold(
         topBar = {
@@ -52,6 +59,16 @@ fun RecentWorkoutsScreen(onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (ui.history.isNotEmpty()) {
+                        TextButton(onClick = {
+                            editMode = !editMode
+                            pendingDelete = null
+                        }) {
+                            Text(if (editMode) "Done" else "Edit")
+                        }
                     }
                 },
             )
@@ -73,26 +90,40 @@ fun RecentWorkoutsScreen(onBack: () -> Unit) {
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 )
                 else -> LazyColumn(Modifier.fillMaxSize()) {
-                    item {
-                        Text(
-                            "Logged a mistake? Remove it here.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp),
-                        )
-                    }
                     items(ui.history, key = { it.id }) { h ->
-                        RecentRow(h, ui.deletingIds.contains(h.id)) { vm.delete(h.id) }
+                        RecentRow(h, editMode, ui.deletingIds.contains(h.id)) { pendingDelete = h }
                         HorizontalDivider()
                     }
                 }
             }
         }
     }
+
+    pendingDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete this workout?") },
+            text = { Text("${target.label}${if (target.result.isNotBlank()) " · ${target.result}" else ""} on ${shortDate(target.date)}") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.delete(target.id)
+                    pendingDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 @Composable
-private fun RecentRow(h: WorkoutHistoryDto, deleting: Boolean, onDelete: () -> Unit) {
+private fun RecentRow(
+    h: WorkoutHistoryDto,
+    editMode: Boolean,
+    deleting: Boolean,
+    onDelete: () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -113,10 +144,9 @@ private fun RecentRow(h: WorkoutHistoryDto, deleting: Boolean, onDelete: () -> U
                 )
             }
         }
-        if (deleting) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-        } else {
-            IconButton(onClick = onDelete) {
+        when {
+            deleting -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            editMode -> IconButton(onClick = onDelete) {
                 Icon(
                     KairosIcons.Trash,
                     contentDescription = "Delete",

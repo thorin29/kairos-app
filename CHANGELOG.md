@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.0 — Recent workouts: safer delete
+- Removed the "Logged a mistake?" line. Deletes are now hidden behind an Edit
+  toggle, and deleting asks to confirm (Cancel / Delete) — no accidental
+  removals. Same change applied to the web.
+
 ## 0.16.0 — Log workout: "Log a different workout"
 - The Log workout page now has the ad-hoc form below Today's plan: Type (Weights,
   Running, Rowing, Rucking, Sport, Stretching, Isometric) -> Record (metric) ->
