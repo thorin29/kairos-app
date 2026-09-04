@@ -57,6 +57,9 @@ class CalendarViewModel(
         }
     }
 
+    /** Public retry for the error state. */
+    fun reload() = load()
+
     fun setTab(tab: CalTab) {
         if (tab == _ui.value.tab) return
         _ui.update { it.copy(tab = tab) }
@@ -73,6 +76,12 @@ class CalendarViewModel(
 
     fun goToday() {
         _ui.value.data?.let { d -> _ui.update { it.copy(date = d.today) }; load() }
+    }
+
+    /** Navigate to a date while keeping the current view (month-dropdown tap). */
+    fun goToDate(iso: String) {
+        _ui.update { it.copy(date = iso) }
+        load()
     }
 
     /** Tap a month day → open its agenda. */

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.0 — Calendar layout rework
+- Cleaner calendar top bar: the redundant "Calendar" title and the prev/next
+  arrows are gone. The heading now shows a single month name you can tap to drop
+  down a month grid (with event dots) and jump to any day; tap again to close.
+- A "today" button showing today's date returns you to today, and a new settings
+  button holds the view chooser (Agenda / Day / 3-day / Week / Month) and all the
+  filters (people, family, school work, subscriptions).
+- Month view now shows event chips (like the web), always titled with one month
+  and greying the neighbouring months' days.
+
 ## 0.29.1 — Calendar travel timezones
 - When your phone is in a different timezone from home, timed events now shift to
   show at the wall-clock time they actually happen where you are (e.g. a 9 AM
