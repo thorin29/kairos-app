@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.31.0 — Calendar month grid & settings drawer
+- Month view: every day is now the same size and the grid fills the screen,
+  instead of days growing with how many events they have.
+- Calendar settings now slide in from the right. The view chooser sits at the
+  top with icons and the current view highlighted (tap to switch); a new
+  "Default view" option lets you pick which view the calendar opens to — a
+  specific one or your last-used ("Last view").
+- All event filters (family, school work, people, subscriptions) use checkboxes
+  now, grouped into "My calendars" and "Other calendars".
+
 ## 0.30.0 — Calendar layout rework
 - Cleaner calendar top bar: the redundant "Calendar" title and the prev/next
   arrows are gone. The heading now shows a single month name you can tap to drop

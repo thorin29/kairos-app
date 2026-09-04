@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.CalendarDto
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.settings.SettingsStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,9 +16,14 @@ import kotlinx.coroutines.launch
 enum class CalTab(val serverValue: String, val label: String) {
     AGENDA("agenda", "Agenda"),
     DAY("day", "Day"),
-    THREE_DAY("three_day", "3-day"),
+    THREE_DAY("three_day", "3 Days"),
     WEEK("week", "Week"),
-    MONTH("month", "Month"),
+    MONTH("month", "Month");
+
+    companion object {
+        fun fromServer(v: String?): CalTab =
+            entries.firstOrNull { it.serverValue == v } ?: AGENDA
+    }
 }
 
 data class CalendarUiState(
@@ -27,21 +33,30 @@ data class CalendarUiState(
     val tab: CalTab = CalTab.AGENDA,
     /** Requested date; null lets the server default to today on first load. */
     val date: String? = null,
+    /** The saved default-view preference: a CalView value or "last". */
+    val defaultView: String = "last",
 )
 
 /**
- * Read-only calendar (Phase 1): each view/date change re-fetches GET /calendar,
- * which resolves the range, colours, and paging anchors server-side.
+ * Read-only calendar (Phases 1-4): each view/date change re-fetches GET /calendar.
+ * The view the calendar opens to is a device preference ("last" = most recent, or
+ * a pinned view); the current view is remembered as the last-used one.
  */
 class CalendarViewModel(
     private val session: SessionRepository,
+    private val settings: SettingsStore,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(CalendarUiState())
     val ui: StateFlow<CalendarUiState> = _ui.asStateFlow()
 
     init {
-        load()
+        viewModelScope.launch {
+            val def = settings.currentCalendarDefaultView()
+            val start = if (def == "last") settings.currentCalendarLastView() else def
+            _ui.update { it.copy(tab = CalTab.fromServer(start), defaultView = def) }
+            load()
+        }
     }
 
     private fun load() {
@@ -63,7 +78,13 @@ class CalendarViewModel(
     fun setTab(tab: CalTab) {
         if (tab == _ui.value.tab) return
         _ui.update { it.copy(tab = tab) }
+        viewModelScope.launch { settings.setCalendarLastView(tab.serverValue) }
         load()
+    }
+
+    fun setDefaultView(v: String) {
+        _ui.update { it.copy(defaultView = v) }
+        viewModelScope.launch { settings.setCalendarDefaultView(v) }
     }
 
     fun goPrev() {
@@ -87,10 +108,11 @@ class CalendarViewModel(
     /** Tap a month day → open its agenda. */
     fun openDay(iso: String) {
         _ui.update { it.copy(tab = CalTab.AGENDA, date = iso) }
+        viewModelScope.launch { settings.setCalendarLastView(CalTab.AGENDA.serverValue) }
         load()
     }
 
-    /** Persist a filter/view change, then reload so the grid reflects it. */
+    /** Persist a filter change, then reload so the grid reflects it. */
     fun savePrefs(
         shownPeople: List<String>? = null,
         shownSubs: List<String>? = null,

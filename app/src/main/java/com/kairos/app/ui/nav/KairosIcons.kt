@@ -111,6 +111,15 @@ object KairosIcons {
         "M13 12a2 2 0 1 0 4 0 2 2 0 1 0 -4 0",
         "M6 18a2 2 0 1 0 4 0 2 2 0 1 0 -4 0",
     )
+    val ViewAgenda = stroked(
+        "ViewAgenda",
+        "M8 7h11", "M8 12h11", "M8 17h11",
+        "M4.5 7h1", "M4.5 12h1", "M4.5 17h1",
+    )
+    val ViewDay = stroked("ViewDay", "M6 4h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z")
+    val ViewThreeDay = stroked("ViewThreeDay", "M4 5h16v14H4Z", "M9.33 5v14", "M14.66 5v14")
+    val ViewWeek = stroked("ViewWeek", "M4 5h16v14H4Z", "M8 5v14", "M12 5v14", "M16 5v14")
+    val ViewMonth = stroked("ViewMonth", "M4 5h16v14H4Z", "M4 10h16", "M4 15h16", "M9.33 5v14", "M14.66 5v14")
     val Trash = stroked("Trash", "M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13", "M10 11v6M14 11v6")
     val ChevronDown = stroked("ChevronDown", "M6 9l6 6 6-6")
 }

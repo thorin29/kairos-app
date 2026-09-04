@@ -27,7 +27,28 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it.remove(KEY_BASE_URL) }
     }
 
+    /** The calendar view the app opens to. A CalView value, or "last" to use the
+     *  most recently used view. */
+    val calendarDefaultView: Flow<String> =
+        dataStore.data.map { it[KEY_CAL_DEFAULT_VIEW] ?: "last" }
+
+    suspend fun currentCalendarDefaultView(): String = calendarDefaultView.first()
+
+    suspend fun setCalendarDefaultView(v: String) {
+        dataStore.edit { it[KEY_CAL_DEFAULT_VIEW] = v }
+    }
+
+    /** The most recently used calendar view, for the "last" default. */
+    suspend fun currentCalendarLastView(): String =
+        dataStore.data.map { it[KEY_CAL_LAST_VIEW] ?: "agenda" }.first()
+
+    suspend fun setCalendarLastView(v: String) {
+        dataStore.edit { it[KEY_CAL_LAST_VIEW] = v }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
+        val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
+        val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
     }
 }

@@ -1,5 +1,10 @@
 package com.kairos.app.ui.calendar
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,27 +14,29 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,73 +77,105 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { CalendarViewModel(container.sessionRepository) }
+            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore) }
         },
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
     var monthExpanded by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showDefaultPicker by remember { mutableStateOf(false) }
     val data = ui.data
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
-                title = {
-                    if (data != null) {
-                        val expandable = ui.tab != CalTab.MONTH
-                        MonthTitle(
-                            label = monthName(data.date),
-                            expandable = expandable,
-                            expanded = monthExpanded,
-                            onClick = { if (expandable) monthExpanded = !monthExpanded },
-                        )
-                    }
-                },
-                actions = {
-                    if (data != null) {
-                        TodayBox(dayNum = dayOfMonth(data.today)) {
-                            monthExpanded = false
-                            vm.goToday()
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+                    title = {
+                        if (data != null) {
+                            val expandable = ui.tab != CalTab.MONTH
+                            MonthTitle(
+                                label = monthName(data.date),
+                                expandable = expandable,
+                                expanded = monthExpanded,
+                                onClick = { if (expandable) monthExpanded = !monthExpanded },
+                            )
                         }
-                        Spacer(Modifier.width(4.dp))
-                        Box(
-                            Modifier.size(40.dp).clip(CircleShape).clickable { showSettings = true },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(KairosIcons.Sliders, contentDescription = "Calendar settings")
+                    },
+                    actions = {
+                        if (data != null) {
+                            TodayBox(dayNum = dayOfMonth(data.today)) {
+                                monthExpanded = false
+                                vm.goToday()
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape).clickable { showSettings = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(KairosIcons.Sliders, contentDescription = "Calendar settings")
+                            }
+                            Spacer(Modifier.width(4.dp))
                         }
-                        Spacer(Modifier.width(4.dp))
+                    },
+                )
+            },
+        ) { inner ->
+            Box(Modifier.padding(inner).fillMaxSize()) {
+                when {
+                    ui.loading && data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                },
-            )
-        },
-    ) { inner ->
-        Box(Modifier.padding(inner).fillMaxSize()) {
-            when {
-                ui.loading && data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(ui.loadError ?: "Couldn't load your calendar.")
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = { vm.reload() }) { Text("Retry") }
+                    data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(ui.loadError ?: "Couldn't load your calendar.")
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = { vm.reload() }) { Text("Retry") }
+                        }
                     }
+                    else -> CalendarBody(
+                        ui = ui,
+                        data = data,
+                        vm = vm,
+                        monthExpanded = monthExpanded && ui.tab != CalTab.MONTH,
+                        onCollapseMonth = { monthExpanded = false },
+                    )
                 }
-                else -> CalendarBody(
-                    ui = ui,
+            }
+        }
+
+        // Settings drawer, sliding in from the right.
+        if (data != null) {
+            AnimatedVisibility(visible = showSettings, enter = fadeIn(), exit = fadeOut()) {
+                Box(
+                    Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+                        .clickable { showSettings = false },
+                )
+            }
+            AnimatedVisibility(
+                visible = showSettings,
+                enter = slideInHorizontally { it },
+                exit = slideOutHorizontally { it },
+                modifier = Modifier.align(Alignment.CenterEnd),
+            ) {
+                SettingsPanel(
                     data = data,
+                    tab = ui.tab,
+                    defaultView = ui.defaultView,
                     vm = vm,
-                    monthExpanded = monthExpanded && ui.tab != CalTab.MONTH,
-                    onCollapseMonth = { monthExpanded = false },
+                    onOpenDefaultPicker = { showDefaultPicker = true },
+                    onPickView = { showSettings = false },
                 )
             }
         }
     }
 
-    if (showSettings && data != null) {
-        SettingsSheet(data, ui.tab, vm, onDismiss = { showSettings = false })
+    if (showDefaultPicker && data != null) {
+        DefaultViewDialog(
+            current = ui.defaultView,
+            onPick = { vm.setDefaultView(it); showDefaultPicker = false },
+            onDismiss = { showDefaultPicker = false },
+        )
     }
 }
 
@@ -162,9 +202,7 @@ private fun MonthTitle(label: String, expandable: Boolean, expanded: Boolean, on
 @Composable
 private fun TodayBox(dayNum: String, onClick: () -> Unit) {
     Box(
-        Modifier
-            .size(34.dp)
-            .clip(RoundedCornerShape(8.dp))
+        Modifier.size(34.dp).clip(RoundedCornerShape(8.dp))
             .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
@@ -296,13 +334,13 @@ private fun MiniCell(
     }
 }
 
-// ---- Month view (full page, event chips) ----
+// ---- Month view (full page, uniform cells filling the screen, chips) ----
 
 @Composable
 private fun MonthChipsView(data: CalendarDto, events: List<CalEventDto>, vm: CalendarViewModel) {
     val currentMonth = data.date.take(7)
     val byDay = remember(events) { events.groupBy { it.dayISO } }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 4.dp)) {
         Row(Modifier.fillMaxWidth()) {
             WEEKDAYS.forEach {
                 Text(
@@ -315,14 +353,14 @@ private fun MonthChipsView(data: CalendarDto, events: List<CalEventDto>, vm: Cal
             }
         }
         data.monthDays.chunked(7).forEach { week ->
-            Row(Modifier.fillMaxWidth().heightIn(min = 92.dp)) {
+            Row(Modifier.fillMaxWidth().weight(1f)) {
                 week.forEach { iso ->
                     MonthDayCell(
                         iso = iso,
                         inMonth = iso.take(7) == currentMonth,
                         isToday = iso == data.today,
                         events = byDay[iso].orEmpty(),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     ) { vm.openDay(iso) }
                 }
             }
@@ -343,10 +381,9 @@ private fun MonthDayCell(
     val sorted = events.sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
     Column(
         modifier
-            .fillMaxWidth()
             .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
             .clickable { onClick() }
-            .padding(3.dp),
+            .padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -367,10 +404,10 @@ private fun MonthDayCell(
         }
         Spacer(Modifier.height(2.dp))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            sorted.take(3).forEach { MonthChip(it) }
-            if (sorted.size > 3) {
+            sorted.take(4).forEach { MonthChip(it) }
+            if (sorted.size > 4) {
                 Text(
-                    "+${sorted.size - 3}",
+                    "+${sorted.size - 4}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 2.dp),
@@ -384,7 +421,6 @@ private fun MonthDayCell(
 private fun MonthChip(e: CalEventDto) {
     val color = parseColor(e.color)
     if (e.external) {
-        // Subscribed/feed events: light chip with a colour bar.
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -427,11 +463,7 @@ private fun AgendaView(events: List<CalEventDto>, date: String) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            dayHeading(date),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Text(dayHeading(date), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         if (shown.isEmpty()) {
             Box(Modifier.fillMaxWidth().padding(top = 24.dp), contentAlignment = Alignment.Center) {
@@ -447,9 +479,7 @@ private fun AgendaView(events: List<CalEventDto>, date: String) {
 private fun EventRow(e: CalEventDto) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(parseColor(e.color)),
-            )
+            Box(Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(parseColor(e.color)))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(e.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -470,50 +500,75 @@ private fun buildEventSecondary(e: CalEventDto): String? {
     return parts.filter { it.isNotBlank() }.joinToString(" \u00b7 ").ifBlank { null }
 }
 
-// ---- Settings sheet (view + filters) ----
+// ---- Settings drawer (right) ----
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsSheet(data: CalendarDto, tab: CalTab, vm: CalendarViewModel, onDismiss: () -> Unit) {
+private fun SettingsPanel(
+    data: CalendarDto,
+    tab: CalTab,
+    defaultView: String,
+    vm: CalendarViewModel,
+    onOpenDefaultPicker: () -> Unit,
+    onPickView: () -> Unit,
+) {
     val opt = data.options
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    Surface(
+        Modifier.fillMaxHeight().fillMaxWidth(0.86f),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+    ) {
         Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp).padding(bottom = 28.dp),
+            Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text("View", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             CalTab.entries.forEach { t ->
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                        .clickable { vm.setTab(t); onDismiss() }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = t == tab, onClick = { vm.setTab(t); onDismiss() })
-                    Text(t.label, style = MaterialTheme.typography.bodyLarge)
-                }
+                ViewRow(t, selected = t == tab) { vm.setTab(t); onPickView() }
             }
 
-            Spacer(Modifier.height(10.dp))
-            Text("Show", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            ToggleRow("Family events", opt.showFamily) { vm.savePrefs(showFamily = it) }
-            ToggleRow("School work", opt.showSchoolWork) { vm.savePrefs(showSchoolWork = it) }
+            DrawerDivider()
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onOpenDefaultPicker() }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Default view", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        defaultViewLabel(defaultView),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(KairosIcons.ChevronDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
 
-            Spacer(Modifier.height(10.dp))
-            Text("People", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            DrawerDivider()
+            Text(
+                "My calendars",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
+            )
+            FilterCheck("Family events", opt.showFamily, null) { vm.savePrefs(showFamily = it) }
+            FilterCheck("School work", opt.showSchoolWork, null) { vm.savePrefs(showSchoolWork = it) }
             opt.people.forEach { p ->
-                CheckRow(p.name, parseColor(p.color), p.id in opt.shownPeople) {
+                FilterCheck(p.name, p.id in opt.shownPeople, parseColor(p.color)) {
                     vm.savePrefs(shownPeople = toggleId(opt.shownPeople, p.id))
                 }
             }
 
             if (opt.subscriptions.isNotEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                Text("Subscriptions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                DrawerDivider()
+                Text(
+                    "Other calendars",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
+                )
                 opt.subscriptions.forEach { s ->
                     val label = if (s.ownerName != null) "${s.name} \u00b7 ${s.ownerName}" else s.name
-                    CheckRow(label, parseColor(s.color), s.id in opt.shownSubs) {
+                    FilterCheck(label, s.id in opt.shownSubs, parseColor(s.color)) {
                         vm.savePrefs(shownSubs = toggleId(opt.shownSubs, s.id))
                     }
                 }
@@ -523,30 +578,97 @@ private fun SettingsSheet(data: CalendarDto, tab: CalTab, vm: CalendarViewModel,
 }
 
 @Composable
-private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun ViewRow(t: CalTab, selected: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = { onChange(it) })
+        Icon(
+            tabIcon(t),
+            contentDescription = null,
+            modifier = Modifier.size(22.dp),
+            tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            t.label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        )
     }
 }
 
 @Composable
-private fun CheckRow(label: String, dot: Color, checked: Boolean, onToggle: () -> Unit) {
+private fun FilterCheck(label: String, checked: Boolean, color: Color?, onToggle: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onToggle() }.padding(vertical = 4.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onToggle(!checked) }
+            .padding(horizontal = 6.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
-        Box(Modifier.size(10.dp).clip(CircleShape).background(dot))
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onToggle(it) },
+            colors = if (color != null) CheckboxDefaults.colors(checkedColor = color) else CheckboxDefaults.colors(),
+        )
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
+@Composable
+private fun DrawerDivider() {
+    Box(Modifier.fillMaxWidth().height(1.dp).padding(vertical = 6.dp).background(MaterialTheme.colorScheme.outlineVariant))
+}
+
+@Composable
+private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+    val options = listOf(
+        "agenda" to "Agenda", "day" to "Day", "three_day" to "3 Days",
+        "week" to "Week", "month" to "Month", "last" to "Last view",
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Default view") },
+        text = {
+            Column {
+                options.forEach { (value, label) ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onPick(value) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = value == current, onClick = { onPick(value) })
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
 // ---- helpers ----
+
+private fun tabIcon(t: CalTab): ImageVector = when (t) {
+    CalTab.AGENDA -> KairosIcons.ViewAgenda
+    CalTab.DAY -> KairosIcons.ViewDay
+    CalTab.THREE_DAY -> KairosIcons.ViewThreeDay
+    CalTab.WEEK -> KairosIcons.ViewWeek
+    CalTab.MONTH -> KairosIcons.ViewMonth
+}
+
+private fun defaultViewLabel(v: String): String = when (v) {
+    "agenda" -> "Agenda"
+    "day" -> "Day"
+    "three_day" -> "3 Days"
+    "week" -> "Week"
+    "month" -> "Month"
+    else -> "Last view"
+}
 
 private fun toggleId(list: List<String>, id: String): List<String> =
     if (id in list) list - id else list + id
@@ -563,12 +685,6 @@ private fun dayOfMonth(iso: String): String =
 private fun dayHeading(iso: String): String =
     try { LocalDate.parse(iso).format(DAY_HEADING) } catch (_: Exception) { iso }
 
-/**
- * Converts each timed event from the home timezone to the device's current
- * timezone via its real instant (DST-safe), so events show at the wall-clock
- * time they actually occur where you are. All-day events don't move; at home
- * (device tz == home tz) nothing shifts.
- */
 private fun localizeEvents(events: List<CalEventDto>, homeTz: String): List<CalEventDto> {
     val home = runCatching { ZoneId.of(homeTz) }.getOrElse { return events }
     val device = ZoneId.systemDefault()
