@@ -51,7 +51,7 @@ private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditPlanScreen(onBack: () -> Unit) {
+fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
     val container = rememberContainer()
     val vm: EditPlanViewModel = viewModel(
         factory = viewModelFactory { initializer { EditPlanViewModel(container.sessionRepository) } },
@@ -68,6 +68,9 @@ fun EditPlanScreen(onBack: () -> Unit) {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    TextButton(onClick = onOpenRotation) { Text("Rotation") }
                 },
             )
         },

@@ -29,6 +29,11 @@ import com.kairos.app.data.remote.dto.PlanCopyRequest
 import com.kairos.app.data.remote.dto.PlanOptionsDto
 import com.kairos.app.data.remote.dto.AddPoolRequest
 import com.kairos.app.data.remote.dto.AddHiitRequest
+import com.kairos.app.data.remote.dto.RotationDto
+import com.kairos.app.data.remote.dto.RestDaysRequest
+import com.kairos.app.data.remote.dto.AddSlotRequest
+import com.kairos.app.data.remote.dto.SlotIdRequest
+import com.kairos.app.data.remote.dto.MoveSlotRequest
 import com.kairos.app.data.remote.dto.CustomLogRequest
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
@@ -126,6 +131,27 @@ interface ApiService {
 
     @POST("workouts/plan/add-hiit")
     suspend fun planAddHiit(@Body body: AddHiitRequest): Response<TaskStatusDto>
+
+    @GET("workouts/rotation")
+    suspend fun rotation(): Response<RotationDto>
+
+    @POST("workouts/rotation/start")
+    suspend fun rotationStart(): Response<TaskStatusDto>
+
+    @POST("workouts/rotation/stop")
+    suspend fun rotationStop(): Response<TaskStatusDto>
+
+    @POST("workouts/rotation/rest-days")
+    suspend fun rotationRestDays(@Body body: RestDaysRequest): Response<TaskStatusDto>
+
+    @POST("workouts/rotation/add-slot")
+    suspend fun rotationAddSlot(@Body body: AddSlotRequest): Response<TaskStatusDto>
+
+    @POST("workouts/rotation/remove-slot")
+    suspend fun rotationRemoveSlot(@Body body: SlotIdRequest): Response<TaskStatusDto>
+
+    @POST("workouts/rotation/move-slot")
+    suspend fun rotationMoveSlot(@Body body: MoveSlotRequest): Response<TaskStatusDto>
 
     @POST("workouts/log-custom")
     suspend fun logCustom(@Body body: CustomLogRequest): Response<WorkoutAckDto>

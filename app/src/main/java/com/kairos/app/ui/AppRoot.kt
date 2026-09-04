@@ -49,6 +49,7 @@ import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.EditPlanScreen
+import com.kairos.app.ui.workout.RotationScreen
 import com.kairos.app.ui.workout.RecentWorkoutsScreen
 import com.kairos.app.ui.workout.WeightCalculatorScreen
 import com.kairos.app.ui.workout.WorkoutsScreen
@@ -149,7 +150,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     BrowseWorkoutsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.EditPlan> {
-                    EditPlanScreen(onBack = { navController.popBackStack() })
+                    EditPlanScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenRotation = { navController.navigate(Route.Rotation) },
+                    )
+                }
+                composable<Route.Rotation> {
+                    RotationScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Devices> {
                     DevicesScreen(onBack = { navController.popBackStack() })

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.23.0 — Edit plan step 3: Rotation + add-refresh fix
+- Fixed: adding a workout to a day now refreshes the card immediately (a
+  status-only response was failing to parse and skipping the reload).
+- New Rotation builder (Edit plan -> Rotation): start/stop a rotation, toggle
+  fixed rest weekdays, see the next 10 days, and build the cycle (add named or
+  rest slots, reorder, remove). Backed by GET /workouts/rotation + start/stop/
+  rest-days/add-slot/remove-slot/move-slot. Slot editing + anchor date come next.
+
 ## 0.22.0 — Edit plan (step 2: add workouts)
 - The Edit plan "Add workout" button now opens a picker: choose a category (or
   Rest), pick a muscle group + exercises for weights (each with a "log a metric"

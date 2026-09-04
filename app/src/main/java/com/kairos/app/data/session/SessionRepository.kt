@@ -235,6 +235,24 @@ class SessionRepository(
         runAuthed { requireService().planAddHiit(com.kairos.app.data.remote.dto.AddHiitRequest(day, hiitWorkoutId)) }
     }
 
+    suspend fun loadRotation(): com.kairos.app.data.remote.dto.RotationDto =
+        runAuthed { requireService().rotation() }
+
+    suspend fun rotationStart() { runAuthed { requireService().rotationStart() } }
+    suspend fun rotationStop() { runAuthed { requireService().rotationStop() } }
+    suspend fun rotationRestDays(mask: Int) {
+        runAuthed { requireService().rotationRestDays(com.kairos.app.data.remote.dto.RestDaysRequest(mask)) }
+    }
+    suspend fun rotationAddSlot(body: com.kairos.app.data.remote.dto.AddSlotRequest) {
+        runAuthed { requireService().rotationAddSlot(body) }
+    }
+    suspend fun rotationRemoveSlot(slotId: String) {
+        runAuthed { requireService().rotationRemoveSlot(com.kairos.app.data.remote.dto.SlotIdRequest(slotId)) }
+    }
+    suspend fun rotationMoveSlot(slotId: String, dir: Int) {
+        runAuthed { requireService().rotationMoveSlot(com.kairos.app.data.remote.dto.MoveSlotRequest(slotId, dir)) }
+    }
+
     suspend fun logCustom(body: com.kairos.app.data.remote.dto.CustomLogRequest): WorkoutAckDto =
         runAuthed { requireService().logCustom(body) }
 
@@ -301,6 +319,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 32
+        const val CLIENT_BUILD = 33
     }
 }

@@ -149,8 +149,8 @@ data class TaskTestDto(
 /** Response of the task complete/uncomplete endpoints. */
 @Serializable
 data class TaskStatusDto(
-    val id: String,
-    val status: String,
+    val id: String = "",
+    val status: String = "",
 )
 
 /** Body for the day-level workout endpoints. */
@@ -232,6 +232,51 @@ data class GraphPointDto(
 
 
 // --- Add-workout picker (plan options) ---
+
+
+// --- Rotation ---
+
+@Serializable
+data class RotationSlotDto(
+    val id: String,
+    val position: Int = 0,
+    val name: String = "",
+    val label: String = "",
+    val isRest: Boolean = false,
+)
+
+@Serializable
+data class RotationPreviewDto(
+    val date: String,
+    val label: String = "",
+    val rest: Boolean = false,
+)
+
+@Serializable
+data class RotationDto(
+    val active: Boolean = false,
+    val anchorISO: String? = null,
+    val restMask: Int = 0,
+    val slots: List<RotationSlotDto> = emptyList(),
+    val preview: List<RotationPreviewDto> = emptyList(),
+)
+
+@Serializable
+data class RestDaysRequest(val mask: Int)
+
+@Serializable
+data class AddSlotRequest(
+    val name: String,
+    val category: String? = null,
+    val muscleGroup: String? = null,
+    val isRest: Boolean = false,
+)
+
+@Serializable
+data class SlotIdRequest(val slotId: String)
+
+@Serializable
+data class MoveSlotRequest(val slotId: String, val dir: Int)
 
 @Serializable
 data class PlanMetricDto(val key: String, val label: String)

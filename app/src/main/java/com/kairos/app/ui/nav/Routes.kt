@@ -29,6 +29,9 @@ sealed interface Route {
     @Serializable
     data object EditPlan : Route
 
+    @Serializable
+    data object Rotation : Route
+
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry
      *  in AppSections. Real sections graduate to their own route/screen. */
     @Serializable
