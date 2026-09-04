@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.1 — Weight calculator: use the real bar art
+- Rebuilt the barbell to match the uploaded SVGs exactly: shaft half-width 49,
+  11-wide collars, 89-long sleeves, flat corners, no end caps, the light outline,
+  and the exact EZ-curl W-path. (The previous version used a wrong reconstruction.)
+
 ## 0.19.0 — Weight calculator
 - New Weight calculator (from the Workouts page): tap plates to load a pair per
   side, pick the bar (45 / 15 / EZ), see the running total, and a scaled barbell

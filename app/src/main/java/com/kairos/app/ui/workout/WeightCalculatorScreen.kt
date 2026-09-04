@@ -49,18 +49,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.min
 
+// Bar proportions taken from the uploaded Claude Design SVGs (viewBox 304x80):
+// shaft half-width 49, collars 11 wide, sleeves 89 long / 22 tall, collars 30
+// tall, straight shaft 8 tall, EZ dip 12; flat corners, no end caps, a light
+// outline. Plates keep real mm sizes (SCALE) and the sleeve extends to hold them.
 private const val SCALE = 0.42f
-private const val SHAFT_HALF = 64f
-private const val COLLAR = 14f
+private const val SHAFT_HALF = 49f
+private const val COLLAR = 11f
 private const val END = 14f
-private const val SLEEVE_MIN = 74f
+private const val SLEEVE_MIN = 89f
 private const val AXIS = 150f
 private const val VIEW_H = 300f
+private const val SLEEVE_H = 22f
+private const val COLLAR_H = 30f
+private const val SHAFT_H = 8f
+private const val EZ_AMP = 12f
 
 private val SLEEVE = Color(0xFFB7BDC4)
-private val CAP = Color(0xFF8C939B)
 private val COLLAR_C = Color(0xFF7C848D)
 private val SHAFT = Color(0xFF9AA1A9)
+private val OUTLINE = Color(0x596F767E) // #6f767e @ 0.35
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -225,6 +233,11 @@ private fun Barbell(perSide: List<Plate>, barType: String) {
         val k = size.width / width
         fun sx(v: Float) = v * k
         fun sy(v: Float) = v * k
+        // Fill + your light outline, flat corners (no rounding).
+        fun barRect(x: Float, y: Float, w: Float, h: Float, c: Color) {
+            drawRect(color = c, topLeft = Offset(sx(x), sy(y)), size = Size(w * k, h * k))
+            drawRect(color = OUTLINE, topLeft = Offset(sx(x), sy(y)), size = Size(w * k, h * k), style = Stroke(width = 1f))
+        }
         fun rrect(x: Float, y: Float, w: Float, h: Float, r: Float, c: Color) {
             drawRoundRect(
                 color = c,
@@ -235,21 +248,19 @@ private fun Barbell(perSide: List<Plate>, barType: String) {
         }
 
         // sleeves
-        rrect(cx + SHAFT_HALF + COLLAR, AXIS - 11, sleeveLen, 22f, 5f, SLEEVE)
-        rrect(cx - SHAFT_HALF - COLLAR - sleeveLen, AXIS - 11, sleeveLen, 22f, 5f, SLEEVE)
-        // end caps
-        rrect(width - 5, AXIS - 13, 5f, 26f, 2f, CAP)
-        rrect(0f, AXIS - 13, 5f, 26f, 2f, CAP)
+        barRect(cx + SHAFT_HALF + COLLAR, AXIS - SLEEVE_H / 2, sleeveLen, SLEEVE_H, SLEEVE)
+        barRect(cx - SHAFT_HALF - COLLAR - sleeveLen, AXIS - SLEEVE_H / 2, sleeveLen, SLEEVE_H, SLEEVE)
         // collars
-        rrect(cx + SHAFT_HALF, AXIS - 16, COLLAR, 32f, 3f, COLLAR_C)
-        rrect(cx - SHAFT_HALF - COLLAR, AXIS - 16, COLLAR, 32f, 3f, COLLAR_C)
+        barRect(cx + SHAFT_HALF, AXIS - COLLAR_H / 2, COLLAR, COLLAR_H, COLLAR_C)
+        barRect(cx - SHAFT_HALF - COLLAR, AXIS - COLLAR_H / 2, COLLAR, COLLAR_H, COLLAR_C)
 
-        // shaft
+        // shaft — straight bar, or your EZ W-path
         if (barType == "ez") {
             val path = ezPath(cx, k)
-            drawPath(path, SHAFT, style = Stroke(width = 12f * k, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            drawPath(path, OUTLINE, style = Stroke(width = 10f * k, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            drawPath(path, SHAFT, style = Stroke(width = 8f * k, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
         } else {
-            rrect(cx - SHAFT_HALF, AXIS - 6, 2 * SHAFT_HALF, 12f, 6f, SHAFT)
+            barRect(cx - SHAFT_HALF, AXIS - SHAFT_H / 2, 2 * SHAFT_HALF, SHAFT_H, SHAFT)
         }
 
         // plates — laid from each collar outward, mirrored.
@@ -257,7 +268,7 @@ private fun Barbell(perSide: List<Plate>, barType: String) {
         for (p in perSide) {
             val w = p.thicknessMm * SCALE
             val h = p.diameterMm * SCALE
-            val r = min(6f, w / 2f)
+            val r = min(3f, w / 2f)
             // right
             rrect(x, AXIS - h / 2f, w, h, r, p.color)
             drawRoundRectStroke(x, AXIS - h / 2f, w, h, r, k)
@@ -304,22 +315,19 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPlateLabel(
     }
 }
 
-/** The EZ-curl W shaft between the collars — two shallow angular dips, matching
- *  the approved SVG (M..H..L..L..L..L..H..). */
+/** The EZ-curl W shaft, matching the uploaded SVG exactly:
+ *  flat from each collar to ±31, dips down 12 at ±18, peak at centre. */
 private fun ezPath(cx: Float, k: Float): Path {
-    val l = cx - SHAFT_HALF
-    val r = cx + SHAFT_HALF
-    val s = l + 12f
-    val e = r - 12f
-    val span = e - s
-    val a = 11f // dip amplitude (downward)
+    fun x(off: Float) = (cx + off) * k
+    val top = AXIS * k
+    val dip = (AXIS + EZ_AMP) * k
     val p = Path()
-    p.moveTo(l * k, AXIS * k)
-    p.lineTo(s * k, AXIS * k)
-    p.lineTo((s + span * 0.25f) * k, (AXIS + a) * k)
-    p.lineTo((s + span * 0.5f) * k, AXIS * k)
-    p.lineTo((s + span * 0.75f) * k, (AXIS + a) * k)
-    p.lineTo(e * k, AXIS * k)
-    p.lineTo(r * k, AXIS * k)
+    p.moveTo(x(-SHAFT_HALF), top)   // cx-49
+    p.lineTo(x(-31f), top)
+    p.lineTo(x(-18f), dip)
+    p.lineTo(x(0f), top)
+    p.lineTo(x(18f), dip)
+    p.lineTo(x(31f), top)
+    p.lineTo(x(SHAFT_HALF), top)    // cx+49
     return p
 }
