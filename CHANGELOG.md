@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.2 — graph scale fix
+- Fixed the y-axis labels bunching in the corner; they now span the chart height
+  and align with the gridlines and points.
+
 ## 0.18.1 — Workouts graph: fixes to match the web
 - Graph now shows one tracked movement at a time, defaulting to today's weights
   (or the next day that has some). Tap the movement name below the chart to

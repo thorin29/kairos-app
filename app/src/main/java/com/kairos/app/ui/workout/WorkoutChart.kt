@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -89,7 +90,7 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().height(160.dp)) {
             Column(
-                Modifier.width(40.dp).padding(end = 4.dp),
+                Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End,
             ) {
