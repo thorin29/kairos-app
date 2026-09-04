@@ -739,3 +739,15 @@ data class CalendarPrefsRequest(
     val showSchoolWork: Boolean? = null,
     val view: String? = null,
 )
+
+@Serializable
+data class CreateEventRequest(
+    val title: String,
+    val allDay: Boolean,
+    val date: String,
+    val start: String? = null,
+    val end: String? = null,
+    val endDate: String? = null,
+    val location: String? = null,
+    val timezone: String? = null,
+)

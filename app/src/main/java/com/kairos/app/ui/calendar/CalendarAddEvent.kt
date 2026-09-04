@@ -1,0 +1,244 @@
+package com.kairos.app.ui.calendar
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import com.kairos.app.data.remote.dto.CalendarDto
+import com.kairos.app.data.remote.dto.CreateEventRequest
+import com.kairos.app.ui.nav.KairosIcons
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddEventOverlay(vm: CalendarViewModel, data: CalendarDto, ui: CalendarUiState, onClose: () -> Unit) {
+    var title by remember { mutableStateOf("") }
+    var allDay by remember { mutableStateOf(false) }
+    var dateIso by remember { mutableStateOf(data.date.ifBlank { data.today }) }
+    var startMin by remember { mutableStateOf(9 * 60) }
+    var endMin by remember { mutableStateOf(10 * 60) }
+    var location by remember { mutableStateOf("") }
+
+    val homeTz = data.timezone
+    val deviceTz = remember { ZoneId.systemDefault().id }
+    val tzOptions = remember(homeTz, deviceTz) {
+        if (homeTz == deviceTz) listOf(homeTz) else listOf(homeTz, deviceTz)
+    }
+    var tz by remember { mutableStateOf(homeTz) }
+
+    var showDate by remember { mutableStateOf(false) }
+    var showStart by remember { mutableStateOf(false) }
+    var showEnd by remember { mutableStateOf(false) }
+    var tzMenu by remember { mutableStateOf(false) }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            // Top bar
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) {
+                    Text("\u2715", style = MaterialTheme.typography.titleMedium)
+                }
+                Text("New event", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                TextButton(
+                    enabled = !ui.creating && title.trim().length >= 2,
+                    onClick = {
+                        vm.createEvent(
+                            CreateEventRequest(
+                                title = title.trim(),
+                                allDay = allDay,
+                                date = dateIso,
+                                start = if (allDay) null else hhmm(startMin),
+                                end = if (allDay) null else hhmm(endMin),
+                                endDate = dateIso,
+                                location = location.trim().ifBlank { null },
+                                timezone = if (allDay) null else tz,
+                            ),
+                        ) { onClose() }
+                    },
+                ) { Text(if (ui.creating) "Saving\u2026" else "Save") }
+            }
+
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Switch(checked = allDay, onCheckedChange = { allDay = it })
+                }
+
+                FieldRow("Date", formatDate(dateIso)) { showDate = true }
+
+                if (!allDay) {
+                    FieldRow("Starts", hhmmLabel(startMin)) { showStart = true }
+                    FieldRow("Ends", hhmmLabel(endMin)) { showEnd = true }
+
+                    if (tzOptions.size > 1) {
+                        Box {
+                            FieldRow("Timezone", tzLabel(tz, homeTz, deviceTz)) { tzMenu = true }
+                            DropdownMenu(expanded = tzMenu, onDismissRequest = { tzMenu = false }) {
+                                tzOptions.forEach { z ->
+                                    DropdownMenuItem(
+                                        text = { Text(tzLabel(z, homeTz, deviceTz)) },
+                                        onClick = { tz = z; tzMenu = false },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Location (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                ui.createError?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+    }
+
+    if (showDate) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(dateIso))
+        DatePickerDialog(
+            onDismissRequest = { showDate = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { dateIso = utcMillisToIso(it) }
+                    showDate = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
+        ) { DatePicker(state = state) }
+    }
+
+    if (showStart) {
+        TimePickerDialog(startMin, onConfirm = { m -> startMin = m; if (endMin <= m) endMin = (m + 60).coerceAtMost(23 * 60 + 59); showStart = false }, onDismiss = { showStart = false })
+    }
+    if (showEnd) {
+        TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
+    }
+}
+
+@Composable
+private fun FieldRow(label: String, value: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+            .clickable { onClick() }.padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.size(8.dp))
+        Icon(KairosIcons.ChevronDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberTimePickerState(initialHour = initialMin / 60, initialMinute = initialMin % 60, is24Hour = false)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                TimePicker(state = state)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text("OK") }
+                }
+            }
+        }
+    }
+}
+
+// ---- helpers ----
+
+private fun hhmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
+
+private fun hhmmLabel(min: Int): String {
+    val h = min / 60
+    val m = min % 60
+    val ampm = if (h < 12) "AM" else "PM"
+    val h12 = when { h == 0 -> 12; h > 12 -> h - 12; else -> h }
+    return "%d:%02d %s".format(h12, m, ampm)
+}
+
+private val DATE_FMT = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
+private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
+
+private fun formatDate(iso: String): String =
+    try { LocalDate.parse(iso).format(DATE_FMT) } catch (_: Exception) { iso }
+
+private fun tzLabel(tz: String, home: String, device: String): String = when (tz) {
+    home -> "Home \u00b7 ${shortZone(tz)}"
+    device -> "This phone \u00b7 ${shortZone(tz)}"
+    else -> shortZone(tz)
+}
+
+private fun shortZone(tz: String): String = tz.substringAfterLast('/').replace('_', ' ')
+
+private fun isoToUtcMillis(iso: String): Long =
+    try { LocalDate.parse(iso, ISO).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }
+    catch (_: Exception) { Instant.now().toEpochMilli() }
+
+private fun utcMillisToIso(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().format(ISO)

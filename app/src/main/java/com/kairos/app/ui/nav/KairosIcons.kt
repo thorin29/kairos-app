@@ -104,6 +104,7 @@ object KairosIcons {
     val Switch = stroked("Switch", "M4 8h13M14 5l3 3-3 3", "M20 16H7M10 13l-3 3 3 3")
     val Moon = stroked("Moon", "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z")
     val Check = stroked("Check", "m4 12.5 5.5 5.5L20 7")
+    val Plus = stroked("Plus", "M12 5v14", "M5 12h14")
     val Sliders = stroked(
         "Sliders",
         "M4 6h16", "M4 12h16", "M4 18h16",

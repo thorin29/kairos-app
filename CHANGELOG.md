@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.32.0 — Add calendar events
+- The "+" button is back on the calendar: create an event with a title, all-day
+  or a start/end time, a date, and an optional location.
+- When your phone and home are in different timezones, you can choose which
+  timezone the event's time is in (default home) — the calendar then shows it at
+  the right local time wherever you are.
+- Recurring events, inviting other people, event types, and editing existing
+  events are coming next.
+
 ## 0.31.0 — Calendar month grid & settings drawer
 - Month view: every day is now the same size and the grid fills the screen,
   instead of days growing with how many events they have.

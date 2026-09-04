@@ -35,6 +35,8 @@ data class CalendarUiState(
     val date: String? = null,
     /** The saved default-view preference: a CalView value or "last". */
     val defaultView: String = "last",
+    val creating: Boolean = false,
+    val createError: String? = null,
 )
 
 /**
@@ -85,6 +87,24 @@ class CalendarViewModel(
     fun setDefaultView(v: String) {
         _ui.update { it.copy(defaultView = v) }
         viewModelScope.launch { settings.setCalendarDefaultView(v) }
+    }
+
+    fun clearCreateError() = _ui.update { it.copy(createError = null) }
+
+    /** Create a basic event; on success reload the calendar and call [onDone]. */
+    fun createEvent(req: com.kairos.app.data.remote.dto.CreateEventRequest, onDone: () -> Unit) {
+        if (_ui.value.creating) return
+        _ui.update { it.copy(creating = true, createError = null) }
+        viewModelScope.launch {
+            try {
+                session.createCalendarEvent(req)
+                _ui.update { it.copy(creating = false) }
+                onDone()
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(creating = false, createError = e.error.message) }
+            }
+        }
     }
 
     fun goPrev() {

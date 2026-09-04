@@ -84,6 +84,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
     var monthExpanded by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showDefaultPicker by remember { mutableStateOf(false) }
+    var showAdd by remember { mutableStateOf(false) }
     val data = ui.data
 
     Box(Modifier.fillMaxSize()) {
@@ -107,6 +108,13 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
                             TodayBox(dayNum = dayOfMonth(data.today)) {
                                 monthExpanded = false
                                 vm.goToday()
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape).clickable { showAdd = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(KairosIcons.Plus, contentDescription = "New event")
                             }
                             Spacer(Modifier.width(4.dp))
                             Box(
@@ -176,6 +184,10 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
             onPick = { vm.setDefaultView(it); showDefaultPicker = false },
             onDismiss = { showDefaultPicker = false },
         )
+    }
+
+    if (showAdd && data != null) {
+        AddEventOverlay(vm, data, ui, onClose = { showAdd = false; vm.clearCreateError() })
     }
 }
 

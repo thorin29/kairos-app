@@ -285,6 +285,12 @@ class SessionRepository(
         runAuthed { requireService().saveCalendarPrefs(body) }
     }
 
+    suspend fun createCalendarEvent(
+        body: com.kairos.app.data.remote.dto.CreateEventRequest,
+    ) {
+        runAuthed { requireService().createEvent(body) }
+    }
+
     suspend fun claimChore(taskId: String) {
         runAuthed {
             requireService().claimChore(
@@ -387,6 +393,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 46
+        const val CLIENT_BUILD = 47
     }
 }
