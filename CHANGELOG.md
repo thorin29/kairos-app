@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 — Log workout: "Log a different workout"
+- The Log workout page now has the ad-hoc form below Today's plan: Type (Weights,
+  Running, Rowing, Rucking, Sport, Stretching, Isometric) -> Record (metric) ->
+  Exercise (from the shared pool for pool types) -> Result + unit -> optional Load
+  and Notes -> Log workout. Backed by new `GET /workouts/pool` and
+  `POST /workouts/log-custom`. (HIIT's dedicated builder comes later.)
+
 ## 0.15.0 — Log workout page matches the web
 - The Log workout page now shows the "Today's plan" card: plan name, movement
   list, a "today's max" input per movement with its unit, and a Log <metric>

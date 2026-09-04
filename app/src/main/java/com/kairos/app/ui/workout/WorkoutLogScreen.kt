@@ -142,6 +142,12 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
+
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+                    ui.date?.let { d ->
+                        CustomWorkoutForm(date = d, onLogged = onDone)
+                    }
                 }
             }
         }

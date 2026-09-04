@@ -229,6 +229,50 @@ data class DeleteAckDto(
     val deleted: Boolean = false,
 )
 
+
+// --- Log a different workout (custom) ---
+
+@Serializable
+data class WorkoutPoolDto(
+    val categories: List<LogCategoryDto> = emptyList(),
+    val exercises: List<PoolExerciseDto> = emptyList(),
+)
+
+@Serializable
+data class LogCategoryDto(
+    val key: String,
+    val label: String,
+    val isPool: Boolean = false,
+    val load: Boolean = false,
+    val metrics: List<MetricOptionDto> = emptyList(),
+)
+
+@Serializable
+data class MetricOptionDto(
+    val key: String,
+    val label: String,
+    val unit: String = "",
+)
+
+@Serializable
+data class PoolExerciseDto(
+    val id: String,
+    val name: String,
+    val category: String,
+)
+
+@Serializable
+data class CustomLogRequest(
+    val date: String,
+    val category: String? = null,
+    val poolExerciseId: String? = null,
+    val metric: String,
+    val value: Double,
+    val unit: String = "",
+    val load: Double? = null,
+    val notes: String? = null,
+)
+
 @Serializable
 data class WorkoutHistoryDto(
     val id: String,

@@ -20,6 +20,8 @@ import com.kairos.app.data.remote.dto.WorkoutAckDto
 import com.kairos.app.data.remote.dto.WorkoutLogRequest
 import com.kairos.app.data.remote.dto.WorkoutPlanDto
 import com.kairos.app.data.remote.dto.WorkoutProgressDto
+import com.kairos.app.data.remote.dto.WorkoutPoolDto
+import com.kairos.app.data.remote.dto.CustomLogRequest
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -86,6 +88,12 @@ interface ApiService {
 
     @GET("workouts/progress")
     suspend fun workoutProgress(): Response<WorkoutProgressDto>
+
+    @GET("workouts/pool")
+    suspend fun workoutPool(): Response<WorkoutPoolDto>
+
+    @POST("workouts/log-custom")
+    suspend fun logCustom(@Body body: CustomLogRequest): Response<WorkoutAckDto>
 
     @POST("workouts/sessions/{id}/delete")
     suspend fun deleteWorkoutSession(@Path("id") id: String): Response<DeleteAckDto>
