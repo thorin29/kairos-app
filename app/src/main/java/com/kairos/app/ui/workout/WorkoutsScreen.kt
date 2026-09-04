@@ -62,6 +62,7 @@ fun WorkoutsScreen(
     onOpenDrawer: () -> Unit,
     onLogWorkout: (String) -> Unit,
     onOpenRecent: () -> Unit,
+    onOpenCalculator: () -> Unit,
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -146,9 +147,7 @@ fun WorkoutsScreen(
                     WideButton(KairosIcons.Book, "Browse workouts") {
                         scope.launch { snackbar.showSnackbar("Browse workouts is coming soon") }
                     }
-                    WideButton(KairosIcons.Dumbbell, "Weight calculator") {
-                        scope.launch { snackbar.showSnackbar("Weight calculator is coming soon") }
-                    }
+                    WideButton(KairosIcons.Dumbbell, "Weight calculator") { onOpenCalculator() }
 
                     TextButton(onClick = onOpenRecent, modifier = Modifier.padding(top = 4.dp)) {
                         Text("Recent workouts  →")

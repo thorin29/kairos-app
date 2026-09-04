@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.19.0 — Weight calculator
+- New Weight calculator (from the Workouts page): tap plates to load a pair per
+  side, pick the bar (45 / 15 / EZ), see the running total, and a scaled barbell
+  drawing that mirrors the web — including the corrected EZ-curl bar. Tap a
+  loaded chip to remove a pair; Clear resets. Bumpers / Steel / Fractional plates
+  with real colours and sizes.
+
 ## 0.18.2 — graph scale fix
 - Fixed the y-axis labels bunching in the corner; they now span the chart height
   and align with the gridlines and points.
