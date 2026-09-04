@@ -1,5 +1,9 @@
 package com.kairos.app.ui.nav
 
+import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.data.remote.ApiClient
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -211,7 +215,6 @@ private fun RailRow(
 
 @Composable
 private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> Unit) {
-    val label = person.avatarIcon ?: initials(person.name)
     if (expanded) {
         Row(
             Modifier
@@ -220,7 +223,7 @@ private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> 
                 .padding(start = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Avatar(label)
+            Avatar(person)
             Spacer(Modifier.width(12.dp))
             Text(
                 person.name,
@@ -242,13 +245,17 @@ private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> 
         }
     } else {
         Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
-            Avatar(label)
+            Avatar(person)
         }
     }
 }
 
 @Composable
-private fun Avatar(label: String) {
+private fun Avatar(person: PersonDto) {
+    val container = rememberContainer()
+    val label = person.avatarIcon ?: initials(person.name)
+    val base = container.sessionRepository.baseUrlRaw
+    val url = person.avatarUrl
     Box(
         Modifier
             .size(36.dp)
@@ -256,7 +263,19 @@ private fun Avatar(label: String) {
             .background(Color.White.copy(alpha = 0.22f)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
+        if (url != null && base != null) {
+            SubcomposeAsyncImage(
+                model = ApiClient.resolveUrl(base, url),
+                imageLoader = container.imageLoader,
+                contentDescription = person.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                loading = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
+                error = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
+            )
+        } else {
+            Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
+        }
     }
 }
 

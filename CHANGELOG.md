@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.24.0 — Avatar photos
+- Uploaded avatar photos now display in the app (nav footer), loaded over the new
+  device-authed /api/v1/avatars endpoint via a token-aware image loader. Falls
+  back to the emoji/initials when there's no photo or it can't load.
+
 ## 0.23.0 — Edit plan step 3: Rotation + add-refresh fix
 - Fixed: adding a workout to a day now refreshes the card immediately (a
   status-only response was failing to parse and skipping the reload).
