@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.0 — Workouts: progress graph
+- The Workouts page now shows the weight-progress line chart at the top (max
+  weight per day, per movement) with a tap-to-toggle legend, mirroring the web.
+
 ## 0.17.0 — Recent workouts: safer delete
 - Removed the "Logged a mistake?" line. Deletes are now hidden behind an Edit
   toggle, and deleting asks to confirm (Cancel / Delete) — no accidental

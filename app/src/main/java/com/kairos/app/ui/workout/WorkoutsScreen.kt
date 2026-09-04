@@ -29,8 +29,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.LogoMenuButton
+import com.kairos.app.data.remote.dto.ProgressSeriesDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
@@ -49,7 +52,7 @@ import kotlinx.coroutines.launch
 /**
  * The Workouts page (launcher). TODAY = the day's plan + Edit plan / Log workout
  * / Rest·skip, then Browse workouts + Weight calculator, then a "Recent
- * workouts" link to its own page. The graph and This Week (sports) land next;
+ * workouts" link to its own page. This Week (sports) lands next;
  * Edit plan / Browse / Weight calculator are stubs for now with the same look.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,8 +71,11 @@ fun WorkoutsScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var series by remember { mutableStateOf<List<ProgressSeriesDto>>(emptyList()) }
 
     LaunchedEffect(ui.savedTick) {
+        runCatching { container.sessionRepository.loadWorkoutProgress() }
+            .getOrNull()?.let { series = it.series }
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
     }
 
@@ -95,6 +101,15 @@ fun WorkoutsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                    if (series.isNotEmpty()) {
+                        Text(
+                            "Progress",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        WorkoutChart(series)
+                    }
+
                     Text(
                         "TODAY",
                         style = MaterialTheme.typography.labelLarge,
