@@ -24,6 +24,7 @@ data class WorkoutLogUiState(
     val loading: Boolean = true,
     val loggable: Boolean = false,
     val planName: String? = null,
+    val date: String? = null,
     val inputs: List<MovementInput> = emptyList(),
     val loadError: String? = null,
     val saving: Boolean = false,
@@ -69,7 +70,7 @@ class WorkoutLogViewModel(
                     )
                 }
                 _ui.update {
-                    it.copy(loading = false, loggable = plan.loggable, planName = plan.name, inputs = inputs)
+                    it.copy(loading = false, loggable = plan.loggable, planName = plan.name, date = plan.date, inputs = inputs)
                 }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }

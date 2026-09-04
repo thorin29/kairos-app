@@ -17,6 +17,9 @@ sealed interface Route {
     @Serializable
     data class WorkoutLog(val date: String) : Route
 
+    @Serializable
+    data object RecentWorkouts : Route
+
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry
      *  in AppSections. Real sections graduate to their own route/screen. */
     @Serializable

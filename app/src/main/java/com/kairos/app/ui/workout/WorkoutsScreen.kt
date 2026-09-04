@@ -3,47 +3,62 @@ package com.kairos.app.ui.workout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.kairos.app.data.remote.dto.WorkoutHistoryDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.nav.KairosIcons
+import kotlinx.coroutines.launch
 
 /**
- * The Workouts section page. TODAY (planned-workout logging) + RECENT history.
- * The progress graph lands next; the history + series read already backs it.
+ * The Workouts page (launcher). TODAY = the day's plan + Edit plan / Log workout
+ * / Rest·skip, then Browse workouts + Weight calculator, then a "Recent
+ * workouts" link to its own page. The graph and This Week (sports) land next;
+ * Edit plan / Browse / Weight calculator are stubs for now with the same look.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkoutsScreen(onOpenDrawer: () -> Unit) {
+fun WorkoutsScreen(
+    onOpenDrawer: () -> Unit,
+    onLogWorkout: (String) -> Unit,
+    onOpenRecent: () -> Unit,
+) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
         factory = viewModelFactory {
@@ -52,13 +67,10 @@ fun WorkoutsScreen(onOpenDrawer: () -> Unit) {
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    var history by remember { mutableStateOf<List<WorkoutHistoryDto>>(emptyList()) }
-    // Reload history whenever a workout is saved/marked (savedTick) and on first show.
     LaunchedEffect(ui.savedTick) {
-        runCatching { container.sessionRepository.loadWorkoutProgress() }
-            .getOrNull()?.let { history = it.history }
-        if (ui.savedTick > 0) snackbar.showSnackbar("Workout saved")
+        if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
     }
 
     Scaffold(
@@ -71,35 +83,59 @@ fun WorkoutsScreen(onOpenDrawer: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
-            when {
-                ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (ui.loading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                ui.loadError != null -> Text(
-                    ui.loadError!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                )
-                else -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+            } else {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    workoutLogItems(ui, vm)
+                    Text(
+                        "TODAY",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                    ) {
+                        Text(
+                            ui.planName ?: "No workout planned",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
 
-                    if (history.isNotEmpty()) {
-                        item(key = "recentHeader") {
-                            Text(
-                                "Recent workouts",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 16.dp),
-                            )
-                        }
-                        items(history, key = { "h-${it.id}" }) { h ->
-                            HistoryRow(h)
-                            HorizontalDivider()
-                        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ActionCard(
+                            KairosIcons.Calendar, "Edit plan", Modifier.weight(1f),
+                        ) { scope.launch { snackbar.showSnackbar("Edit plan is coming soon") } }
+                        ActionCard(
+                            KairosIcons.Dumbbell, "Log workout", Modifier.weight(1f),
+                            highlighted = true,
+                            enabled = ui.date != null,
+                        ) { ui.date?.let(onLogWorkout) }
+                        ActionCard(
+                            KairosIcons.Moon, "Rest / skip", Modifier.weight(1f),
+                            enabled = !ui.saving,
+                        ) { vm.restDay() }
+                    }
+
+                    WideButton(KairosIcons.Book, "Browse workouts") {
+                        scope.launch { snackbar.showSnackbar("Browse workouts is coming soon") }
+                    }
+                    WideButton(KairosIcons.Dumbbell, "Weight calculator") {
+                        scope.launch { snackbar.showSnackbar("Weight calculator is coming soon") }
+                    }
+
+                    TextButton(onClick = onOpenRecent, modifier = Modifier.padding(top = 4.dp)) {
+                        Text("Recent workouts  →")
                     }
                 }
             }
@@ -108,33 +144,44 @@ fun WorkoutsScreen(onOpenDrawer: () -> Unit) {
 }
 
 @Composable
-private fun HistoryRow(h: WorkoutHistoryDto) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun ActionCard(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val tint =
+        if (highlighted) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurfaceVariant
+    OutlinedCard(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(88.dp),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(h.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            if (h.result.isNotBlank()) {
-                Text(
-                    h.result,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(
+            Modifier.fillMaxSize().padding(8.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.height(6.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
+                color = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
         }
-        Text(
-            shortDate(h.date),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
-/** "2026-09-02" -> "9/2". */
-private fun shortDate(iso: String): String = try {
-    val p = iso.split("-")
-    "${p[1].toInt()}/${p[2].toInt()}"
-} catch (e: Exception) {
-    iso
+@Composable
+private fun WideButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.height(0.dp))
+        Text("  $label")
+    }
 }

@@ -1,0 +1,136 @@
+package com.kairos.app.ui.workout
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.kairos.app.data.remote.dto.WorkoutHistoryDto
+import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.nav.KairosIcons
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecentWorkoutsScreen(onBack: () -> Unit) {
+    val container = rememberContainer()
+    val vm: RecentWorkoutsViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer { RecentWorkoutsViewModel(container.sessionRepository) }
+        },
+    )
+    val ui by vm.ui.collectAsStateWithLifecycle()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Recent workouts") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { inner ->
+        Box(Modifier.padding(inner).fillMaxSize()) {
+            when {
+                ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                ui.error != null && ui.history.isEmpty() -> Text(
+                    ui.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                )
+                ui.history.isEmpty() -> Text(
+                    "No workouts logged yet.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                )
+                else -> LazyColumn(Modifier.fillMaxSize()) {
+                    item {
+                        Text(
+                            "Logged a mistake? Remove it here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                    items(ui.history, key = { it.id }) { h ->
+                        RecentRow(h, ui.deletingIds.contains(h.id)) { vm.delete(h.id) }
+                        HorizontalDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentRow(h: WorkoutHistoryDto, deleting: Boolean, onDelete: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            shortDate(h.date),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(width = 56.dp, height = 20.dp),
+        )
+        Column(Modifier.weight(1f).padding(start = 8.dp)) {
+            Text(h.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            if (h.result.isNotBlank()) {
+                Text(
+                    h.result,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (deleting) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        } else {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    KairosIcons.Trash,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun shortDate(iso: String): String = try {
+    val p = iso.split("-")
+    "${p[1].toInt()}/${p[2].toInt()}"
+} catch (e: Exception) {
+    iso
+}

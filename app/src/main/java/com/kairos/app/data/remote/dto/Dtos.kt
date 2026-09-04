@@ -224,6 +224,12 @@ data class GraphPointDto(
 )
 
 @Serializable
+data class DeleteAckDto(
+    val id: String = "",
+    val deleted: Boolean = false,
+)
+
+@Serializable
 data class WorkoutHistoryDto(
     val id: String,
     val date: String,

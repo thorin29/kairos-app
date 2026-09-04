@@ -196,6 +196,10 @@ class SessionRepository(
     suspend fun loadWorkoutProgress(): com.kairos.app.data.remote.dto.WorkoutProgressDto =
         runAuthed { requireService().workoutProgress() }
 
+    suspend fun deleteWorkoutSession(id: String) {
+        runAuthed { requireService().deleteWorkoutSession(id) }
+    }
+
     suspend fun logWorkout(
         date: String,
         plannedWorkoutId: String,
@@ -259,6 +263,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 18
+        const val CLIENT_BUILD = 19
     }
 }

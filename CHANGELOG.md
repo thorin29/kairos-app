@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0 — Workouts page restructured to match the web
+- The Workouts page is now the launcher: TODAY (your plan) with Edit plan / Log
+  workout / Rest·skip, then Browse workouts and Weight calculator, then a
+  "Recent workouts →" link. Action buttons share one card style.
+- Recent workouts moved to its own page with per-entry delete ("remove a mistake").
+- Edit plan / Browse / Weight calculator are styled stubs for now; the graph and
+  This Week (sports) land next.
+
 ## 0.13.0 — Workouts: recent history
 - The Workouts page now shows a "Recent workouts" list below today's log, with
   each session's name, result, and date. Backed by a new workout history +

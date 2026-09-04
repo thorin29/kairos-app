@@ -1,6 +1,7 @@
 package com.kairos.app.data.remote
 
 import com.kairos.app.data.remote.dto.DashboardDto
+import com.kairos.app.data.remote.dto.DeleteAckDto
 import com.kairos.app.data.remote.dto.DeviceDto
 import com.kairos.app.data.remote.dto.DevicesResponse
 import com.kairos.app.data.remote.dto.EnrollRequest
@@ -85,6 +86,9 @@ interface ApiService {
 
     @GET("workouts/progress")
     suspend fun workoutProgress(): Response<WorkoutProgressDto>
+
+    @POST("workouts/sessions/{id}/delete")
+    suspend fun deleteWorkoutSession(@Path("id") id: String): Response<DeleteAckDto>
 
     @GET("devices")
     suspend fun devices(): Response<DevicesResponse>

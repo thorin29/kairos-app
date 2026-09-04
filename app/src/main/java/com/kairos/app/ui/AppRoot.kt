@@ -47,6 +47,7 @@ import com.kairos.app.ui.nav.sectionFor
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
+import com.kairos.app.ui.workout.RecentWorkoutsScreen
 import com.kairos.app.ui.workout.WorkoutsScreen
 import kotlinx.coroutines.launch
 
@@ -123,10 +124,17 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 composable<Route.Section> { entry ->
                     val key = entry.toRoute<Route.Section>().key
                     if (key == "workouts") {
-                        WorkoutsScreen(onOpenDrawer = { open = true })
+                        WorkoutsScreen(
+                            onOpenDrawer = { open = true },
+                            onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
+                            onOpenRecent = { navController.navigate(Route.RecentWorkouts) },
+                        )
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
                     }
+                }
+                composable<Route.RecentWorkouts> {
+                    RecentWorkoutsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Devices> {
                     DevicesScreen(onBack = { navController.popBackStack() })
