@@ -270,6 +270,9 @@ class SessionRepository(
     suspend fun loadReading(): com.kairos.app.data.remote.dto.ReadingDto =
         runAuthed { requireService().reading() }
 
+    suspend fun loadChores(): com.kairos.app.data.remote.dto.ChoresDto =
+        runAuthed { requireService().chores() }
+
     suspend fun createReadingPlan(
         body: com.kairos.app.data.remote.dto.PersonalPlanRequest,
     ) {
@@ -356,6 +359,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 37
+        const val CLIENT_BUILD = 38
     }
 }

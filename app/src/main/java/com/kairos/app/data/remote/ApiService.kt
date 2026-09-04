@@ -41,6 +41,7 @@ import com.kairos.app.data.remote.dto.PersonalPlanRequest
 import com.kairos.app.data.remote.dto.MarkReadingRequest
 import com.kairos.app.data.remote.dto.SaveBookRequest
 import com.kairos.app.data.remote.dto.SaveBooksRequest
+import com.kairos.app.data.remote.dto.ChoresDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -181,6 +182,9 @@ interface ApiService {
 
     @POST("reading/books/bulk")
     suspend fun saveReadingBooks(@Body body: SaveBooksRequest): Response<TaskStatusDto>
+
+    @GET("chores")
+    suspend fun chores(): Response<ChoresDto>
 
     @GET("devices")
     suspend fun devices(): Response<DevicesResponse>

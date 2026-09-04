@@ -545,3 +545,82 @@ data class SaveBooksRequest(
     val bookNames: List<String>,
     val read: Boolean,
 )
+
+// --- Chores overview (GET /chores, read-only) ---
+
+@Serializable
+data class ChorePauseDto(
+    val name: String = "",
+    val startISO: String = "",
+    val endISO: String = "",
+)
+
+@Serializable
+data class ChoreStatsDto(
+    val due: Int = 0,
+    val done: Int = 0,
+    val open: Int = 0,
+    val missed: Int = 0,
+)
+
+@Serializable
+data class RotationDayDto(
+    val dayOfWeek: Int = 0,
+    val label: String = "",
+    val chore: String = "",
+    val complete: Boolean = false,
+    val pastDue: Boolean = false,
+)
+
+@Serializable
+data class ChorePersonDto(
+    val person: PersonDto? = null,
+    val stats: ChoreStatsDto = ChoreStatsDto(),
+    val rotation: List<RotationDayDto> = emptyList(),
+)
+
+@Serializable
+data class AlwaysOpenChoreDto(
+    val id: String = "",
+    val title: String = "",
+    val today: Int = 0,
+    val week: Int = 0,
+)
+
+@Serializable
+data class PoolChoreDto(
+    val id: String = "",
+    val title: String = "",
+    val intervalDays: Int = 0,
+    val isPaused: Boolean = false,
+    val nextDueISO: String? = null,
+    val outstanding: Boolean = false,
+    val claimedByName: String? = null,
+    val alwaysOpen: Boolean = false,
+    val cooldownMinutes: Int = 0,
+    val effort: Int = 0,
+    val effortLocked: Boolean = false,
+)
+
+@Serializable
+data class PoolTallyDto(
+    val name: String = "",
+    val color: String = "#64748b",
+    val count: Int = 0,
+)
+
+@Serializable
+data class PoolBlockDto(
+    val chores: List<PoolChoreDto> = emptyList(),
+    val tally: List<PoolTallyDto> = emptyList(),
+)
+
+@Serializable
+data class ChoresDto(
+    val today: String = "",
+    val scope: String = "self",
+    val pause: ChorePauseDto? = null,
+    val people: List<ChorePersonDto> = emptyList(),
+    val alwaysOpen: List<AlwaysOpenChoreDto> = emptyList(),
+    val pool: PoolBlockDto = PoolBlockDto(),
+)

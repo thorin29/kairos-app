@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.26.0 — Chores
+- New Chores section: a read-only household overview mirroring the web chores
+  page. Shows a pause banner when chores are paused, "This week" (each person's
+  due/done/open/missed), the "Weekly rotation" day-by-day (past-due in red, a
+  green check when done), "Always open" tap-counts, and "Shared chores" status
+  with a completion tally.
+- Parents and admins see the whole household (themselves and every child);
+  everyone else sees just their own summary and rotation. Always-open and shared
+  chores are shown to everyone.
+- Completing chores stays on Home, as before — this page is the overview.
+
 ## 0.25.1 — Bible reading fixes
 - Fixed: the "Personal Progress" tab now works — tapping it switches to your own
   coverage, plan and checklist (it was inert before).
