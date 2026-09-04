@@ -273,6 +273,22 @@ class SessionRepository(
     suspend fun loadChores(): com.kairos.app.data.remote.dto.ChoresDto =
         runAuthed { requireService().chores() }
 
+    suspend fun claimChore(taskId: String) {
+        runAuthed {
+            requireService().claimChore(
+                com.kairos.app.data.remote.dto.ClaimChoreRequest(taskId),
+            )
+        }
+    }
+
+    suspend fun completeAlwaysOpen(choreId: String) {
+        runAuthed {
+            requireService().completeAlwaysOpen(
+                com.kairos.app.data.remote.dto.AlwaysOpenRequest(choreId),
+            )
+        }
+    }
+
     suspend fun createReadingPlan(
         body: com.kairos.app.data.remote.dto.PersonalPlanRequest,
     ) {
@@ -359,6 +375,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 39
+        const val CLIENT_BUILD = 40
     }
 }

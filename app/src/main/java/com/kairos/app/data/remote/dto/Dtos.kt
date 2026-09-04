@@ -108,6 +108,26 @@ data class DashboardDto(
     val overdue: List<TaskDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
+    val upForGrabs: List<UpForGrabsDto> = emptyList(),
+    val alwaysOpen: List<AlwaysOpenDashDto> = emptyList(),
+)
+
+@Serializable
+data class UpForGrabsDto(
+    val id: String = "",
+    val title: String = "",
+    val isShared: Boolean = false,
+    val releasedByName: String = "",
+    val isOverdue: Boolean = false,
+    val dueDate: String = "",
+)
+
+@Serializable
+data class AlwaysOpenDashDto(
+    val id: String = "",
+    val title: String = "",
+    val readyAtMs: Long? = null,
+    val myCount: Int = 0,
 )
 
 @Serializable
@@ -630,4 +650,14 @@ data class ChoresDto(
     val people: List<ChorePersonDto> = emptyList(),
     val alwaysOpen: List<AlwaysOpenChoreDto> = emptyList(),
     val pool: PoolBlockDto = PoolBlockDto(),
+)
+
+@Serializable
+data class ClaimChoreRequest(
+    val taskId: String,
+)
+
+@Serializable
+data class AlwaysOpenRequest(
+    val choreId: String,
 )

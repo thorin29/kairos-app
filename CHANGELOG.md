@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.2 — Up for grabs & always-open on Home
+- Home now shows household chores anyone can pick up: "Up for grabs" (shared
+  chores and any chore released to the household) with a Take it button, and
+  "Always open" chores with a Done button. Taking or tapping one logs it to you.
+- Always-open chores on a cooldown show "Not back yet" until they're available.
+
 ## 0.26.1 — Personal reading on Home
 - When you have a personal reading plan, the day's reading now shows on Home in
   the Bible reading section as "Personal bible reading", ready to tick off — no

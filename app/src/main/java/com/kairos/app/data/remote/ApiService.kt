@@ -42,6 +42,8 @@ import com.kairos.app.data.remote.dto.MarkReadingRequest
 import com.kairos.app.data.remote.dto.SaveBookRequest
 import com.kairos.app.data.remote.dto.SaveBooksRequest
 import com.kairos.app.data.remote.dto.ChoresDto
+import com.kairos.app.data.remote.dto.ClaimChoreRequest
+import com.kairos.app.data.remote.dto.AlwaysOpenRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -185,6 +187,12 @@ interface ApiService {
 
     @GET("chores")
     suspend fun chores(): Response<ChoresDto>
+
+    @POST("chores/claim")
+    suspend fun claimChore(@Body body: ClaimChoreRequest): Response<TaskStatusDto>
+
+    @POST("chores/always-open")
+    suspend fun completeAlwaysOpen(@Body body: AlwaysOpenRequest): Response<TaskStatusDto>
 
     @GET("devices")
     suspend fun devices(): Response<DevicesResponse>

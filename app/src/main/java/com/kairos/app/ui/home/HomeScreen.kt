@@ -223,6 +223,20 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
             if (d.overdue.isEmpty() && d.groups.isEmpty() && d.personalReading == null) {
                 item(key = "empty") { EmptyDay() }
             }
+
+            if (d.upForGrabs.isNotEmpty()) {
+                item(key = "h-grabs") { SectionHeader("Up for grabs") }
+                items(d.upForGrabs, key = { "grab-${it.id}" }) { c ->
+                    UpForGrabsRow(c, ui.busyIds.contains("claim-${c.id}"), vm)
+                }
+            }
+
+            if (d.alwaysOpen.isNotEmpty()) {
+                item(key = "h-always") { SectionHeader("Always open") }
+                items(d.alwaysOpen, key = { "ao-${it.id}" }) { c ->
+                    AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm)
+                }
+            }
         }
     }
 }
@@ -357,6 +371,55 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
                     },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun UpForGrabsRow(c: com.kairos.app.data.remote.dto.UpForGrabsDto, busy: Boolean, vm: HomeViewModel) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(c.title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                buildString {
+                    append(if (c.isShared) "shared chore" else "released from ${c.releasedByName}")
+                    if (c.isOverdue) append(" \u00b7 due ${shortDate(c.dueDate)}")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (c.isOverdue) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Button(onClick = { vm.claimChore(c.id) }, enabled = !busy) {
+            Text(if (busy) "Taking\u2026" else "Take it")
+        }
+    }
+}
+
+@Composable
+private fun AlwaysOpenRow(c: com.kairos.app.data.remote.dto.AlwaysOpenDashDto, busy: Boolean, vm: HomeViewModel) {
+    val onCooldown = c.readyAtMs != null && c.readyAtMs > System.currentTimeMillis()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(c.title, style = MaterialTheme.typography.bodyLarge)
+            if (c.myCount > 0) {
+                Text(
+                    "done ${c.myCount}\u00d7 today",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        OutlinedButton(onClick = { vm.completeAlwaysOpen(c.id) }, enabled = !busy && !onCooldown) {
+            Text(if (busy) "\u2026" else if (onCooldown) "Not back yet" else "Done")
         }
     }
 }

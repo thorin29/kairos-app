@@ -72,6 +72,38 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
+    /** Take an up-for-grabs chore for yourself, then reload. */
+    fun claimChore(taskId: String) {
+        val key = "claim-$taskId"
+        if (_ui.value.busyIds.contains(key)) return
+        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        viewModelScope.launch {
+            try {
+                session.claimChore(taskId)
+                val data = session.loadDashboard()
+                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Tap an always-open chore done for yourself, then reload. */
+    fun completeAlwaysOpen(choreId: String) {
+        val key = "always-$choreId"
+        if (_ui.value.busyIds.contains(key)) return
+        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        viewModelScope.launch {
+            try {
+                session.completeAlwaysOpen(choreId)
+                val data = session.loadDashboard()
+                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+            }
+        }
+    }
+
     fun clearActionError() {
         _ui.update { it.copy(actionError = null) }
     }
