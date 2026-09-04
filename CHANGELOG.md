@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 — Log workout page matches the web
+- The Log workout page now shows the "Today's plan" card: plan name, movement
+  list, a "today's max" input per movement with its unit, and a Log <metric>
+  button, plus the "Logging for <date>" line.
+- Next: the "Log a different workout" section (ad-hoc type/exercise/result/notes),
+  which needs the exercise-pool + custom-log endpoints.
+
 ## 0.14.0 — Workouts page restructured to match the web
 - The Workouts page is now the launcher: TODAY (your plan) with Edit plan / Log
   workout / Rest·skip, then Browse workouts and Weight calculator, then a

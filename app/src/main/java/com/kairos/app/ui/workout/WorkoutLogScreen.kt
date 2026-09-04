@@ -2,26 +2,26 @@ package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,7 +40,12 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
 
-/** Pushed screen (from a Home workout prompt) for a specific day; pops on save. */
+/**
+ * The Log workout page. Mirrors the web (src/app/person/[id]/workout-launcher +
+ * workout-card TodayPlan): a "Today's plan" card with a "today's max" input per
+ * movement and a Log button. The "Log a different workout" section (the custom
+ * ad-hoc form) is the next increment.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
@@ -58,7 +62,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(ui.planName ?: "Log workout") },
+                title = { Text("Log workout") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -77,90 +81,115 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 )
-                else -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                else -> Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    workoutLogItems(ui, vm)
-                }
-            }
-        }
-    }
-}
+                    ui.date?.let {
+                        Text(
+                            "Logging for ${longDate(it)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
-/** The today's-log items (plan name, movement fields, save, mark/rest), added to
- *  any LazyColumn so the Workouts page can stack history below them. */
-fun LazyListScope.workoutLogItems(ui: WorkoutLogUiState, vm: WorkoutLogViewModel) {
-    if (!ui.loggable || ui.inputs.isEmpty()) {
-        item(key = "empty") {
-            Text(
-                "No scheduled workouts today. You can still mark the day.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    } else {
-        if (ui.planName != null) {
-            item(key = "planName") {
-                Text(
-                    ui.planName!!,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        items(ui.inputs, key = { "mv-${it.poolExerciseId}" }) { m ->
-            MovementRow(m, vm)
-        }
-        item(key = "save") {
-            Button(
-                onClick = vm::save,
-                enabled = !ui.saving,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            ) {
-                if (ui.saving) {
-                    CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
+                    if (!ui.loggable || ui.inputs.isEmpty()) {
+                        Text(
+                            "No scheduled workouts today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            "Today's plan",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                ui.planName?.let {
+                                    Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                }
+                                Text(
+                                    ui.inputs.joinToString(" · ") { it.name },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                HorizontalDivider()
+                                ui.inputs.forEach { m -> MovementRow(m, vm) }
+                                Button(
+                                    onClick = vm::save,
+                                    enabled = !ui.saving,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    if (ui.saving) {
+                                        CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    Text("Log ${logNoun(ui.inputs)}")
+                                }
+                            }
+                        }
+                    }
+
+                    if (ui.actionError != null) {
+                        Text(
+                            ui.actionError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
-                Text("Save workout")
             }
-        }
-    }
-    item(key = "quick") {
-        Row(
-            Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedButton(onClick = vm::markDone, enabled = !ui.saving, modifier = Modifier.weight(1f)) {
-                Text("Mark done")
-            }
-            OutlinedButton(onClick = vm::restDay, enabled = !ui.saving, modifier = Modifier.weight(1f)) {
-                Text("Rest day")
-            }
-        }
-    }
-    if (ui.actionError != null) {
-        item(key = "actionError") {
-            Text(
-                ui.actionError!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }
 
 @Composable
 private fun MovementRow(m: MovementInput, vm: WorkoutLogViewModel) {
-    OutlinedTextField(
-        value = m.value,
-        onValueChange = { vm.onValue(m.poolExerciseId, it) },
-        label = { Text("${m.name} (${m.unit})") },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(m.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                "today's max",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OutlinedTextField(
+            value = m.value,
+            onValueChange = { vm.onValue(m.poolExerciseId, it) },
+            placeholder = { Text("today's max") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.width(128.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Verb-noun for the log button, matching the web (weight/time/distance/reps). */
+private fun logNoun(inputs: List<MovementInput>): String {
+    val metrics = inputs.map { it.metric }.toSet()
+    if (metrics.size != 1) return "workout"
+    return when (metrics.first()) {
+        "WEIGHT" -> "weight"
+        "REPS" -> "reps"
+        "DISTANCE" -> "distance"
+        "METERS" -> "meters"
+        "DURATION" -> "time"
+        else -> "workout"
+    }
+}
+
+/** "2026-09-03" -> "9/3/2026". */
+private fun longDate(iso: String): String = try {
+    val p = iso.split("-")
+    "${p[1].toInt()}/${p[2].toInt()}/${p[0]}"
+} catch (e: Exception) {
+    iso
 }
