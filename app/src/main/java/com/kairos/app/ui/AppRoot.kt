@@ -47,6 +47,7 @@ import com.kairos.app.ui.nav.sectionFor
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
+import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.RecentWorkoutsScreen
 import com.kairos.app.ui.workout.WeightCalculatorScreen
 import com.kairos.app.ui.workout.WorkoutsScreen
@@ -130,6 +131,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
                             onOpenRecent = { navController.navigate(Route.RecentWorkouts) },
                             onOpenCalculator = { navController.navigate(Route.WeightCalculator) },
+                            onOpenBrowse = { navController.navigate(Route.BrowseWorkouts) },
                         )
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
@@ -140,6 +142,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.WeightCalculator> {
                     WeightCalculatorScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.BrowseWorkouts> {
+                    BrowseWorkoutsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Devices> {
                     DevicesScreen(onBack = { navController.popBackStack() })

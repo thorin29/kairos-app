@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.20.0 — Workouts: This week + Browse
+- The Workouts page now shows "This week" (your non-weights sessions grouped, e.g.
+  "Punishers @ Gun Slingers 1\u00d7") between the graph and Today.
+- New Browse workouts page (from the Browse button): filter Workouts / Hero WODs,
+  each with its type, a Personal tag, and its details. Backed by new
+  GET /workouts/week and GET /workouts/browse.
+
 ## 0.19.3 — Weight calculator: exact bar corners
 - Matched the re-uploaded SVGs precisely: sleeves round only their outer corners
   (r2), collars r1.5, shaft r1, EZ shaft round joins with flat (butt) ends. The

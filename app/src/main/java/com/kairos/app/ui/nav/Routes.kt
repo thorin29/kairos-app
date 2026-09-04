@@ -23,6 +23,9 @@ sealed interface Route {
     @Serializable
     data object WeightCalculator : Route
 
+    @Serializable
+    data object BrowseWorkouts : Route
+
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry
      *  in AppSections. Real sections graduate to their own route/screen. */
     @Serializable

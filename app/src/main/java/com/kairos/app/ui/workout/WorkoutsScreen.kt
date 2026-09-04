@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +48,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
 import com.kairos.app.data.remote.dto.WorkoutProgressDto
+import com.kairos.app.data.remote.dto.WeeklyActivityDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
@@ -63,6 +66,7 @@ fun WorkoutsScreen(
     onLogWorkout: (String) -> Unit,
     onOpenRecent: () -> Unit,
     onOpenCalculator: () -> Unit,
+    onOpenBrowse: () -> Unit,
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -74,10 +78,13 @@ fun WorkoutsScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var progress by remember { mutableStateOf<WorkoutProgressDto?>(null) }
+    var week by remember { mutableStateOf<List<WeeklyActivityDto>>(emptyList()) }
 
     LaunchedEffect(ui.savedTick) {
         runCatching { container.sessionRepository.loadWorkoutProgress() }
             .getOrNull()?.let { progress = it }
+        runCatching { container.sessionRepository.loadWeek() }
+            .getOrNull()?.let { week = it }
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
     }
 
@@ -112,6 +119,31 @@ fun WorkoutsScreen(
                         WorkoutChart(p.series, p.defaultId)
                     }
 
+                    if (week.isNotEmpty()) {
+                        Text(
+                            "This week",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        week.forEach { w ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(w.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                Text(
+                                    "${w.count}\u00d7" + if (w.detail.isNotBlank()) " \u00b7 ${w.detail}" else "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+
                     Text(
                         "TODAY",
                         style = MaterialTheme.typography.labelLarge,
@@ -144,9 +176,7 @@ fun WorkoutsScreen(
                         ) { vm.restDay() }
                     }
 
-                    WideButton(KairosIcons.Book, "Browse workouts") {
-                        scope.launch { snackbar.showSnackbar("Browse workouts is coming soon") }
-                    }
+                    WideButton(KairosIcons.Book, "Browse workouts") { onOpenBrowse() }
                     WideButton(KairosIcons.Dumbbell, "Weight calculator") { onOpenCalculator() }
 
                     TextButton(onClick = onOpenRecent, modifier = Modifier.padding(top = 4.dp)) {

@@ -203,6 +203,12 @@ class SessionRepository(
     suspend fun loadWorkoutPool(): com.kairos.app.data.remote.dto.WorkoutPoolDto =
         runAuthed { requireService().workoutPool() }
 
+    suspend fun loadWeek(): List<com.kairos.app.data.remote.dto.WeeklyActivityDto> =
+        runAuthed { requireService().workoutWeek() }.items
+
+    suspend fun loadBrowse(): List<com.kairos.app.data.remote.dto.BrowseWorkoutDto> =
+        runAuthed { requireService().workoutBrowse() }.items
+
     suspend fun logCustom(body: com.kairos.app.data.remote.dto.CustomLogRequest): WorkoutAckDto =
         runAuthed { requireService().logCustom(body) }
 
@@ -269,6 +275,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 29
+        const val CLIENT_BUILD = 30
     }
 }

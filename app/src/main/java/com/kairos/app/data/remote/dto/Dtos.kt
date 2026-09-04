@@ -224,6 +224,33 @@ data class GraphPointDto(
     val value: Double,
 )
 
+
+// --- This week + browse ---
+
+@Serializable
+data class WeeklyActivityDto(
+    val label: String,
+    val count: Int = 0,
+    val detail: String = "",
+)
+
+@Serializable
+data class WeekResponse(val items: List<WeeklyActivityDto> = emptyList())
+
+@Serializable
+data class BrowseWorkoutDto(
+    val id: String,
+    val name: String,
+    val type: String = "",
+    val typeLabel: String = "",
+    val personal: Boolean = false,
+    val heroWod: Boolean = false,
+    val detail: String = "",
+)
+
+@Serializable
+data class BrowseResponse(val items: List<BrowseWorkoutDto> = emptyList())
+
 @Serializable
 data class DeleteAckDto(
     val id: String = "",

@@ -21,6 +21,8 @@ import com.kairos.app.data.remote.dto.WorkoutLogRequest
 import com.kairos.app.data.remote.dto.WorkoutPlanDto
 import com.kairos.app.data.remote.dto.WorkoutProgressDto
 import com.kairos.app.data.remote.dto.WorkoutPoolDto
+import com.kairos.app.data.remote.dto.WeekResponse
+import com.kairos.app.data.remote.dto.BrowseResponse
 import com.kairos.app.data.remote.dto.CustomLogRequest
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import retrofit2.Response
@@ -91,6 +93,12 @@ interface ApiService {
 
     @GET("workouts/pool")
     suspend fun workoutPool(): Response<WorkoutPoolDto>
+
+    @GET("workouts/week")
+    suspend fun workoutWeek(): Response<WeekResponse>
+
+    @GET("workouts/browse")
+    suspend fun workoutBrowse(): Response<BrowseResponse>
 
     @POST("workouts/log-custom")
     suspend fun logCustom(@Body body: CustomLogRequest): Response<WorkoutAckDto>
