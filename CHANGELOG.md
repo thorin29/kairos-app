@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.24.1 — Avatar position
+- Avatars now honour the web's position/zoom adjustment (the API now sends
+  avatarPosition and the app applies the same transform), so a centred photo
+  matches the web instead of showing the raw crop.
+
 ## 0.24.0 — Avatar photos
 - Uploaded avatar photos now display in the app (nav footer), loaded over the new
   device-authed /api/v1/avatars endpoint via a token-aware image loader. Falls

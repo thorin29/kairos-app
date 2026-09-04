@@ -1,5 +1,6 @@
 package com.kairos.app.ui.nav
 
+import androidx.compose.ui.graphics.graphicsLayer
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.data.remote.ApiClient
 import androidx.compose.ui.layout.ContentScale
@@ -264,12 +265,21 @@ private fun Avatar(person: PersonDto) {
         contentAlignment = Alignment.Center,
     ) {
         if (url != null && base != null) {
+            val xf = parseAvatarXf(person.avatarPosition)
             SubcomposeAsyncImage(
                 model = ApiClient.resolveUrl(base, url),
                 imageLoader = container.imageLoader,
                 contentDescription = person.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .graphicsLayer {
+                        scaleX = xf.scale
+                        scaleY = xf.scale
+                        translationX = xf.tx / 100f * size.width
+                        translationY = xf.ty / 100f * size.height
+                    },
                 loading = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
                 error = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
             )
@@ -277,6 +287,20 @@ private fun Avatar(person: PersonDto) {
             Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
         }
     }
+}
+
+private data class AvatarXf(val tx: Float, val ty: Float, val scale: Float)
+
+/** Parses the web's "tx ty scale" avatar transform (matches parseAvatarTransform
+ *  in src/lib/avatars.ts); anything unparseable is identity. */
+private fun parseAvatarXf(value: String?): AvatarXf {
+    val m = Regex("^(-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?) (\\d+(?:\\.\\d+)?)$")
+        .find(value ?: "") ?: return AvatarXf(0f, 0f, 1f)
+    return AvatarXf(
+        m.groupValues[1].toFloatOrNull() ?: 0f,
+        m.groupValues[2].toFloatOrNull() ?: 0f,
+        m.groupValues[3].toFloatOrNull() ?: 1f,
+    )
 }
 
 private fun initials(name: String): String =

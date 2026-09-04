@@ -23,6 +23,7 @@ data class PersonDto(
     val name: String,
     val shortName: String,
     val avatarUrl: String? = null,
+    val avatarPosition: String? = null,
     val avatarIcon: String? = null,
     val role: String,
     val kind: String,
