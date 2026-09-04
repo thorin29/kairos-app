@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.19.3 — Weight calculator: exact bar corners
+- Matched the re-uploaded SVGs precisely: sleeves round only their outer corners
+  (r2), collars r1.5, shaft r1, EZ shaft round joins with flat (butt) ends. The
+  earlier version over-rounded every corner.
+
+## 0.19.2 — Weight calculator: rounded bar corners
+- Added the rounded corners from the Design art (the SVG export had flattened
+  them to square). Correct proportions kept; every exposed corner/angle rounded.
+
 ## 0.19.1 — Weight calculator: use the real bar art
 - Rebuilt the barbell to match the uploaded SVGs exactly: shaft half-width 49,
   11-wide collars, 89-long sleeves, flat corners, no end caps, the light outline,

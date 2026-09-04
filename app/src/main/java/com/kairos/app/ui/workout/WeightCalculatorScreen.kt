@@ -64,6 +64,9 @@ private const val SLEEVE_H = 22f
 private const val COLLAR_H = 30f
 private const val SHAFT_H = 8f
 private const val EZ_AMP = 12f
+private const val SLEEVE_R = 2f // rounded outer corners only
+private const val COLLAR_R = 1.5f
+private const val SHAFT_R = 1f
 
 private val SLEEVE = Color(0xFFB7BDC4)
 private val COLLAR_C = Color(0xFF7C848D)
@@ -233,10 +236,12 @@ private fun Barbell(perSide: List<Plate>, barType: String) {
         val k = size.width / width
         fun sx(v: Float) = v * k
         fun sy(v: Float) = v * k
-        // Fill + your light outline, flat corners (no rounding).
-        fun barRect(x: Float, y: Float, w: Float, h: Float, c: Color) {
-            drawRect(color = c, topLeft = Offset(sx(x), sy(y)), size = Size(w * k, h * k))
-            drawRect(color = OUTLINE, topLeft = Offset(sx(x), sy(y)), size = Size(w * k, h * k), style = Stroke(width = 1f))
+        // Fill + your light outline, with a small uniform corner radius.
+        fun barRect(x: Float, y: Float, w: Float, h: Float, c: Color, radius: Float) {
+            val rr = minOf(radius, w / 2f, h / 2f)
+            val cr = CornerRadius(rr * k, rr * k)
+            drawRoundRect(color = c, topLeft = Offset(sx(x), sy(y)), size = Size(w * k, h * k), cornerRadius = cr)
+            drawRoundRect(color = OUTLINE, topLeft = Offset(sx(x), sy(y)), size = Size(w * k, h * k), cornerRadius = cr, style = Stroke(width = 1f))
         }
         fun rrect(x: Float, y: Float, w: Float, h: Float, r: Float, c: Color) {
             drawRoundRect(
@@ -246,21 +251,40 @@ private fun Barbell(perSide: List<Plate>, barType: String) {
                 cornerRadius = CornerRadius(r * k, r * k),
             )
         }
+        // A sleeve: the OUTER end (far from centre) has rounded corners; the
+        // inner end (toward the collar) stays square. Matches the uploaded art.
+        fun sleeve(innerX: Float, outerX: Float, r: Float) {
+            val top = AXIS - SLEEVE_H / 2
+            val bot = AXIS + SLEEVE_H / 2
+            val dir = if (outerX > innerX) 1f else -1f
+            val p = Path()
+            p.moveTo(sx(innerX), sy(top))
+            p.lineTo(sx(outerX - dir * r), sy(top))
+            p.quadraticBezierTo(sx(outerX), sy(top), sx(outerX), sy(top + r))
+            p.lineTo(sx(outerX), sy(bot - r))
+            p.quadraticBezierTo(sx(outerX), sy(bot), sx(outerX - dir * r), sy(bot))
+            p.lineTo(sx(innerX), sy(bot))
+            p.close()
+            drawPath(p, SLEEVE)
+            drawPath(p, OUTLINE, style = Stroke(width = 1f))
+        }
 
-        // sleeves
-        barRect(cx + SHAFT_HALF + COLLAR, AXIS - SLEEVE_H / 2, sleeveLen, SLEEVE_H, SLEEVE)
-        barRect(cx - SHAFT_HALF - COLLAR - sleeveLen, AXIS - SLEEVE_H / 2, sleeveLen, SLEEVE_H, SLEEVE)
-        // collars
-        barRect(cx + SHAFT_HALF, AXIS - COLLAR_H / 2, COLLAR, COLLAR_H, COLLAR_C)
-        barRect(cx - SHAFT_HALF - COLLAR, AXIS - COLLAR_H / 2, COLLAR, COLLAR_H, COLLAR_C)
+        // sleeves (outer corners rounded, r=2)
+        val rInner = cx + SHAFT_HALF + COLLAR
+        sleeve(rInner, rInner + sleeveLen, SLEEVE_R)
+        val lInner = cx - SHAFT_HALF - COLLAR
+        sleeve(lInner, lInner - sleeveLen, SLEEVE_R)
+        // collars (rx 1.5)
+        barRect(cx + SHAFT_HALF, AXIS - COLLAR_H / 2, COLLAR, COLLAR_H, COLLAR_C, COLLAR_R)
+        barRect(cx - SHAFT_HALF - COLLAR, AXIS - COLLAR_H / 2, COLLAR, COLLAR_H, COLLAR_C, COLLAR_R)
 
-        // shaft — straight bar, or your EZ W-path
+        // shaft — straight (rx 1), or your EZ W-path (round joins, butt ends)
         if (barType == "ez") {
             val path = ezPath(cx, k)
-            drawPath(path, OUTLINE, style = Stroke(width = 10f * k, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
-            drawPath(path, SHAFT, style = Stroke(width = 8f * k, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            drawPath(path, OUTLINE, style = Stroke(width = 10f * k, cap = androidx.compose.ui.graphics.StrokeCap.Butt, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            drawPath(path, SHAFT, style = Stroke(width = 8f * k, cap = androidx.compose.ui.graphics.StrokeCap.Butt, join = androidx.compose.ui.graphics.StrokeJoin.Round))
         } else {
-            barRect(cx - SHAFT_HALF, AXIS - SHAFT_H / 2, 2 * SHAFT_HALF, SHAFT_H, SHAFT)
+            barRect(cx - SHAFT_HALF, AXIS - SHAFT_H / 2, 2 * SHAFT_HALF, SHAFT_H, SHAFT, SHAFT_R)
         }
 
         // plates — laid from each collar outward, mirrored.
