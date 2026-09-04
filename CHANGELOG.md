@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.25.1 — Bible reading fixes
+- Fixed: the "Personal Progress" tab now works — tapping it switches to your own
+  coverage, plan and checklist (it was inert before).
+- Renamed "Mark what you've read" to "Manual checklist", and removed the small
+  explanatory notes under it and "Your plan".
+
 ## 0.25.0 — Bible reading
 - New Bible reading section, to full parity with the web personal view. Two tabs:
   - Family Progress: the reading deck (swipe or use the arrows through the days,

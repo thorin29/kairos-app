@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * The canon with chapter counts and the groupings the statistics report on —
  * ported verbatim from the web's dependency-free `src/lib/bible/books.ts`, so the
- * plan creator's book grid and the "Mark what you've read" tracker read exactly
+ * plan creator's book grid and the "Manual checklist" tracker read exactly
  * as the web does. No imports beyond Compose Color for the genre hues.
  */
 

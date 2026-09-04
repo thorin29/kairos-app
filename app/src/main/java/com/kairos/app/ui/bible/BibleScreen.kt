@@ -2,6 +2,7 @@ package com.kairos.app.ui.bible
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -175,6 +176,7 @@ private fun TabPill(label: String, active: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(999.dp))
+            .clickable { onClick() }
             .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
             .padding(horizontal = 16.dp, vertical = 6.dp),
     ) {
@@ -298,20 +300,10 @@ private fun PersonalContent(vm: BibleViewModel, ui: BibleUiState) {
 
     Spacer(Modifier.height(4.dp))
     SectionHeading("Your plan")
-    Text(
-        "A reading plan just for you. Tick a day off and those chapters are marked read \u2014 feeding the coverage above and your Wisdom.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
     PersonalPlanSection(vm, personal.plan, data.today, ui.busy, ui.actionError)
 
     Spacer(Modifier.height(4.dp))
-    SectionHeading("Mark what you\u2019ve read")
-    Text(
-        "Tick any chapters or whole books you\u2019ve read, in any order. This is just your own record \u2014 it adds a little to your Wisdom and doesn\u2019t touch the family totals.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    SectionHeading("Manual checklist")
     BookProgress(vm, personal.readKeys, color, ui.busy)
 }
 
