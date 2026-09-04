@@ -76,6 +76,23 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         _ui.update { it.copy(actionError = null) }
     }
 
+    /** Tick/untick the day's personal reading, then reload. Uses a sentinel busy
+     *  id since it isn't a task row. */
+    fun togglePersonalReading(passage: String, currentlyRead: Boolean) {
+        val key = "personal-reading"
+        if (_ui.value.busyIds.contains(key)) return
+        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        viewModelScope.launch {
+            try {
+                session.markReading(passage, !currentlyRead)
+                val data = session.loadDashboard()
+                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+            }
+        }
+    }
+
     // --- Workout prompts: a small action sheet instead of a plain checkbox ---
 
     fun openWorkout(task: TaskDto) {

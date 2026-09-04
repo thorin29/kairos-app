@@ -107,6 +107,13 @@ data class DashboardDto(
     val categories: List<CategoryBarDto> = emptyList(),
     val overdue: List<TaskDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
+    val personalReading: PersonalReadingDto? = null,
+)
+
+@Serializable
+data class PersonalReadingDto(
+    val passage: String = "",
+    val read: Boolean = false,
 )
 
 @Serializable

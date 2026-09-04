@@ -205,9 +205,22 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 items(group.items, key = { it.id }) { task ->
                     TaskRow(task, ui.busyIds.contains(task.id), vm)
                 }
+                if (group.category == "BIBLE" && d.personalReading != null) {
+                    item(key = "personal-reading") {
+                        PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                    }
+                }
             }
 
-            if (d.overdue.isEmpty() && d.groups.isEmpty()) {
+            // A personal reading with no family Bible group still gets a Bible section.
+            if (d.personalReading != null && d.groups.none { it.category == "BIBLE" }) {
+                item(key = "h-BIBLE-personal") { SectionHeader("Bible reading") }
+                item(key = "personal-reading") {
+                    PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                }
+            }
+
+            if (d.overdue.isEmpty() && d.groups.isEmpty() && d.personalReading == null) {
                 item(key = "empty") { EmptyDay() }
             }
         }
@@ -344,6 +357,45 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
                     },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PersonalReadingRow(reading: com.kairos.app.data.remote.dto.PersonalReadingDto, busy: Boolean, vm: HomeViewModel) {
+    val done = reading.read
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !busy) { vm.togglePersonalReading(reading.passage, done) }
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+            when {
+                busy -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                done -> Icon(
+                    Icons.Filled.Check,
+                    contentDescription = "Done",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                else -> Checkbox(checked = false, onCheckedChange = null)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                "Personal bible reading",
+                style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (done) TextDecoration.LineThrough else null,
+                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                reading.passage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

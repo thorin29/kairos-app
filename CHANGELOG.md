@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.26.1 — Personal reading on Home
+- When you have a personal reading plan, the day's reading now shows on Home in
+  the Bible reading section as "Personal bible reading", ready to tick off — no
+  separate screen needed. Create or change your plan on the Bible reading page.
+
 ## 0.26.0 — Chores
 - New Chores section: a read-only household overview mirroring the web chores
   page. Shows a pause banner when chores are paused, "This week" (each person's
