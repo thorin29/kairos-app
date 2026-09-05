@@ -200,29 +200,29 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
             }
 
             if (d.overdue.isNotEmpty()) {
-                item(key = "h-overdue") { SectionHeader("Overdue") }
-                items(d.overdue, key = { it.id }) { task ->
-                    TaskRow(task, ui.busyIds.contains(task.id), vm)
-                }
-            }
-
-            d.groups.forEach { group ->
-                item(key = "h-${group.category}") { SectionHeader(group.label) }
-                items(group.items, key = { it.id }) { task ->
-                    TaskRow(task, ui.busyIds.contains(task.id), vm)
-                }
-                if (group.category == "BIBLE" && d.personalReading != null) {
-                    item(key = "personal-reading") {
-                        PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                item(key = "overdue") {
+                    SectionBlock("Overdue") {
+                        d.overdue.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
                     }
                 }
             }
 
-            // A personal reading with no family Bible group still gets a Bible section.
+            d.groups.forEach { group ->
+                item(key = "g-${group.category}") {
+                    SectionBlock(group.label) {
+                        group.items.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
+                        if (group.category == "BIBLE" && d.personalReading != null) {
+                            PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                        }
+                    }
+                }
+            }
+
             if (d.personalReading != null && d.groups.none { it.category == "BIBLE" }) {
-                item(key = "h-BIBLE-personal") { SectionHeader("Bible reading") }
-                item(key = "personal-reading") {
-                    PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                item(key = "bible-personal") {
+                    SectionBlock("Bible reading") {
+                        PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                    }
                 }
             }
 
@@ -231,32 +231,47 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
             }
 
             if (d.upForGrabs.isNotEmpty()) {
-                item(key = "h-grabs") { SectionHeader("Up for grabs") }
-                items(d.upForGrabs, key = { "grab-${it.id}" }) { c ->
-                    UpForGrabsRow(c, ui.busyIds.contains("claim-${c.id}"), vm)
+                item(key = "grabs") {
+                    SectionBlock("Up for grabs") {
+                        d.upForGrabs.forEach { c -> UpForGrabsRow(c, ui.busyIds.contains("claim-${c.id}"), vm) }
+                    }
                 }
             }
 
             if (d.alwaysOpen.isNotEmpty()) {
-                item(key = "h-always") { SectionHeader("Always open") }
-                items(d.alwaysOpen, key = { "ao-${it.id}" }) { c ->
-                    AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm)
+                item(key = "always") {
+                    SectionBlock("Always open") {
+                        d.alwaysOpen.forEach { c -> AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm) }
+                    }
                 }
             }
 
-            item(key = "h-schedule") { SectionHeader("Today's schedule") }
-            if (d.schedule.isEmpty()) {
-                item(key = "schedule-empty") {
-                    Text(
-                        "Nothing scheduled today.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-                    )
+            item(key = "schedule") {
+                SectionBlock("Today's schedule") {
+                    if (d.schedule.isEmpty()) {
+                        Text(
+                            "Nothing scheduled today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                        )
+                    } else {
+                        d.schedule.forEach { ev -> ScheduleRow(ev) }
+                    }
                 }
-            } else {
-                items(d.schedule) { ev -> ScheduleRow(ev) }
             }
+        }
+    }
+}
+
+/** A titled section: a small uppercase header above a card holding the rows,
+ *  matching the web home so sections read as distinct blocks. */
+@Composable
+private fun SectionBlock(header: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Column {
+        SectionHeader(header)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), content = content)
         }
     }
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.43.0 — Home in cards
+- Home sections (tasks by category, up for grabs, always open, today's schedule)
+  are now grouped into cards so the different sections are easier to tell apart,
+  matching the web.
+
 ## 0.42.0 — Event editor date/time
 - Reworked the event editor: date and time sit at the top under the title as two
   lines (start, end) — tap the date to open the calendar, tap the time to open the
