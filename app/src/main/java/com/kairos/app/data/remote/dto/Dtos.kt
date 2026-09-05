@@ -770,3 +770,16 @@ data class DeleteEventRequest(
     val scope: String? = null,
     val occurrenceISO: String? = null,
 )
+
+@Serializable
+data class UpdateEventRequest(
+    val eventId: String,
+    val title: String,
+    val allDay: Boolean,
+    val date: String,
+    val start: String? = null,
+    val end: String? = null,
+    val endDate: String? = null,
+    val location: String? = null,
+    val timezone: String? = null,
+)

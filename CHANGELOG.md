@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.35.0 — Full-screen event details & editing
+- Tapping an event now opens a full-screen view (instead of a small pop-up): a
+  colour bar and title, the date, the time with duration, whether it repeats, and
+  the calendar it belongs to — with edit and delete in the top bar.
+- You can now edit an event (title, all-day or times, date, location, timezone).
+  Repeating events and birthdays aren't editable yet and stay parent-only to
+  delete.
+
 ## 0.34.0 — Delete calendar events
 - Tap any event (in any view) to see its details — time, location, who it's for,
   and whether it repeats — and delete it from there.

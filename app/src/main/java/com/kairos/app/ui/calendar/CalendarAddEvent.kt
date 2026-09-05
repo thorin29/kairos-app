@@ -54,20 +54,29 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEventOverlay(vm: CalendarViewModel, data: CalendarDto, ui: CalendarUiState, onClose: () -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var allDay by remember { mutableStateOf(false) }
-    var dateIso by remember { mutableStateOf(data.date.ifBlank { data.today }) }
-    var startMin by remember { mutableStateOf(9 * 60) }
-    var endMin by remember { mutableStateOf(10 * 60) }
-    var location by remember { mutableStateOf("") }
+fun AddEventOverlay(
+    vm: CalendarViewModel,
+    data: CalendarDto,
+    ui: CalendarUiState,
+    editEvent: com.kairos.app.data.remote.dto.CalEventDto? = null,
+    onClose: () -> Unit,
+) {
+    val editing = editEvent != null
+    var title by remember { mutableStateOf(editEvent?.title ?: "") }
+    var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
+    var dateIso by remember { mutableStateOf(editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }) }
+    var startMin by remember { mutableStateOf(editEvent?.startMin ?: 9 * 60) }
+    var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: 10 * 60)) }
+    var location by remember { mutableStateOf(editEvent?.location ?: "") }
 
     val homeTz = data.timezone
     val deviceTz = remember { ZoneId.systemDefault().id }
     val tzOptions = remember(homeTz, deviceTz) {
         if (homeTz == deviceTz) listOf(homeTz) else listOf(homeTz, deviceTz)
     }
-    var tz by remember { mutableStateOf(homeTz) }
+    // For an edit, the shown times are already device-local, so default to the
+    // device tz to preserve the same moment; for a new event, default home.
+    var tz by remember { mutableStateOf(if (editing) deviceTz else homeTz) }
 
     var showDate by remember { mutableStateOf(false) }
     var showStart by remember { mutableStateOf(false) }
@@ -84,22 +93,41 @@ fun AddEventOverlay(vm: CalendarViewModel, data: CalendarDto, ui: CalendarUiStat
                 Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) {
                     Text("\u2715", style = MaterialTheme.typography.titleMedium)
                 }
-                Text("New event", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                Text(if (editing) "Edit event" else "New event", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
                 TextButton(
                     enabled = !ui.creating && title.trim().length >= 2,
                     onClick = {
-                        vm.createEvent(
-                            CreateEventRequest(
-                                title = title.trim(),
-                                allDay = allDay,
-                                date = dateIso,
-                                start = if (allDay) null else hhmm(startMin),
-                                end = if (allDay) null else hhmm(endMin),
-                                endDate = dateIso,
-                                location = location.trim().ifBlank { null },
-                                timezone = if (allDay) null else tz,
-                            ),
-                        ) { onClose() }
+                        val start = if (allDay) null else hhmm(startMin)
+                        val end = if (allDay) null else hhmm(endMin)
+                        val zone = if (allDay) null else tz
+                        if (editing) {
+                            vm.updateEvent(
+                                com.kairos.app.data.remote.dto.UpdateEventRequest(
+                                    eventId = editEvent!!.eventId,
+                                    title = title.trim(),
+                                    allDay = allDay,
+                                    date = dateIso,
+                                    start = start,
+                                    end = end,
+                                    endDate = dateIso,
+                                    location = location.trim().ifBlank { null },
+                                    timezone = zone,
+                                ),
+                            ) { onClose() }
+                        } else {
+                            vm.createEvent(
+                                CreateEventRequest(
+                                    title = title.trim(),
+                                    allDay = allDay,
+                                    date = dateIso,
+                                    start = start,
+                                    end = end,
+                                    endDate = dateIso,
+                                    location = location.trim().ifBlank { null },
+                                    timezone = zone,
+                                ),
+                            ) { onClose() }
+                        }
                     },
                 ) { Text(if (ui.creating) "Saving\u2026" else "Save") }
             }

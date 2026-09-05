@@ -127,6 +127,23 @@ class CalendarViewModel(
         }
     }
 
+    /** Edit an event; on success reload and call [onDone]. Reuses the create
+     *  form's busy/error state. */
+    fun updateEvent(req: com.kairos.app.data.remote.dto.UpdateEventRequest, onDone: () -> Unit) {
+        if (_ui.value.creating) return
+        _ui.update { it.copy(creating = true, createError = null) }
+        viewModelScope.launch {
+            try {
+                session.updateCalendarEvent(req)
+                _ui.update { it.copy(creating = false) }
+                onDone()
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(creating = false, createError = e.error.message) }
+            }
+        }
+    }
+
     fun goPrev() {
         _ui.value.data?.let { d -> _ui.update { it.copy(date = d.prevDate) }; load() }
     }

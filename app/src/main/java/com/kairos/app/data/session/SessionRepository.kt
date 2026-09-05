@@ -299,6 +299,12 @@ class SessionRepository(
         }
     }
 
+    suspend fun updateCalendarEvent(
+        body: com.kairos.app.data.remote.dto.UpdateEventRequest,
+    ) {
+        runAuthed { requireService().updateEvent(body) }
+    }
+
     suspend fun claimChore(taskId: String) {
         runAuthed {
             requireService().claimChore(
@@ -401,6 +407,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 49
+        const val CLIENT_BUILD = 50
     }
 }

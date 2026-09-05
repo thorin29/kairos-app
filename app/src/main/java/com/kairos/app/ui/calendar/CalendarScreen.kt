@@ -86,6 +86,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
     var showDefaultPicker by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
     var selectedEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
+    var editingEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
     val data = ui.data
 
     Box(Modifier.fillMaxSize()) {
@@ -192,13 +193,24 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
         AddEventOverlay(vm, data, ui, onClose = { showAdd = false; vm.clearCreateError() })
     }
 
-    selectedEvent?.let { ev ->
-        EventDetailDialog(
-            event = ev,
-            ui = ui,
-            vm = vm,
-            onDismiss = { selectedEvent = null; vm.clearDeleteError() },
+    if (editingEvent != null && data != null) {
+        AddEventOverlay(
+            vm, data, ui,
+            editEvent = editingEvent,
+            onClose = { editingEvent = null; vm.clearCreateError() },
         )
+    }
+
+    selectedEvent?.let { ev ->
+        if (data != null) {
+            EventDetailScreen(
+                event = ev,
+                ui = ui,
+                vm = vm,
+                onEdit = { editingEvent = ev; selectedEvent = null },
+                onClose = { selectedEvent = null; vm.clearDeleteError() },
+            )
+        }
     }
 }
 
@@ -677,50 +689,113 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
     )
 }
 
-// ---- Event detail + delete ----
+// ---- Event detail (full screen) ----
 
 @Composable
-private fun EventDetailDialog(event: CalEventDto, ui: CalendarUiState, vm: CalendarViewModel, onDismiss: () -> Unit) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(event.title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    if (event.allDay) "All day" else event.timeLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                event.location?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun EventDetailScreen(
+    event: CalEventDto,
+    ui: CalendarUiState,
+    vm: CalendarViewModel,
+    onEdit: () -> Unit,
+    onClose: () -> Unit,
+) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    val editable = !event.recurring && !event.external && event.kind != "BIRTHDAY"
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(44.dp).clip(CircleShape).clickable { onClose() }, contentAlignment = Alignment.Center) {
+                    Text("\u2715", style = MaterialTheme.typography.titleMedium)
                 }
-                if (event.ownerName.isNotBlank()) {
-                    Text(event.ownerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                if (editable) {
+                    Box(Modifier.size(44.dp).clip(CircleShape).clickable { onEdit() }, contentAlignment = Alignment.Center) {
+                        Icon(KairosIcons.Pencil, contentDescription = "Edit")
+                    }
                 }
-                event.recurLabel?.takeIf { it.isNotBlank() }?.let {
-                    Text("Repeats: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    Modifier.size(44.dp).clip(CircleShape)
+                        .clickable(enabled = !event.external) { confirmDelete = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(KairosIcons.Trash, contentDescription = "Delete", tint = if (event.external) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
                 }
-                if (event.recurring) {
-                    Text(
-                        "Deleting removes the whole repeating event.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            }
+
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(Modifier.width(5.dp).height(64.dp).clip(RoundedCornerShape(3.dp)).background(parseColor(event.color)))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(event.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        Text(dayHeading(event.dayISO), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (event.allDay) "All day" else rangeLabel(event.startMin, event.endMin),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        event.recurLabel?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 }
+
+                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Icon(KairosIcons.Calendar, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(event.calendarName?.takeIf { it.isNotBlank() } ?: event.ownerName.ifBlank { "Calendar" }, style = MaterialTheme.typography.bodyLarge)
+                }
+
                 ui.deleteError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !ui.deleting && !event.external,
-                onClick = { vm.deleteEvent(event.eventId) { onDismiss() } },
-            ) {
-                Text(if (ui.deleting) "Deleting\u2026" else "Delete", color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+        }
+    }
+
+    if (confirmDelete) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete event?") },
+            text = {
+                Text(
+                    if (event.recurring) "This removes the whole repeating event."
+                    else "This can't be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !ui.deleting,
+                    onClick = { confirmDelete = false; vm.deleteEvent(event.eventId) { onClose() } },
+                ) { Text(if (ui.deleting) "Deleting\u2026" else "Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+private fun rangeLabel(startMin: Int, endMin: Int): String {
+    val dur = (endMin - startMin).coerceAtLeast(0)
+    val h = dur / 60
+    val m = dur % 60
+    val durStr = when {
+        h > 0 && m > 0 -> "$h hr $m min"
+        h > 0 -> if (h == 1) "1 hour" else "$h hours"
+        else -> "$m min"
+    }
+    return "${clock(startMin)} \u2192 ${clock(endMin)} ($durStr)"
+}
+
+private fun clock(min: Int): String {
+    val h = (min / 60) % 24
+    val m = min % 60
+    val ampm = if (h < 12) "AM" else "PM"
+    val h12 = when { h == 0 -> 12; h > 12 -> h - 12; else -> h }
+    return "%d:%02d %s".format(h12, m, ampm)
 }
 
 // ---- helpers ----
