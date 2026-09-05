@@ -739,6 +739,8 @@ data class CalOptionsDto(
     val colorPrefs: ColorPrefsDto = ColorPrefsDto(),
     val meColor: String = "#2563eb",
     val holidaySystemColor: String = "#0f5c63",
+    val familySystemColor: String = "#0f5c63",
+    val nowSystemColor: String = "#dc2626",
 )
 
 @Serializable
@@ -747,6 +749,8 @@ data class ColorPrefsDto(
     val othersMode: String = "own",
     val othersColor: String? = null,
     val holidayColor: String? = null,
+    val familyColor: String? = null,
+    val nowColor: String? = null,
     val kindColors: Map<String, String> = emptyMap(),
     val eventTypeColors: Map<String, String> = emptyMap(),
     val subColors: Map<String, String> = emptyMap(),
@@ -780,6 +784,8 @@ data class CalendarPrefsRequest(
     val othersMode: String? = null,
     val othersColor: String? = null,
     val holidayColor: String? = null,
+    val familyColor: String? = null,
+    val nowColor: String? = null,
     val kindColors: Map<String, String>? = null,
     val eventTypeColors: Map<String, String>? = null,
     val subColors: Map<String, String>? = null,

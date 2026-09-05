@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.0 — Calendar colour model
+- Calendar colours are now a simple System / Custom choice. System follows the
+  shared settings with nothing to change; Custom greys out everyone else's
+  events automatically and lets you set your own colours for the now-line, event
+  kinds, holidays, the family calendar, custom event types and subscriptions.
+
 ## 0.45.1 — Calendar polish
 - Lightened the grey page background a touch.
 - Darkened the calendar grid lines a little more, added a permanent divider

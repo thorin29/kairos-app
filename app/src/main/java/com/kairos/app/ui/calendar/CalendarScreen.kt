@@ -630,61 +630,85 @@ private fun SettingsPanel(
             DrawerDivider()
             val cp = opt.colorPrefs
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable {
-                    vm.savePrefs(personalizeColors = !cp.personalizeColors)
-                }.padding(horizontal = 12.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 6.dp, top = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Personalize colours", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Switch(checked = cp.personalizeColors, onCheckedChange = { vm.savePrefs(personalizeColors = it) })
+                Icon(KairosIcons.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                Text("Colours", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            }
+            // System = follow the shared/web settings (no options). Custom = your
+            // own event colours, everyone else's greyed out automatically.
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant).padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                ModeChip("Custom", cp.personalizeColors, Modifier.weight(1f)) {
+                    if (!cp.personalizeColors) vm.savePrefs(personalizeColors = true, othersMode = "grey")
+                }
+                ModeChip("System", !cp.personalizeColors, Modifier.weight(1f)) {
+                    if (cp.personalizeColors) vm.savePrefs(personalizeColors = false)
+                }
             }
 
             if (cp.personalizeColors) {
-                ColorGroupLabel("Other people's events")
-                listOf("own" to "Their own colour", "grey" to "One grey", "family" to "Family scheme").forEach { (m, lbl) ->
-                    ModeRow(lbl, cp.othersMode == m) { vm.savePrefs(othersMode = m) }
+                Spacer(Modifier.size(6.dp))
+                ColorField("Now line", cp.nowColor, opt.nowSystemColor) {
+                    picker = ColorSlot("Now line", cp.nowColor, opt.nowSystemColor,
+                        { vm.savePrefs(nowColor = it) }, { vm.savePrefs(nowColor = null) })
                 }
-                if (cp.othersMode == "grey") {
-                    ColorField("Grey colour", cp.othersColor, "#9ca3af") {
-                        picker = ColorSlot("Grey colour", cp.othersColor, "#9ca3af",
-                            { vm.savePrefs(othersColor = it) }, { vm.savePrefs(othersColor = null) })
+                listOf("APPOINTMENT" to "Appointments", "CLASS" to "Class", "WORK" to "Work", "BIRTHDAY" to "Birthdays").forEach { (k, lbl) ->
+                    ColorField(lbl, cp.kindColors[k], opt.meColor) {
+                        picker = ColorSlot(lbl, cp.kindColors[k], opt.meColor,
+                            { vm.savePrefs(kindColors = cp.kindColors + (k to it)) },
+                            { vm.savePrefs(kindColors = cp.kindColors - k) })
                     }
                 }
-                if (cp.othersMode != "family") {
-                    ColorGroupLabel("My event colours")
-                    listOf("APPOINTMENT" to "Appointments", "CLASS" to "Class", "WORK" to "Work", "BIRTHDAY" to "Birthdays").forEach { (k, lbl) ->
-                        ColorField(lbl, cp.kindColors[k], opt.meColor) {
-                            picker = ColorSlot(lbl, cp.kindColors[k], opt.meColor,
-                                { vm.savePrefs(kindColors = cp.kindColors + (k to it)) },
-                                { vm.savePrefs(kindColors = cp.kindColors - k) })
-                        }
+                ColorField("Holidays", cp.holidayColor, opt.holidaySystemColor) {
+                    picker = ColorSlot("Holidays", cp.holidayColor, opt.holidaySystemColor,
+                        { vm.savePrefs(holidayColor = it) }, { vm.savePrefs(holidayColor = null) })
+                }
+                ColorField("Family", cp.familyColor, opt.familySystemColor) {
+                    picker = ColorSlot("Family", cp.familyColor, opt.familySystemColor,
+                        { vm.savePrefs(familyColor = it) }, { vm.savePrefs(familyColor = null) })
+                }
+                opt.eventTypes.forEach { t ->
+                    ColorField(t.name, cp.eventTypeColors[t.id], t.color) {
+                        picker = ColorSlot(t.name, cp.eventTypeColors[t.id], t.color,
+                            { vm.savePrefs(eventTypeColors = cp.eventTypeColors + (t.id to it)) },
+                            { vm.savePrefs(eventTypeColors = cp.eventTypeColors - t.id) })
                     }
-                    ColorField("Holidays", cp.holidayColor, opt.holidaySystemColor) {
-                        picker = ColorSlot("Holidays", cp.holidayColor, opt.holidaySystemColor,
-                            { vm.savePrefs(holidayColor = it) }, { vm.savePrefs(holidayColor = null) })
-                    }
-                    if (opt.eventTypes.isNotEmpty() || opt.subscriptions.isNotEmpty()) {
-                        ColorGroupLabel("Types & calendars")
-                    }
-                    opt.eventTypes.forEach { t ->
-                        ColorField(t.name, cp.eventTypeColors[t.id], t.color) {
-                            picker = ColorSlot(t.name, cp.eventTypeColors[t.id], t.color,
-                                { vm.savePrefs(eventTypeColors = cp.eventTypeColors + (t.id to it)) },
-                                { vm.savePrefs(eventTypeColors = cp.eventTypeColors - t.id) })
-                        }
-                    }
-                    opt.subscriptions.forEach { s ->
-                        ColorField(s.name, cp.subColors[s.id], s.color) {
-                            picker = ColorSlot(s.name, cp.subColors[s.id], s.color,
-                                { vm.savePrefs(subColors = cp.subColors + (s.id to it)) },
-                                { vm.savePrefs(subColors = cp.subColors - s.id) })
-                        }
+                }
+                opt.subscriptions.forEach { s ->
+                    ColorField(s.name, cp.subColors[s.id], s.color) {
+                        picker = ColorSlot(s.name, cp.subColors[s.id], s.color,
+                            { vm.savePrefs(subColors = cp.subColors + (s.id to it)) },
+                            { vm.savePrefs(subColors = cp.subColors - s.id) })
                     }
                 }
             }
         }
     }
     picker?.let { slot -> ColorPickerDialog(slot) { picker = null } }
+}
+
+@Composable
+private fun ModeChip(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.clip(RoundedCornerShape(9.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .clickable { onClick() }
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
+        )
+    }
 }
 
 private data class ColorSlot(
@@ -699,28 +723,6 @@ private val CalPalette = listOf(
     "#2563eb", "#db2777", "#059669", "#d97706", "#7c3aed", "#0891b2", "#c2410c",
     "#4d7c0f", "#0f5c63", "#334155", "#b91c1c", "#be185d", "#15803d", "#1d4ed8",
 )
-
-@Composable
-private fun ColorGroupLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 2.dp),
-    )
-}
-
-@Composable
-private fun ModeRow(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        androidx.compose.material3.RadioButton(selected = selected, onClick = onClick)
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-    }
-}
 
 @Composable
 private fun ColorField(label: String, current: String?, fallback: String, onOpen: () -> Unit) {
