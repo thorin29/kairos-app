@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.46.0 — Calendar colour model
+## 0.46.1 — Calendar colour model
 - Calendar colours are now a simple System / Custom choice. System follows the
   shared settings with nothing to change; Custom greys out everyone else's
   events automatically and lets you set your own colours for the now-line, event

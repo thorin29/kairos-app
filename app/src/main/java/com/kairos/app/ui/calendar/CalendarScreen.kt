@@ -630,7 +630,7 @@ private fun SettingsPanel(
             DrawerDivider()
             val cp = opt.colorPrefs
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 6.dp, top = 4.dp, bottom = 8.dp),
+                Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
