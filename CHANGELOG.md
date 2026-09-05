@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.2 — Calendar swipe polish
+- 3-day view now slides one day at a time, so you can shift by a day or two.
+  Day and week still advance a full period.
+- Month view now pages by swiping up and down instead of left and right.
+- Lightened the month grid lines (other views' lines are unchanged).
+
 ## 0.46.1 — Calendar colour model
 - Calendar colours are now a simple System / Custom choice. System follows the
   shared settings with nothing to change; Custom greys out everyone else's

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -282,15 +283,30 @@ private fun CalendarBody(
                 .weight(1f)
                 .fillMaxWidth()
                 .pointerInput(ui.tab, data.date) {
-                    var dx = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { dx = 0f },
-                        onDragEnd = {
-                            val threshold = 64.dp.toPx()
-                            if (dx <= -threshold) vm.goNext()
-                            else if (dx >= threshold) vm.goPrev()
-                        },
-                    ) { _, amount -> dx += amount }
+                    var d = 0f
+                    val threshold = 64.dp.toPx()
+                    if (ui.tab == CalTab.MONTH) {
+                        // Month pages vertically (swipe up = next month, down = previous).
+                        detectVerticalDragGestures(
+                            onDragStart = { d = 0f },
+                            onDragEnd = {
+                                if (d <= -threshold) vm.goNext()
+                                else if (d >= threshold) vm.goPrev()
+                            },
+                        ) { _, amount -> d += amount }
+                    } else {
+                        // Day / week page a full period; 3-day slides one day at a time.
+                        detectHorizontalDragGestures(
+                            onDragStart = { d = 0f },
+                            onDragEnd = {
+                                if (d <= -threshold) {
+                                    if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(1) else vm.goNext()
+                                } else if (d >= threshold) {
+                                    if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(-1) else vm.goPrev()
+                                }
+                            },
+                        ) { _, amount -> d += amount }
+                    }
                 },
         ) {
             when (ui.tab) {
@@ -431,7 +447,7 @@ private fun MonthDayCell(
     Column(
         modifier
             .background(todayTint)
-            .border(0.5.dp, MaterialTheme.colorScheme.outline)
+            .border(0.5.dp, MonthLine)
             .clickable { onClick() }
             .padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -719,6 +735,7 @@ private data class ColorSlot(
     val onClear: () -> Unit,
 )
 
+private val MonthLine = androidx.compose.ui.graphics.Color(0xFFCBD5E1)
 private val CalPalette = listOf(
     "#2563eb", "#db2777", "#059669", "#d97706", "#7c3aed", "#0891b2", "#c2410c",
     "#4d7c0f", "#0f5c63", "#334155", "#b91c1c", "#be185d", "#15803d", "#1d4ed8",

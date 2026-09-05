@@ -152,6 +152,13 @@ class CalendarViewModel(
     fun goNext() {
         _ui.value.data?.let { d -> _ui.update { it.copy(date = d.nextDate) }; load() }
     }
+    /** Shift the anchor date by whole days (3-day view pages one day at a time). */
+    fun shiftDays(n: Int) {
+        val cur = _ui.value.date
+        val next = runCatching { java.time.LocalDate.parse(cur).plusDays(n.toLong()).toString() }.getOrNull() ?: return
+        _ui.update { it.copy(date = next) }
+        load()
+    }
 
     fun goToday() {
         _ui.value.data?.let { d -> _ui.update { it.copy(date = d.today) }; load() }
