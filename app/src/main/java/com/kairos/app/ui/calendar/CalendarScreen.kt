@@ -91,6 +91,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
                     navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },

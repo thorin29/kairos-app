@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.44.1 — Calendar background
+- The calendar page is back to a white background (the new grey page background
+  made the grid hard to read).
+
 ## 0.44.0 — Event editor redesign + card fix
 - Reworked the event editor: a borderless bold "Add Title", the all-day toggle
   and start/end date-time with no boxes, and full-width divider lines between the
