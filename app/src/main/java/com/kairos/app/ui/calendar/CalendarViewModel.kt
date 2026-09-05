@@ -95,13 +95,14 @@ class CalendarViewModel(
 
     fun clearDeleteError() = _ui.update { it.copy(deleteError = null) }
 
-    /** Delete an event; on success reload and call [onDone]. */
-    fun deleteEvent(eventId: String, onDone: () -> Unit) {
+    /** Delete an event; on success reload and call [onDone]. Scope + occurrence
+     *  matter only for recurring events (this / future / all). */
+    fun deleteEvent(eventId: String, scope: String, occurrenceISO: String?, onDone: () -> Unit) {
         if (_ui.value.deleting) return
         _ui.update { it.copy(deleting = true, deleteError = null) }
         viewModelScope.launch {
             try {
-                session.deleteCalendarEvent(eventId, scope = "all", occurrenceISO = null)
+                session.deleteCalendarEvent(eventId, scope = scope, occurrenceISO = occurrenceISO)
                 _ui.update { it.copy(deleting = false) }
                 onDone()
                 load()

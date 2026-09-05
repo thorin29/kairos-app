@@ -203,8 +203,13 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
 
     selectedEvent?.let { ev ->
         if (data != null) {
+            // The recurrence engine keys occurrences by their home-tz date; the
+            // tapped event may have been shifted by device-tz localisation, so
+            // recover the original date from the un-localised payload.
+            val occ = data.events.firstOrNull { it.id == ev.id }?.dayISO ?: ev.dayISO
             EventDetailScreen(
                 event = ev,
+                occurrenceISO = occ,
                 ui = ui,
                 vm = vm,
                 onEdit = { editingEvent = ev; selectedEvent = null },
@@ -694,6 +699,7 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
 @Composable
 private fun EventDetailScreen(
     event: CalEventDto,
+    occurrenceISO: String,
     ui: CalendarUiState,
     vm: CalendarViewModel,
     onEdit: () -> Unit,
@@ -758,24 +764,51 @@ private fun EventDetailScreen(
     }
 
     if (confirmDelete) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete event?") },
-            text = {
-                Text(
-                    if (event.recurring) "This removes the whole repeating event."
-                    else "This can't be undone.",
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = !ui.deleting,
-                    onClick = { confirmDelete = false; vm.deleteEvent(event.eventId) { onClose() } },
-                ) { Text(if (ui.deleting) "Deleting\u2026" else "Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
-        )
+        if (event.recurring) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text("Delete repeating event") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        DeleteScopeRow("This event", !ui.deleting) {
+                            confirmDelete = false; vm.deleteEvent(event.eventId, "one", occurrenceISO) { onClose() }
+                        }
+                        DeleteScopeRow("This and following events", !ui.deleting) {
+                            confirmDelete = false; vm.deleteEvent(event.eventId, "future", occurrenceISO) { onClose() }
+                        }
+                        DeleteScopeRow("All events", !ui.deleting) {
+                            confirmDelete = false; vm.deleteEvent(event.eventId, "all", null) { onClose() }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            )
+        } else {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text("Delete event?") },
+                text = { Text("This can't be undone.") },
+                confirmButton = {
+                    TextButton(
+                        enabled = !ui.deleting,
+                        onClick = { confirmDelete = false; vm.deleteEvent(event.eventId, "all", null) { onClose() } },
+                    ) { Text(if (ui.deleting) "Deleting\u2026" else "Delete", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            )
+        }
     }
+}
+
+@Composable
+private fun DeleteScopeRow(label: String, enabled: Boolean, onClick: () -> Unit) {
+    Text(
+        label,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+            .clickable(enabled = enabled) { onClick() }.padding(vertical = 12.dp, horizontal = 4.dp),
+    )
 }
 
 private fun rangeLabel(startMin: Int, endMin: Int): String {

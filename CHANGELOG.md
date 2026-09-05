@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.37.0 — Delete one occurrence of a repeat
+- Deleting a repeating event now asks what to remove: just this event, this and
+  the following ones, or all of them.
+
 ## 0.36.0 — Repeating events
 - New events can now repeat: choose Daily, Weekly, Monthly or Yearly when
   creating one. (Editing a repeat, or changing just one occurrence, is coming
