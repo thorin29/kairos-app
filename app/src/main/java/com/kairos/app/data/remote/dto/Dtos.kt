@@ -717,6 +717,13 @@ data class CalOptionSubDto(
 )
 
 @Serializable
+data class CalEventTypeDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String = "#64748b",
+)
+
+@Serializable
 data class CalOptionsDto(
     val people: List<CalOptionPersonDto> = emptyList(),
     val subscriptions: List<CalOptionSubDto> = emptyList(),
@@ -724,6 +731,8 @@ data class CalOptionsDto(
     val shownSubs: List<String> = emptyList(),
     val showFamily: Boolean = false,
     val showSchoolWork: Boolean = false,
+    val canManageFamily: Boolean = false,
+    val eventTypes: List<CalEventTypeDto> = emptyList(),
 )
 
 @Serializable
@@ -763,6 +772,9 @@ data class CreateEventRequest(
     val location: String? = null,
     val timezone: String? = null,
     val repeat: String? = null,
+    val isFamily: Boolean? = null,
+    val kind: String? = null,
+    val eventTypeId: String? = null,
 )
 
 @Serializable

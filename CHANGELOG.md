@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.39.0 — Event types & family calendar; birthdays
+- New events can now be a chosen type — Appointment, Class, Work shift, Birthday,
+  Other, or one of your family's custom types.
+- Parents and admins can add an event to the family calendar (everyone else adds
+  to their own). Birthdays: anyone can add one to their own calendar; adding to
+  the family calendar, and editing any birthday, is parent/admin only.
+- Picking Birthday sets it all-day and yearly automatically. Auto-generated
+  profile birthdays stay read-only.
+
 ## 0.38.0 — Edit repeating events; smarter default time
 - You can now edit a repeating event. On save it asks whether to change just
   this event or all of them (changing all is parent-only).

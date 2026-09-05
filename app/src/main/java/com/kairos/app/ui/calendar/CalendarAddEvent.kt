@@ -76,6 +76,13 @@ fun AddEventOverlay(
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var repeat by remember { mutableStateOf("NONE") }
     var repeatMenu by remember { mutableStateOf(false) }
+    var isFamily by remember { mutableStateOf(false) }
+    var kind by remember { mutableStateOf("APPOINTMENT") }
+    var eventTypeId by remember { mutableStateOf<String?>(null) }
+    var calMenu by remember { mutableStateOf(false) }
+    var typeMenu by remember { mutableStateOf(false) }
+    val canFamily = data.options.canManageFamily
+    val customTypes = data.options.eventTypes
 
     val homeTz = data.timezone
     val deviceTz = remember { ZoneId.systemDefault().id }
@@ -148,6 +155,9 @@ fun AddEventOverlay(
                                     location = location.trim().ifBlank { null },
                                     timezone = zone,
                                     repeat = if (repeat == "NONE") null else repeat,
+                                    isFamily = if (isFamily) true else null,
+                                    kind = kind,
+                                    eventTypeId = eventTypeId,
                                 ),
                             ) { onClose() }
                         }
@@ -166,6 +176,46 @@ fun AddEventOverlay(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                if (!editing) {
+                    if (canFamily) {
+                        Box {
+                            FieldRow("Calendar", if (isFamily) "Family calendar" else "My calendar") { calMenu = true }
+                            DropdownMenu(expanded = calMenu, onDismissRequest = { calMenu = false }) {
+                                DropdownMenuItem(text = { Text("My calendar") }, onClick = { isFamily = false; calMenu = false })
+                                DropdownMenuItem(text = { Text("Family calendar") }, onClick = { isFamily = true; calMenu = false })
+                            }
+                        }
+                    }
+                    Box {
+                        FieldRow("Type", typeLabel(kind, eventTypeId, customTypes)) { typeMenu = true }
+                        DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+                            listOf(
+                                "APPOINTMENT" to "Appointment",
+                                "CLASS" to "Class",
+                                "WORK" to "Work shift",
+                                "BIRTHDAY" to "Birthday",
+                                "OTHER" to "Other",
+                            ).forEach { (k, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        kind = k
+                                        eventTypeId = null
+                                        if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
+                                        typeMenu = false
+                                    },
+                                )
+                            }
+                            customTypes.forEach { ct ->
+                                DropdownMenuItem(
+                                    text = { Text(ct.name) },
+                                    onClick = { kind = "OTHER"; eventTypeId = ct.id; typeMenu = false },
+                                )
+                            }
+                        }
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
@@ -299,6 +349,19 @@ private fun TimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismis
 }
 
 // ---- helpers ----
+
+private fun typeLabel(kind: String, eventTypeId: String?, customTypes: List<com.kairos.app.data.remote.dto.CalEventTypeDto>): String {
+    if (eventTypeId != null) {
+        return customTypes.firstOrNull { it.id == eventTypeId }?.name ?: "Type"
+    }
+    return when (kind) {
+        "CLASS" -> "Class"
+        "WORK" -> "Work shift"
+        "BIRTHDAY" -> "Birthday"
+        "OTHER" -> "Other"
+        else -> "Appointment"
+    }
+}
 
 private fun repeatLabel(v: String): String = when (v) {
     "DAILY" -> "Daily"

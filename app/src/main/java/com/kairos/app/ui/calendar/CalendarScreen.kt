@@ -212,6 +212,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
             EventDetailScreen(
                 event = ev,
                 occurrenceISO = occ,
+                canManageFamily = data.options.canManageFamily,
                 ui = ui,
                 vm = vm,
                 onEdit = { editingEvent = ev; selectedEvent = null },
@@ -702,13 +703,16 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
 private fun EventDetailScreen(
     event: CalEventDto,
     occurrenceISO: String,
+    canManageFamily: Boolean,
     ui: CalendarUiState,
     vm: CalendarViewModel,
     onEdit: () -> Unit,
     onClose: () -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
-    val editable = !event.external && event.kind != "BIRTHDAY"
+    val stored = event.eventId.isNotBlank()
+    val editable = stored && !event.external && (event.kind != "BIRTHDAY" || canManageFamily)
+    val deletable = stored && !event.external
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -727,10 +731,10 @@ private fun EventDetailScreen(
                 }
                 Box(
                     Modifier.size(44.dp).clip(CircleShape)
-                        .clickable(enabled = !event.external) { confirmDelete = true },
+                        .clickable(enabled = deletable) { confirmDelete = true },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(KairosIcons.Trash, contentDescription = "Delete", tint = if (event.external) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+                    Icon(KairosIcons.Trash, contentDescription = "Delete", tint = if (deletable) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
