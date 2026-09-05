@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.40.0 — Share events with people
+- When creating an event you can now share it with other people ("Share with"),
+  so it shows on their calendars too.
+
 ## 0.39.0 — Event types & family calendar; birthdays
 - New events can now be a chosen type — Appointment, Class, Work shift, Birthday,
   Other, or one of your family's custom types.

@@ -775,6 +775,7 @@ data class CreateEventRequest(
     val isFamily: Boolean? = null,
     val kind: String? = null,
     val eventTypeId: String? = null,
+    val participants: List<String>? = null,
 )
 
 @Serializable

@@ -81,6 +81,8 @@ fun AddEventOverlay(
     var eventTypeId by remember { mutableStateOf<String?>(null) }
     var calMenu by remember { mutableStateOf(false) }
     var typeMenu by remember { mutableStateOf(false) }
+    var participants by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showPeople by remember { mutableStateOf(false) }
     val canFamily = data.options.canManageFamily
     val customTypes = data.options.eventTypes
 
@@ -158,6 +160,7 @@ fun AddEventOverlay(
                                     isFamily = if (isFamily) true else null,
                                     kind = kind,
                                     eventTypeId = eventTypeId,
+                                    participants = participants.toList().ifEmpty { null },
                                 ),
                             ) { onClose() }
                         }
@@ -215,6 +218,11 @@ fun AddEventOverlay(
                             }
                         }
                     }
+                    FieldRow(
+                        "Share with",
+                        if (participants.isEmpty()) "No one"
+                        else "${participants.size} " + if (participants.size == 1) "person" else "people",
+                    ) { showPeople = true }
                 }
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -291,6 +299,36 @@ fun AddEventOverlay(
     }
     if (showEnd) {
         TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
+    }
+
+    if (showPeople) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPeople = false },
+            title = { Text("Share with") },
+            text = {
+                Column {
+                    data.options.people.forEach { p ->
+                        val checked = p.id in participants
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                participants = participants.toMutableSet().apply { if (!add(p.id)) remove(p.id) }
+                            }.padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            androidx.compose.material3.Checkbox(
+                                checked = checked,
+                                onCheckedChange = {
+                                    participants = participants.toMutableSet().apply { if (it) add(p.id) else remove(p.id) }
+                                },
+                            )
+                            Text(p.name, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showPeople = false }) { Text("Done") } },
+        )
     }
 
     if (showScope) {
