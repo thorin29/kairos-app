@@ -783,4 +783,6 @@ data class UpdateEventRequest(
     val endDate: String? = null,
     val location: String? = null,
     val timezone: String? = null,
+    val scope: String? = null,
+    val occurrenceISO: String? = null,
 )

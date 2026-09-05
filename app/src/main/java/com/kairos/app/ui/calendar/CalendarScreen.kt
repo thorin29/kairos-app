@@ -194,9 +194,11 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
     }
 
     if (editingEvent != null && data != null) {
+        val occ = data.events.firstOrNull { it.id == editingEvent!!.id }?.dayISO ?: editingEvent!!.dayISO
         AddEventOverlay(
             vm, data, ui,
             editEvent = editingEvent,
+            editOccurrenceISO = occ,
             onClose = { editingEvent = null; vm.clearCreateError() },
         )
     }
@@ -706,7 +708,7 @@ private fun EventDetailScreen(
     onClose: () -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
-    val editable = !event.recurring && !event.external && event.kind != "BIRTHDAY"
+    val editable = !event.external && event.kind != "BIRTHDAY"
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {

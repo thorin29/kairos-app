@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.0 — Edit repeating events; smarter default time
+- You can now edit a repeating event. On save it asks whether to change just
+  this event or all of them (changing all is parent-only).
+- New events now default to starting at the current time (rounded up) instead of
+  9 AM, so you're not creating events in the past.
+
 ## 0.37.0 — Delete one occurrence of a repeat
 - Deleting a repeating event now asks what to remove: just this event, this and
   the following ones, or all of them.

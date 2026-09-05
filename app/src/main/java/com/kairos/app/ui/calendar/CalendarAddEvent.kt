@@ -59,14 +59,20 @@ fun AddEventOverlay(
     data: CalendarDto,
     ui: CalendarUiState,
     editEvent: com.kairos.app.data.remote.dto.CalEventDto? = null,
+    editOccurrenceISO: String? = null,
     onClose: () -> Unit,
 ) {
     val editing = editEvent != null
     var title by remember { mutableStateOf(editEvent?.title ?: "") }
     var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
     var dateIso by remember { mutableStateOf(editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }) }
-    var startMin by remember { mutableStateOf(editEvent?.startMin ?: 9 * 60) }
-    var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: 10 * 60)) }
+    val defaultStart = remember {
+        val n = java.time.LocalTime.now()
+        val m = ((n.hour * 60 + n.minute + 29) / 30) * 30
+        m.coerceIn(0, 22 * 60)
+    }
+    var startMin by remember { mutableStateOf(editEvent?.startMin ?: defaultStart) }
+    var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))) }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var repeat by remember { mutableStateOf("NONE") }
     var repeatMenu by remember { mutableStateOf(false) }
@@ -84,6 +90,28 @@ fun AddEventOverlay(
     var showStart by remember { mutableStateOf(false) }
     var showEnd by remember { mutableStateOf(false) }
     var tzMenu by remember { mutableStateOf(false) }
+    var showScope by remember { mutableStateOf(false) }
+
+    fun submit(scope: String?) {
+        val start = if (allDay) null else hhmm(startMin)
+        val end = if (allDay) null else hhmm(endMin)
+        val zone = if (allDay) null else tz
+        vm.updateEvent(
+            com.kairos.app.data.remote.dto.UpdateEventRequest(
+                eventId = editEvent!!.eventId,
+                title = title.trim(),
+                allDay = allDay,
+                date = dateIso,
+                start = start,
+                end = end,
+                endDate = dateIso,
+                location = location.trim().ifBlank { null },
+                timezone = zone,
+                scope = scope,
+                occurrenceISO = editOccurrenceISO,
+            ),
+        ) { onClose() }
+    }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -103,19 +131,11 @@ fun AddEventOverlay(
                         val end = if (allDay) null else hhmm(endMin)
                         val zone = if (allDay) null else tz
                         if (editing) {
-                            vm.updateEvent(
-                                com.kairos.app.data.remote.dto.UpdateEventRequest(
-                                    eventId = editEvent!!.eventId,
-                                    title = title.trim(),
-                                    allDay = allDay,
-                                    date = dateIso,
-                                    start = start,
-                                    end = end,
-                                    endDate = dateIso,
-                                    location = location.trim().ifBlank { null },
-                                    timezone = zone,
-                                ),
-                            ) { onClose() }
+                            if (editEvent!!.recurring) {
+                                showScope = true
+                            } else {
+                                submit(null)
+                            }
                         } else {
                             vm.createEvent(
                                 CreateEventRequest(
@@ -221,6 +241,29 @@ fun AddEventOverlay(
     }
     if (showEnd) {
         TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
+    }
+
+    if (showScope) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showScope = false },
+            title = { Text("Edit repeating event") },
+            text = {
+                Column {
+                    Text(
+                        "This event",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth().clickable { showScope = false; submit("single") }.padding(vertical = 12.dp),
+                    )
+                    Text(
+                        "All events",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth().clickable { showScope = false; submit("series") }.padding(vertical = 12.dp),
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showScope = false }) { Text("Cancel") } },
+        )
     }
 }
 
