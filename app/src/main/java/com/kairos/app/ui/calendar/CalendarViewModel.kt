@@ -176,6 +176,13 @@ class CalendarViewModel(
         shownSubs: List<String>? = null,
         showFamily: Boolean? = null,
         showSchoolWork: Boolean? = null,
+        personalizeColors: Boolean? = null,
+        othersMode: String? = null,
+        othersColor: String? = null,
+        holidayColor: String? = null,
+        kindColors: Map<String, String>? = null,
+        eventTypeColors: Map<String, String>? = null,
+        subColors: Map<String, String>? = null,
     ) {
         viewModelScope.launch {
             try {
@@ -185,6 +192,13 @@ class CalendarViewModel(
                         shownSubs = shownSubs,
                         showFamily = showFamily,
                         showSchoolWork = showSchoolWork,
+                        personalizeColors = personalizeColors,
+                        othersMode = othersMode,
+                        othersColor = othersColor,
+                        holidayColor = holidayColor,
+                        kindColors = kindColors,
+                        eventTypeColors = eventTypeColors,
+                        subColors = subColors,
                     ),
                 )
                 load()

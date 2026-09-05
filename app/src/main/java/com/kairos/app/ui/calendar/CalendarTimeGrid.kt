@@ -77,7 +77,7 @@ private fun placeEvents(evs: List<CalEventDto>): List<Placed> {
 fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, onEventClick: (CalEventDto) -> Unit, modifier: Modifier = Modifier) {
     val days = data.rangeDays
     val now = data.nowColor
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val gridColor = MaterialTheme.colorScheme.outline
 
     Column(modifier.fillMaxSize()) {
         // Day headers, aligned with the columns below.

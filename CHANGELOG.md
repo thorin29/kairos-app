@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.45.0 — Calendar colour personalization
+- New "Personalize colours" section in the calendar settings: choose how other
+  people's events look (their colour / one grey / family scheme), and set your
+  own colours for event kinds, holidays, event types and subscribed calendars.
+  Each colour falls back to a sensible default until you change it.
+- The workouts page is back to a white background.
+- Calendar grid lines are a little darker.
+
 ## 0.44.1 — Calendar background
 - The calendar page is back to a white background (the new grey page background
   made the grid hard to read).

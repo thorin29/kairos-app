@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -273,7 +274,7 @@ private fun CalendarBody(
                 onCollapseMonth()
                 vm.goToDate(iso)
             }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
         }
 
         Box(
@@ -428,7 +429,7 @@ private fun MonthDayCell(
     val sorted = events.sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
     Column(
         modifier
-            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline)
             .clickable { onClick() }
             .padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -559,6 +560,7 @@ private fun SettingsPanel(
     onPickView: () -> Unit,
 ) {
     val opt = data.options
+    var picker by remember { mutableStateOf<ColorSlot?>(null) }
     Surface(
         Modifier.fillMaxHeight().fillMaxWidth(0.86f),
         color = MaterialTheme.colorScheme.surface,
@@ -620,8 +622,144 @@ private fun SettingsPanel(
                     }
                 }
             }
+
+            DrawerDivider()
+            val cp = opt.colorPrefs
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable {
+                    vm.savePrefs(personalizeColors = !cp.personalizeColors)
+                }.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Personalize colours", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Switch(checked = cp.personalizeColors, onCheckedChange = { vm.savePrefs(personalizeColors = it) })
+            }
+
+            if (cp.personalizeColors) {
+                ColorGroupLabel("Other people's events")
+                listOf("own" to "Their own colour", "grey" to "One grey", "family" to "Family scheme").forEach { (m, lbl) ->
+                    ModeRow(lbl, cp.othersMode == m) { vm.savePrefs(othersMode = m) }
+                }
+                if (cp.othersMode == "grey") {
+                    ColorField("Grey colour", cp.othersColor, "#9ca3af") {
+                        picker = ColorSlot("Grey colour", cp.othersColor, "#9ca3af",
+                            { vm.savePrefs(othersColor = it) }, { vm.savePrefs(othersColor = null) })
+                    }
+                }
+                if (cp.othersMode != "family") {
+                    ColorGroupLabel("My event colours")
+                    listOf("APPOINTMENT" to "Appointments", "CLASS" to "Class", "WORK" to "Work", "BIRTHDAY" to "Birthdays").forEach { (k, lbl) ->
+                        ColorField(lbl, cp.kindColors[k], opt.meColor) {
+                            picker = ColorSlot(lbl, cp.kindColors[k], opt.meColor,
+                                { vm.savePrefs(kindColors = cp.kindColors + (k to it)) },
+                                { vm.savePrefs(kindColors = cp.kindColors - k) })
+                        }
+                    }
+                    ColorField("Holidays", cp.holidayColor, opt.holidaySystemColor) {
+                        picker = ColorSlot("Holidays", cp.holidayColor, opt.holidaySystemColor,
+                            { vm.savePrefs(holidayColor = it) }, { vm.savePrefs(holidayColor = null) })
+                    }
+                    if (opt.eventTypes.isNotEmpty() || opt.subscriptions.isNotEmpty()) {
+                        ColorGroupLabel("Types & calendars")
+                    }
+                    opt.eventTypes.forEach { t ->
+                        ColorField(t.name, cp.eventTypeColors[t.id], t.color) {
+                            picker = ColorSlot(t.name, cp.eventTypeColors[t.id], t.color,
+                                { vm.savePrefs(eventTypeColors = cp.eventTypeColors + (t.id to it)) },
+                                { vm.savePrefs(eventTypeColors = cp.eventTypeColors - t.id) })
+                        }
+                    }
+                    opt.subscriptions.forEach { s ->
+                        ColorField(s.name, cp.subColors[s.id], s.color) {
+                            picker = ColorSlot(s.name, cp.subColors[s.id], s.color,
+                                { vm.savePrefs(subColors = cp.subColors + (s.id to it)) },
+                                { vm.savePrefs(subColors = cp.subColors - s.id) })
+                        }
+                    }
+                }
+            }
         }
     }
+    picker?.let { slot -> ColorPickerDialog(slot) { picker = null } }
+}
+
+private data class ColorSlot(
+    val title: String,
+    val current: String?,
+    val fallback: String,
+    val onPick: (String) -> Unit,
+    val onClear: () -> Unit,
+)
+
+private val CalPalette = listOf(
+    "#2563eb", "#db2777", "#059669", "#d97706", "#7c3aed", "#0891b2", "#c2410c",
+    "#4d7c0f", "#0f5c63", "#334155", "#b91c1c", "#be185d", "#15803d", "#1d4ed8",
+)
+
+@Composable
+private fun ColorGroupLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 2.dp),
+    )
+}
+
+@Composable
+private fun ModeRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        androidx.compose.material3.RadioButton(selected = selected, onClick = onClick)
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun ColorField(label: String, current: String?, fallback: String, onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onOpen() }.padding(horizontal = 6.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            Modifier.size(22.dp).clip(CircleShape)
+                .background(parseColor(current ?: fallback))
+                .border(if (current == null) 1.dp else 0.dp, MaterialTheme.colorScheme.outline, CircleShape),
+        )
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        if (current == null) {
+            Text("Default", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun ColorPickerDialog(slot: ColorSlot, onClose: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(slot.title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                CalPalette.chunked(6).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        row.forEach { hex ->
+                            Box(
+                                Modifier.size(36.dp).clip(CircleShape).background(parseColor(hex))
+                                    .border(if (slot.current == hex) 3.dp else 1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                    .clickable { slot.onPick(hex); onClose() },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { slot.onClear(); onClose() }) { Text("Use default") } },
+        dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -668,7 +806,7 @@ private fun FilterCheck(label: String, checked: Boolean, color: Color?, onToggle
 
 @Composable
 private fun DrawerDivider() {
-    Box(Modifier.fillMaxWidth().height(1.dp).padding(vertical = 6.dp).background(MaterialTheme.colorScheme.outlineVariant))
+    Box(Modifier.fillMaxWidth().height(1.dp).padding(vertical = 6.dp).background(MaterialTheme.colorScheme.outline))
 }
 
 @Composable
@@ -756,7 +894,7 @@ private fun EventDetailScreen(
                     }
                 }
 
-                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Icon(KairosIcons.Calendar, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -90,6 +90,7 @@ fun WorkoutsScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Workouts") },
