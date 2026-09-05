@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.45.1 — Calendar polish
+- Lightened the grey page background a touch.
+- Darkened the calendar grid lines a little more, added a permanent divider
+  between the day headers / all-day events and the hour grid, and gave the
+  current-day column (and month cell) a subtle tint in every view.
+- The calendar settings menu now matches the main sidebar: narrower, a rounded
+  top corner, and aligned to the top edge.
+
 ## 0.45.0 — Calendar colour personalization
 - New "Personalize colours" section in the calendar settings: choose how other
   people's events look (their colour / one grey / family scheme), and set your

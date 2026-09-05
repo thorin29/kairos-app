@@ -106,6 +106,9 @@ fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, onEventClick: (CalEve
             }
         }
 
+        // Permanent divider: dates + all-day events sit above it, hour slots below.
+        Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+
         Box(
             Modifier
                 .fillMaxWidth()
@@ -201,10 +204,12 @@ private fun DayColumn(
     val placed = remember(events) { placeEvents(events) }
     val nowMin = if (isToday) deviceNowMinutes() else -1
     val nowC = remember(nowColor) { parseGridColor(nowColor) }
+    val todayTint = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent
 
     BoxWithConstraints(
         modifier
             .height(HOUR_H * HOURS)
+            .background(todayTint)
             .drawBehind {
                 for (h in 0..HOURS) {
                     val y = size.height * (h.toFloat() / HOURS)

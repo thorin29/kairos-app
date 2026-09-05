@@ -169,7 +169,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
                 visible = showSettings,
                 enter = slideInHorizontally { it },
                 exit = slideOutHorizontally { it },
-                modifier = Modifier.align(Alignment.CenterEnd),
+                modifier = Modifier.align(Alignment.TopEnd),
             ) {
                 SettingsPanel(
                     data = data,
@@ -427,8 +427,10 @@ private fun MonthDayCell(
 ) {
     val num = iso.substringAfterLast('-').trimStart('0').ifEmpty { "0" }
     val sorted = events.sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
+    val todayTint = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent
     Column(
         modifier
+            .background(todayTint)
             .border(0.5.dp, MaterialTheme.colorScheme.outline)
             .clickable { onClick() }
             .padding(2.dp),
@@ -562,12 +564,14 @@ private fun SettingsPanel(
     val opt = data.options
     var picker by remember { mutableStateOf<ColorSlot?>(null) }
     Surface(
-        Modifier.fillMaxHeight().fillMaxWidth(0.86f),
+        Modifier.fillMaxHeight().fillMaxWidth(0.80f)
+            .statusBarsPadding()
+            .clip(RoundedCornerShape(topStart = 22.dp)),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 8.dp,
     ) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
