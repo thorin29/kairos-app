@@ -1,8 +1,14 @@
 package com.kairos.app.ui.calendar
 
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -77,12 +80,9 @@ fun AddEventOverlay(
     var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))) }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var repeat by remember { mutableStateOf("NONE") }
-    var repeatMenu by remember { mutableStateOf(false) }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
     var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
     var eventTypeId by remember { mutableStateOf(editEvent?.eventTypeId) }
-    var calMenu by remember { mutableStateOf(false) }
-    var typeMenu by remember { mutableStateOf(false) }
     var participants by remember {
         mutableStateOf(
             editEvent?.let { e -> e.memberIds.filter { it != e.ownerId }.toSet() } ?: emptySet(),
@@ -105,7 +105,7 @@ fun AddEventOverlay(
     var showEndDate by remember { mutableStateOf(false) }
     var showStart by remember { mutableStateOf(false) }
     var showEnd by remember { mutableStateOf(false) }
-    var tzMenu by remember { mutableStateOf(false) }
+    var openSelector by remember { mutableStateOf<String?>(null) }
     var showScope by remember { mutableStateOf(false) }
 
     fun submit(scope: String?) {
@@ -181,30 +181,45 @@ fun AddEventOverlay(
 
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                OutlinedTextField(
+                BasicTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    decorationBox = { inner ->
+                        if (title.isEmpty()) {
+                            Text(
+                                "Add Title",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        inner()
+                    },
                 )
 
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                     Switch(checked = allDay, onCheckedChange = { allDay = it })
                 }
 
-                // Start / end, each: date (opens the calendar) on the left, time
-                // (opens the clock) on the right.
-                DateTimeRow(
+                // Start / end: date opens the calendar, time opens the clock. No
+                // lines between them.
+                PlainDateTimeRow(
                     dateText = formatDate(startDateIso),
                     timeText = if (allDay) null else hhmmLabel(startMin),
                     onDate = { showStartDate = true },
                     onTime = { showStart = true },
                 )
-                DateTimeRow(
+                PlainDateTimeRow(
                     dateText = formatDate(endDateIso),
                     timeText = if (allDay) null else hhmmLabel(endMin),
                     onDate = { showEndDate = true },
@@ -212,84 +227,47 @@ fun AddEventOverlay(
                 )
 
                 if (!allDay && tzOptions.size > 1) {
-                    Box {
-                        FieldRow("Timezone", tzLabel(tz, homeTz, deviceTz)) { tzMenu = true }
-                        DropdownMenu(expanded = tzMenu, onDismissRequest = { tzMenu = false }) {
-                            tzOptions.forEach { z ->
-                                DropdownMenuItem(
-                                    text = { Text(tzLabel(z, homeTz, deviceTz)) },
-                                    onClick = { tz = z; tzMenu = false },
-                                )
-                            }
-                        }
-                    }
+                    SectionLine()
+                    SelectRow(KairosIcons.Globe, tzLabel(tz, homeTz, deviceTz)) { openSelector = "timezone" }
                 }
-
                 if (canFamily) {
-                    Box {
-                        FieldRow("Calendar", if (isFamily) "Family calendar" else "My calendar") { calMenu = true }
-                        DropdownMenu(expanded = calMenu, onDismissRequest = { calMenu = false }) {
-                            DropdownMenuItem(text = { Text("My calendar") }, onClick = { isFamily = false; calMenu = false })
-                            DropdownMenuItem(text = { Text("Family calendar") }, onClick = { isFamily = true; calMenu = false })
-                        }
-                    }
+                    SectionLine()
+                    SelectRow(KairosIcons.Calendar, if (isFamily) "Family calendar" else "My calendar") { openSelector = "calendar" }
                 }
-                Box {
-                    FieldRow("Type", typeLabel(kind, eventTypeId, customTypes)) { typeMenu = true }
-                    DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
-                        listOf(
-                            "APPOINTMENT" to "Appointment",
-                            "CLASS" to "Class",
-                            "WORK" to "Work shift",
-                            "BIRTHDAY" to "Birthday",
-                            "OTHER" to "Other",
-                        ).forEach { (k, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    kind = k
-                                    eventTypeId = null
-                                    if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
-                                    typeMenu = false
-                                },
-                            )
-                        }
-                        customTypes.forEach { ct ->
-                            DropdownMenuItem(
-                                text = { Text(ct.name) },
-                                onClick = { kind = "OTHER"; eventTypeId = ct.id; typeMenu = false },
-                            )
-                        }
-                    }
-                }
+                SectionLine()
+                SelectRow(KairosIcons.Book, typeLabel(kind, eventTypeId, customTypes)) { openSelector = "type" }
 
                 if (!editing) {
-                    Box {
-                        FieldRow("Repeats", repeatLabel(repeat)) { repeatMenu = true }
-                        DropdownMenu(expanded = repeatMenu, onDismissRequest = { repeatMenu = false }) {
-                            listOf("NONE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY").forEach { r ->
-                                DropdownMenuItem(
-                                    text = { Text(repeatLabel(r)) },
-                                    onClick = { repeat = r; repeatMenu = false },
-                                )
-                            }
-                        }
-                    }
+                    SectionLine()
+                    SelectRow(KairosIcons.Repeat, repeatLabel(repeat)) { openSelector = "repeat" }
                 }
 
-                FieldRow(
-                    "Share with",
-                    if (participants.isEmpty()) "No one"
+                SectionLine()
+                SelectRow(
+                    KairosIcons.Chores,
+                    if (participants.isEmpty()) "Add participants"
                     else "${participants.size} " + if (participants.size == 1) "person" else "people",
+                    muted = participants.isEmpty(),
                 ) { showPeople = true }
 
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    label = { Text("Location (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                SectionLine()
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Icon(KairosIcons.Home, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                    BasicTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { inner ->
+                            if (location.isEmpty()) {
+                                Text("Add location", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            inner()
+                        },
+                    )
+                }
 
                 ui.createError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -391,41 +369,120 @@ fun AddEventOverlay(
             dismissButton = { TextButton(onClick = { showScope = false }) { Text("Cancel") } },
         )
     }
+
+    when (openSelector) {
+        "timezone" -> SelectorOverlay("Time zone", onClose = { openSelector = null }) {
+            tzOptions.forEach { z ->
+                SelectOptionRow(tzLabel(z, homeTz, deviceTz), z == tz) { tz = z; openSelector = null }
+            }
+        }
+        "calendar" -> SelectorOverlay("Calendar", onClose = { openSelector = null }) {
+            SelectOptionRow("My calendar", !isFamily) { isFamily = false; openSelector = null }
+            SelectOptionRow("Family calendar", isFamily) { isFamily = true; openSelector = null }
+        }
+        "type" -> SelectorOverlay("Type", onClose = { openSelector = null }) {
+            listOf(
+                "APPOINTMENT" to "Appointment",
+                "CLASS" to "Class",
+                "WORK" to "Work shift",
+                "BIRTHDAY" to "Birthday",
+                "OTHER" to "Other",
+            ).forEach { (k, label) ->
+                SelectOptionRow(label, eventTypeId == null && kind == k) {
+                    kind = k
+                    eventTypeId = null
+                    if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
+                    openSelector = null
+                }
+            }
+            customTypes.forEach { ct ->
+                SelectOptionRow(ct.name, eventTypeId == ct.id) { kind = "OTHER"; eventTypeId = ct.id; openSelector = null }
+            }
+        }
+        "repeat" -> SelectorOverlay("Repeats", onClose = { openSelector = null }) {
+            listOf("NONE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY").forEach { r ->
+                SelectOptionRow(repeatLabel(r), repeat == r) { repeat = r; openSelector = null }
+            }
+        }
+    }
 }
 
 @Composable
-private fun DateTimeRow(dateText: String, timeText: String?, onDate: () -> Unit, onTime: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+private fun SectionLine() {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+}
+
+@Composable
+private fun PlainDateTimeRow(dateText: String, timeText: String?, onDate: () -> Unit, onTime: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             dateText,
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f).clickable { onDate() }.padding(horizontal = 14.dp, vertical = 14.dp),
+            modifier = Modifier.weight(1f).clickable { onDate() }.padding(vertical = 12.dp),
         )
         if (timeText != null) {
             Text(
                 timeText,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.clickable { onTime() }.padding(horizontal = 14.dp, vertical = 14.dp),
+                modifier = Modifier.clickable { onTime() }.padding(vertical = 12.dp, horizontal = 8.dp),
             )
         }
     }
 }
 
 @Composable
-private fun FieldRow(label: String, value: String, onClick: () -> Unit) {
+private fun SelectRow(icon: ImageVector, value: String, muted: Boolean = false, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-            .clickable { onClick() }.padding(horizontal = 14.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.size(8.dp))
-        Icon(KairosIcons.ChevronDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun SelectorOverlay(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onClose) {
+                        Icon(KairosIcons.ChevronLeft, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                }
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    content = content,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectOptionRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

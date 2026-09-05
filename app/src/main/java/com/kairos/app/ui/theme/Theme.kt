@@ -10,18 +10,22 @@ import androidx.compose.ui.graphics.Color
 // unset Material3 roles (surfaceVariant / surfaceContainer*) fall back to the
 // default violet scheme, which is why cards looked purple.
 private val CardWhite = Color(0xFFFFFFFF)
-private val PageGrey = Color(0xFFEDF1F6)
-private val ChipGrey = Color(0xFFEEF2F7)
+private val PageGrey = Color(0xFFE3E9F1)
+private val ChipGrey = Color(0xFFEDF1F6)
 private val Muted = Color(0xFF64748B)
 private val Line = Color(0xFFE2E8F0)
 private val Outline = Color(0xFFCBD5E1)
 
 private val LightColors = lightColorScheme(
     primary = Teal40,
-    onPrimary = Slate10,
+    onPrimary = CardWhite,
     primaryContainer = Teal80,
     onPrimaryContainer = Teal20,
-    secondary = Sand40,
+    secondary = Teal60,
+    onSecondary = CardWhite,
+    secondaryContainer = Color(0xFFCDEFE9),
+    onSecondaryContainer = Teal20,
+    tertiary = Sand40,
     background = PageGrey,
     onBackground = Slate90,
     surface = CardWhite,
@@ -31,8 +35,8 @@ private val LightColors = lightColorScheme(
     surfaceContainerLowest = CardWhite,
     surfaceContainerLow = CardWhite,
     surfaceContainer = CardWhite,
-    surfaceContainerHigh = Color(0xFFF6F8FB),
-    surfaceContainerHighest = Color(0xFFF1F5F9),
+    surfaceContainerHigh = CardWhite,
+    surfaceContainerHighest = CardWhite,
     outline = Outline,
     outlineVariant = Line,
     error = Color(0xFFB91C1C),

@@ -306,6 +306,7 @@ private fun HeaderCard(name: String, percent: Int?) {
                 LinearProgressIndicator(
                     progress = { percent / 100f },
                     modifier = Modifier.fillMaxWidth(),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
             }
         }
@@ -345,6 +346,7 @@ private fun CategoryBars(bars: List<CategoryBarDto>) {
                     LinearProgressIndicator(
                         progress = { if (bar.total > 0) bar.complete / bar.total.toFloat() else 0f },
                         modifier = Modifier.fillMaxWidth(),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     )
                 }
             }

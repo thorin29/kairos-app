@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.44.0 — Event editor redesign + card fix
+- Reworked the event editor: a borderless bold "Add Title", the all-day toggle
+  and start/end date-time with no boxes, and full-width divider lines between the
+  remaining sections.
+- The type, calendar, time zone and repeat pickers now open a full screen with
+  radio buttons instead of a dropdown; repeat shows a repeat icon and defaults to
+  "Does not repeat".
+- Cards are now properly white (the previous fix set the wrong theme role, so
+  cards blended into the background); progress bars use a neutral grey track.
+
 ## 0.43.1 — Card colours
 - Cards are now white (they were picking up a stray purple tint from unset theme
   colours) on a light-grey page background, so sections stand out clearly.
