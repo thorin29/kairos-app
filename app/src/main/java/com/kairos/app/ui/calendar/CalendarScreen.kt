@@ -48,9 +48,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -454,7 +456,12 @@ private fun MonthDayCell(
     Column(
         modifier
             .background(todayTint)
-            .border(0.5.dp, MonthLine)
+            .drawBehind {
+                // Single 1px lines (right + bottom) so shared edges aren't doubled
+                // like a full per-cell border — matches the time-grid line weight.
+                drawLine(MonthLine, Offset(size.width, 0f), Offset(size.width, size.height), strokeWidth = 1f)
+                drawLine(MonthLine, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1f)
+            }
             .clickable { onClick() }
             .padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

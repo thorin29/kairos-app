@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.46.4 — Month grid lines
+- Month grid lines are now single thin 1px lines (they were per-cell borders that
+  doubled up at shared edges, making them look heavier than the other views).
+
 ## 0.46.3 — Month dropdown
 - The month dropdown now rolls open and closed with a smooth animation instead of
   jumping, and stays open after you pick a day (collapse it with the month name).
