@@ -1,6 +1,8 @@
 package com.kairos.app.ui.calendar
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -9,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -270,12 +271,28 @@ private fun CalendarBody(
         localizeEvents(data.events, data.timezone)
     }
     Column(Modifier.fillMaxSize()) {
-        if (monthExpanded) {
-            MiniMonthDropdown(data) { iso ->
-                onCollapseMonth()
-                vm.goToDate(iso)
+        AnimatedVisibility(
+            visible = monthExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Column(
+                Modifier.pointerInput(data.date) {
+                    var d = 0f
+                    val t = 56.dp.toPx()
+                    detectHorizontalDragGestures(
+                        onDragStart = { d = 0f },
+                        onDragEnd = {
+                            if (d <= -t) vm.goToMonthStart(1) else if (d >= t) vm.goToMonthStart(-1)
+                        },
+                    ) { _, amount -> d += amount }
+                },
+            ) {
+                // Keep the dropdown open after picking a day (collapse only via the
+                // month-name toggle).
+                MiniMonthDropdown(data) { iso -> vm.goToDate(iso) }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
             }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
         }
 
         Box(
@@ -285,28 +302,18 @@ private fun CalendarBody(
                 .pointerInput(ui.tab, data.date) {
                     var d = 0f
                     val threshold = 64.dp.toPx()
-                    if (ui.tab == CalTab.MONTH) {
-                        // Month pages vertically (swipe up = next month, down = previous).
-                        detectVerticalDragGestures(
-                            onDragStart = { d = 0f },
-                            onDragEnd = {
-                                if (d <= -threshold) vm.goNext()
-                                else if (d >= threshold) vm.goPrev()
-                            },
-                        ) { _, amount -> d += amount }
-                    } else {
-                        // Day / week page a full period; 3-day slides one day at a time.
-                        detectHorizontalDragGestures(
-                            onDragStart = { d = 0f },
-                            onDragEnd = {
-                                if (d <= -threshold) {
-                                    if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(1) else vm.goNext()
-                                } else if (d >= threshold) {
-                                    if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(-1) else vm.goPrev()
-                                }
-                            },
-                        ) { _, amount -> d += amount }
-                    }
+                    // All views page horizontally. 3-day slides one day at a time;
+                    // day / week / month advance a full period.
+                    detectHorizontalDragGestures(
+                        onDragStart = { d = 0f },
+                        onDragEnd = {
+                            if (d <= -threshold) {
+                                if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(1) else vm.goNext()
+                            } else if (d >= threshold) {
+                                if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(-1) else vm.goPrev()
+                            }
+                        },
+                    ) { _, amount -> d += amount }
                 },
         ) {
             when (ui.tab) {

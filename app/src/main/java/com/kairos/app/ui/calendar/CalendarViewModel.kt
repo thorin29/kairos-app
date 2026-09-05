@@ -169,6 +169,16 @@ class CalendarViewModel(
         _ui.update { it.copy(date = iso) }
         load()
     }
+    /** Jump to the first day of the month n months from the current anchor
+     *  (used by the expanded mini-month's left/right swipe). */
+    fun goToMonthStart(n: Int) {
+        val cur = _ui.value.date
+        val next = runCatching {
+            java.time.LocalDate.parse(cur).withDayOfMonth(1).plusMonths(n.toLong()).toString()
+        }.getOrNull() ?: return
+        _ui.update { it.copy(date = next) }
+        load()
+    }
 
     /** Tap a month day → open its agenda. */
     fun openDay(iso: String) {

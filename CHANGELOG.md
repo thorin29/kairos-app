@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.3 — Month dropdown
+- The month dropdown now rolls open and closed with a smooth animation instead of
+  jumping, and stays open after you pick a day (collapse it with the month name).
+- Swipe the open mini-month left/right to move between months.
+- The main month view pages left/right again.
+
 ## 0.46.2 — Calendar swipe polish
 - 3-day view now slides one day at a time, so you can shift by a day or two.
   Day and week still advance a full period.
