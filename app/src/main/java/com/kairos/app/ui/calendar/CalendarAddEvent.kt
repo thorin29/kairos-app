@@ -65,7 +65,9 @@ fun AddEventOverlay(
     val editing = editEvent != null
     var title by remember { mutableStateOf(editEvent?.title ?: "") }
     var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
-    var dateIso by remember { mutableStateOf(editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }) }
+    val initDate = editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }
+    var startDateIso by remember { mutableStateOf(initDate) }
+    var endDateIso by remember { mutableStateOf(initDate) }
     val defaultStart = remember {
         val n = java.time.LocalTime.now()
         val m = ((n.hour * 60 + n.minute + 29) / 30) * 30
@@ -99,7 +101,8 @@ fun AddEventOverlay(
     // device tz to preserve the same moment; for a new event, default home.
     var tz by remember { mutableStateOf(if (editing) deviceTz else homeTz) }
 
-    var showDate by remember { mutableStateOf(false) }
+    var showStartDate by remember { mutableStateOf(false) }
+    var showEndDate by remember { mutableStateOf(false) }
     var showStart by remember { mutableStateOf(false) }
     var showEnd by remember { mutableStateOf(false) }
     var tzMenu by remember { mutableStateOf(false) }
@@ -114,10 +117,10 @@ fun AddEventOverlay(
                 eventId = editEvent!!.eventId,
                 title = title.trim(),
                 allDay = allDay,
-                date = dateIso,
+                date = startDateIso,
                 start = start,
                 end = end,
-                endDate = dateIso,
+                endDate = endDateIso,
                 location = location.trim().ifBlank { null },
                 timezone = zone,
                 scope = scope,
@@ -158,10 +161,10 @@ fun AddEventOverlay(
                                 CreateEventRequest(
                                     title = title.trim(),
                                     allDay = allDay,
-                                    date = dateIso,
+                                    date = startDateIso,
                                     start = start,
                                     end = end,
-                                    endDate = dateIso,
+                                    endDate = endDateIso,
                                     location = location.trim().ifBlank { null },
                                     timezone = zone,
                                     repeat = if (repeat == "NONE") null else repeat,
@@ -188,85 +191,77 @@ fun AddEventOverlay(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // Owner / type / participants — editable on create and edit.
-                run {
-                    if (canFamily) {
-                        Box {
-                            FieldRow("Calendar", if (isFamily) "Family calendar" else "My calendar") { calMenu = true }
-                            DropdownMenu(expanded = calMenu, onDismissRequest = { calMenu = false }) {
-                                DropdownMenuItem(text = { Text("My calendar") }, onClick = { isFamily = false; calMenu = false })
-                                DropdownMenuItem(text = { Text("Family calendar") }, onClick = { isFamily = true; calMenu = false })
-                            }
-                        }
-                    }
-                    Box {
-                        FieldRow("Type", typeLabel(kind, eventTypeId, customTypes)) { typeMenu = true }
-                        DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
-                            listOf(
-                                "APPOINTMENT" to "Appointment",
-                                "CLASS" to "Class",
-                                "WORK" to "Work shift",
-                                "BIRTHDAY" to "Birthday",
-                                "OTHER" to "Other",
-                            ).forEach { (k, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        kind = k
-                                        eventTypeId = null
-                                        if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
-                                        typeMenu = false
-                                    },
-                                )
-                            }
-                            customTypes.forEach { ct ->
-                                DropdownMenuItem(
-                                    text = { Text(ct.name) },
-                                    onClick = { kind = "OTHER"; eventTypeId = ct.id; typeMenu = false },
-                                )
-                            }
-                        }
-                    }
-                    FieldRow(
-                        "Share with",
-                        if (participants.isEmpty()) "No one"
-                        else "${participants.size} " + if (participants.size == 1) "person" else "people",
-                    ) { showPeople = true }
-                }
-
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                     Switch(checked = allDay, onCheckedChange = { allDay = it })
                 }
 
-                FieldRow("Date", formatDate(dateIso)) { showDate = true }
+                // Start / end, each: date (opens the calendar) on the left, time
+                // (opens the clock) on the right.
+                DateTimeRow(
+                    dateText = formatDate(startDateIso),
+                    timeText = if (allDay) null else hhmmLabel(startMin),
+                    onDate = { showStartDate = true },
+                    onTime = { showStart = true },
+                )
+                DateTimeRow(
+                    dateText = formatDate(endDateIso),
+                    timeText = if (allDay) null else hhmmLabel(endMin),
+                    onDate = { showEndDate = true },
+                    onTime = { showEnd = true },
+                )
 
-                if (!allDay) {
-                    FieldRow("Starts", hhmmLabel(startMin)) { showStart = true }
-                    FieldRow("Ends", hhmmLabel(endMin)) { showEnd = true }
-
-                    if (tzOptions.size > 1) {
-                        Box {
-                            FieldRow("Timezone", tzLabel(tz, homeTz, deviceTz)) { tzMenu = true }
-                            DropdownMenu(expanded = tzMenu, onDismissRequest = { tzMenu = false }) {
-                                tzOptions.forEach { z ->
-                                    DropdownMenuItem(
-                                        text = { Text(tzLabel(z, homeTz, deviceTz)) },
-                                        onClick = { tz = z; tzMenu = false },
-                                    )
-                                }
+                if (!allDay && tzOptions.size > 1) {
+                    Box {
+                        FieldRow("Timezone", tzLabel(tz, homeTz, deviceTz)) { tzMenu = true }
+                        DropdownMenu(expanded = tzMenu, onDismissRequest = { tzMenu = false }) {
+                            tzOptions.forEach { z ->
+                                DropdownMenuItem(
+                                    text = { Text(tzLabel(z, homeTz, deviceTz)) },
+                                    onClick = { tz = z; tzMenu = false },
+                                )
                             }
                         }
                     }
                 }
 
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    label = { Text("Location (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (canFamily) {
+                    Box {
+                        FieldRow("Calendar", if (isFamily) "Family calendar" else "My calendar") { calMenu = true }
+                        DropdownMenu(expanded = calMenu, onDismissRequest = { calMenu = false }) {
+                            DropdownMenuItem(text = { Text("My calendar") }, onClick = { isFamily = false; calMenu = false })
+                            DropdownMenuItem(text = { Text("Family calendar") }, onClick = { isFamily = true; calMenu = false })
+                        }
+                    }
+                }
+                Box {
+                    FieldRow("Type", typeLabel(kind, eventTypeId, customTypes)) { typeMenu = true }
+                    DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+                        listOf(
+                            "APPOINTMENT" to "Appointment",
+                            "CLASS" to "Class",
+                            "WORK" to "Work shift",
+                            "BIRTHDAY" to "Birthday",
+                            "OTHER" to "Other",
+                        ).forEach { (k, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    kind = k
+                                    eventTypeId = null
+                                    if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
+                                    typeMenu = false
+                                },
+                            )
+                        }
+                        customTypes.forEach { ct ->
+                            DropdownMenuItem(
+                                text = { Text(ct.name) },
+                                onClick = { kind = "OTHER"; eventTypeId = ct.id; typeMenu = false },
+                            )
+                        }
+                    }
+                }
 
                 if (!editing) {
                     Box {
@@ -282,6 +277,20 @@ fun AddEventOverlay(
                     }
                 }
 
+                FieldRow(
+                    "Share with",
+                    if (participants.isEmpty()) "No one"
+                    else "${participants.size} " + if (participants.size == 1) "person" else "people",
+                ) { showPeople = true }
+
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Location (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
                 ui.createError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
@@ -289,22 +298,42 @@ fun AddEventOverlay(
         }
     }
 
-    if (showDate) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(dateIso))
+    if (showStartDate) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(startDateIso))
         DatePickerDialog(
-            onDismissRequest = { showDate = false },
+            onDismissRequest = { showStartDate = false },
             confirmButton = {
                 TextButton(onClick = {
-                    state.selectedDateMillis?.let { dateIso = utcMillisToIso(it) }
-                    showDate = false
+                    state.selectedDateMillis?.let {
+                        val iso = utcMillisToIso(it)
+                        startDateIso = iso
+                        if (endDateIso < iso) endDateIso = iso
+                    }
+                    showStartDate = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showStartDate = false }) { Text("Cancel") } },
+        ) { DatePicker(state = state) }
+    }
+    if (showEndDate) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(endDateIso))
+        DatePickerDialog(
+            onDismissRequest = { showEndDate = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let {
+                        val iso = utcMillisToIso(it)
+                        endDateIso = if (iso < startDateIso) startDateIso else iso
+                    }
+                    showEndDate = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showEndDate = false }) { Text("Cancel") } },
         ) { DatePicker(state = state) }
     }
 
     if (showStart) {
-        TimePickerDialog(startMin, onConfirm = { m -> startMin = m; if (endMin <= m) endMin = (m + 60).coerceAtMost(23 * 60 + 59); showStart = false }, onDismiss = { showStart = false })
+        TimePickerDialog(startMin, onConfirm = { m -> startMin = m; if (endDateIso == startDateIso && endMin <= m) endMin = (m + 60).coerceAtMost(23 * 60 + 59); showStart = false }, onDismiss = { showStart = false })
     }
     if (showEnd) {
         TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
@@ -361,6 +390,28 @@ fun AddEventOverlay(
             confirmButton = {},
             dismissButton = { TextButton(onClick = { showScope = false }) { Text("Cancel") } },
         )
+    }
+}
+
+@Composable
+private fun DateTimeRow(dateText: String, timeText: String?, onDate: () -> Unit, onTime: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            dateText,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f).clickable { onDate() }.padding(horizontal = 14.dp, vertical = 14.dp),
+        )
+        if (timeText != null) {
+            Text(
+                timeText,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.clickable { onTime() }.padding(horizontal = 14.dp, vertical = 14.dp),
+            )
+        }
     }
 }
 

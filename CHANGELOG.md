@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.42.0 — Event editor date/time
+- Reworked the event editor: date and time sit at the top under the title as two
+  lines (start, end) — tap the date to open the calendar, tap the time to open the
+  clock. You can now give an event a different end date, too.
+
 ## 0.41.0 — Edit an event's type, calendar & people
 - Editing an event now lets you change its type, its calendar (yours vs family,
   for parents/admins), and who it's shared with — not just the title and time.
