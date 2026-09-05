@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.41.0 — Edit an event's type, calendar & people
+- Editing an event now lets you change its type, its calendar (yours vs family,
+  for parents/admins), and who it's shared with — not just the title and time.
+
 ## 0.40.0 — Share events with people
 - When creating an event you can now share it with other people ("Share with"),
   so it shows on their calendars too.

@@ -693,6 +693,9 @@ data class CalEventDto(
     val shade: Boolean = false,
     val kind: String = "",
     val ownerName: String = "",
+    val ownerId: String? = null,
+    val eventTypeId: String? = null,
+    val memberIds: List<String> = emptyList(),
     val calendarName: String? = null,
     val recurring: Boolean = false,
     val recurLabel: String? = null,
@@ -783,6 +786,10 @@ data class DeleteEventRequest(
     val eventId: String,
     val scope: String? = null,
     val occurrenceISO: String? = null,
+    val isFamily: Boolean? = null,
+    val kind: String? = null,
+    val eventTypeId: String? = null,
+    val participants: List<String>? = null,
 )
 
 @Serializable
@@ -798,4 +805,8 @@ data class UpdateEventRequest(
     val timezone: String? = null,
     val scope: String? = null,
     val occurrenceISO: String? = null,
+    val isFamily: Boolean? = null,
+    val kind: String? = null,
+    val eventTypeId: String? = null,
+    val participants: List<String>? = null,
 )

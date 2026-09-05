@@ -76,12 +76,16 @@ fun AddEventOverlay(
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var repeat by remember { mutableStateOf("NONE") }
     var repeatMenu by remember { mutableStateOf(false) }
-    var isFamily by remember { mutableStateOf(false) }
-    var kind by remember { mutableStateOf("APPOINTMENT") }
-    var eventTypeId by remember { mutableStateOf<String?>(null) }
+    var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
+    var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
+    var eventTypeId by remember { mutableStateOf(editEvent?.eventTypeId) }
     var calMenu by remember { mutableStateOf(false) }
     var typeMenu by remember { mutableStateOf(false) }
-    var participants by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var participants by remember {
+        mutableStateOf(
+            editEvent?.let { e -> e.memberIds.filter { it != e.ownerId }.toSet() } ?: emptySet(),
+        )
+    }
     var showPeople by remember { mutableStateOf(false) }
     val canFamily = data.options.canManageFamily
     val customTypes = data.options.eventTypes
@@ -118,6 +122,10 @@ fun AddEventOverlay(
                 timezone = zone,
                 scope = scope,
                 occurrenceISO = editOccurrenceISO,
+                isFamily = if (isFamily) true else null,
+                kind = kind,
+                eventTypeId = eventTypeId,
+                participants = participants.toList(),
             ),
         ) { onClose() }
     }
@@ -180,7 +188,8 @@ fun AddEventOverlay(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                if (!editing) {
+                // Owner / type / participants — editable on create and edit.
+                run {
                     if (canFamily) {
                         Box {
                             FieldRow("Calendar", if (isFamily) "Family calendar" else "My calendar") { calMenu = true }
