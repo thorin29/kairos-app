@@ -43,6 +43,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -297,31 +299,94 @@ private fun CalendarBody(
             }
         }
 
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .pointerInput(ui.tab, data.date) {
-                    var d = 0f
-                    val threshold = 64.dp.toPx()
-                    // All views page horizontally. 3-day slides one day at a time;
-                    // day / week / month advance a full period.
-                    detectHorizontalDragGestures(
-                        onDragStart = { d = 0f },
-                        onDragEnd = {
-                            if (d <= -threshold) {
-                                if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(1) else vm.goNext()
-                            } else if (d >= threshold) {
-                                if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(-1) else vm.goPrev()
-                            }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (ui.tab == CalTab.DAY) {
+                DayPager(vm, data.date, onEventClick)
+            } else {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(ui.tab, data.date) {
+                            var d = 0f
+                            val threshold = 64.dp.toPx()
+                            // 3-day slides one day at a time; week / month advance a full period.
+                            detectHorizontalDragGestures(
+                                onDragStart = { d = 0f },
+                                onDragEnd = {
+                                    if (d <= -threshold) {
+                                        if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(1) else vm.goNext()
+                                    } else if (d >= threshold) {
+                                        if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(-1) else vm.goPrev()
+                                    }
+                                },
+                            ) { _, amount -> d += amount }
                         },
-                    ) { _, amount -> d += amount }
-                },
-        ) {
-            when (ui.tab) {
-                CalTab.MONTH -> MonthChipsView(data, localEvents, vm, onEventClick)
-                CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
-                else -> TimeGrid(data, localEvents, onEventClick)
+                ) {
+                    when (ui.tab) {
+                        CalTab.MONTH -> MonthChipsView(data, localEvents, vm, onEventClick)
+                        CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
+                        else -> TimeGrid(data, localEvents, onEventClick)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Day view as a finger-follow pager (Slice 1). Each page is one day; neighbours
+ * are pre-fetched into the view model's cache so they slide in populated. Snap
+ * and fling come from HorizontalPager.
+ */
+@Composable
+private fun DayPager(
+    vm: CalendarViewModel,
+    anchorDate: String,
+    onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
+) {
+    val pages by vm.pages.collectAsState()
+    // Fixed origin for the page↔date mapping; must NOT re-key on anchorDate or the
+    // mapping would shift every time the pager settles.
+    val base = remember { java.time.LocalDate.parse(anchorDate) }
+    val center = 10000
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = center,
+        pageCount = { 20001 },
+    )
+    fun dateFor(page: Int): String = base.plusDays((page - center).toLong()).toString()
+
+    // Keep the current page and its immediate neighbours pre-fetched.
+    LaunchedEffect(pagerState.currentPage) {
+        for (o in -2..2) vm.ensureDay(dateFor(pagerState.currentPage + o))
+    }
+    // On settle, sync the anchor/top-bar (no reload — avoids a feedback loop).
+    // Re-runs when the settled page's data arrives so the top bar catches up.
+    val settledIso = dateFor(pagerState.settledPage)
+    LaunchedEffect(settledIso, pages[settledIso]) {
+        vm.onDaySettled(settledIso)
+    }
+    // A jump from elsewhere (Today / dropdown) moves the pager to that day.
+    LaunchedEffect(anchorDate) {
+        val target = center + java.time.temporal.ChronoUnit.DAYS.between(
+            base, java.time.LocalDate.parse(anchorDate),
+        ).toInt()
+        if (target in 0 until 20001 && target != pagerState.currentPage) {
+            pagerState.scrollToPage(target)
+        }
+    }
+
+    androidx.compose.foundation.pager.HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+    ) { page ->
+        val iso = dateFor(page)
+        val pd = pages[iso]
+        if (pd != null) {
+            val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+            TimeGrid(pd, evs, onEventClick, Modifier.fillMaxSize())
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator()
             }
         }
     }

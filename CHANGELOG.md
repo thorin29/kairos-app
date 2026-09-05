@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.47.0 — Day view finger-follow (Slice 1)
+- Day view now slides under your finger and snaps to the day you release on, with
+  neighbouring days pre-fetched so they appear populated as they slide in. A quick
+  flick flips to the next day. (Week, 3-day and month keep the previous swipe for
+  now — they get the same treatment in the next slices.)
+
 ## 0.46.4 — Month grid lines
 - Month grid lines are now single thin 1px lines (they were per-cell borders that
   doubled up at shared edges, making them look heavier than the other views).

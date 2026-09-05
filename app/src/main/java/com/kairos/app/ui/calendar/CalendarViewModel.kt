@@ -54,6 +54,35 @@ class CalendarViewModel(
     private val _ui = MutableStateFlow(CalendarUiState())
     val ui: StateFlow<CalendarUiState> = _ui.asStateFlow()
 
+    // --- Day-view pager cache (Slice 1): pre-fetched neighbour days keyed by ISO
+    //     so the finger-follow pager shows populated days as they slide in. ---
+    private val _pages = MutableStateFlow<Map<String, CalendarDto>>(emptyMap())
+    val pages: StateFlow<Map<String, CalendarDto>> = _pages.asStateFlow()
+    private val inFlightDays = mutableSetOf<String>()
+
+    /** Fetch + cache one day for the pager, unless already present or in flight. */
+    fun ensureDay(iso: String) {
+        if (_pages.value.containsKey(iso) || iso in inFlightDays) return
+        inFlightDays.add(iso)
+        viewModelScope.launch {
+            try {
+                val dto = session.loadCalendar("day", iso)
+                _pages.update { it + (dto.date to dto) }
+            } catch (_: Exception) {
+                // Leave uncached; the page shows a spinner and can retry on the next swipe.
+            } finally {
+                inFlightDays.remove(iso)
+            }
+        }
+    }
+
+    /** The day pager settled on [iso]: sync the anchor + top bar without a reload. */
+    fun onDaySettled(iso: String) {
+        _pages.value[iso]?.let { cached ->
+            _ui.update { it.copy(date = iso, data = cached) }
+        } ?: _ui.update { it.copy(date = iso) }
+    }
+
     init {
         viewModelScope.launch {
             val def = settings.currentCalendarDefaultView()
@@ -66,10 +95,12 @@ class CalendarViewModel(
     private fun load() {
         val s = _ui.value
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
+        _pages.value = emptyMap()
         viewModelScope.launch {
             try {
                 val data = session.loadCalendar(s.tab.serverValue, s.date)
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
+                if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
             }
