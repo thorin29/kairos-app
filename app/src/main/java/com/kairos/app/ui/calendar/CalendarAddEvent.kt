@@ -68,6 +68,8 @@ fun AddEventOverlay(
     var startMin by remember { mutableStateOf(editEvent?.startMin ?: 9 * 60) }
     var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: 10 * 60)) }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
+    var repeat by remember { mutableStateOf("NONE") }
+    var repeatMenu by remember { mutableStateOf(false) }
 
     val homeTz = data.timezone
     val deviceTz = remember { ZoneId.systemDefault().id }
@@ -125,6 +127,7 @@ fun AddEventOverlay(
                                     endDate = dateIso,
                                     location = location.trim().ifBlank { null },
                                     timezone = zone,
+                                    repeat = if (repeat == "NONE") null else repeat,
                                 ),
                             ) { onClose() }
                         }
@@ -177,6 +180,20 @@ fun AddEventOverlay(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                if (!editing) {
+                    Box {
+                        FieldRow("Repeats", repeatLabel(repeat)) { repeatMenu = true }
+                        DropdownMenu(expanded = repeatMenu, onDismissRequest = { repeatMenu = false }) {
+                            listOf("NONE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY").forEach { r ->
+                                DropdownMenuItem(
+                                    text = { Text(repeatLabel(r)) },
+                                    onClick = { repeat = r; repeatMenu = false },
+                                )
+                            }
+                        }
+                    }
+                }
 
                 ui.createError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -239,6 +256,14 @@ private fun TimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismis
 }
 
 // ---- helpers ----
+
+private fun repeatLabel(v: String): String = when (v) {
+    "DAILY" -> "Daily"
+    "WEEKLY" -> "Weekly"
+    "MONTHLY" -> "Monthly"
+    "YEARLY" -> "Yearly"
+    else -> "Does not repeat"
+}
 
 private fun hhmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 

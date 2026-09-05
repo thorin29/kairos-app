@@ -762,6 +762,7 @@ data class CreateEventRequest(
     val endDate: String? = null,
     val location: String? = null,
     val timezone: String? = null,
+    val repeat: String? = null,
 )
 
 @Serializable

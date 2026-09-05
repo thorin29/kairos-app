@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.36.0 — Repeating events
+- New events can now repeat: choose Daily, Weekly, Monthly or Yearly when
+  creating one. (Editing a repeat, or changing just one occurrence, is coming
+  next; deleting a repeat removes the whole series for now.)
+
 ## 0.35.0 — Full-screen event details & editing
 - Tapping an event now opens a full-screen view (instead of a small pop-up): a
   colour bar and title, the date, the time with duration, whether it repeats, and
