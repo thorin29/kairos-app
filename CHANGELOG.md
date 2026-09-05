@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.43.1 — Card colours
+- Cards are now white (they were picking up a stray purple tint from unset theme
+  colours) on a light-grey page background, so sections stand out clearly.
+- Today's schedule shows a divider line between events.
+
 ## 0.43.0 — Home in cards
 - Home sections (tasks by category, up for grabs, always open, today's schedule)
   are now grouped into cards so the different sections are easier to tell apart,

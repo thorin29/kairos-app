@@ -256,7 +256,15 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
                         )
                     } else {
-                        d.schedule.forEach { ev -> ScheduleRow(ev) }
+                        d.schedule.forEachIndexed { i, ev ->
+                            if (i > 0) {
+                                Box(
+                                    Modifier.fillMaxWidth().height(1.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant),
+                                )
+                            }
+                            ScheduleRow(ev)
+                        }
                     }
                 }
             }
