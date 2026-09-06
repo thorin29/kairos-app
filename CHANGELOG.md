@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.51.1 — 3-day snap fix
+- Fixed the 3-day view snapping back a day when you advanced a swipe almost all the
+  way: the incoming day wasn't composed yet so the pager mis-measured the snap.
+  Neighbouring days are now pre-composed.
+
 ## 0.51.0 — 3-day finger-follow (Slice 3)
 - 3-day view now slides day-by-day under your finger with the frozen time column,
   like day and week: three days show at once, a swipe snaps one day over, and

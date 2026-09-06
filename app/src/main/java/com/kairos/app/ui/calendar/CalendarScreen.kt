@@ -479,6 +479,7 @@ private fun ThreeDayPager(
             state = pagerState,
             modifier = Modifier.weight(1f),
             pageSize = ThreeDayPageSize,
+            beyondViewportPageCount = 2,
         ) { page ->
             val iso = dateFor(page)
             val pd = pages[iso]
