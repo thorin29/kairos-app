@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.56.0 — Plan wizard fixes
+- Book picker now matches the manual-log page: grouped, colour-coded chips, with
+  Whole Bible / Whole Old Testament / Whole New Testament buttons.
+- Reordering is its own step and the drag no longer gets stuck (the list only
+  commits the new order on drop; other books slide to show where it lands).
+- Editing an existing plan now shows it first with Edit / Delete (delete confirms);
+  Edit opens the wizard pre-filled with the plan's books.
+
 ## 0.55.0 — Reading plan builder
 - Building a personal reading plan is now a 3-step wizard: pick books and
   drag to reorder them, choose the pace (chapters per day or finish by a date)

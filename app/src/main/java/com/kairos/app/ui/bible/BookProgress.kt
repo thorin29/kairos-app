@@ -39,7 +39,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kairos.app.ui.nav.KairosIcons
 
-private val ACCENT = Color(0xFF0F5C63)
+internal val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -144,10 +144,10 @@ fun BookProgress(
     }
 }
 
-private enum class BookState { COMPLETE, PARTIAL, NONE }
+internal enum class BookState { COMPLETE, PARTIAL, NONE }
 
 @Composable
-private fun BookChip(name: String, state: BookState, color: Color, enabled: Boolean, onClick: () -> Unit) {
+internal fun BookChip(name: String, state: BookState, color: Color, enabled: Boolean, onClick: () -> Unit) {
     val bg = when (state) {
         BookState.COMPLETE -> color
         BookState.PARTIAL -> color.copy(alpha = 0.13f)
@@ -176,7 +176,7 @@ private fun BookChip(name: String, state: BookState, color: Color, enabled: Bool
 }
 
 @Composable
-private fun BulkChip(label: String, enabled: Boolean, danger: Boolean = false, onClick: () -> Unit) {
+internal fun BulkChip(label: String, enabled: Boolean, danger: Boolean = false, onClick: () -> Unit) {
     val fg = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         Modifier
