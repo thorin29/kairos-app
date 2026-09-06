@@ -293,12 +293,12 @@ private fun CalendarBody(
                 CalTab.MONTH -> MonthPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
                 CalTab.WEEK -> WeekPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
                 CalTab.THREE_DAY -> ThreeDayPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
-                else -> AgendaView(localEvents, data.date, onEventClick)
+                else -> AgendaView(localEvents, data.date, data.today, onEventClick)
             }
             // A soft shadow along the top edge of the time-grid content, as if the
             // (expandable) month above is floating over it. Stays whether the month
             // dropdown is open or collapsed.
-            if (ui.tab == CalTab.DAY || ui.tab == CalTab.THREE_DAY || ui.tab == CalTab.WEEK) {
+            if (ui.tab == CalTab.DAY || ui.tab == CalTab.THREE_DAY || ui.tab == CalTab.WEEK || ui.tab == CalTab.AGENDA) {
                 Box(
                     Modifier.fillMaxWidth().height(6.dp).align(Alignment.TopCenter)
                         .background(
@@ -854,7 +854,7 @@ private fun MonthChip(e: CalEventDto, onClick: () -> Unit) {
 // ---- Agenda ----
 
 @Composable
-private fun AgendaView(events: List<CalEventDto>, date: String, onEventClick: (CalEventDto) -> Unit) {
+private fun AgendaView(events: List<CalEventDto>, date: String, today: String, onEventClick: (CalEventDto) -> Unit) {
     val shown = events
         .filter { it.dayISO == date }
         .sortedWith(compareByDescending<CalEventDto> { it.allDay }.thenBy { it.startMin })
@@ -863,7 +863,12 @@ private fun AgendaView(events: List<CalEventDto>, date: String, onEventClick: (C
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(dayHeading(date), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            agendaHeading(date),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (date == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
         Spacer(Modifier.height(4.dp))
         if (shown.isEmpty()) {
             Box(Modifier.fillMaxWidth().padding(top = 24.dp), contentAlignment = Alignment.Center) {
@@ -1265,7 +1270,7 @@ private fun EventDetailScreen(
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Icon(KairosIcons.Calendar, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(event.calendarName?.takeIf { it.isNotBlank() } ?: event.ownerName.ifBlank { "Calendar" }, style = MaterialTheme.typography.bodyLarge)
+                    Text(event.calendarName?.takeIf { it.isNotBlank() } ?: event.whoLabel.ifBlank { "Calendar" }, style = MaterialTheme.typography.bodyLarge)
                 }
 
                 ui.deleteError?.let {
@@ -1373,6 +1378,9 @@ private fun monthName(iso: String): String =
 
 private fun dayOfMonth(iso: String): String =
     try { LocalDate.parse(iso).dayOfMonth.toString() } catch (_: Exception) { "" }
+
+private fun agendaHeading(iso: String): String =
+    try { LocalDate.parse(iso).format(java.time.format.DateTimeFormatter.ofPattern("EEEE d")) } catch (_: Exception) { iso }
 
 private fun dayHeading(iso: String): String =
     try { LocalDate.parse(iso).format(DAY_HEADING) } catch (_: Exception) { iso }

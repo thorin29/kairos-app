@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.58.0 — Calendar detail + agenda + graph
+- Event details (tapping an event) now list all the people on it, or "Family".
+- Agenda: heading now reads "Sunday 6" and turns teal on today; the top shadow
+  shows here too.
+- Workout graph: darker gridlines, with solid lines at the quarter marks and
+  dashed lines between so it's easier to read values off the scale.
+
 ## 0.57.0 — Shared event names + smarter times
 - Shared events now list everyone they belong to — both names on the home
   dashboard card and in the agenda, "Family" for family events, and "Name +N"

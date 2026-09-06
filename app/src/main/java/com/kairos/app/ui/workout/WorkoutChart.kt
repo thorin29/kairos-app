@@ -125,10 +125,18 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
                 ) {
                     val w = size.width
                     val h = size.height
-                    val grid = Color(0x11000000)
+                    val gridSolid = Color(0x33000000)
+                    val gridDash = Color(0x1F000000)
+                    val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+                    // Solid lines at the quarter marks, dashed lines halfway between,
+                    // so it's easier to read where a point lands on the scale.
                     for (i in 0..4) {
                         val y = h * i / 4f
-                        drawLine(grid, Offset(0f, y), Offset(w, y), 1f)
+                        drawLine(gridSolid, Offset(0f, y), Offset(w, y), 1.5f)
+                    }
+                    for (i in 0 until 4) {
+                        val y = h * (i + 0.5f) / 4f
+                        drawLine(gridDash, Offset(0f, y), Offset(w, y), 1f, pathEffect = dash)
                     }
                     val pts = points.mapNotNull { p -> epochDay(p.date)?.let { Offset(px(it, w), py(p.value, h)) } }
                     for (i in 1 until pts.size) drawLine(LINE, pts[i - 1], pts[i], 3f)
