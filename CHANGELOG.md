@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.57.0 — Shared event names + smarter times
+- Shared events now list everyone they belong to — both names on the home
+  dashboard card and in the agenda, "Family" for family events, and "Name +N"
+  when too many to fit. The agenda now shows the name(s) on the right, like the
+  home dashboard.
+- New events default to the top of the current hour, and the end time now follows
+  the event type's default length (set in admin) — or one hour if none — and
+  updates automatically when you change the start time or the type.
+
 ## 0.56.0 — Plan wizard fixes
 - Book picker now matches the manual-log page: grouped, colour-coded chips, with
   Whole Bible / Whole Old Testament / Whole New Testament buttons.

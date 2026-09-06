@@ -72,9 +72,7 @@ fun AddEventOverlay(
     var startDateIso by remember { mutableStateOf(initDate) }
     var endDateIso by remember { mutableStateOf(initDate) }
     val defaultStart = remember {
-        val n = java.time.LocalTime.now()
-        val m = ((n.hour * 60 + n.minute + 29) / 30) * 30
-        m.coerceIn(0, 22 * 60)
+        (java.time.LocalTime.now().hour * 60).coerceIn(0, 22 * 60)
     }
     var startMin by remember { mutableStateOf(editEvent?.startMin ?: defaultStart) }
     var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))) }
@@ -311,7 +309,11 @@ fun AddEventOverlay(
     }
 
     if (showStart) {
-        TimePickerDialog(startMin, onConfirm = { m -> startMin = m; if (endDateIso == startDateIso && endMin <= m) endMin = (m + 60).coerceAtMost(23 * 60 + 59); showStart = false }, onDismiss = { showStart = false })
+        TimePickerDialog(startMin, onConfirm = { m ->
+            startMin = m
+            endMin = (m + typeDurationMin(eventTypeId, customTypes)).coerceAtMost(23 * 60 + 59)
+            showStart = false
+        }, onDismiss = { showStart = false })
     }
     if (showEnd) {
         TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
@@ -392,11 +394,17 @@ fun AddEventOverlay(
                     kind = k
                     eventTypeId = null
                     if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
+                    endMin = (startMin + typeDurationMin(null, customTypes)).coerceAtMost(23 * 60 + 59)
                     openSelector = null
                 }
             }
             customTypes.forEach { ct ->
-                SelectOptionRow(ct.name, eventTypeId == ct.id) { kind = "OTHER"; eventTypeId = ct.id; openSelector = null }
+                SelectOptionRow(ct.name, eventTypeId == ct.id) {
+                    kind = "OTHER"
+                    eventTypeId = ct.id
+                    endMin = (startMin + typeDurationMin(ct.id, customTypes)).coerceAtMost(23 * 60 + 59)
+                    openSelector = null
+                }
             }
         }
         "repeat" -> SelectorOverlay("Repeats", onClose = { openSelector = null }) {
@@ -525,6 +533,9 @@ private fun repeatLabel(v: String): String = when (v) {
     "YEARLY" -> "Yearly"
     else -> "Does not repeat"
 }
+
+private fun typeDurationMin(eventTypeId: String?, types: List<com.kairos.app.data.remote.dto.CalEventTypeDto>): Int =
+    eventTypeId?.let { id -> types.firstOrNull { it.id == id }?.defaultMinutes }?.takeIf { it > 0 } ?: 60
 
 private fun hhmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 

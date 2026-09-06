@@ -727,6 +727,7 @@ data class CalEventDto(
     val shade: Boolean = false,
     val kind: String = "",
     val ownerName: String = "",
+    val whoLabel: String = "",
     val ownerId: String? = null,
     val eventTypeId: String? = null,
     val memberIds: List<String> = emptyList(),
@@ -758,6 +759,7 @@ data class CalEventTypeDto(
     val id: String = "",
     val name: String = "",
     val color: String = "#64748b",
+    val defaultMinutes: Int? = null,
 )
 
 @Serializable

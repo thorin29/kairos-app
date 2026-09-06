@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -886,6 +887,17 @@ private fun EventRow(e: CalEventDto, onClick: () -> Unit) {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            if (e.whoLabel.isNotBlank()) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    e.whoLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 96.dp),
+                )
+            }
         }
     }
 }
@@ -895,7 +907,6 @@ private fun buildEventSecondary(e: CalEventDto): String? {
     parts += if (e.allDay) "All day" else e.timeLabel
     e.location?.takeIf { it.isNotBlank() }?.let { parts += it }
     e.recurLabel?.takeIf { it.isNotBlank() }?.let { parts += it }
-    if (e.isFamily) parts += "Family"
     return parts.filter { it.isNotBlank() }.joinToString(" \u00b7 ").ifBlank { null }
 }
 
