@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.50.0 — Today slide + week pager
+- Tapping Today now slides quickly back to today in the correct direction instead
+  of jumping (across day, week, month, and the month dropdown).
+- Week view is now a finger-follow pager too (swipe left/right, snap, fling), with
+  neighbouring weeks pre-fetched so they slide in populated. (3-day is next.)
+
 ## 0.49.1 — Month scroll directions
 - The main month view now pages up and down (not left/right).
 - The month dropdown in day/3-day/week views is now its own left/right

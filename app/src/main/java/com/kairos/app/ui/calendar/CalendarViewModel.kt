@@ -109,6 +109,32 @@ class CalendarViewModel(
         } ?: _ui.update { it.copy(date = monthStartIso) }
     }
 
+    // --- Week-view pager cache (Slice 2b): neighbour weeks keyed by their
+    //     Sunday (week-start) ISO. ---
+    private val _weekPages = MutableStateFlow<Map<String, CalendarDto>>(emptyMap())
+    val weekPages: StateFlow<Map<String, CalendarDto>> = _weekPages.asStateFlow()
+    private val inFlightWeeks = mutableSetOf<String>()
+
+    fun ensureWeek(weekStartIso: String) {
+        if (_weekPages.value.containsKey(weekStartIso) || weekStartIso in inFlightWeeks) return
+        inFlightWeeks.add(weekStartIso)
+        viewModelScope.launch {
+            try {
+                val dto = session.loadCalendar("week", weekStartIso)
+                _weekPages.update { it + (weekStartIso to dto) }
+            } catch (_: Exception) {
+            } finally {
+                inFlightWeeks.remove(weekStartIso)
+            }
+        }
+    }
+
+    fun onWeekSettled(weekStartIso: String) {
+        _weekPages.value[weekStartIso]?.let { cached ->
+            _ui.update { it.copy(date = cached.date, data = cached) }
+        } ?: _ui.update { it.copy(date = weekStartIso) }
+    }
+
     init {
         viewModelScope.launch {
             val def = settings.currentCalendarDefaultView()
@@ -126,6 +152,13 @@ class CalendarViewModel(
                 val data = session.loadCalendar(s.tab.serverValue, s.date)
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
                 if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
+                if (s.tab == CalTab.WEEK) {
+                    val ws = runCatching {
+                        val d = java.time.LocalDate.parse(data.date)
+                        d.minusDays((d.dayOfWeek.value % 7).toLong()).toString()
+                    }.getOrNull() ?: data.date
+                    _weekPages.update { it + (ws to data) }
+                }
                 if (s.tab == CalTab.MONTH) {
                     val key = runCatching {
                         java.time.LocalDate.parse(data.date).withDayOfMonth(1).toString()
@@ -146,6 +179,7 @@ class CalendarViewModel(
     private fun clearPageCaches() {
         _pages.value = emptyMap()
         _monthPages.value = emptyMap()
+        _weekPages.value = emptyMap()
     }
 
     fun setTab(tab: CalTab) {

@@ -290,6 +290,7 @@ private fun CalendarBody(
             when (ui.tab) {
                 CalTab.DAY -> DayPager(vm, data.date, data.today, onEventClick)
                 CalTab.MONTH -> MonthPager(vm, data.date, onEventClick)
+                CalTab.WEEK -> WeekPager(vm, data.date, onEventClick)
                 CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
                 else -> Box(
                     Modifier
@@ -361,7 +362,7 @@ private fun MonthPager(
             base, java.time.LocalDate.parse(anchorDate).withDayOfMonth(1),
         ).toInt()
         if (target in 0 until 12001 && target != pagerState.currentPage) {
-            pagerState.scrollToPage(target)
+            pagerState.animateToPageQuick(target)
         }
     }
 
@@ -419,7 +420,7 @@ private fun DayPager(
             base, java.time.LocalDate.parse(anchorDate),
         ).toInt()
         if (target in 0 until 20001 && target != pagerState.currentPage) {
-            pagerState.scrollToPage(target)
+            pagerState.animateToPageQuick(target)
         }
     }
 
@@ -447,6 +448,77 @@ private fun DayPager(
                 onEventClick = onEventClick,
             )
         }
+    }
+}
+
+/**
+ * Week view as a finger-follow pager (Slice 2b). Each page is a Sun–Sat week;
+ * neighbour weeks are pre-fetched so they slide in populated.
+ */
+@Composable
+private fun WeekPager(
+    vm: CalendarViewModel,
+    anchorDate: String,
+    onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
+) {
+    val weekPages by vm.weekPages.collectAsState()
+    val base = remember {
+        val d = java.time.LocalDate.parse(anchorDate)
+        d.minusDays((d.dayOfWeek.value % 7).toLong())
+    }
+    val center = 8000
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = center,
+        pageCount = { 16001 },
+    )
+    fun keyFor(page: Int): String = base.plusWeeks((page - center).toLong()).toString()
+
+    LaunchedEffect(pagerState.currentPage) {
+        for (o in -1..1) vm.ensureWeek(keyFor(pagerState.currentPage + o))
+    }
+    val settledKey = keyFor(pagerState.settledPage)
+    LaunchedEffect(settledKey, weekPages[settledKey]) {
+        vm.onWeekSettled(settledKey)
+    }
+    LaunchedEffect(anchorDate) {
+        val d = java.time.LocalDate.parse(anchorDate)
+        val ws = d.minusDays((d.dayOfWeek.value % 7).toLong())
+        val target = center + java.time.temporal.ChronoUnit.WEEKS.between(base, ws).toInt()
+        if (target in 0 until 16001 && target != pagerState.currentPage) {
+            pagerState.animateToPageQuick(target)
+        }
+    }
+
+    androidx.compose.foundation.pager.HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+    ) { page ->
+        val pd = weekPages[keyFor(page)]
+        if (pd != null) {
+            val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+            TimeGrid(pd, evs, onEventClick, Modifier.fillMaxSize())
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+        }
+    }
+}
+
+/**
+ * Animate to [target] but only ever animate the final step: for a far jump we
+ * snap to the page just before/after the target (on the correct side) and then
+ * animate the last page, so tapping "Today" looks like a quick slide back in the
+ * right direction instead of an instant change or a long scroll.
+ */
+private suspend fun androidx.compose.foundation.pager.PagerState.animateToPageQuick(target: Int) {
+    val cur = currentPage
+    if (target == cur) return
+    if (kotlin.math.abs(target - cur) <= 1) {
+        animateScrollToPage(target)
+    } else {
+        scrollToPage(if (target > cur) target - 1 else target + 1)
+        animateScrollToPage(target)
     }
 }
 
@@ -485,7 +557,7 @@ private fun MiniMonthPager(
             base, java.time.LocalDate.parse(anchorDate).withDayOfMonth(1),
         ).toInt()
         if (target in 0 until 12001 && target != pagerState.currentPage) {
-            pagerState.scrollToPage(target)
+            pagerState.animateToPageQuick(target)
         }
     }
 
