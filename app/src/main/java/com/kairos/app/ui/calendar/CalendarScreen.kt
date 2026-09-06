@@ -304,7 +304,7 @@ private fun CalendarBody(
                 CalTab.MONTH -> MonthPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
                 CalTab.WEEK -> WeekPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
                 CalTab.THREE_DAY -> ThreeDayPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
-                else -> AgendaView(localEvents, data.date, data.today, onEventClick)
+                else -> AgendaPager(vm, ui.date ?: data.date, ui.navNonce, data.today, onEventClick)
             }
             // A soft shadow along the top edge of the time-grid content, as if the
             // (expandable) month above is floating over it. Stays whether the month
@@ -863,6 +863,61 @@ private fun MonthChip(e: CalEventDto, onClick: () -> Unit) {
 }
 
 // ---- Agenda ----
+
+/**
+ * Agenda as a day pager — swipe left/right to change day, matching the other
+ * views. Reuses the day cache; each page is one day's agenda list.
+ */
+@Composable
+private fun AgendaPager(
+    vm: CalendarViewModel,
+    anchorDate: String,
+    navNonce: Int,
+    today: String,
+    onEventClick: (CalEventDto) -> Unit,
+) {
+    val pages by vm.pages.collectAsState()
+    val base = remember { java.time.LocalDate.parse(anchorDate) }
+    val center = 10000
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = center,
+        pageCount = { 20001 },
+    )
+    fun dateFor(page: Int): String = base.plusDays((page - center).toLong()).toString()
+
+    LaunchedEffect(pagerState.currentPage) {
+        for (o in -2..2) vm.ensureDay(dateFor(pagerState.currentPage + o))
+    }
+    val settledIso = dateFor(pagerState.settledPage)
+    LaunchedEffect(settledIso, pages[settledIso]) {
+        vm.onDaySettled(settledIso)
+    }
+    LaunchedEffect(navNonce) {
+        if (navNonce == 0) return@LaunchedEffect
+        val target = center + java.time.temporal.ChronoUnit.DAYS.between(
+            base, java.time.LocalDate.parse(anchorDate),
+        ).toInt()
+        if (target in 0 until 20001 && target != pagerState.currentPage) {
+            pagerState.animateToPageQuick(target)
+        }
+    }
+
+    androidx.compose.foundation.pager.HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+    ) { page ->
+        val iso = dateFor(page)
+        val pd = pages[iso]
+        if (pd != null) {
+            val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+            AgendaView(evs, iso, today, onEventClick)
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+        }
+    }
+}
 
 @Composable
 private fun AgendaView(events: List<CalEventDto>, date: String, today: String, onEventClick: (CalEventDto) -> Unit) {

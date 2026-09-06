@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.60.0 — Agenda date sliding
+- The agenda now slides left/right to change day like the other views (snap, fling,
+  Today, and the month dropdown all work), with neighbouring days pre-fetched.
+
 ## 0.59.1 — Home event popup + calendar settings bar
 - Tap a schedule item on the home dashboard to open a centered detail popup with
   everyone on the event, time, location and notes.
