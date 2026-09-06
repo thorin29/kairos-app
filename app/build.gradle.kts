@@ -13,8 +13,8 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 80
-        versionName = "0.53.0"
+        versionCode = 81
+        versionName = "0.53.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

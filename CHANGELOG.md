@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.53.0 — Personal reading redesign
+## 0.53.1 — Personal reading redesign
 - The personal reading view now mirrors the family view — a reading deck of your
   plan's daily passages plus coverage — once you've created a plan.
 - Two buttons up top: Create/Edit plan and Log. The plan editor and the reading
