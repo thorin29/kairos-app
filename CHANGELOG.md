@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.48.0 — Day view layout + time labels
+- Hour labels now read "1 AM", "12 PM", etc. (all time-grid views).
+- Day, 3-day and week now open near the current hour instead of pinned at 1 AM.
+- Day view reworked: the time column and the day/date on the left are frozen and
+  don't slide; only the day's hours slide left/right. The top row (date + all-day
+  events) is frozen when scrolling up/down; all-day events, or "No events" when a
+  day is empty, slide in with each day.
+
 ## 0.47.0 — Day view finger-follow (Slice 1)
 - Day view now slides under your finger and snaps to the day you release on, with
   neighbouring days pre-fetched so they appear populated as they slide in. A quick

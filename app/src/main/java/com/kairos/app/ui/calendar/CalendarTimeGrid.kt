@@ -39,8 +39,22 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 private val HOUR_H = 56.dp
-private val GUTTER = 44.dp
+private val GUTTER = 52.dp
+private val HEADER_H = 46.dp
 private const val HOURS = 24
+
+/** A vertical scroll state for the time grid that opens near the current hour
+ *  (one hour above), so an afternoon view doesn't start pinned at 1 AM. */
+@Composable
+fun rememberTimeGridScroll(): androidx.compose.foundation.ScrollState {
+    val scroll = rememberScrollState()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val h = (java.time.LocalTime.now().hour - 1).coerceIn(0, HOURS - 1)
+        scroll.scrollTo(with(density) { (HOUR_H * h).toPx() }.toInt())
+    }
+    return scroll
+}
 
 private data class Placed(val e: CalEventDto, val col: Int, val cols: Int)
 
@@ -113,7 +127,7 @@ fun TimeGrid(data: CalendarDto, events: List<CalEventDto>, onEventClick: (CalEve
             Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberTimeGridScroll()),
         ) {
             Row(Modifier.fillMaxWidth().height(HOUR_H * HOURS)) {
                 // Hour gutter
@@ -259,11 +273,117 @@ private fun deviceNowMinutes(): Int {
     return t.hour * 60 + t.minute
 }
 
+/** Frozen left column of the day view: the snapped day's Mon/date on top (which
+ *  updates as you page), then the hour labels that scroll with the day columns. */
+@Composable
+fun DayAxisColumn(
+    dateISO: String,
+    today: String,
+    scroll: androidx.compose.foundation.ScrollState,
+    modifier: Modifier = Modifier,
+) {
+    val d = remember(dateISO) { runCatching { LocalDate.parse(dateISO) }.getOrNull() }
+    val isToday = dateISO == today
+    val gridColor = MaterialTheme.colorScheme.outline
+    Column(modifier.width(GUTTER)) {
+        Column(
+            Modifier.height(HEADER_H).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                d?.dayOfWeek?.name?.take(3)?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                d?.dayOfMonth?.toString() ?: "",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+        Box(Modifier.weight(1f).verticalScroll(scroll)) {
+            Column(Modifier.height(HOUR_H * HOURS)) {
+                for (h in 0 until HOURS) {
+                    Box(Modifier.height(HOUR_H).fillMaxWidth()) {
+                        if (h > 0) {
+                            Text(
+                                hourLabel(h),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.offset(y = (-7).dp).padding(end = 5.dp).fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One day's page in the day pager: a frozen header (all-day events / "No events"
+ *  / blank) above the scrolling hour column. [events] are already localised. */
+@Composable
+fun DayGridPage(
+    events: List<CalEventDto>,
+    iso: String,
+    today: String,
+    nowColor: String,
+    loading: Boolean,
+    scroll: androidx.compose.foundation.ScrollState,
+    onEventClick: (CalEventDto) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gridColor = MaterialTheme.colorScheme.outline
+    val dayEvents = events.filter { it.dayISO == iso }
+    val allDay = dayEvents.filter { it.allDay }
+    Column(modifier.fillMaxSize()) {
+        Box(
+            Modifier.fillMaxWidth().height(HEADER_H).padding(horizontal = 4.dp, vertical = 3.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            when {
+                loading -> {}
+                allDay.isNotEmpty() -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    allDay.take(2).forEach { e -> AllDayChip(e) { onEventClick(e) } }
+                }
+                dayEvents.isEmpty() -> Text(
+                    "No events",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> {}
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+        Box(Modifier.weight(1f).verticalScroll(scroll)) {
+            if (loading) {
+                Box(Modifier.fillMaxWidth().height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            } else {
+                DayColumn(
+                    iso = iso,
+                    events = dayEvents.filter { !it.allDay },
+                    isToday = iso == today,
+                    nowColor = nowColor,
+                    gridColor = gridColor,
+                    onEventClick = onEventClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
 private fun hourLabel(h: Int): String = when {
-    h == 0 -> "12a"
-    h < 12 -> "${h}a"
-    h == 12 -> "12p"
-    else -> "${h - 12}p"
+    h == 0 -> "12 AM"
+    h < 12 -> "$h AM"
+    h == 12 -> "12 PM"
+    else -> "${h - 12} PM"
 }
 
 private fun parseGridColor(hex: String?): Color {

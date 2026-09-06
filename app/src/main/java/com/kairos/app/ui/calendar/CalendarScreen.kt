@@ -301,7 +301,7 @@ private fun CalendarBody(
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (ui.tab == CalTab.DAY) {
-                DayPager(vm, data.date, onEventClick)
+                DayPager(vm, data.date, data.today, onEventClick)
             } else {
                 Box(
                     Modifier
@@ -342,6 +342,7 @@ private fun CalendarBody(
 private fun DayPager(
     vm: CalendarViewModel,
     anchorDate: String,
+    today: String,
     onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
 ) {
     val pages by vm.pages.collectAsState()
@@ -353,19 +354,18 @@ private fun DayPager(
         initialPage = center,
         pageCount = { 20001 },
     )
+    // Shared vertical scroll: the frozen hour axis and every day column move
+    // together, and it opens near the current hour.
+    val vScroll = rememberTimeGridScroll()
     fun dateFor(page: Int): String = base.plusDays((page - center).toLong()).toString()
 
-    // Keep the current page and its immediate neighbours pre-fetched.
     LaunchedEffect(pagerState.currentPage) {
         for (o in -2..2) vm.ensureDay(dateFor(pagerState.currentPage + o))
     }
-    // On settle, sync the anchor/top-bar (no reload — avoids a feedback loop).
-    // Re-runs when the settled page's data arrives so the top bar catches up.
     val settledIso = dateFor(pagerState.settledPage)
     LaunchedEffect(settledIso, pages[settledIso]) {
         vm.onDaySettled(settledIso)
     }
-    // A jump from elsewhere (Today / dropdown) moves the pager to that day.
     LaunchedEffect(anchorDate) {
         val target = center + java.time.temporal.ChronoUnit.DAYS.between(
             base, java.time.LocalDate.parse(anchorDate),
@@ -375,19 +375,29 @@ private fun DayPager(
         }
     }
 
-    androidx.compose.foundation.pager.HorizontalPager(
-        state = pagerState,
-        modifier = Modifier.fillMaxSize(),
-    ) { page ->
-        val iso = dateFor(page)
-        val pd = pages[iso]
-        if (pd != null) {
-            val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
-            TimeGrid(pd, evs, onEventClick, Modifier.fillMaxSize())
-        } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                androidx.compose.material3.CircularProgressIndicator()
+    Row(Modifier.fillMaxSize()) {
+        // Frozen left column: the snapped day's date + the hour axis.
+        DayAxisColumn(settledIso, today, vScroll)
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+        ) { page ->
+            val iso = dateFor(page)
+            val pd = pages[iso]
+            val evs = if (pd != null) {
+                remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+            } else {
+                emptyList()
             }
+            DayGridPage(
+                events = evs,
+                iso = iso,
+                today = today,
+                nowColor = pd?.nowColor ?: "",
+                loading = pd == null,
+                scroll = vScroll,
+                onEventClick = onEventClick,
+            )
         }
     }
 }
