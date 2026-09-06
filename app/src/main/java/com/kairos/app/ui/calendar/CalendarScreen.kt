@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -435,9 +436,10 @@ private fun DayPager(
 }
 
 /**
- * 3-day view (Slice 3): a frozen hour axis with a day-by-day pager beside it —
- * each page is one day sized to a third of the width, so three show at once and
- * a swipe snaps one day at a time. Reuses the day cache and WeekGridPage.
+ * 3-day view (Slice 3): a frozen hour axis beside a snapping LazyRow of single
+ * days, each a third of the width so three show at once and a swipe snaps to the
+ * nearest day. LazyRow's snap fling behaves cleanly at any drag distance (the
+ * custom-PageSize HorizontalPager mis-snapped near a full-page advance).
  */
 @Composable
 private fun ThreeDayPager(
@@ -447,67 +449,65 @@ private fun ThreeDayPager(
     onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
 ) {
     val pages by vm.pages.collectAsState()
+    val vScroll = rememberTimeGridScroll()
     val base = remember { java.time.LocalDate.parse(anchorDate) }
     val center = 10000
-    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-        initialPage = center,
-        pageCount = { 20001 },
-    )
-    val vScroll = rememberTimeGridScroll()
-    fun dateFor(page: Int): String = base.plusDays((page - center).toLong()).toString()
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = center)
+    val snapFling = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(listState)
+    fun dateFor(index: Int): String = base.plusDays((index - center).toLong()).toString()
 
-    LaunchedEffect(pagerState.currentPage) {
-        for (o in -2..4) vm.ensureDay(dateFor(pagerState.currentPage + o))
+    LaunchedEffect(listState.firstVisibleItemIndex) {
+        for (o in -1..4) vm.ensureDay(dateFor(listState.firstVisibleItemIndex + o))
     }
-    val settledIso = dateFor(pagerState.settledPage)
-    LaunchedEffect(settledIso, pages[settledIso]) {
-        vm.onDaySettled(settledIso)
+    // Sync the anchor once scrolling settles (not mid-scroll, avoiding feedback).
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            vm.onDaySettled(dateFor(listState.firstVisibleItemIndex))
+        }
     }
     LaunchedEffect(navNonce) {
         if (navNonce == 0) return@LaunchedEffect
         val target = center + java.time.temporal.ChronoUnit.DAYS.between(
             base, java.time.LocalDate.parse(anchorDate),
         ).toInt()
-        if (target in 0 until 20001 && target != pagerState.currentPage) {
-            pagerState.animateToPageQuick(target)
+        if (target in 0 until 20001 && target != listState.firstVisibleItemIndex) {
+            // Quick directional slide: jump next to the target, then animate a day.
+            val from = if (target > listState.firstVisibleItemIndex) target - 1 else target + 1
+            listState.scrollToItem(from)
+            listState.animateScrollToItem(target)
         }
     }
 
     Row(Modifier.fillMaxSize()) {
         WeekAxisColumn(vScroll)
-        androidx.compose.foundation.pager.HorizontalPager(
-            state = pagerState,
+        androidx.compose.foundation.lazy.LazyRow(
+            state = listState,
+            flingBehavior = snapFling,
             modifier = Modifier.weight(1f),
-            pageSize = ThreeDayPageSize,
-            beyondViewportPageCount = 2,
-        ) { page ->
-            val iso = dateFor(page)
-            val pd = pages[iso]
-            if (pd != null) {
-                val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
-                WeekGridPage(
-                    days = listOf(iso),
-                    events = evs,
-                    today = pd.today,
-                    nowColor = pd.nowColor,
-                    scroll = vScroll,
-                    onEventClick = onEventClick,
-                )
-            } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.CircularProgressIndicator()
+        ) {
+            items(20001) { index ->
+                val iso = dateFor(index)
+                val pd = pages[iso]
+                Box(Modifier.fillParentMaxWidth(1f / 3f).fillMaxHeight()) {
+                    if (pd != null) {
+                        val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+                        WeekGridPage(
+                            days = listOf(iso),
+                            events = evs,
+                            today = pd.today,
+                            nowColor = pd.nowColor,
+                            scroll = vScroll,
+                            onEventClick = onEventClick,
+                        )
+                    } else {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            androidx.compose.material3.CircularProgressIndicator()
+                        }
+                    }
                 }
             }
         }
     }
-}
-
-/** Each 3-day page takes a third of the available width, so three days show. */
-private val ThreeDayPageSize = object : androidx.compose.foundation.pager.PageSize {
-    override fun androidx.compose.ui.unit.Density.calculateMainAxisPageSize(
-        availableSpace: Int,
-        pageSpacing: Int,
-    ): Int = (availableSpace - 2 * pageSpacing) / 3
 }
 
 /**

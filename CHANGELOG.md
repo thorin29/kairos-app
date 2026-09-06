@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.51.2 — 3-day snap, properly fixed
+- Rebuilt the 3-day slider on a snapping list instead of the custom fractional
+  pager, which was mis-snapping back a day when a forward swipe got near the end.
+  It now lands on the day you drag toward at any distance.
+
 ## 0.51.1 — 3-day snap fix
 - Fixed the 3-day view snapping back a day when you advanced a swipe almost all the
   way: the incoming day wasn't composed yet so the pager mis-measured the snap.
