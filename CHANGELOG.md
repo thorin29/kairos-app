@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.59.0 — Home event popup + calendar settings bar
+## 0.59.1 — Home event popup + calendar settings bar
 - Tap a schedule item on the home dashboard to open a centered detail popup with
   everyone on the event, time, location and notes.
 - Event details (calendar) now show location and notes too.

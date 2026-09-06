@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -192,7 +194,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
             AnimatedVisibility(visible = showSettings, enter = fadeIn(), exit = fadeOut()) {
                 Box(
                     Modifier.fillMaxWidth()
-                        .windowInsetsTopHeight(androidx.compose.foundation.layout.WindowInsets.statusBars)
+                        .windowInsetsTopHeight(WindowInsets.statusBars)
                         .background(Color.Black.copy(alpha = 0.18f)),
                 )
             }
