@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.53.0 — Personal reading redesign
+- The personal reading view now mirrors the family view — a reading deck of your
+  plan's daily passages plus coverage — once you've created a plan.
+- Two buttons up top: Create/Edit plan and Log. The plan editor and the reading
+  log each open on their own page (white card) instead of stacking inline, and the
+  "Manual checklist" label is gone.
+
 ## 0.52.0 — Home sport prompt + Bible tabs
 - The home dashboard now shows "Did you do X?" for a sport event that just
   finished, with Yes / No — same as the web.

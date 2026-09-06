@@ -1,5 +1,10 @@
 package com.kairos.app.ui.bible
 
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Card
+import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,6 +108,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit) {
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var personalSub by remember { mutableStateOf<PersonalSub?>(null) }
 
     LaunchedEffect(ui.savedTick) {
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
@@ -148,9 +154,53 @@ fun BibleScreen(onOpenDrawer: () -> Unit) {
                         if (personal == null || ui.tab == BibleTab.FAMILY) {
                             FamilyContent(data)
                         } else {
-                            PersonalContent(vm, ui)
+                            PersonalContent(
+                                vm, ui,
+                                onCreateEdit = { personalSub = PersonalSub.PLAN },
+                                onLog = { personalSub = PersonalSub.LOG },
+                            )
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // Full-screen sub-pages opened from the personal view's buttons.
+    val personal = ui.data?.personal
+    if (personal != null) {
+        when (personalSub) {
+            PersonalSub.PLAN -> PersonalSubPage("Reading plan", onBack = { personalSub = null }) {
+                PersonalPlanSection(vm, personal.plan, ui.data?.today ?: "", ui.busy, ui.actionError)
+            }
+            PersonalSub.LOG -> PersonalSubPage("Log reading", onBack = { personalSub = null }) {
+                BookProgress(vm, personal.readKeys, parseHexColor(personal.color), ui.busy)
+            }
+            null -> {}
+        }
+    }
+}
+
+private enum class PersonalSub { PLAN, LOG }
+
+/** A full-screen page (back bar + a white card holding the content) for the
+ *  personal reading plan editor and the reading log. */
+@Composable
+private fun PersonalSubPage(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+    androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(KairosIcons.ChevronLeft, contentDescription = "Back")
+                }
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            }
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) { content() }
                 }
             }
         }
@@ -195,7 +245,7 @@ private fun TabPill(label: String, active: Boolean, onClick: () -> Unit) {
 private fun FamilyContent(data: com.kairos.app.data.remote.dto.ReadingDto) {
     val family = data.family
     if (family.havePlan && family.cards.isNotEmpty()) {
-        ReadingDeck(family)
+        ReadingDeck(family.cards, family.todayIndex, FAMILY_COLOR)
         family.lastDayISO?.let { last ->
             Text(
                 "${family.remaining} days left \u00b7 plan runs out ${formatShortISO(last)}",
@@ -212,17 +262,21 @@ private fun FamilyContent(data: com.kairos.app.data.remote.dto.ReadingDto) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReadingDeck(family: com.kairos.app.data.remote.dto.ReadingFamilyDto) {
-    val cards = family.cards
-    val start = family.todayIndex.coerceIn(0, (cards.size - 1).coerceAtLeast(0))
+private fun ReadingDeck(
+    cards: List<com.kairos.app.data.remote.dto.ReadingCardDto>,
+    todayIndex: Int,
+    accent: Color,
+) {
+    if (cards.isEmpty()) return
+    val start = todayIndex.coerceIn(0, (cards.size - 1).coerceAtLeast(0))
     val pager = rememberPagerState(initialPage = start) { cards.size }
     val scope = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // "Back to today" only when off the today card.
         Box(Modifier.fillMaxWidth().height(36.dp), contentAlignment = Alignment.CenterEnd) {
-            if (pager.currentPage != family.todayIndex) {
-                TextButton(onClick = { scope.launch { pager.animateScrollToPage(family.todayIndex) } }) {
+            if (pager.currentPage != todayIndex) {
+                TextButton(onClick = { scope.launch { pager.animateScrollToPage(todayIndex) } }) {
                     Text("Back to today")
                 }
             }
@@ -248,7 +302,7 @@ private fun ReadingDeck(family: com.kairos.app.data.remote.dto.ReadingFamilyDto)
                     modifier = Modifier.fillMaxSize(),
                     border = androidx.compose.foundation.BorderStroke(
                         if (isActive) 1.5.dp else 1.dp,
-                        if (isActive) FAMILY_COLOR else MaterialTheme.colorScheme.outlineVariant,
+                        if (isActive) accent else MaterialTheme.colorScheme.outlineVariant,
                     ),
                 ) {
                     Column(
@@ -256,9 +310,9 @@ private fun ReadingDeck(family: com.kairos.app.data.remote.dto.ReadingFamilyDto)
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
-                            relativeLabel(page - family.todayIndex).uppercase(),
+                            relativeLabel(page - todayIndex).uppercase(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isActive) FAMILY_COLOR else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isActive) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
@@ -290,22 +344,40 @@ private fun ReadingDeck(family: com.kairos.app.data.remote.dto.ReadingFamilyDto)
 // ---- Personal ----
 
 @Composable
-private fun PersonalContent(vm: BibleViewModel, ui: BibleUiState) {
+private fun PersonalContent(
+    vm: BibleViewModel,
+    ui: BibleUiState,
+    onCreateEdit: () -> Unit,
+    onLog: () -> Unit,
+) {
     val data = ui.data ?: return
     val personal = data.personal ?: return
     val color = parseHexColor(personal.color)
 
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Button(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
+            Text(if (personal.plan != null) "Edit plan" else "Create plan")
+        }
+        OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) {
+            Text("Log")
+        }
+    }
+
     SectionRow("Your reading", if (personal.stats.wholeBible) "Whole Bible read" else null, color)
     CoverageCards(personal.stats, color)
+
+    if (personal.havePlan && personal.cards.isNotEmpty()) {
+        ReadingDeck(personal.cards, personal.todayIndex, color)
+        personal.lastDayISO?.let { last ->
+            Text(
+                "${personal.remaining} days left \u00b7 plan runs out ${formatShortISO(last)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
     GroupsCard(personal.stats.groups, color)
-
-    Spacer(Modifier.height(4.dp))
-    SectionHeading("Your plan")
-    PersonalPlanSection(vm, personal.plan, data.today, ui.busy, ui.actionError)
-
-    Spacer(Modifier.height(4.dp))
-    SectionHeading("Manual checklist")
-    BookProgress(vm, personal.readKeys, color, ui.busy)
 }
 
 // ---- Shared pieces ----

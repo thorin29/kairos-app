@@ -563,6 +563,11 @@ data class ReadingPersonalDto(
     val stats: ReadingStatsDto = ReadingStatsDto(),
     val plan: PersonalPlanDto? = null,
     val readKeys: List<String> = emptyList(),
+    val havePlan: Boolean = false,
+    val cards: List<ReadingCardDto> = emptyList(),
+    val todayIndex: Int = 0,
+    val remaining: Int = 0,
+    val lastDayISO: String? = null,
 )
 
 @Serializable
