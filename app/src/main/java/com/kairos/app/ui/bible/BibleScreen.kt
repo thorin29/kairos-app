@@ -356,18 +356,6 @@ private fun PersonalContent(
     val personal = data.personal ?: return
     val color = parseHexColor(personal.color)
 
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Button(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
-            Text(if (personal.plan != null) "Edit plan" else "Create plan")
-        }
-        OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) {
-            Text("Log")
-        }
-    }
-
-    SectionRow("Your reading", if (personal.stats.wholeBible) "Whole Bible read" else null, color)
-    CoverageCards(personal.stats, color)
-
     if (personal.havePlan && personal.cards.isNotEmpty()) {
         ReadingDeck(personal.cards, personal.todayIndex, color)
         personal.lastDayISO?.let { last ->
@@ -379,6 +367,17 @@ private fun PersonalContent(
         }
     }
 
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Button(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
+            Text(if (personal.plan != null) "Edit plan" else "Create plan")
+        }
+        OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) {
+            Text("Log")
+        }
+    }
+
+    SectionRow("Your reading", if (personal.stats.wholeBible) "Whole Bible read" else null, color)
+    CoverageCards(personal.stats, color)
     GroupsCard(personal.stats.groups, color)
 }
 

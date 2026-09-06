@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.54.0 — Personal reading order
+- On the personal reading page the reading deck (days) is now at the top, matching
+  the family layout — deck, then Edit / Log buttons, then "Your reading" and the rest.
+
 ## 0.53.1 — Personal reading redesign
 - The personal reading view now mirrors the family view — a reading deck of your
   plan's daily passages plus coverage — once you've created a plan.
