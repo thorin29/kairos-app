@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -185,6 +186,14 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
                     vm = vm,
                     onOpenDefaultPicker = { showDefaultPicker = true },
                     onPickView = { showSettings = false },
+                )
+            }
+            // Same darker shade over the status-bar strip as the main menu.
+            AnimatedVisibility(visible = showSettings, enter = fadeIn(), exit = fadeOut()) {
+                Box(
+                    Modifier.fillMaxWidth()
+                        .windowInsetsTopHeight(androidx.compose.foundation.layout.WindowInsets.statusBars)
+                        .background(Color.Black.copy(alpha = 0.18f)),
                 )
             }
         }
@@ -1262,6 +1271,12 @@ private fun EventDetailScreen(
                         )
                         event.recurLabel?.takeIf { it.isNotBlank() }?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        event.location?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        event.notes?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }

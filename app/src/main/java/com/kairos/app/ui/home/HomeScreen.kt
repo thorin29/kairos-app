@@ -43,6 +43,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -183,6 +185,7 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String
 @Composable
 private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel) {
     val d = ui.dashboard!!
+    var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
     PullToRefreshBox(
         isRefreshing = ui.refreshing,
         onRefresh = vm::refresh,
@@ -273,12 +276,50 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                                         .background(MaterialTheme.colorScheme.outlineVariant),
                                 )
                             }
-                            ScheduleRow(ev)
+                            ScheduleRow(ev) { scheduleDetail = ev }
                         }
                     }
                 }
             }
         }
+    }
+
+    scheduleDetail?.let { ScheduleDetailDialog(it) { scheduleDetail = null } }
+}
+
+/** A centered detail popup for a home-dashboard schedule item — the same info
+ *  as a calendar event's detail (everyone on it, time, location, notes). */
+@Composable
+private fun ScheduleDetailDialog(
+    ev: com.kairos.app.data.remote.dto.ScheduleItemDto,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Close") } },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(4.dp).height(20.dp).clip(RoundedCornerShape(2.dp)).background(parseScheduleColor(ev.color)))
+                Spacer(Modifier.width(8.dp))
+                Text(ev.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DetailLine("When", if (ev.allDay) "All day" else ev.timeLabel)
+                if (ev.ownerName.isNotBlank()) DetailLine("Who", ev.ownerName)
+                if (!ev.location.isNullOrBlank()) DetailLine("Where", ev.location!!)
+                if (!ev.notes.isNullOrBlank()) DetailLine("Notes", ev.notes!!)
+            }
+        },
+    )
+}
+
+@Composable
+private fun DetailLine(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -509,9 +550,9 @@ private fun AlwaysOpenRow(c: com.kairos.app.data.remote.dto.AlwaysOpenDashDto, b
 }
 
 @Composable
-private fun ScheduleRow(ev: com.kairos.app.data.remote.dto.ScheduleItemDto) {
+private fun ScheduleRow(ev: com.kairos.app.data.remote.dto.ScheduleItemDto, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Box(

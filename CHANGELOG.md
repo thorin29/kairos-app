@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.59.0 — Home event popup + calendar settings bar
+- Tap a schedule item on the home dashboard to open a centered detail popup with
+  everyone on the event, time, location and notes.
+- Event details (calendar) now show location and notes too.
+- The calendar settings drawer now dims the status-bar strip like the main menu.
+
 ## 0.58.0 — Calendar detail + agenda + graph
 - Event details (tapping an event) now list all the people on it, or "Family".
 - Agenda: heading now reads "Sunday 6" and turns teal on today; the top shadow

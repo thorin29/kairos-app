@@ -135,6 +135,7 @@ data class ScheduleItemDto(
     val color: String = "#64748b",
     val ownerName: String = "",
     val location: String? = null,
+    val notes: String? = null,
 )
 
 @Serializable
@@ -728,6 +729,7 @@ data class CalEventDto(
     val kind: String = "",
     val ownerName: String = "",
     val whoLabel: String = "",
+    val notes: String? = null,
     val ownerId: String? = null,
     val eventTypeId: String? = null,
     val memberIds: List<String> = emptyList(),
