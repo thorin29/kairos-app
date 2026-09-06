@@ -283,14 +283,14 @@ private fun CalendarBody(
             // The mini-month is its own left/right finger-follow pager (separate
             // from the main month view, which pages vertically). Picking a day or
             // settling on a new month navigates the view behind it.
-            MiniMonthPager(vm, data.date, ui.navNonce) { iso -> vm.goToDate(iso) }
+            MiniMonthPager(vm, ui.date ?: data.date, ui.navNonce) { iso -> vm.goToDate(iso) }
         }
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (ui.tab) {
-                CalTab.DAY -> DayPager(vm, data.date, ui.navNonce, data.today, onEventClick)
-                CalTab.MONTH -> MonthPager(vm, data.date, ui.navNonce, onEventClick)
-                CalTab.WEEK -> WeekPager(vm, data.date, ui.navNonce, onEventClick)
+                CalTab.DAY -> DayPager(vm, ui.date ?: data.date, ui.navNonce, data.today, onEventClick)
+                CalTab.MONTH -> MonthPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
+                CalTab.WEEK -> WeekPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
                 CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
                 else -> Box(
                     Modifier

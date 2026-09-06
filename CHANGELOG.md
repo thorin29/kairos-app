@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.50.2 — Today + dropdown swipe fixes
+- Today now works on the first tap in day/week/month (it was reading the old date
+  before the reload landed, so the first tap did nothing and a second was needed).
+- The month dropdown no longer jumps back and forth before settling when you swipe
+  between months — same underlying cause.
+
 ## 0.50.1 — Week frozen column + Today slide fix
 - Week view now has the frozen time column like the day view: the hour axis and
   day/date headers stay put while only the days slide.
