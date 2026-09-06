@@ -214,6 +214,12 @@ interface ApiService {
     @POST("chores/claim")
     suspend fun claimChore(@Body body: ClaimChoreRequest): Response<TaskStatusDto>
 
+    @POST("sport/confirm")
+    suspend fun sportConfirm(@Body body: com.kairos.app.data.remote.dto.SportAnswerRequest): Response<Unit>
+
+    @POST("sport/decline")
+    suspend fun sportDecline(@Body body: com.kairos.app.data.remote.dto.SportAnswerRequest): Response<Unit>
+
     @POST("chores/always-open")
     suspend fun completeAlwaysOpen(@Body body: AlwaysOpenRequest): Response<TaskStatusDto>
 

@@ -199,6 +199,16 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 item(key = "bars") { CategoryBars(d.categories) }
             }
 
+            if (d.sportPrompts.isNotEmpty()) {
+                item(key = "sport-prompts") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        d.sportPrompts.forEach { p ->
+                            SportPromptCard(p, ui.busyIds.contains("sport-${p.eventId}"), vm)
+                        }
+                    }
+                }
+            }
+
             if (d.overdue.isNotEmpty()) {
                 item(key = "overdue") {
                     SectionBlock("Overdue") {
@@ -267,6 +277,35 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SportPromptCard(
+    prompt: com.kairos.app.data.remote.dto.SportPromptDto,
+    busy: Boolean,
+    vm: HomeViewModel,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                "Did you do ${prompt.title}?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { vm.answerSport(prompt.eventId, true) },
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Yes") }
+                OutlinedButton(
+                    onClick = { vm.answerSport(prompt.eventId, false) },
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f),
+                ) { Text("No") }
             }
         }
     }

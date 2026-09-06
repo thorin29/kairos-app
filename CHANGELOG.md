@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.0 — Home sport prompt + Bible tabs
+- The home dashboard now shows "Did you do X?" for a sport event that just
+  finished, with Yes / No — same as the web.
+- Bible reading tabs now read "Family" / "Personal", and the unselected tab is
+  clearer.
+
 ## 0.51.2 — 3-day snap, properly fixed
 - Rebuilt the 3-day slider on a snapping list instead of the custom fractional
   pager, which was mis-snapping back a day when a forward swipe got near the end.

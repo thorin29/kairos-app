@@ -72,6 +72,23 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
+    /** Answer a "Did you do X?" sport prompt (yes/no), then reload. */
+    fun answerSport(eventId: String, done: Boolean) {
+        val key = "sport-$eventId"
+        if (_ui.value.busyIds.contains(key)) return
+        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        val date = _ui.value.dashboard?.date
+        viewModelScope.launch {
+            try {
+                if (done) session.sportConfirm(eventId, date) else session.sportDecline(eventId, date)
+                val data = session.loadDashboard()
+                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+            }
+        }
+    }
+
     /** Take an up-for-grabs chore for yourself, then reload. */
     fun claimChore(taskId: String) {
         val key = "claim-$taskId"

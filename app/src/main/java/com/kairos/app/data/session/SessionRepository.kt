@@ -172,6 +172,14 @@ class SessionRepository(
 
     /** Load the day. A 401 here means the token died server-side, so we drop it
      *  and fall back to enrollment; the error is rethrown for the caller too. */
+    suspend fun sportConfirm(eventId: String, dateISO: String?) {
+        runAuthed { requireService().sportConfirm(com.kairos.app.data.remote.dto.SportAnswerRequest(eventId, dateISO)) }
+    }
+
+    suspend fun sportDecline(eventId: String, dateISO: String?) {
+        runAuthed { requireService().sportDecline(com.kairos.app.data.remote.dto.SportAnswerRequest(eventId, dateISO)) }
+    }
+
     suspend fun loadDashboard(date: String? = null): DashboardDto =
         runAuthed { requireService().dashboard(date) }
 
@@ -407,6 +415,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 78
+        const val CLIENT_BUILD = 79
     }
 }

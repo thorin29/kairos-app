@@ -111,6 +111,19 @@ data class DashboardDto(
     val upForGrabs: List<UpForGrabsDto> = emptyList(),
     val alwaysOpen: List<AlwaysOpenDashDto> = emptyList(),
     val schedule: List<ScheduleItemDto> = emptyList(),
+    val sportPrompts: List<SportPromptDto> = emptyList(),
+)
+
+@Serializable
+data class SportPromptDto(
+    val eventId: String = "",
+    val title: String = "",
+)
+
+@Serializable
+data class SportAnswerRequest(
+    val eventId: String,
+    val dateISO: String? = null,
 )
 
 @Serializable

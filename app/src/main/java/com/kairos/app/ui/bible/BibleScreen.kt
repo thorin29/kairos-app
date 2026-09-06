@@ -166,8 +166,8 @@ private fun ProgressTabs(tab: BibleTab, onSelect: (BibleTab) -> Unit) {
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        TabPill("Family Progress", tab == BibleTab.FAMILY) { onSelect(BibleTab.FAMILY) }
-        TabPill("Personal Progress", tab == BibleTab.PERSONAL) { onSelect(BibleTab.PERSONAL) }
+        TabPill("Family", tab == BibleTab.FAMILY) { onSelect(BibleTab.FAMILY) }
+        TabPill("Personal", tab == BibleTab.PERSONAL) { onSelect(BibleTab.PERSONAL) }
     }
 }
 
@@ -177,13 +177,14 @@ private fun TabPill(label: String, active: Boolean, onClick: () -> Unit) {
         Modifier
             .clip(RoundedCornerShape(999.dp))
             .clickable { onClick() }
-            .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .background(if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 18.dp, vertical = 7.dp),
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (active) Color.White else MaterialTheme.colorScheme.onSurface,
         )
     }
 }
