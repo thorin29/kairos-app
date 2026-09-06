@@ -295,21 +295,21 @@ private fun CalendarBody(
                 // Keep the dropdown open after picking a day (collapse only via the
                 // month-name toggle).
                 MiniMonthDropdown(data) { iso -> vm.goToDate(iso) }
-                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
             }
         }
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (ui.tab == CalTab.DAY) {
-                DayPager(vm, data.date, data.today, onEventClick)
-            } else {
-                Box(
+            when (ui.tab) {
+                CalTab.DAY -> DayPager(vm, data.date, data.today, onEventClick)
+                CalTab.MONTH -> MonthPager(vm, data.date, onEventClick)
+                CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
+                else -> Box(
                     Modifier
                         .fillMaxSize()
                         .pointerInput(ui.tab, data.date) {
                             var d = 0f
                             val threshold = 64.dp.toPx()
-                            // 3-day slides one day at a time; week / month advance a full period.
+                            // 3-day slides one day at a time; week advances a full period.
                             detectHorizontalDragGestures(
                                 onDragStart = { d = 0f },
                                 onDragEnd = {
@@ -322,12 +322,72 @@ private fun CalendarBody(
                             ) { _, amount -> d += amount }
                         },
                 ) {
-                    when (ui.tab) {
-                        CalTab.MONTH -> MonthChipsView(data, localEvents, vm, onEventClick)
-                        CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
-                        else -> TimeGrid(data, localEvents, onEventClick)
-                    }
+                    TimeGrid(data, localEvents, onEventClick)
                 }
+            }
+            // A soft shadow along the top edge of the time-grid content, as if the
+            // (expandable) month above is floating over it. Stays whether the month
+            // dropdown is open or collapsed.
+            if (ui.tab == CalTab.DAY || ui.tab == CalTab.THREE_DAY || ui.tab == CalTab.WEEK) {
+                Box(
+                    Modifier.fillMaxWidth().height(6.dp).align(Alignment.TopCenter)
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = 0.13f), Color.Transparent),
+                            ),
+                        ),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Month view as a finger-follow pager (Slice 2). Each page is a month grid;
+ * neighbour months are pre-fetched so they slide in populated.
+ */
+@Composable
+private fun MonthPager(
+    vm: CalendarViewModel,
+    anchorDate: String,
+    onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
+) {
+    val monthPages by vm.monthPages.collectAsState()
+    val base = remember { java.time.LocalDate.parse(anchorDate).withDayOfMonth(1) }
+    val center = 6000
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = center,
+        pageCount = { 12001 },
+    )
+    fun keyFor(page: Int): String = base.plusMonths((page - center).toLong()).toString()
+
+    LaunchedEffect(pagerState.currentPage) {
+        for (o in -1..1) vm.ensureMonth(keyFor(pagerState.currentPage + o))
+    }
+    val settledKey = keyFor(pagerState.settledPage)
+    LaunchedEffect(settledKey, monthPages[settledKey]) {
+        vm.onMonthSettled(settledKey)
+    }
+    LaunchedEffect(anchorDate) {
+        val target = center + java.time.temporal.ChronoUnit.MONTHS.between(
+            base, java.time.LocalDate.parse(anchorDate).withDayOfMonth(1),
+        ).toInt()
+        if (target in 0 until 12001 && target != pagerState.currentPage) {
+            pagerState.scrollToPage(target)
+        }
+    }
+
+    androidx.compose.foundation.pager.HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+    ) { page ->
+        val pd = monthPages[keyFor(page)]
+        if (pd != null) {
+            val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+            MonthChipsView(pd, evs, vm, onEventClick)
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator()
             }
         }
     }

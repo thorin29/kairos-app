@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.49.0 — Top shadow + month pager
+- Replaced the line under the expanded month dropdown with a soft shadow along the
+  top of the day/3-day/week content — it stays whether the month is expanded or
+  collapsed, like the month is floating above.
+- Month view is now a finger-follow pager too (swipe left/right, snap, fling), with
+  neighbouring months pre-fetched so they slide in populated. (Week and 3-day get
+  the pager next.)
+
 ## 0.48.0 — Day view layout + time labels
 - Hour labels now read "1 AM", "12 PM", etc. (all time-grid views).
 - Day, 3-day and week now open near the current hour instead of pinned at 1 AM.

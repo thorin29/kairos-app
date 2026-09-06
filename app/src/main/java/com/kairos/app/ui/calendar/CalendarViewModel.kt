@@ -83,6 +83,32 @@ class CalendarViewModel(
         } ?: _ui.update { it.copy(date = iso) }
     }
 
+    // --- Month-view pager cache (Slice 2): neighbour months keyed by their
+    //     first-of-month ISO. ---
+    private val _monthPages = MutableStateFlow<Map<String, CalendarDto>>(emptyMap())
+    val monthPages: StateFlow<Map<String, CalendarDto>> = _monthPages.asStateFlow()
+    private val inFlightMonths = mutableSetOf<String>()
+
+    fun ensureMonth(monthStartIso: String) {
+        if (_monthPages.value.containsKey(monthStartIso) || monthStartIso in inFlightMonths) return
+        inFlightMonths.add(monthStartIso)
+        viewModelScope.launch {
+            try {
+                val dto = session.loadCalendar("month", monthStartIso)
+                _monthPages.update { it + (monthStartIso to dto) }
+            } catch (_: Exception) {
+            } finally {
+                inFlightMonths.remove(monthStartIso)
+            }
+        }
+    }
+
+    fun onMonthSettled(monthStartIso: String) {
+        _monthPages.value[monthStartIso]?.let { cached ->
+            _ui.update { it.copy(date = cached.date, data = cached) }
+        } ?: _ui.update { it.copy(date = monthStartIso) }
+    }
+
     init {
         viewModelScope.launch {
             val def = settings.currentCalendarDefaultView()
@@ -96,11 +122,18 @@ class CalendarViewModel(
         val s = _ui.value
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         _pages.value = emptyMap()
+        _monthPages.value = emptyMap()
         viewModelScope.launch {
             try {
                 val data = session.loadCalendar(s.tab.serverValue, s.date)
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
                 if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
+                if (s.tab == CalTab.MONTH) {
+                    val key = runCatching {
+                        java.time.LocalDate.parse(data.date).withDayOfMonth(1).toString()
+                    }.getOrNull() ?: data.date
+                    _monthPages.update { it + (key to data) }
+                }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
             }
