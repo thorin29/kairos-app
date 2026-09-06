@@ -155,6 +155,11 @@ class CalendarViewModel(
                 val data = session.loadCalendar(s.tab.serverValue, s.date)
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
                 if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
+                if (s.tab == CalTab.THREE_DAY) {
+                    data.rangeDays.forEach { day ->
+                        _pages.update { it + (day to data.copy(date = day, rangeDays = listOf(day))) }
+                    }
+                }
                 if (s.tab == CalTab.WEEK) {
                     val ws = runCatching {
                         val d = java.time.LocalDate.parse(data.date)

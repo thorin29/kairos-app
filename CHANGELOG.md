@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.51.0 — 3-day finger-follow (Slice 3)
+- 3-day view now slides day-by-day under your finger with the frozen time column,
+  like day and week: three days show at once, a swipe snaps one day over, and
+  neighbouring days are pre-fetched so they slide in populated. Today and the
+  month dropdown work here too. That completes the calendar's finger-follow paging.
+
 ## 0.50.2 — Today + dropdown swipe fixes
 - Today now works on the first tap in day/week/month (it was reading the old date
   before the reload landed, so the first tap did nothing and a second was needed).

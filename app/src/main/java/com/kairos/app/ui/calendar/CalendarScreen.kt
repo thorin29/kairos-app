@@ -10,7 +10,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -291,28 +290,8 @@ private fun CalendarBody(
                 CalTab.DAY -> DayPager(vm, ui.date ?: data.date, ui.navNonce, data.today, onEventClick)
                 CalTab.MONTH -> MonthPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
                 CalTab.WEEK -> WeekPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
-                CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
-                else -> Box(
-                    Modifier
-                        .fillMaxSize()
-                        .pointerInput(ui.tab, data.date) {
-                            var d = 0f
-                            val threshold = 64.dp.toPx()
-                            // 3-day slides one day at a time; week advances a full period.
-                            detectHorizontalDragGestures(
-                                onDragStart = { d = 0f },
-                                onDragEnd = {
-                                    if (d <= -threshold) {
-                                        if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(1) else vm.goNext()
-                                    } else if (d >= threshold) {
-                                        if (ui.tab == CalTab.THREE_DAY) vm.shiftDays(-1) else vm.goPrev()
-                                    }
-                                },
-                            ) { _, amount -> d += amount }
-                        },
-                ) {
-                    TimeGrid(data, localEvents, onEventClick)
-                }
+                CalTab.THREE_DAY -> ThreeDayPager(vm, ui.date ?: data.date, ui.navNonce, onEventClick)
+                else -> AgendaView(localEvents, data.date, onEventClick)
             }
             // A soft shadow along the top edge of the time-grid content, as if the
             // (expandable) month above is floating over it. Stays whether the month
@@ -453,6 +432,81 @@ private fun DayPager(
             )
         }
     }
+}
+
+/**
+ * 3-day view (Slice 3): a frozen hour axis with a day-by-day pager beside it —
+ * each page is one day sized to a third of the width, so three show at once and
+ * a swipe snaps one day at a time. Reuses the day cache and WeekGridPage.
+ */
+@Composable
+private fun ThreeDayPager(
+    vm: CalendarViewModel,
+    anchorDate: String,
+    navNonce: Int,
+    onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
+) {
+    val pages by vm.pages.collectAsState()
+    val base = remember { java.time.LocalDate.parse(anchorDate) }
+    val center = 10000
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = center,
+        pageCount = { 20001 },
+    )
+    val vScroll = rememberTimeGridScroll()
+    fun dateFor(page: Int): String = base.plusDays((page - center).toLong()).toString()
+
+    LaunchedEffect(pagerState.currentPage) {
+        for (o in -2..4) vm.ensureDay(dateFor(pagerState.currentPage + o))
+    }
+    val settledIso = dateFor(pagerState.settledPage)
+    LaunchedEffect(settledIso, pages[settledIso]) {
+        vm.onDaySettled(settledIso)
+    }
+    LaunchedEffect(navNonce) {
+        if (navNonce == 0) return@LaunchedEffect
+        val target = center + java.time.temporal.ChronoUnit.DAYS.between(
+            base, java.time.LocalDate.parse(anchorDate),
+        ).toInt()
+        if (target in 0 until 20001 && target != pagerState.currentPage) {
+            pagerState.animateToPageQuick(target)
+        }
+    }
+
+    Row(Modifier.fillMaxSize()) {
+        WeekAxisColumn(vScroll)
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+            pageSize = ThreeDayPageSize,
+        ) { page ->
+            val iso = dateFor(page)
+            val pd = pages[iso]
+            if (pd != null) {
+                val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+                WeekGridPage(
+                    days = listOf(iso),
+                    events = evs,
+                    today = pd.today,
+                    nowColor = pd.nowColor,
+                    scroll = vScroll,
+                    onEventClick = onEventClick,
+                )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+/** Each 3-day page takes a third of the available width, so three days show. */
+private val ThreeDayPageSize = object : androidx.compose.foundation.pager.PageSize {
+    override fun androidx.compose.ui.unit.Density.calculateMainAxisPageSize(
+        availableSpace: Int,
+        pageSpacing: Int,
+    ): Int = (availableSpace - 2 * pageSpacing) / 3
 }
 
 /**
