@@ -83,7 +83,7 @@ fun parseHexColor(hex: String?): Color {
 
 private val SHORT_DATE = DateTimeFormatter.ofPattern("MMM d")
 
-private fun formatShortISO(iso: String): String =
+internal fun formatShortISO(iso: String): String =
     try {
         LocalDate.parse(iso).format(SHORT_DATE)
     } catch (_: Exception) {
@@ -173,7 +173,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit) {
     if (personal != null) {
         when (personalSub) {
             PersonalSub.PLAN -> PersonalSubPage("Reading plan", onBack = { personalSub = null }) {
-                PersonalPlanSection(vm, personal.plan, ui.data?.today ?: "", ui.busy, ui.actionError)
+                PlanWizard(vm, personal.plan, ui.data?.today ?: "", ui.busy, onDone = { personalSub = null })
             }
             PersonalSub.LOG -> PersonalSubPage("Log reading", onBack = { personalSub = null }) {
                 BookProgress(vm, personal.readKeys, parseHexColor(personal.color), ui.busy)

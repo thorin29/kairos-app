@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.55.0 — Reading plan builder
+- Building a personal reading plan is now a 3-step wizard: pick books and
+  drag to reorder them, choose the pace (chapters per day or finish by a date)
+  with a start date, then preview the generated schedule before creating it.
+
 ## 0.54.0 — Personal reading order
 - On the personal reading page the reading deck (days) is now at the top, matching
   the family layout — deck, then Edit / Log buttons, then "Your reading" and the rest.

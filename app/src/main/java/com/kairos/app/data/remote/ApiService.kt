@@ -178,6 +178,9 @@ interface ApiService {
     @POST("reading/plan")
     suspend fun createReadingPlan(@Body body: PersonalPlanRequest): Response<TaskStatusDto>
 
+    @POST("reading/plan/preview")
+    suspend fun previewReadingPlan(@Body body: PersonalPlanRequest): Response<com.kairos.app.data.remote.dto.PlanPreviewDto>
+
     @POST("reading/plan/delete")
     suspend fun deleteReadingPlan(): Response<TaskStatusDto>
 

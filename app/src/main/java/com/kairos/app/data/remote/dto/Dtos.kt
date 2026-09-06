@@ -583,6 +583,22 @@ data class PersonalPlanRequest(
     val bookNames: List<String>,
     val startISO: String,
     val chaptersPerDay: Int,
+    val endISO: String? = null,
+)
+
+@Serializable
+data class PlanPreviewDto(
+    val dayCount: Int = 0,
+    val totalChapters: Int = 0,
+    val startISO: String? = null,
+    val endISO: String? = null,
+    val days: List<PlanPreviewDayDto> = emptyList(),
+)
+
+@Serializable
+data class PlanPreviewDayDto(
+    val iso: String = "",
+    val passage: String = "",
 )
 
 @Serializable

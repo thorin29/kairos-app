@@ -66,6 +66,7 @@ class BibleViewModel(
         bookNames: List<String>,
         startISO: String,
         chaptersPerDay: Int,
+        endISO: String?,
         onDone: () -> Unit,
     ) {
         if (_ui.value.busy) return
@@ -73,7 +74,7 @@ class BibleViewModel(
         viewModelScope.launch {
             try {
                 session.createReadingPlan(
-                    PersonalPlanRequest(name, bookNames, startISO, chaptersPerDay),
+                    PersonalPlanRequest(name, bookNames, startISO, chaptersPerDay, endISO),
                 )
                 _ui.update { it.copy(busy = false, savedTick = it.savedTick + 1) }
                 onDone()
@@ -83,6 +84,22 @@ class BibleViewModel(
             }
         }
     }
+
+    /** Build (but don't save) a plan for the wizard's preview step. */
+    suspend fun previewPlan(
+        bookNames: List<String>,
+        startISO: String,
+        chaptersPerDay: Int,
+        endISO: String?,
+    ): com.kairos.app.data.remote.dto.PlanPreviewDto? =
+        try {
+            session.previewReadingPlan(
+                PersonalPlanRequest("", bookNames, startISO, chaptersPerDay, endISO),
+            )
+        } catch (e: ApiException) {
+            _ui.update { it.copy(actionError = e.error.message) }
+            null
+        }
 
     fun deletePlan() = act { session.deleteReadingPlan() }
 

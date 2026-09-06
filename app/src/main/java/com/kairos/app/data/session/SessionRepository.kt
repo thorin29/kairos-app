@@ -329,6 +329,11 @@ class SessionRepository(
         }
     }
 
+    suspend fun previewReadingPlan(
+        body: com.kairos.app.data.remote.dto.PersonalPlanRequest,
+    ): com.kairos.app.data.remote.dto.PlanPreviewDto =
+        runAuthed { requireService().previewReadingPlan(body) }
+
     suspend fun createReadingPlan(
         body: com.kairos.app.data.remote.dto.PersonalPlanRequest,
     ) {
@@ -415,6 +420,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 82
+        const val CLIENT_BUILD = 83
     }
 }

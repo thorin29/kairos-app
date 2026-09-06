@@ -307,7 +307,7 @@ private fun PlanCreator(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(
                     onClick = {
-                        vm.createPlan(name, picked.toList(), startISO, cpdNum, onCreated)
+                        vm.createPlan(name, picked.toList(), startISO, cpdNum, null, onCreated)
                     },
                     enabled = !busy,
                 ) {
@@ -353,12 +353,12 @@ private fun QuickChip(label: String, onClick: () -> Unit) {
 
 private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
 
-private fun isoToUtcMillis(iso: String): Long =
+internal fun isoToUtcMillis(iso: String): Long =
     try {
         LocalDate.parse(iso, ISO).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     } catch (_: Exception) {
         Instant.now().toEpochMilli()
     }
 
-private fun utcMillisToIso(millis: Long): String =
+internal fun utcMillisToIso(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().format(ISO)
