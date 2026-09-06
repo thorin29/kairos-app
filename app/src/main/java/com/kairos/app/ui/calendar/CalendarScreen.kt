@@ -283,14 +283,14 @@ private fun CalendarBody(
             // The mini-month is its own left/right finger-follow pager (separate
             // from the main month view, which pages vertically). Picking a day or
             // settling on a new month navigates the view behind it.
-            MiniMonthPager(vm, data.date) { iso -> vm.goToDate(iso) }
+            MiniMonthPager(vm, data.date, ui.navNonce) { iso -> vm.goToDate(iso) }
         }
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (ui.tab) {
-                CalTab.DAY -> DayPager(vm, data.date, data.today, onEventClick)
-                CalTab.MONTH -> MonthPager(vm, data.date, onEventClick)
-                CalTab.WEEK -> WeekPager(vm, data.date, onEventClick)
+                CalTab.DAY -> DayPager(vm, data.date, ui.navNonce, data.today, onEventClick)
+                CalTab.MONTH -> MonthPager(vm, data.date, ui.navNonce, onEventClick)
+                CalTab.WEEK -> WeekPager(vm, data.date, ui.navNonce, onEventClick)
                 CalTab.AGENDA -> AgendaView(localEvents, data.date, onEventClick)
                 else -> Box(
                     Modifier
@@ -339,6 +339,7 @@ private fun CalendarBody(
 private fun MonthPager(
     vm: CalendarViewModel,
     anchorDate: String,
+    navNonce: Int,
     onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
 ) {
     val monthPages by vm.monthPages.collectAsState()
@@ -357,7 +358,8 @@ private fun MonthPager(
     LaunchedEffect(settledKey, monthPages[settledKey]) {
         vm.onMonthSettled(settledKey)
     }
-    LaunchedEffect(anchorDate) {
+    LaunchedEffect(navNonce) {
+        if (navNonce == 0) return@LaunchedEffect
         val target = center + java.time.temporal.ChronoUnit.MONTHS.between(
             base, java.time.LocalDate.parse(anchorDate).withDayOfMonth(1),
         ).toInt()
@@ -391,6 +393,7 @@ private fun MonthPager(
 private fun DayPager(
     vm: CalendarViewModel,
     anchorDate: String,
+    navNonce: Int,
     today: String,
     onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
 ) {
@@ -415,7 +418,8 @@ private fun DayPager(
     LaunchedEffect(settledIso, pages[settledIso]) {
         vm.onDaySettled(settledIso)
     }
-    LaunchedEffect(anchorDate) {
+    LaunchedEffect(navNonce) {
+        if (navNonce == 0) return@LaunchedEffect
         val target = center + java.time.temporal.ChronoUnit.DAYS.between(
             base, java.time.LocalDate.parse(anchorDate),
         ).toInt()
@@ -459,6 +463,7 @@ private fun DayPager(
 private fun WeekPager(
     vm: CalendarViewModel,
     anchorDate: String,
+    navNonce: Int,
     onEventClick: (com.kairos.app.data.remote.dto.CalEventDto) -> Unit,
 ) {
     val weekPages by vm.weekPages.collectAsState()
@@ -471,6 +476,7 @@ private fun WeekPager(
         initialPage = center,
         pageCount = { 16001 },
     )
+    val vScroll = rememberTimeGridScroll()
     fun keyFor(page: Int): String = base.plusWeeks((page - center).toLong()).toString()
 
     LaunchedEffect(pagerState.currentPage) {
@@ -480,7 +486,8 @@ private fun WeekPager(
     LaunchedEffect(settledKey, weekPages[settledKey]) {
         vm.onWeekSettled(settledKey)
     }
-    LaunchedEffect(anchorDate) {
+    LaunchedEffect(navNonce) {
+        if (navNonce == 0) return@LaunchedEffect
         val d = java.time.LocalDate.parse(anchorDate)
         val ws = d.minusDays((d.dayOfWeek.value % 7).toLong())
         val target = center + java.time.temporal.ChronoUnit.WEEKS.between(base, ws).toInt()
@@ -489,17 +496,27 @@ private fun WeekPager(
         }
     }
 
-    androidx.compose.foundation.pager.HorizontalPager(
-        state = pagerState,
-        modifier = Modifier.fillMaxSize(),
-    ) { page ->
-        val pd = weekPages[keyFor(page)]
-        if (pd != null) {
-            val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
-            TimeGrid(pd, evs, onEventClick, Modifier.fillMaxSize())
-        } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                androidx.compose.material3.CircularProgressIndicator()
+    Row(Modifier.fillMaxSize()) {
+        WeekAxisColumn(vScroll)
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+        ) { page ->
+            val pd = weekPages[keyFor(page)]
+            if (pd != null) {
+                val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
+                WeekGridPage(
+                    days = pd.rangeDays,
+                    events = evs,
+                    today = pd.today,
+                    nowColor = pd.nowColor,
+                    scroll = vScroll,
+                    onEventClick = onEventClick,
+                )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
             }
         }
     }
@@ -533,6 +550,7 @@ private suspend fun androidx.compose.foundation.pager.PagerState.animateToPageQu
 private fun MiniMonthPager(
     vm: CalendarViewModel,
     anchorDate: String,
+    navNonce: Int,
     onPickDay: (String) -> Unit,
 ) {
     val monthPages by vm.monthPages.collectAsState()
@@ -552,7 +570,8 @@ private fun MiniMonthPager(
         // Navigate only on an actual month change (skip the initial settle).
         if (settledKey.take(7) != anchorDate.take(7)) onPickDay(settledKey)
     }
-    LaunchedEffect(anchorDate) {
+    LaunchedEffect(navNonce) {
+        if (navNonce == 0) return@LaunchedEffect
         val target = center + java.time.temporal.ChronoUnit.MONTHS.between(
             base, java.time.LocalDate.parse(anchorDate).withDayOfMonth(1),
         ).toInt()

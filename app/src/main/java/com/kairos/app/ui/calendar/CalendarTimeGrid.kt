@@ -41,6 +41,7 @@ import java.time.ZonedDateTime
 private val HOUR_H = 56.dp
 private val GUTTER = 52.dp
 private val HEADER_H = 46.dp
+private val WEEK_HEADER_H = 76.dp
 private const val HOURS = 24
 
 /** A vertical scroll state for the time grid that opens near the current hour
@@ -285,7 +286,11 @@ fun DayAxisColumn(
     val d = remember(dateISO) { runCatching { LocalDate.parse(dateISO) }.getOrNull() }
     val isToday = dateISO == today
     val gridColor = MaterialTheme.colorScheme.outline
-    Column(modifier.width(GUTTER)) {
+    Column(
+        modifier.width(GUTTER).drawBehind {
+            drawLine(gridColor, Offset(size.width, 0f), Offset(size.width, size.height), strokeWidth = 1f)
+        },
+    ) {
         Column(
             Modifier.height(HEADER_H).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -374,6 +379,91 @@ fun DayGridPage(
                     onEventClick = onEventClick,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+        }
+    }
+}
+
+/** Frozen left column for the week view: a blank header (the 7 day headers live
+ *  in the sliding pages) then the hour labels, with the column line up the side. */
+@Composable
+fun WeekAxisColumn(
+    scroll: androidx.compose.foundation.ScrollState,
+    modifier: Modifier = Modifier,
+) {
+    val gridColor = MaterialTheme.colorScheme.outline
+    Column(
+        modifier.width(GUTTER).drawBehind {
+            drawLine(gridColor, Offset(size.width, 0f), Offset(size.width, size.height), strokeWidth = 1f)
+        },
+    ) {
+        Spacer(Modifier.height(WEEK_HEADER_H))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+        Box(Modifier.weight(1f).verticalScroll(scroll)) {
+            Column(Modifier.height(HOUR_H * HOURS)) {
+                for (h in 0 until HOURS) {
+                    Box(Modifier.height(HOUR_H).fillMaxWidth()) {
+                        if (h > 0) {
+                            Text(
+                                hourLabel(h),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.offset(y = (-7).dp).padding(end = 5.dp).fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One week's page: a frozen header (7 day headers + all-day strip, fixed height)
+ *  above the 7-column hour grid that scrolls with the axis. [events] localised. */
+@Composable
+fun WeekGridPage(
+    days: List<String>,
+    events: List<CalEventDto>,
+    today: String,
+    nowColor: String,
+    scroll: androidx.compose.foundation.ScrollState,
+    onEventClick: (CalEventDto) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gridColor = MaterialTheme.colorScheme.outline
+    Column(modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxWidth().height(WEEK_HEADER_H)) {
+            Row(Modifier.fillMaxWidth()) {
+                days.forEach { iso -> DayHeader(iso, isToday = iso == today, modifier = Modifier.weight(1f)) }
+            }
+            Row(Modifier.fillMaxWidth().weight(1f)) {
+                days.forEach { iso ->
+                    Column(
+                        Modifier.weight(1f).padding(horizontal = 1.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        events.filter { it.allDay && it.dayISO == iso }.take(2).forEach { e ->
+                            AllDayChip(e) { onEventClick(e) }
+                        }
+                    }
+                }
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+        Box(Modifier.weight(1f).verticalScroll(scroll)) {
+            Row(Modifier.fillMaxWidth().height(HOUR_H * HOURS)) {
+                days.forEach { iso ->
+                    DayColumn(
+                        iso = iso,
+                        events = events.filter { !it.allDay && it.dayISO == iso },
+                        isToday = iso == today,
+                        nowColor = nowColor,
+                        gridColor = gridColor,
+                        onEventClick = onEventClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

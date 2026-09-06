@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.50.1 — Week frozen column + Today slide fix
+- Week view now has the frozen time column like the day view: the hour axis and
+  day/date headers stay put while only the days slide.
+- The column line now runs the full height (through the header) on day, 3-day and
+  week — with the date beside it on day, blank on 3-day/week — at the same weight
+  as the grid lines.
+- Fixed Today: it now actually slides back in the right direction instead of
+  jumping and sticking a day/week/month short (the settle handler was cancelling
+  the animation).
+
 ## 0.50.0 — Today slide + week pager
 - Tapping Today now slides quickly back to today in the correct direction instead
   of jumping (across day, week, month, and the month dropdown).

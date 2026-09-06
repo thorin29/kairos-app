@@ -39,6 +39,9 @@ data class CalendarUiState(
     val createError: String? = null,
     val deleting: Boolean = false,
     val deleteError: String? = null,
+    /** Bumped on an external date jump (Today / dropdown) so the pagers animate
+     *  to it; the pager's own settle does NOT bump it, avoiding a cancel loop. */
+    val navNonce: Int = 0,
 )
 
 /**
@@ -267,12 +270,12 @@ class CalendarViewModel(
     }
 
     fun goToday() {
-        _ui.value.data?.let { d -> _ui.update { it.copy(date = d.today) }; load() }
+        _ui.value.data?.let { d -> _ui.update { it.copy(date = d.today, navNonce = it.navNonce + 1) }; load() }
     }
 
     /** Navigate to a date while keeping the current view (month-dropdown tap). */
     fun goToDate(iso: String) {
-        _ui.update { it.copy(date = iso) }
+        _ui.update { it.copy(date = iso, navNonce = it.navNonce + 1) }
         load()
     }
     /** Jump to the first day of the month n months from the current anchor
