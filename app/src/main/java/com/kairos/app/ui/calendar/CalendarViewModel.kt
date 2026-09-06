@@ -121,8 +121,6 @@ class CalendarViewModel(
     private fun load() {
         val s = _ui.value
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
-        _pages.value = emptyMap()
-        _monthPages.value = emptyMap()
         viewModelScope.launch {
             try {
                 val data = session.loadCalendar(s.tab.serverValue, s.date)
@@ -142,6 +140,13 @@ class CalendarViewModel(
 
     /** Public retry for the error state. */
     fun reload() = load()
+
+    /** Drop the pager pre-fetch caches (after a mutation) so stale event data
+     *  isn't shown; navigation alone keeps them for smooth paging. */
+    private fun clearPageCaches() {
+        _pages.value = emptyMap()
+        _monthPages.value = emptyMap()
+    }
 
     fun setTab(tab: CalTab) {
         if (tab == _ui.value.tab) return
@@ -169,6 +174,7 @@ class CalendarViewModel(
                 session.deleteCalendarEvent(eventId, scope = scope, occurrenceISO = occurrenceISO)
                 _ui.update { it.copy(deleting = false) }
                 onDone()
+                clearPageCaches()
                 load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(deleting = false, deleteError = e.error.message) }
@@ -185,6 +191,7 @@ class CalendarViewModel(
                 session.createCalendarEvent(req)
                 _ui.update { it.copy(creating = false) }
                 onDone()
+                clearPageCaches()
                 load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(creating = false, createError = e.error.message) }
@@ -202,6 +209,7 @@ class CalendarViewModel(
                 session.updateCalendarEvent(req)
                 _ui.update { it.copy(creating = false) }
                 onDone()
+                clearPageCaches()
                 load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(creating = false, createError = e.error.message) }

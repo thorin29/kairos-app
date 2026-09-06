@@ -280,22 +280,10 @@ private fun CalendarBody(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut(),
         ) {
-            Column(
-                Modifier.pointerInput(data.date) {
-                    var d = 0f
-                    val t = 56.dp.toPx()
-                    detectHorizontalDragGestures(
-                        onDragStart = { d = 0f },
-                        onDragEnd = {
-                            if (d <= -t) vm.goToMonthStart(1) else if (d >= t) vm.goToMonthStart(-1)
-                        },
-                    ) { _, amount -> d += amount }
-                },
-            ) {
-                // Keep the dropdown open after picking a day (collapse only via the
-                // month-name toggle).
-                MiniMonthDropdown(data) { iso -> vm.goToDate(iso) }
-            }
+            // The mini-month is its own left/right finger-follow pager (separate
+            // from the main month view, which pages vertically). Picking a day or
+            // settling on a new month navigates the view behind it.
+            MiniMonthPager(vm, data.date) { iso -> vm.goToDate(iso) }
         }
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -377,7 +365,7 @@ private fun MonthPager(
         }
     }
 
-    androidx.compose.foundation.pager.HorizontalPager(
+    androidx.compose.foundation.pager.VerticalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
     ) { page ->
@@ -463,6 +451,56 @@ private fun DayPager(
 }
 
 // ---- Month dropdown (mini-month with dots) ----
+
+/**
+ * Mini-month picker as a left/right finger-follow pager. Each page is a month;
+ * neighbours are pre-fetched. Picking a day or settling on a new month navigates
+ * the view behind the dropdown.
+ */
+@Composable
+private fun MiniMonthPager(
+    vm: CalendarViewModel,
+    anchorDate: String,
+    onPickDay: (String) -> Unit,
+) {
+    val monthPages by vm.monthPages.collectAsState()
+    val base = remember { java.time.LocalDate.parse(anchorDate).withDayOfMonth(1) }
+    val center = 6000
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = center,
+        pageCount = { 12001 },
+    )
+    fun keyFor(page: Int): String = base.plusMonths((page - center).toLong()).toString()
+
+    LaunchedEffect(pagerState.currentPage) {
+        for (o in -1..1) vm.ensureMonth(keyFor(pagerState.currentPage + o))
+    }
+    val settledKey = keyFor(pagerState.settledPage)
+    LaunchedEffect(settledKey) {
+        // Navigate only on an actual month change (skip the initial settle).
+        if (settledKey.take(7) != anchorDate.take(7)) onPickDay(settledKey)
+    }
+    LaunchedEffect(anchorDate) {
+        val target = center + java.time.temporal.ChronoUnit.MONTHS.between(
+            base, java.time.LocalDate.parse(anchorDate).withDayOfMonth(1),
+        ).toInt()
+        if (target in 0 until 12001 && target != pagerState.currentPage) {
+            pagerState.scrollToPage(target)
+        }
+    }
+
+    androidx.compose.foundation.pager.HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxWidth().height(310.dp),
+    ) { page ->
+        val pd = monthPages[keyFor(page)]
+        if (pd != null) {
+            MiniMonthDropdown(pd, onPickDay)
+        } else {
+            Box(Modifier.fillMaxWidth().height(310.dp))
+        }
+    }
+}
 
 @Composable
 private fun MiniMonthDropdown(data: CalendarDto, onPick: (String) -> Unit) {

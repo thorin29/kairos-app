@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.49.1 — Month scroll directions
+- The main month view now pages up and down (not left/right).
+- The month dropdown in day/3-day/week views is now its own left/right
+  finger-follow pager — grab and slide between months, snap to the nearest,
+  with neighbours pre-fetched. Picking a day or landing on a new month navigates
+  the view behind it.
+- Pager caches now persist across navigation (cleared only after you add/edit/
+  delete an event), so paging stays smooth.
+
 ## 0.49.0 — Top shadow + month pager
 - Replaced the line under the expanded month dropdown with a soft shadow along the
   top of the day/3-day/week content — it stays whether the month is expanded or
