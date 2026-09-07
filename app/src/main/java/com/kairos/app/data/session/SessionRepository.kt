@@ -329,6 +329,29 @@ class SessionRepository(
         runAuthed { requireService().createEvent(body) }
     }
 
+    suspend fun loadMoney(user: String?): com.kairos.app.data.remote.dto.MoneyDto =
+        runAuthed { requireService().money(user) }
+
+    suspend fun addMoneyEntry(body: com.kairos.app.data.remote.dto.AddMoneyRequest) {
+        runAuthed { requireService().addMoneyEntry(body) }
+    }
+
+    suspend fun approveRewardMonth(periodKey: String) {
+        runAuthed {
+            requireService().approveRewardMonth(
+                com.kairos.app.data.remote.dto.RewardApproveMonthRequest(periodKey),
+            )
+        }
+    }
+
+    suspend fun approveRewardBase(userId: String, periodKey: String) {
+        runAuthed {
+            requireService().approveRewardBase(
+                com.kairos.app.data.remote.dto.RewardApproveBaseRequest(userId, periodKey),
+            )
+        }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -450,6 +473,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 118
+        const val CLIENT_BUILD = 119
     }
 }

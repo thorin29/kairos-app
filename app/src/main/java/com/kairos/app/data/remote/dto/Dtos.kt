@@ -982,3 +982,73 @@ data class UpdateEventRequest(
     val eventTypeId: String? = null,
     val participants: List<String>? = null,
 )
+
+// ---- Money (GET /money, POST /money/entry, reward approvals) ----
+
+@Serializable
+data class MoneyDto(
+    val today: String = "",
+    val participants: List<MoneyParticipantDto> = emptyList(),
+    val selectedId: String? = null,
+    val rows: List<MoneyRowDto> = emptyList(),
+    val roster: List<PersonDto> = emptyList(),
+    val frequentPayments: List<String> = emptyList(),
+    val canApproveRewards: Boolean = false,
+    val rewardMonths: List<MoneyRewardMonthDto> = emptyList(),
+)
+
+@Serializable
+data class MoneyParticipantDto(
+    val person: PersonDto? = null,
+    val balanceCents: Long = 0,
+)
+
+@Serializable
+data class MoneyRowDto(
+    val id: String = "",
+    val date: String = "",
+    val direction: String = "DEPOSIT",
+    val category: String? = null,
+    val detail: String? = null,
+    val amountCents: Long = 0,
+    val status: String = "PENDING",
+    val kind: String = "MANUAL",
+)
+
+@Serializable
+data class MoneyRewardMonthDto(
+    val periodKey: String = "",
+    val label: String = "",
+    val bonusAvailable: Boolean = false,
+    val bonusCents: Long = 0,
+    val completers: List<MoneyRewardCompleterDto> = emptyList(),
+)
+
+@Serializable
+data class MoneyRewardCompleterDto(
+    val userId: String = "",
+    val name: String = "",
+    val baseCents: Long = 0,
+    val needsBase: Boolean = false,
+)
+
+@Serializable
+data class AddMoneyRequest(
+    val userId: String,
+    val direction: String,
+    val amountCents: Long,
+    val category: String? = null,
+    val detail: String? = null,
+    val date: String? = null,
+)
+
+@Serializable
+data class RewardApproveMonthRequest(
+    val periodKey: String,
+)
+
+@Serializable
+data class RewardApproveBaseRequest(
+    val userId: String,
+    val periodKey: String,
+)

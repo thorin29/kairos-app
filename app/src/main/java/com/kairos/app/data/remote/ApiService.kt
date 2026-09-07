@@ -255,4 +255,16 @@ interface ApiService {
 
     @POST("devices/{id}/revoke")
     suspend fun revokeDevice(@Path("id") id: String): Response<RevokeDeviceResponse>
+
+    @GET("money")
+    suspend fun money(@Query("user") user: String? = null): Response<com.kairos.app.data.remote.dto.MoneyDto>
+
+    @POST("money/entry")
+    suspend fun addMoneyEntry(@Body body: com.kairos.app.data.remote.dto.AddMoneyRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/rewards/approve-month")
+    suspend fun approveRewardMonth(@Body body: com.kairos.app.data.remote.dto.RewardApproveMonthRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/rewards/approve-base")
+    suspend fun approveRewardBase(@Body body: com.kairos.app.data.remote.dto.RewardApproveBaseRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }

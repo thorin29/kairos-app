@@ -136,3 +136,20 @@ custom glyphs rather than adding the dependency. To baseline-align an icon to te
 (bottom of icon on the text baseline), report the icon's baseline as its bottom via a
 `layout{}` modifier (`FirstBaseline`/`LastBaseline` → height) and `alignByBaseline()`
 on both — see `ui/common/Attendance.kt`.
+
+## Money screen: reward approvals are admin-gated by the device role (v0.72.0)
+The Money section mirrors the web read-only `/money` page (per-person ledger +
+add), plus one thing the web keeps behind the PIN: **Bible-reading reward
+approval**, surfaced here only when the enrolled person's `role == "ADMIN"`
+(`GET /money` sends `canApproveRewards` + `rewardMonths`, empty for non-admins).
+No PIN — the device token already proves the parent. Each approval goes through
+an `AnimatedDialog` confirm (per person or "Approve all [+ bonus]"). Generic
+transaction approve/edit/delete, starting funds, and CSV import stay web-admin.
+
+Layout note: the people-selector row **collapses when there's a single
+participant** (a lone child sees just their ledger), and the add-form "For"
+picker hides when the roster has one person. Amounts are whole **cents** on the
+wire (`amountCents`), parsed from the dollar field on-device (no regex — manual
+split to dodge the Kotlin backslash-escaping trap). Reused patterns: RollPicker
+for every select, `DatePickerDialog` for the date (as in the calendar editor),
+`collectAsState()` for screen state, and act-then-reload in the ViewModel.

@@ -26,7 +26,7 @@ val APP_SECTIONS: List<AppSection> = listOf(
     AppSection("games", "Game time", Color(0xFF059669), KairosIcons.Gamepad),
     AppSection("workouts", "Workouts", Color(0xFFDC2626), KairosIcons.Dumbbell),
     AppSection("groceries", "Groceries", Color(0xFF0D9488), KairosIcons.Cart),
-    AppSection("money", "Money", Color(0xFF15803D), KairosIcons.Dollar),
+    AppSection("money", "Money", Color(0xFF15803D), KairosIcons.Dollar, built = true),
     AppSection("characters", "Characters", Color(0xFFDB2777), KairosIcons.Trophy),
 )
 

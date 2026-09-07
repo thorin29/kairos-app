@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.72.0 — Money
+- New Money section: per-person ledger with running balances, add a deposit or
+  payment (lands pending, balance moves right away), and search your transactions.
+  A single person collapses the people selector automatically.
+- Parent admins can approve the month’s Bible-reading rewards right from the phone
+  (per person or all at once), with a confirm pop-up — no PIN needed.
+
 ## 0.71.2 — Week view names on one line
 - Week view event names now show on a single line with “…” when too long, instead of a
   word breaking into an ugly fragment on the next line (e.g. a lone “p”). Day and 3-day
