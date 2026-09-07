@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.66.0 — Log a HIIT/CrossFit workout by name
+- "Log a different workout" now shows "HIIT/CrossFit", and picking it lists your
+  named workouts — the shared library (admin, incl. Hero) plus your own — instead
+  of loose movements. Logging one records the result its type calls for.
+
 ## 0.65.0 — Share icon, calculator label, smoother pop-ups
 - Proper Material “share” node icon on the browse cards.
 - Pop-up dialogs now ease in smoothly (fade + gentle scale from centre) without the

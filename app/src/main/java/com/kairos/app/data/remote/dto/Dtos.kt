@@ -531,6 +531,17 @@ data class DeleteAckDto(
 data class WorkoutPoolDto(
     val categories: List<LogCategoryDto> = emptyList(),
     val exercises: List<PoolExerciseDto> = emptyList(),
+    val hiitWorkouts: List<HiitLogOptionDto> = emptyList(),
+)
+
+@Serializable
+data class HiitLogOptionDto(
+    val id: String,
+    val name: String,
+    val hero: Boolean = false,
+    val resultMetric: String = "REPS",
+    val resultLabel: String = "Result",
+    val resultUnit: String = "",
 )
 
 @Serializable
@@ -561,6 +572,7 @@ data class CustomLogRequest(
     val date: String,
     val category: String? = null,
     val poolExerciseId: String? = null,
+    val hiitWorkoutId: String? = null,
     val metric: String,
     val value: Double,
     val unit: String = "",

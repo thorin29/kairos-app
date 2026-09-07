@@ -18,9 +18,11 @@ data class CustomUiState(
     val loading: Boolean = true,
     val categories: List<LogCategoryDto> = emptyList(),
     val exercises: List<PoolExerciseDto> = emptyList(),
+    val hiitWorkouts: List<com.kairos.app.data.remote.dto.HiitLogOptionDto> = emptyList(),
     val categoryKey: String = "",
     val metricKey: String = "",
     val exerciseId: String = "",
+    val hiitWorkoutId: String = "",
     val value: String = "",
     val load: String = "",
     val notes: String = "",
@@ -32,6 +34,12 @@ data class CustomUiState(
     val metric: MetricOptionDto? get() = category?.metrics?.firstOrNull { it.key == metricKey }
     val exercisesForCategory: List<PoolExerciseDto>
         get() = exercises.filter { it.category == categoryKey }
+
+    /** HIIT/CrossFit logs a named workout as one result whose metric follows the
+     *  workout type. */
+    val isHiit: Boolean get() = categoryKey == "HIIT"
+    val selectedHiit: com.kairos.app.data.remote.dto.HiitLogOptionDto?
+        get() = hiitWorkouts.firstOrNull { it.id == hiitWorkoutId }
 }
 
 class CustomWorkoutViewModel(
@@ -52,9 +60,11 @@ class CustomWorkoutViewModel(
                         loading = false,
                         categories = pool.categories,
                         exercises = pool.exercises,
+                        hiitWorkouts = pool.hiitWorkouts,
                         categoryKey = first?.key ?: "",
                         metricKey = first?.metrics?.firstOrNull()?.key ?: "",
                         exerciseId = pool.exercises.firstOrNull { e -> e.category == first?.key }?.id ?: "",
+                        hiitWorkoutId = if (first?.key == "HIIT") pool.hiitWorkouts.firstOrNull()?.id ?: "" else "",
                     )
                 }
             } catch (e: ApiException) {
@@ -70,10 +80,14 @@ class CustomWorkoutViewModel(
                 categoryKey = key,
                 metricKey = cat?.metrics?.firstOrNull()?.key ?: "",
                 exerciseId = s.exercises.firstOrNull { it.category == key }?.id ?: "",
+                hiitWorkoutId = if (key == "HIIT") s.hiitWorkouts.firstOrNull()?.id ?: "" else "",
+                value = "",
                 error = null,
             )
         }
     }
+
+    fun onHiitWorkout(id: String) = _ui.update { it.copy(hiitWorkoutId = id, error = null) }
 
     fun onMetric(key: String) = _ui.update { it.copy(metricKey = key, error = null) }
     fun onExercise(id: String) = _ui.update { it.copy(exerciseId = id, error = null) }
@@ -83,13 +97,40 @@ class CustomWorkoutViewModel(
 
     fun submit() {
         val s = _ui.value
-        val cat = s.category ?: return
-        val metric = s.metric ?: return
         val v = s.value.trim().toDoubleOrNull()
         if (v == null || v <= 0) {
             _ui.update { it.copy(error = "Enter a value.") }
             return
         }
+        // HIIT/CrossFit: log the chosen named workout as one type-appropriate result.
+        if (s.isHiit) {
+            val w = s.selectedHiit
+            if (w == null) {
+                _ui.update { it.copy(error = "Pick a workout.") }
+                return
+            }
+            _ui.update { it.copy(saving = true, error = null) }
+            viewModelScope.launch {
+                try {
+                    session.logCustom(
+                        CustomLogRequest(
+                            date = date,
+                            hiitWorkoutId = w.id,
+                            metric = w.resultMetric,
+                            value = v,
+                            unit = w.resultUnit,
+                            notes = s.notes.trim().ifBlank { null },
+                        ),
+                    )
+                    _ui.update { it.copy(saving = false, done = true) }
+                } catch (e: ApiException) {
+                    _ui.update { it.copy(saving = false, error = e.error.message) }
+                }
+            }
+            return
+        }
+        val cat = s.category ?: return
+        val metric = s.metric ?: return
         if (cat.isPool && s.exerciseId.isBlank()) {
             _ui.update { it.copy(error = "Pick an exercise.") }
             return

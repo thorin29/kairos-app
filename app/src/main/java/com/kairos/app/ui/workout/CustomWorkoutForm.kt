@@ -66,7 +66,7 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
                 modifier = Modifier.weight(1f),
             )
             val metrics = ui.category?.metrics.orEmpty()
-            if (metrics.size > 1) {
+            if (!ui.isHiit && metrics.size > 1) {
                 RollPicker(
                     label = "Record",
                     selectedLabel = ui.metric?.label ?: "",
@@ -77,7 +77,23 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
             }
         }
 
-        if (ui.category?.isPool == true) {
+        if (ui.isHiit) {
+            if (ui.hiitWorkouts.isEmpty()) {
+                Text(
+                    "No HIIT/CrossFit workouts yet — create one first.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                RollPicker(
+                    label = "Workout",
+                    selectedLabel = ui.selectedHiit?.name ?: "",
+                    options = ui.hiitWorkouts.map { it.id to it.name },
+                    onSelect = vm::onHiitWorkout,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else if (ui.category?.isPool == true) {
             val exs = ui.exercisesForCategory
             if (exs.isEmpty()) {
                 Text(
@@ -96,19 +112,21 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
             }
         }
 
+        val resultLabel = if (ui.isHiit) (ui.selectedHiit?.resultLabel ?: "Result") else (ui.metric?.label ?: "Result")
+        val resultUnit = if (ui.isHiit) (ui.selectedHiit?.resultUnit ?: "") else (ui.metric?.unit ?: "")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
             OutlinedTextField(
                 value = ui.value,
                 onValueChange = vm::onValue,
-                label = { Text(ui.metric?.label ?: "Result") },
+                label = { Text(resultLabel) },
                 placeholder = { Text("0") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f),
             )
-            if ((ui.metric?.unit ?: "").isNotBlank()) {
+            if (resultUnit.isNotBlank()) {
                 Text(
-                    ui.metric!!.unit,
+                    resultUnit,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 20.dp),
@@ -116,7 +134,7 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
             }
         }
 
-        if (ui.category?.load == true) {
+        if (!ui.isHiit && ui.category?.load == true) {
             OutlinedTextField(
                 value = ui.load,
                 onValueChange = vm::onLoad,
