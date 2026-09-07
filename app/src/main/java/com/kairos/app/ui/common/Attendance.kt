@@ -59,6 +59,10 @@ fun AttendeesColumn(
     Column(modifier, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         attendees.forEach { a ->
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (a.state.isNotBlank()) {
+                    AttendanceIcon(a.state, Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                }
                 Text(
                     a.name,
                     style = MaterialTheme.typography.bodySmall,
@@ -67,10 +71,6 @@ fun AttendeesColumn(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.End,
                 )
-                if (a.state.isNotBlank()) {
-                    Spacer(Modifier.width(4.dp))
-                    AttendanceIcon(a.state, Modifier.size(16.dp))
-                }
             }
         }
     }

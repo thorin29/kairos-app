@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.69.1 — Attendance icon polish
+- Moved the attendance marker to the left of each name.
+- Redrew the person markers so the check / X / ? sits higher and centered, with a
+  fuller body, instead of looking cut off at the bottom.
+
 ## 0.69.0 — Per-person attendance markers
 - Sport events now show a per-person marker: a green check-person for attended, a red
   X-person for did not attend, and a light-grey question-person when it's not answered
