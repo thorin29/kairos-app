@@ -15,13 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +41,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.BrowseWorkoutDto
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,50 +120,56 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
 
     // People picker for sharing.
     shareFor?.let { w ->
-        var target by remember(w.id) { mutableStateOf<String?>(null) }
-        AlertDialog(
+        var targets by remember(w.id) { mutableStateOf(setOf<String>()) }
+        AnimatedDialog(
             onDismissRequest = { shareFor = null },
+            title = "Share \u201c${w.name}\u201d",
             confirmButton = {
                 TextButton(
-                    enabled = target != null,
-                    onClick = { target?.let { t -> vm.share(w.id, t) { shareFor = null } } },
+                    enabled = targets.isNotEmpty(),
+                    onClick = { vm.share(w.id, targets.toList()) { shareFor = null } },
                 ) { Text("Share") }
             },
             dismissButton = { TextButton(onClick = { shareFor = null }) { Text("Cancel") } },
-            title = { Text("Share \"${w.name}\"") },
-            text = {
-                if (ui.people.isEmpty()) {
-                    Text("No one else to share with yet.")
-                } else {
-                    Column {
-                        Text(
-                            "Share with:",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                        ui.people.forEach { p ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth().clickable { target = p.id },
-                            ) {
-                                RadioButton(selected = target == p.id, onClick = { target = p.id })
-                                Text(p.name)
-                            }
+        ) {
+            if (ui.people.isEmpty()) {
+                Text("No one else to share with yet.")
+            } else {
+                Column {
+                    Text(
+                        "Share with:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                    ui.people.forEach { p ->
+                        val checked = p.id in targets
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                targets = if (checked) targets - p.id else targets + p.id
+                            },
+                        ) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { on -> targets = if (on) targets + p.id else targets - p.id },
+                            )
+                            Text(p.name)
                         }
                     }
                 }
-            },
-        )
+            }
+        }
     }
 
     if (ui.shared) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { vm.clearShared() },
+            title = "Shared",
             confirmButton = { TextButton(onClick = { vm.clearShared() }) { Text("OK") } },
-            title = { Text("Shared") },
-            text = { Text("They now have their own copy.") },
-        )
+        ) {
+            Text("They now have their own copy.")
+        }
     }
 }
 

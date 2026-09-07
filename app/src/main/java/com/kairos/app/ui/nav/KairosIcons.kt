@@ -128,5 +128,5 @@ object KairosIcons {
     val ViewMonth = stroked("ViewMonth", "M4 5h16v14H4Z", "M4 10h16", "M4 15h16", "M9.33 5v14", "M14.66 5v14")
     val Trash = stroked("Trash", "M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13", "M10 11v6M14 11v6")
     val ChevronDown = stroked("ChevronDown", "M6 9l6 6 6-6")
-    val Share = stroked("Share", "M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7", "M12 3v13", "M8 7l4-4 4 4")
+    val Share = stroked("Share", "M4 20v-1a7 7 0 017-7h9", "M15 8l5 4-5 4")
 }

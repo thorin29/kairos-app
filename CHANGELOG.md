@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.64.0 — Share to many, smoother pop-ups, HIIT logging option
+- Share a workout with more than one person at once (checkboxes), with a cleaner
+  share arrow icon on the browse cards.
+- Pop-ups (share, confirmations) now ease in with a soft fade + scale, matching the
+  roll-down menus — via a reusable animated dialog.
+- "Log a different workout" now offers HIIT/CrossFit, and all its dropdowns use the
+  same smooth roller as the Create / Edit form.
+
 ## 0.63.0 — Event delete rules, workout share icon, custom-exercise editing
 - Admin/system events (holidays, profile birthdays, school work, family events,
   subscribed calendars) no longer show a delete icon in their detail.

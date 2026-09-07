@@ -55,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
@@ -405,65 +406,6 @@ private fun AddCustomExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String)
     )
 }
 
-/** A dropdown that rolls open/closed smoothly (instead of appearing instantly). */
-@Composable
-private fun RollPicker(
-    label: String,
-    selectedLabel: String,
-    options: List<Pair<String, String>>,
-    onSelect: (String) -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                .clickable(enabled = enabled) { expanded = !expanded }
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    selectedLabel.ifBlank { "Choose…" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (selectedLabel.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            Icon(
-                KairosIcons.ChevronDown, null,
-                Modifier.rotate(if (expanded) 180f else 0f),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            Surface(
-                tonalElevation = 2.dp,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            ) {
-                Column {
-                    options.forEach { (key, lbl) ->
-                        OptionRow(lbl) { onSelect(key); expanded = false }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun OptionRow(label: String, onClick: () -> Unit) {

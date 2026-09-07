@@ -10,11 +10,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -33,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 
 /** "Log a different workout" — the ad-hoc form (Type / Record / Exercise /
@@ -62,7 +58,7 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            DropdownField(
+            RollPicker(
                 label = "Type",
                 selectedLabel = ui.category?.label ?: "",
                 options = ui.categories.map { it.key to it.label },
@@ -71,7 +67,7 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
             )
             val metrics = ui.category?.metrics.orEmpty()
             if (metrics.size > 1) {
-                DropdownField(
+                RollPicker(
                     label = "Record",
                     selectedLabel = ui.metric?.label ?: "",
                     options = metrics.map { it.key to it.label },
@@ -90,7 +86,7 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                DropdownField(
+                RollPicker(
                     label = "Exercise",
                     selectedLabel = exs.firstOrNull { it.id == ui.exerciseId }?.name ?: "",
                     options = exs.map { it.id to it.name },
@@ -154,42 +150,3 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DropdownField(
-    label: String,
-    selectedLabel: String,
-    options: List<Pair<String, String>>,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier,
-    ) {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { (key, text) ->
-                DropdownMenuItem(
-                    text = { Text(text) },
-                    onClick = {
-                        onSelect(key)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}

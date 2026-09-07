@@ -38,10 +38,14 @@ class BrowseWorkoutsViewModel(private val session: SessionRepository) : ViewMode
         }
     }
 
-    fun share(workoutId: String, targetUserId: String, onDone: () -> Unit) {
+    fun share(workoutId: String, targetUserIds: List<String>, onDone: () -> Unit) {
+        if (targetUserIds.isEmpty()) { onDone(); return }
         viewModelScope.launch {
-            runCatching { session.shareWorkout(workoutId, targetUserId) }
-                .onSuccess { _ui.update { it.copy(shared = true) } }
+            var any = false
+            for (t in targetUserIds) {
+                runCatching { session.shareWorkout(workoutId, t) }.onSuccess { any = true }
+            }
+            if (any) _ui.update { it.copy(shared = true) }
             onDone()
         }
     }
