@@ -34,6 +34,23 @@ private fun stroked(name: String, vararg paths: String): ImageVector {
     return builder.build()
 }
 
+/** A solid (filled) icon from one path — used where a filled glyph reads better,
+ *  like the Material share nodes. Icon() tints it. */
+private fun filled(name: String, path: String): ImageVector {
+    val builder = ImageVector.Builder(
+        name = name,
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    )
+    builder.addPath(
+        pathData = PathParser().parsePathString(path).toNodes(),
+        fill = SolidColor(Color.Black),
+    )
+    return builder.build()
+}
+
 object KairosIcons {
     val Home = stroked(
         "Home",
@@ -128,5 +145,8 @@ object KairosIcons {
     val ViewMonth = stroked("ViewMonth", "M4 5h16v14H4Z", "M4 10h16", "M4 15h16", "M9.33 5v14", "M14.66 5v14")
     val Trash = stroked("Trash", "M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13", "M10 11v6M14 11v6")
     val ChevronDown = stroked("ChevronDown", "M6 9l6 6 6-6")
-    val Share = stroked("Share", "M4 20v-1a7 7 0 017-7h9", "M15 8l5 4-5 4")
+    val Share = filled(
+        "Share",
+        "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z",
+    )
 }

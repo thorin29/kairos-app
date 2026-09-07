@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.65.0 — Share icon, calculator label, smoother pop-ups
+- Proper Material “share” node icon on the browse cards.
+- Pop-up dialogs now ease in smoothly (fade + gentle scale from centre) without the
+  first-frame stutter.
+- "Weight calc" is now "Calculator".
+
 ## 0.64.0 — Share to many, smoother pop-ups, HIIT logging option
 - Share a workout with more than one person at once (checkboxes), with a cleaner
   share arrow icon on the browse cards.
