@@ -184,7 +184,7 @@ fun WorkoutsScreen(
                             KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
                         ) { onOpenBrowse() }
                         ActionCard(
-                            KairosIcons.Plus, "Create workout", Modifier.weight(1f),
+                            KairosIcons.Plus, "Create / Edit", Modifier.weight(1f),
                         ) { onOpenCreatePersonal() }
                         ActionCard(
                             KairosIcons.Dumbbell, "Weight calc", Modifier.weight(1f),

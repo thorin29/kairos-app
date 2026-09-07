@@ -438,17 +438,35 @@ data class BrowseResponse(val items: List<BrowseWorkoutDto> = emptyList())
 data class WorkoutTypeOptionDto(val key: String, val label: String)
 
 @Serializable
-data class BuilderMovementDto(val id: String, val name: String, val category: String)
+data class BuilderMovementDto(val id: String, val name: String)
 
 @Serializable
 data class SharePersonDto(val id: String, val name: String)
 
 @Serializable
+data class MyWorkoutMovementDto(
+    val poolExerciseId: String,
+    val reps: Int? = null,
+    val distance: Double? = null,
+    val weight: Double? = null,
+)
+
+@Serializable
+data class MyWorkoutDto(
+    val id: String,
+    val name: String,
+    val type: String = "",
+    val capSec: Int? = null,
+    val notes: String? = null,
+    val movements: List<MyWorkoutMovementDto> = emptyList(),
+)
+
+@Serializable
 data class WorkoutBuilderDto(
     val types: List<WorkoutTypeOptionDto> = emptyList(),
-    val categories: List<LogCategoryDto> = emptyList(),
     val movements: List<BuilderMovementDto> = emptyList(),
     val people: List<SharePersonDto> = emptyList(),
+    val myWorkouts: List<MyWorkoutDto> = emptyList(),
 )
 
 @Serializable
@@ -461,6 +479,16 @@ data class PersonalMovementReq(
 
 @Serializable
 data class CreatePersonalWorkoutRequest(
+    val name: String,
+    val type: String,
+    val capSec: Int? = null,
+    val notes: String? = null,
+    val movements: List<PersonalMovementReq> = emptyList(),
+)
+
+@Serializable
+data class UpdatePersonalWorkoutRequest(
+    val workoutId: String,
     val name: String,
     val type: String,
     val capSec: Int? = null,

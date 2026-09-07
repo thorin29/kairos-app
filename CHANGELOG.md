@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.62.0 — Create / Edit workouts
+- The workout button is now "Create / Edit". The name box lists your saved workouts:
+  pick one to load it (read-only), tap Edit (top right) to change any field including
+  the name, with Delete + confirm; or type a new name to build one.
+- Exercises come from the HIIT/CrossFit pool only; custom exercises you add go into
+  that pool for you alone. "Movements" is now "Exercises", "Notes" is "Instructions".
+- The time cap now shows only for the types that use one (minutes for AMRAP, seconds
+  for timed stations) and is hidden otherwise.
+- Type and exercise dropdowns now roll open and closed smoothly.
+
 ## 0.61.2 — Personal workouts
 - New "Create workout" button (bottom actions are now one even grid) opens a form to
   build your own HIIT/CrossFit workout: name, type, optional cap, movements with

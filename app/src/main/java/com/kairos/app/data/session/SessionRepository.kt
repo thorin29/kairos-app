@@ -224,6 +224,10 @@ class SessionRepository(
         runAuthed { requireService().createPersonalWorkout(body) }
     }
 
+    suspend fun updatePersonalWorkout(body: com.kairos.app.data.remote.dto.UpdatePersonalWorkoutRequest) {
+        runAuthed { requireService().updatePersonalWorkout(body) }
+    }
+
     suspend fun shareWorkout(workoutId: String, targetUserId: String) {
         runAuthed { requireService().shareWorkout(com.kairos.app.data.remote.dto.ShareWorkoutRequest(workoutId, targetUserId)) }
     }
@@ -438,6 +442,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 92
+        const val CLIENT_BUILD = 93
     }
 }

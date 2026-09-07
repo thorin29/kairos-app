@@ -4,8 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.dto.BuilderMovementDto
 import com.kairos.app.data.remote.dto.CreatePersonalWorkoutRequest
-import com.kairos.app.data.remote.dto.LogCategoryDto
+import com.kairos.app.data.remote.dto.MyWorkoutDto
 import com.kairos.app.data.remote.dto.PersonalMovementReq
+import com.kairos.app.data.remote.dto.UpdatePersonalWorkoutRequest
 import com.kairos.app.data.remote.dto.WorkoutTypeOptionDto
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,11 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** One movement chosen for the workout, with its editable metrics. */
+/** One exercise chosen for the workout, with its editable metrics. */
 data class MoveRow(
     val poolExerciseId: String,
     val name: String,
-    val category: String,
     val reps: String = "",
     val weight: String = "",
     val distance: String = "",
@@ -30,16 +30,26 @@ data class CreateWorkoutUi(
     val error: String? = null,
     val done: Boolean = false,
     val types: List<WorkoutTypeOptionDto> = emptyList(),
-    val categories: List<LogCategoryDto> = emptyList(),
     val pool: List<BuilderMovementDto> = emptyList(),
+    val myWorkouts: List<MyWorkoutDto> = emptyList(),
+    val editingId: String? = null,
+    val locked: Boolean = false,
     val name: String = "",
     val typeKey: String = "",
-    val capSec: String = "",
-    val notes: String = "",
+    val cap: String = "",
+    val instructions: String = "",
     val rows: List<MoveRow> = emptyList(),
 ) {
     val canSave: Boolean
         get() = name.trim().length >= 2 && typeKey.isNotBlank() && rows.isNotEmpty()
+
+    /** A time cap only applies to AMRAP (minutes) and Timed stations (seconds). */
+    val capLabel: String?
+        get() = when (typeKey) {
+            "AMRAP" -> "Time cap (min)"
+            "TIMED_STATIONS" -> "Station time (sec)"
+            else -> null
+        }
 }
 
 class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : ViewModel() {
@@ -56,8 +66,8 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
                     it.copy(
                         loading = false,
                         types = b.types,
-                        categories = b.categories,
                         pool = b.movements,
+                        myWorkouts = b.myWorkouts,
                         typeKey = it.typeKey.ifBlank { b.types.firstOrNull()?.key ?: "" },
                     )
                 }
@@ -67,14 +77,74 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
         }
     }
 
+    private fun capFromSec(type: String, capSec: Int?): String = when {
+        capSec == null -> ""
+        type == "AMRAP" -> (Math.round(capSec / 60.0)).toString()
+        type == "TIMED_STATIONS" -> capSec.toString()
+        else -> ""
+    }
+
+    private fun capToSec(type: String, cap: String): Int? {
+        val n = cap.toIntOrNull() ?: return null
+        return when (type) {
+            "AMRAP" -> n * 60
+            "TIMED_STATIONS" -> n
+            else -> null
+        }
+    }
+
+    /** Load one of the person's existing workouts into the form (read-only until Edit). */
+    fun selectExisting(id: String) {
+        val w = _ui.value.myWorkouts.firstOrNull { it.id == id } ?: return
+        val poolById = _ui.value.pool.associateBy { it.id }
+        _ui.update {
+            it.copy(
+                editingId = w.id,
+                locked = true,
+                name = w.name,
+                typeKey = w.type,
+                cap = capFromSec(w.type, w.capSec),
+                instructions = w.notes ?: "",
+                error = null,
+                rows = w.movements.map { m ->
+                    MoveRow(
+                        poolExerciseId = m.poolExerciseId,
+                        name = poolById[m.poolExerciseId]?.name ?: "Exercise",
+                        reps = m.reps?.toString() ?: "",
+                        weight = m.weight?.toString() ?: "",
+                        distance = m.distance?.toString() ?: "",
+                    )
+                },
+            )
+        }
+    }
+
+    /** Start a fresh workout with a typed name. */
+    fun startNew(name: String) {
+        _ui.update {
+            it.copy(
+                editingId = null,
+                locked = false,
+                name = name,
+                typeKey = it.types.firstOrNull()?.key ?: "",
+                cap = "",
+                instructions = "",
+                rows = emptyList(),
+                error = null,
+            )
+        }
+    }
+
+    fun enableEdit() = _ui.update { it.copy(locked = false) }
+
     fun onName(v: String) = _ui.update { it.copy(name = v, error = null) }
     fun onType(v: String) = _ui.update { it.copy(typeKey = v) }
-    fun onCap(v: String) = _ui.update { it.copy(capSec = v.filter { c -> c.isDigit() }) }
-    fun onNotes(v: String) = _ui.update { it.copy(notes = v) }
+    fun onCap(v: String) = _ui.update { it.copy(cap = v.filter { c -> c.isDigit() }) }
+    fun onInstructions(v: String) = _ui.update { it.copy(instructions = v) }
 
-    fun addMovement(poolId: String) {
+    fun addExercise(poolId: String) {
         val m = _ui.value.pool.firstOrNull { it.id == poolId } ?: return
-        _ui.update { it.copy(rows = it.rows + MoveRow(m.id, m.name, m.category)) }
+        _ui.update { it.copy(rows = it.rows + MoveRow(m.id, m.name)) }
     }
 
     fun removeRow(index: Int) =
@@ -87,20 +157,19 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
     private fun editRow(index: Int, f: (MoveRow) -> MoveRow) =
         _ui.update { s -> s.copy(rows = s.rows.mapIndexed { i, r -> if (i == index) f(r) else r }) }
 
-    /** Add a brand-new movement (shows only in this person's menus) and select it. */
-    fun addCustomMovement(category: String, name: String, onDone: () -> Unit) {
+    /** Add a brand-new exercise to the HIIT pool (shows only in this person's menus) and select it. */
+    fun addCustomExercise(name: String, onDone: () -> Unit) {
         viewModelScope.launch {
             try {
-                val id = session.addMovement(category, name)
+                val id = session.addMovement("HIIT", name)
                 if (id != null) {
-                    // reload the pool so the new movement is pickable and add it now
                     val b = session.loadWorkoutBuilder()
                     _ui.update { it.copy(pool = b.movements) }
-                    addMovement(id)
+                    addExercise(id)
                 }
                 onDone()
             } catch (e: Exception) {
-                _ui.update { it.copy(error = e.message ?: "Couldn't add the movement.") }
+                _ui.update { it.copy(error = e.message ?: "Couldn't add the exercise.") }
                 onDone()
             }
         }
@@ -110,28 +179,40 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
         val s = _ui.value
         if (!s.canSave || s.saving) return
         _ui.update { it.copy(saving = true, error = null) }
+        val moves = s.rows.map { r ->
+            PersonalMovementReq(
+                poolExerciseId = r.poolExerciseId,
+                reps = r.reps.toIntOrNull(),
+                distance = r.distance.toDoubleOrNull(),
+                weight = r.weight.toDoubleOrNull(),
+            )
+        }
+        val capSec = capToSec(s.typeKey, s.cap)
+        val notes = s.instructions.trim().ifBlank { null }
         viewModelScope.launch {
             try {
-                session.createPersonalWorkout(
-                    CreatePersonalWorkoutRequest(
-                        name = s.name.trim(),
-                        type = s.typeKey,
-                        capSec = s.capSec.toIntOrNull(),
-                        notes = s.notes.trim().ifBlank { null },
-                        movements = s.rows.map { r ->
-                            PersonalMovementReq(
-                                poolExerciseId = r.poolExerciseId,
-                                reps = r.reps.toIntOrNull(),
-                                distance = r.distance.toDoubleOrNull(),
-                                weight = r.weight.toDoubleOrNull(),
-                            )
-                        },
-                    ),
-                )
+                if (s.editingId != null) {
+                    session.updatePersonalWorkout(
+                        UpdatePersonalWorkoutRequest(s.editingId, s.name.trim(), s.typeKey, capSec, notes, moves),
+                    )
+                } else {
+                    session.createPersonalWorkout(
+                        CreatePersonalWorkoutRequest(s.name.trim(), s.typeKey, capSec, notes, moves),
+                    )
+                }
                 _ui.update { it.copy(saving = false, done = true) }
             } catch (e: Exception) {
                 _ui.update { it.copy(saving = false, error = e.message ?: "Couldn't save.") }
             }
+        }
+    }
+
+    fun deleteWorkout() {
+        val id = _ui.value.editingId ?: return
+        _ui.update { it.copy(saving = true) }
+        viewModelScope.launch {
+            runCatching { session.deletePersonalWorkout(id) }
+            _ui.update { it.copy(saving = false, done = true) }
         }
     }
 }

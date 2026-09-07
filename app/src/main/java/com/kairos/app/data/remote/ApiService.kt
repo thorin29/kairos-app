@@ -130,6 +130,9 @@ interface ApiService {
     @POST("workouts/personal")
     suspend fun createPersonalWorkout(@Body body: com.kairos.app.data.remote.dto.CreatePersonalWorkoutRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
+    @POST("workouts/personal/update")
+    suspend fun updatePersonalWorkout(@Body body: com.kairos.app.data.remote.dto.UpdatePersonalWorkoutRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @POST("workouts/personal/share")
     suspend fun shareWorkout(@Body body: com.kairos.app.data.remote.dto.ShareWorkoutRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
