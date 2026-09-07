@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.61.0 — Personal workouts
+## 0.61.1 — Personal workouts
 - New "Create workout" button (bottom actions are now one even grid) opens a form to
   build your own HIIT/CrossFit workout: name, type, optional cap, movements with
   reps/weight/distance, and notes.
