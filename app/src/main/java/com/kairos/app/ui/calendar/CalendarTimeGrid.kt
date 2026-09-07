@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kairos.app.data.remote.dto.CalEventDto
 import com.kairos.app.data.remote.dto.CalendarDto
 import java.time.LocalDate
@@ -224,6 +225,7 @@ private fun DayColumn(
     gridColor: Color,
     onEventClick: (CalEventDto) -> Unit,
     modifier: Modifier,
+    compact: Boolean = false,
 ) {
     val placed = remember(events) { placeEvents(events) }
     val nowMin = if (isToday) deviceNowMinutes() else -1
@@ -261,9 +263,20 @@ private fun DayColumn(
             ) {
                 Text(
                     e.title,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = if (compact) {
+                        MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            lineHeight = 11.sp,
+                        )
+                    } else {
+                        MaterialTheme.typography.labelSmall
+                    },
                     color = Color.White,
-                    maxLines = if (h > 34.dp) 2 else 1,
+                    maxLines = when {
+                        compact && h > 48.dp -> 3
+                        h > 34.dp -> 2
+                        else -> 1
+                    },
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -471,6 +484,7 @@ fun WeekGridPage(
                         gridColor = gridColor,
                         onEventClick = onEventClick,
                         modifier = Modifier.weight(1f),
+                        compact = true,
                     )
                 }
             }

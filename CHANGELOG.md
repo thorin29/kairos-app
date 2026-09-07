@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.71.1 — Week view event text
+- Week view now uses a smaller chip font so more of an event name fits (many names
+  now show in full over two lines), with a clean “…” when a name is still too long —
+  instead of names breaking awkwardly across rows.
+
 ## 0.71.0 — Calendar colour picker rework
 - Calendar colour settings: "Now line" is now "Current time", with a bright bold
   palette (blue, red, orange, black, white, etc.) so it's easy to see.
