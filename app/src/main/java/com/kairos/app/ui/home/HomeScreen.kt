@@ -40,7 +40,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,9 +54,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -70,7 +66,12 @@ import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (String) -> Unit) {
+fun HomeScreen(
+    person: PersonDto,
+    onOpenDrawer: () -> Unit,
+    onLogWorkout: (String) -> Unit,
+    refreshKey: Int = 0,
+) {
     val container = rememberContainer()
     val vm: HomeViewModel = viewModel(
         factory = viewModelFactory {
@@ -80,15 +81,12 @@ fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (Strin
     val ui by vm.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
 
-    // Reload the day whenever Home is (re)shown — e.g. returning from logging a
-    // workout — so it reflects changes made on other screens.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) vm.load()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    // Reload the day when we return to Home (refreshKey is bumped by AppRoot each
+    // time Home becomes the current destination again) — reliable under our drawer
+    // navigation, unlike an ON_RESUME lifecycle observer. The initial load happens
+    // in the ViewModel's init, so refreshKey 0 is skipped.
+    LaunchedEffect(refreshKey) {
+        if (refreshKey > 0) vm.load()
     }
 
     LaunchedEffect(ui.actionError) {

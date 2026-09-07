@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.68.6 — Reliable dashboard refresh on return
+- The home dashboard now reloads when you come back to it (e.g. after logging a
+  workout on another screen) via a navigation signal instead of the unreliable
+  ON_RESUME hook, so today's counts stay current.
+
 ## 0.68.5 — Apply the state-collection fix app-wide
 - Converted every screen from lifecycle-tied state collection to plain
   collectAsState(), so the "screen frozen after navigating away and back" bug can't

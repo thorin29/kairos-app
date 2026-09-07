@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.kairos.app.data.session.SessionState
@@ -98,6 +100,24 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val expanded by container.navExpanded.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
 
+    // Bump each time we come back to Home from another destination, so Home can
+    // reload the day. Reliable under our drawer nav, where ON_RESUME doesn't fire.
+    val currentEntry by navController.currentBackStackEntryAsState()
+    var homeRefresh by remember { mutableStateOf(0) }
+    var wasAwayFromHome by remember { mutableStateOf(false) }
+    val homeRouteName = remember { Route.Home::class.qualifiedName }
+    LaunchedEffect(currentEntry) {
+        val isHome = currentEntry?.destination?.route == homeRouteName
+        if (isHome) {
+            if (wasAwayFromHome) {
+                homeRefresh++
+                wasAwayFromHome = false
+            }
+        } else if (currentEntry != null) {
+            wasAwayFromHome = true
+        }
+    }
+
     val openProgress by animateFloatAsState(
         targetValue = if (open) 1f else 0f,
         animationSpec = tween(durationMillis = 220),
@@ -127,6 +147,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         person = person,
                         onOpenDrawer = { open = true },
                         onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
+                        refreshKey = homeRefresh,
                     )
                 }
                 composable<Route.Section> { entry ->
