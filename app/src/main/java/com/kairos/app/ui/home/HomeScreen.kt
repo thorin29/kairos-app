@@ -81,12 +81,11 @@ fun HomeScreen(
     val ui by vm.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
 
-    // Reload the day when we return to Home (refreshKey is bumped by AppRoot each
-    // time Home becomes the current destination again) — reliable under our drawer
-    // navigation, unlike an ON_RESUME lifecycle observer. The initial load happens
-    // in the ViewModel's init, so refreshKey 0 is skipped.
+    // Load on first show (refreshKey starts at 0) and again whenever we return to
+    // Home (AppRoot bumps refreshKey). The ViewModel does not load in init, so this
+    // is the sole trigger — reliable under our drawer navigation.
     LaunchedEffect(refreshKey) {
-        if (refreshKey > 0) vm.load()
+        vm.load()
     }
 
     LaunchedEffect(ui.actionError) {

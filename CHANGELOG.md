@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.68.7 — Fix home not loading on first open
+- The dashboard now loads on first open again. 0.68.6 removed the old load trigger
+  and only reloaded on return; since the ViewModel doesn't load in init, first open
+  spun forever. It now loads on first show and on every return.
+
 ## 0.68.6 — Reliable dashboard refresh on return
 - The home dashboard now reloads when you come back to it (e.g. after logging a
   workout on another screen) via a navigation signal instead of the unreliable
