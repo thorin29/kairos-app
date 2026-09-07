@@ -239,6 +239,14 @@ class SessionRepository(
     suspend fun addMovement(category: String, name: String): String? =
         runAuthed { requireService().addMovement(com.kairos.app.data.remote.dto.AddMovementRequest(category, name)) }.id
 
+    suspend fun renameMovement(movementId: String, name: String) {
+        runAuthed { requireService().renameMovement(com.kairos.app.data.remote.dto.RenameMovementRequest(movementId, name)) }
+    }
+
+    suspend fun deleteMovement(movementId: String) {
+        runAuthed { requireService().deleteMovement(com.kairos.app.data.remote.dto.MovementIdRequest(movementId)) }
+    }
+
     suspend fun loadPlan(): List<com.kairos.app.data.remote.dto.PlanDayDto> =
         runAuthed { requireService().workoutPlan() }.days
 
@@ -442,6 +450,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 94
+        const val CLIENT_BUILD = 95
     }
 }

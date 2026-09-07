@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.BrowseWorkoutDto
+import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,9 +55,7 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
     var heroOnly by remember { mutableStateOf(false) }
-    var menuFor by remember { mutableStateOf<BrowseWorkoutDto?>(null) }
     var shareFor by remember { mutableStateOf<BrowseWorkoutDto?>(null) }
-    var deleteFor by remember { mutableStateOf<BrowseWorkoutDto?>(null) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -110,32 +109,13 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
                         if (personal.isNotEmpty()) {
                             item { SectionHeader("Personal") }
                             items(personal, key = { it.id }) { w ->
-                                WorkoutCard(w) { menuFor = w }
+                                WorkoutCard(w, onShare = { shareFor = w })
                             }
                         }
                     }
                 }
             }
         }
-    }
-
-    // Tapping a personal workout: Share / Delete.
-    menuFor?.let { w ->
-        AlertDialog(
-            onDismissRequest = { menuFor = null },
-            confirmButton = {},
-            title = { Text(w.name) },
-            text = {
-                Column {
-                    TextButton(onClick = { menuFor = null; shareFor = w }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Share with someone", modifier = Modifier.fillMaxWidth())
-                    }
-                    TextButton(onClick = { menuFor = null; deleteFor = w }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            },
-        )
     }
 
     // People picker for sharing.
@@ -156,6 +136,12 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
                     Text("No one else to share with yet.")
                 } else {
                     Column {
+                        Text(
+                            "Share with:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
                         ui.people.forEach { p ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -168,21 +154,6 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
                     }
                 }
             },
-        )
-    }
-
-    // Delete confirm.
-    deleteFor?.let { w ->
-        AlertDialog(
-            onDismissRequest = { deleteFor = null },
-            confirmButton = {
-                TextButton(onClick = { vm.delete(w.id); deleteFor = null }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = { deleteFor = null }) { Text("Cancel") } },
-            title = { Text("Delete \"${w.name}\"?") },
-            text = { Text("This removes it from your workouts. Copies you've shared are unaffected.") },
         )
     }
 
@@ -229,36 +200,43 @@ private fun FilterPill(label: String, on: Boolean, modifier: Modifier, onClick: 
 }
 
 @Composable
-private fun WorkoutCard(w: BrowseWorkoutDto, onClick: (() -> Unit)? = null) {
-    Column(
+private fun WorkoutCard(w: BrowseWorkoutDto, onShare: (() -> Unit)? = null) {
+    Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(w.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            if (w.typeLabel.isNotBlank()) {
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(w.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                if (w.typeLabel.isNotBlank()) {
+                    Text(
+                        w.typeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            if (w.detail.isNotBlank()) {
                 Text(
-                    w.typeLabel,
-                    style = MaterialTheme.typography.labelSmall,
+                    w.detail,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
-        if (w.detail.isNotBlank()) {
-            Text(
-                w.detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
+        if (onShare != null) {
+            IconButton(onClick = onShare) {
+                Icon(KairosIcons.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }

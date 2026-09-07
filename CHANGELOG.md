@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.63.0 — Event delete rules, workout share icon, custom-exercise editing
+- Admin/system events (holidays, profile birthdays, school work, family events,
+  subscribed calendars) no longer show a delete icon in their detail.
+- Browse workouts: your personal workouts now have a Share icon on the right
+  (pick a person to send them a copy); deleting a workout is done from Create / Edit.
+- Create / Edit: a new "Edit custom exercises" button lets you rename or delete your
+  own custom exercises, each with a confirm.
+
 ## 0.62.1 — Create / Edit workouts
 - The workout button is now "Create / Edit". The name box lists your saved workouts:
   pick one to load it (read-only), tap Edit (top right) to change any field including

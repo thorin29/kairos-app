@@ -69,6 +69,7 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
     )
     val ui by vm.ui.collectAsStateWithLifecycle()
     var showAddCustom by remember { mutableStateOf(false) }
+    var showManage by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     LaunchedEffect(ui.done) { if (ui.done) onBack() }
@@ -170,6 +171,9 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
                     Spacer(Modifier.width(8.dp))
                     Text("Add custom exercise")
                 }
+                OutlinedButton(onClick = { showManage = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Edit custom exercises")
+                }
             }
 
             OutlinedTextField(
@@ -210,6 +214,15 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
         AddCustomExerciseDialog(
             onDismiss = { showAddCustom = false },
             onAdd = { name -> vm.addCustomExercise(name) { showAddCustom = false } },
+        )
+    }
+
+    if (showManage) {
+        ManageExercisesDialog(
+            exercises = ui.myExercises.map { it.id to it.name },
+            onRename = vm::renameExercise,
+            onDelete = vm::deleteExercise,
+            onClose = { showManage = false },
         )
     }
 
@@ -279,6 +292,78 @@ private fun NameCombo(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ManageExercisesDialog(
+    exercises: List<Pair<String, String>>,
+    onRename: (id: String, name: String) -> Unit,
+    onDelete: (id: String) -> Unit,
+    onClose: () -> Unit,
+) {
+    var confirmDeleteId by remember { mutableStateOf<String?>(null) }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    Text("Custom exercises", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                }
+                if (exercises.isEmpty()) {
+                    Text(
+                        "You haven't added any custom exercises yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                } else {
+                    Column(
+                        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        exercises.forEach { (id, original) ->
+                            var name by remember(id) { mutableStateOf(original) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                OutlinedTextField(
+                                    value = name,
+                                    onValueChange = { name = it },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(
+                                    onClick = { onRename(id, name.trim()) },
+                                    enabled = name.trim().length >= 2 && name.trim() != original,
+                                ) { Text("Save") }
+                                IconButton(onClick = { confirmDeleteId = id }) {
+                                    Icon(KairosIcons.Trash, "Delete", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    confirmDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { confirmDeleteId = null },
+            confirmButton = {
+                TextButton(onClick = { onDelete(id); confirmDeleteId = null }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmDeleteId = null }) { Text("Cancel") } },
+            title = { Text("Delete this exercise?") },
+            text = { Text("It'll be removed from your exercise list and from any of your workouts that use it.") },
+        )
     }
 }
 

@@ -31,6 +31,7 @@ data class CreateWorkoutUi(
     val done: Boolean = false,
     val types: List<WorkoutTypeOptionDto> = emptyList(),
     val pool: List<BuilderMovementDto> = emptyList(),
+    val myExercises: List<BuilderMovementDto> = emptyList(),
     val myWorkouts: List<MyWorkoutDto> = emptyList(),
     val editingId: String? = null,
     val locked: Boolean = false,
@@ -67,6 +68,7 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
                         loading = false,
                         types = b.types,
                         pool = b.movements,
+                        myExercises = b.myExercises,
                         myWorkouts = b.myWorkouts,
                         typeKey = it.typeKey.ifBlank { b.types.firstOrNull()?.key ?: "" },
                     )
@@ -213,6 +215,34 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
         viewModelScope.launch {
             runCatching { session.deletePersonalWorkout(id) }
             _ui.update { it.copy(saving = false, done = true) }
+        }
+    }
+
+    private suspend fun refreshBuilder() {
+        val b = session.loadWorkoutBuilder()
+        val poolById = b.movements.associateBy { it.id }
+        _ui.update { s ->
+            s.copy(
+                pool = b.movements,
+                myExercises = b.myExercises,
+                rows = s.rows
+                    .filter { poolById.containsKey(it.poolExerciseId) }
+                    .map { it.copy(name = poolById[it.poolExerciseId]?.name ?: it.name) },
+            )
+        }
+    }
+
+    fun renameExercise(id: String, name: String) {
+        viewModelScope.launch {
+            runCatching { session.renameMovement(id, name) }
+            refreshBuilder()
+        }
+    }
+
+    fun deleteExercise(id: String) {
+        viewModelScope.launch {
+            runCatching { session.deleteMovement(id) }
+            refreshBuilder()
         }
     }
 }

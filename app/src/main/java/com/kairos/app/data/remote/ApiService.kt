@@ -142,6 +142,12 @@ interface ApiService {
     @POST("workouts/movement")
     suspend fun addMovement(@Body body: com.kairos.app.data.remote.dto.AddMovementRequest): Response<com.kairos.app.data.remote.dto.AddMovementResponse>
 
+    @POST("workouts/movement/rename")
+    suspend fun renameMovement(@Body body: com.kairos.app.data.remote.dto.RenameMovementRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("workouts/movement/delete")
+    suspend fun deleteMovement(@Body body: com.kairos.app.data.remote.dto.MovementIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @GET("workouts/plan")
     suspend fun workoutPlan(): Response<PlanResponse>
 

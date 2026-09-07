@@ -467,6 +467,7 @@ data class WorkoutBuilderDto(
     val movements: List<BuilderMovementDto> = emptyList(),
     val people: List<SharePersonDto> = emptyList(),
     val myWorkouts: List<MyWorkoutDto> = emptyList(),
+    val myExercises: List<BuilderMovementDto> = emptyList(),
 )
 
 @Serializable
@@ -504,6 +505,12 @@ data class WorkoutIdRequest(val workoutId: String)
 
 @Serializable
 data class AddMovementRequest(val category: String, val name: String)
+
+@Serializable
+data class RenameMovementRequest(val movementId: String, val name: String)
+
+@Serializable
+data class MovementIdRequest(val movementId: String)
 
 @Serializable
 data class AddMovementResponse(val status: String = "", val id: String? = null)

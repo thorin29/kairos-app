@@ -1288,8 +1288,11 @@ private fun EventDetailScreen(
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
     val stored = event.eventId.isNotBlank()
-    val editable = stored && !event.external && (event.kind != "BIRTHDAY" || canManageFamily)
-    val deletable = stored && !event.external
+    // Admin/system-created events (holidays, profile birthdays, school work, family
+    // events, subscribed calendars) can't be deleted from here.
+    val systemKind = event.kind == "HOLIDAY" || event.kind == "BIRTHDAY" || event.kind == "SCHOOLWORK"
+    val editable = stored && !event.external && !systemKind && (!event.isFamily || canManageFamily)
+    val deletable = stored && !event.external && !systemKind && !event.isFamily
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -1306,12 +1309,14 @@ private fun EventDetailScreen(
                         Icon(KairosIcons.Pencil, contentDescription = "Edit")
                     }
                 }
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape)
-                        .clickable(enabled = deletable) { confirmDelete = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(KairosIcons.Trash, contentDescription = "Delete", tint = if (deletable) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                if (deletable) {
+                    Box(
+                        Modifier.size(44.dp).clip(CircleShape)
+                            .clickable { confirmDelete = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
 
