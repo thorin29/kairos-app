@@ -136,6 +136,7 @@ data class ScheduleItemDto(
     val ownerName: String = "",
     val location: String? = null,
     val notes: String? = null,
+    val didNotAttend: Boolean = false,
 )
 
 @Serializable
@@ -532,6 +533,7 @@ data class WorkoutPoolDto(
     val categories: List<LogCategoryDto> = emptyList(),
     val exercises: List<PoolExerciseDto> = emptyList(),
     val hiitWorkouts: List<HiitLogOptionDto> = emptyList(),
+    val muscleGroups: List<MuscleGroupDto> = emptyList(),
 )
 
 @Serializable
@@ -565,7 +567,11 @@ data class PoolExerciseDto(
     val id: String,
     val name: String,
     val category: String,
+    val muscleGroup: String? = null,
 )
+
+@Serializable
+data class MuscleGroupDto(val key: String, val label: String)
 
 @Serializable
 data class CustomLogRequest(

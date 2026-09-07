@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.68.0 — Log wizard + did-not-attend everywhere
+- "Log a different workout" is now "Log something else": a button that opens a
+  step-by-step wizard — pick type, then (weights) muscle group → exercise → log,
+  (running/rowing/etc.) straight to the value, (HIIT/CrossFit) pick workout → result.
+  Much less scrolling than the old stacked dropdowns.
+- "Did not attend" now shows on the home dashboard (schedule row + its popup) as well
+  as the calendar detail and agenda.
+
 ## 0.67.0 — Did not attend, home workout menu, log tidy-up
 - Answering "No" to "did you attend?" now shows "Did not attend" in red on the
   event detail, and a red marker beside the person on the agenda.

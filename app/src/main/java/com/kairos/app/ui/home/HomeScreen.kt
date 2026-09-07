@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -312,6 +313,17 @@ private fun ScheduleDetailDialog(
                 if (ev.ownerName.isNotBlank()) DetailLine("Who", ev.ownerName)
                 if (!ev.location.isNullOrBlank()) DetailLine("Where", ev.location!!)
                 if (!ev.notes.isNullOrBlank()) DetailLine("Notes", ev.notes!!)
+                if (ev.didNotAttend) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text("Did not attend", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         },
     )
@@ -569,6 +581,14 @@ private fun ScheduleRow(ev: com.kairos.app.data.remote.dto.ScheduleItemDto, onCl
                 if (!ev.location.isNullOrBlank()) append(" \u00b7 ${ev.location}")
             }
             Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (ev.didNotAttend) {
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = "Did not attend",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 8.dp).size(18.dp),
+            )
         }
         if (ev.ownerName.isNotBlank()) {
             Text(
