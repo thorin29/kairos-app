@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.61.0 — Personal workouts
+- New "Create workout" button (bottom actions are now one even grid) opens a form to
+  build your own HIIT/CrossFit workout: name, type, optional cap, movements with
+  reps/weight/distance, and notes.
+- Add custom movements right from the form; they show only in your own menus.
+- Browse workouts now has a "Personal" section under the shared library. Tap one of
+  your workouts to Share it with someone (they get their own copy) or Delete it.
+
 ## 0.60.0 — Agenda date sliding
 - The agenda now slides left/right to change day like the other views (snap, fling,
   Today, and the month dropdown all work), with neighbouring days pre-fetched.

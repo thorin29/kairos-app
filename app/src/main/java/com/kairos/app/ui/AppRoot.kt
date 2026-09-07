@@ -51,6 +51,7 @@ import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
+import com.kairos.app.ui.workout.CreatePersonalWorkoutScreen
 import com.kairos.app.ui.workout.EditPlanScreen
 import com.kairos.app.ui.workout.RotationScreen
 import com.kairos.app.ui.workout.RecentWorkoutsScreen
@@ -137,6 +138,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenRecent = { navController.navigate(Route.RecentWorkouts) },
                             onOpenCalculator = { navController.navigate(Route.WeightCalculator) },
                             onOpenBrowse = { navController.navigate(Route.BrowseWorkouts) },
+                            onOpenCreatePersonal = { navController.navigate(Route.CreatePersonalWorkout) },
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
                         )
                     } else if (key == "bible") {
@@ -157,6 +159,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.BrowseWorkouts> {
                     BrowseWorkoutsScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.CreatePersonalWorkout> {
+                    CreatePersonalWorkoutScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.EditPlan> {
                     EditPlanScreen(

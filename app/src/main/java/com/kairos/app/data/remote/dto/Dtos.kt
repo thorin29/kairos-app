@@ -432,6 +432,57 @@ data class BrowseWorkoutDto(
 @Serializable
 data class BrowseResponse(val items: List<BrowseWorkoutDto> = emptyList())
 
+// --- Personal workout builder + mutations ---
+
+@Serializable
+data class WorkoutTypeOptionDto(val key: String, val label: String)
+
+@Serializable
+data class BuilderMovementDto(val id: String, val name: String, val category: String)
+
+@Serializable
+data class SharePersonDto(val id: String, val name: String)
+
+@Serializable
+data class WorkoutBuilderDto(
+    val types: List<WorkoutTypeOptionDto> = emptyList(),
+    val categories: List<LogCategoryDto> = emptyList(),
+    val movements: List<BuilderMovementDto> = emptyList(),
+    val people: List<SharePersonDto> = emptyList(),
+)
+
+@Serializable
+data class PersonalMovementReq(
+    val poolExerciseId: String,
+    val reps: Int? = null,
+    val distance: Double? = null,
+    val weight: Double? = null,
+)
+
+@Serializable
+data class CreatePersonalWorkoutRequest(
+    val name: String,
+    val type: String,
+    val capSec: Int? = null,
+    val notes: String? = null,
+    val movements: List<PersonalMovementReq> = emptyList(),
+)
+
+@Serializable
+data class ShareWorkoutRequest(val workoutId: String, val targetUserId: String)
+
+@Serializable
+data class WorkoutIdRequest(val workoutId: String)
+
+@Serializable
+data class AddMovementRequest(val category: String, val name: String)
+
+@Serializable
+data class AddMovementResponse(val status: String = "", val id: String? = null)
+
+@Serializable
+data class OkStatusDto(val status: String = "")
+
 @Serializable
 data class DeleteAckDto(
     val id: String = "",

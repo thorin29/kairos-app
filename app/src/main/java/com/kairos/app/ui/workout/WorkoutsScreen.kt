@@ -67,6 +67,7 @@ fun WorkoutsScreen(
     onOpenRecent: () -> Unit,
     onOpenCalculator: () -> Unit,
     onOpenBrowse: () -> Unit,
+    onOpenCreatePersonal: () -> Unit,
     onOpenEditPlan: () -> Unit,
 ) {
     val container = rememberContainer()
@@ -178,8 +179,17 @@ fun WorkoutsScreen(
                         ) { vm.restDay() }
                     }
 
-                    WideButton(KairosIcons.Book, "Browse workouts") { onOpenBrowse() }
-                    WideButton(KairosIcons.Dumbbell, "Weight calculator") { onOpenCalculator() }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ActionCard(
+                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
+                        ) { onOpenBrowse() }
+                        ActionCard(
+                            KairosIcons.Plus, "Create workout", Modifier.weight(1f),
+                        ) { onOpenCreatePersonal() }
+                        ActionCard(
+                            KairosIcons.Dumbbell, "Weight calc", Modifier.weight(1f),
+                        ) { onOpenCalculator() }
+                    }
 
                     TextButton(onClick = onOpenRecent, modifier = Modifier.padding(top = 4.dp)) {
                         Text("Recent workouts  →")
@@ -224,11 +234,3 @@ private fun ActionCard(
     }
 }
 
-@Composable
-private fun WideButton(icon: ImageVector, label: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.height(0.dp))
-        Text("  $label")
-    }
-}

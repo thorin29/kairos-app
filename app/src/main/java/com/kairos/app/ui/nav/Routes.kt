@@ -27,6 +27,9 @@ sealed interface Route {
     data object BrowseWorkouts : Route
 
     @Serializable
+    data object CreatePersonalWorkout : Route
+
+    @Serializable
     data object EditPlan : Route
 
     @Serializable

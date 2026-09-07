@@ -124,6 +124,21 @@ interface ApiService {
     @GET("workouts/browse")
     suspend fun workoutBrowse(): Response<BrowseResponse>
 
+    @GET("workouts/builder")
+    suspend fun workoutBuilder(): Response<com.kairos.app.data.remote.dto.WorkoutBuilderDto>
+
+    @POST("workouts/personal")
+    suspend fun createPersonalWorkout(@Body body: com.kairos.app.data.remote.dto.CreatePersonalWorkoutRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("workouts/personal/share")
+    suspend fun shareWorkout(@Body body: com.kairos.app.data.remote.dto.ShareWorkoutRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("workouts/personal/delete")
+    suspend fun deletePersonalWorkout(@Body body: com.kairos.app.data.remote.dto.WorkoutIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("workouts/movement")
+    suspend fun addMovement(@Body body: com.kairos.app.data.remote.dto.AddMovementRequest): Response<com.kairos.app.data.remote.dto.AddMovementResponse>
+
     @GET("workouts/plan")
     suspend fun workoutPlan(): Response<PlanResponse>
 
