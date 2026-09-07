@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.70.0 — 3-day view scrolls as one grid
+## 0.70.1 — 3-day view scrolls as one grid
 - Rebuilt the 3-day view as a single two-way-scrolling grid: one shared vertical
   scroll for all three days (they no longer drift apart on fast flings or at the top/
   bottom edges), with day-by-day horizontal snapping and frozen day headers + hour
