@@ -125,7 +125,11 @@ fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (Strin
                 else -> DashboardContent(person, ui, vm)
             }
 
-            ui.workoutSheet?.let { WorkoutSheet(it, vm, onLogWorkout) }
+            ui.workoutSheet?.let { task ->
+                androidx.compose.runtime.key(ui.sheetNonce) {
+                    WorkoutSheet(task, vm, onLogWorkout)
+                }
+            }
         }
     }
 }
@@ -135,6 +139,10 @@ fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (Strin
 private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
+    // Explicitly animate the sheet up when it opens. ModalBottomSheet's built-in
+    // auto-show doesn't reliably re-run after the Home screen has been paused and
+    // resumed by navigation, which left a tap doing nothing until an app restart.
+    LaunchedEffect(Unit) { sheetState.show() }
     // Slide the sheet fully down before doing anything, so it doesn't linger on
     // screen while the next screen appears (and leaves a clean state to reopen).
     fun hideThen(action: () -> Unit) {

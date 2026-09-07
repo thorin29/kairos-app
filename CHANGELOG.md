@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.68.2 — Home workout sheet reliably reopens
+- Fixed the workout action sheet not sliding up after navigating around the app and
+  returning to the dashboard: the sheet is now explicitly animated open and rebuilt
+  fresh on every tap, so it no longer needs an app restart.
+
 ## 0.68.1 — Log wizard + did-not-attend everywhere
 - "Log a different workout" is now "Log something else": a button that opens a
   step-by-step wizard — pick type, then (weights) muscle group → exercise → log,
