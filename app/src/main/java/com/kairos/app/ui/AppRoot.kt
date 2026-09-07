@@ -50,6 +50,7 @@ import com.kairos.app.ui.bible.BibleScreen
 import com.kairos.app.ui.calendar.CalendarScreen
 import com.kairos.app.ui.chores.ChoresScreen
 import com.kairos.app.ui.money.MoneyScreen
+import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
@@ -172,6 +173,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         CalendarScreen(onOpenDrawer = { open = true })
                     } else if (key == "money") {
                         MoneyScreen(onOpenDrawer = { open = true })
+                    } else if (key == "reading") {
+                        ReadingScreen(onOpenDrawer = { open = true })
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
                     }

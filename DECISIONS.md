@@ -172,3 +172,12 @@ AnimatedDialog) work fine, same as the calendar editor's date picker. A child's
 roster is just themselves, so the "For" picker is hidden and the entry auto-files
 for them; a parent/admin picks anyone they can see. Reward buttons + the home
 banner use the web's amber/orange palette.
+
+## Reading (v0.74)
+Self-only leisure book-tracker mirroring the web. One screen holds the reading
+queue, an "Add a book" dialog (title, optional author, pages and/or chapters —
+at least one), and an inline **Bookshelf** toggle grouping To read / Bookmarked /
+Read (rather than a separate route, to avoid the drawer-nav reload pitfalls).
+`returnToQueue` combines un-finish + un-shelve into **one** VM action so the two
+server calls don't collide on the busy guard and there's a single reload. State
+via `collectAsState()`; delete confirmed through `AnimatedDialog`.

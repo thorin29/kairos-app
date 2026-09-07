@@ -1097,3 +1097,74 @@ data class StartingFundsRequest(
     val amountCents: Long,
     val date: String? = null,
 )
+
+// ---- Reading (leisure book-tracker; self-only) ----
+
+@Serializable
+data class BooksDto(
+    val today: String = "",
+    val books: List<BookDto> = emptyList(),
+)
+
+@Serializable
+data class BookDto(
+    val id: String = "",
+    val title: String = "",
+    val author: String? = null,
+    val unit: String = "PAGES",
+    val length: Int = 0,
+    val pages: Int? = null,
+    val chapters: Int? = null,
+    val read: Int = 0,
+    val rawRead: Int = 0,
+    val todayAmount: Int = 0,
+    val finished: Boolean = false,
+    val shelved: Boolean = false,
+    val bookmarked: Boolean = false,
+)
+
+@Serializable
+data class AddBookRequest(
+    val title: String,
+    val author: String? = null,
+    val pages: Int? = null,
+    val chapters: Int? = null,
+)
+
+@Serializable
+data class LogBookRequest(
+    val id: String,
+    val amount: Int,
+)
+
+@Serializable
+data class UpdateBookRequest(
+    val id: String,
+    val title: String? = null,
+    val author: String? = null,
+    val pages: Int? = null,
+    val chapters: Int? = null,
+)
+
+@Serializable
+data class BookFinishRequest(
+    val id: String,
+    val finished: Boolean,
+)
+
+@Serializable
+data class BookShelfRequest(
+    val id: String,
+    val shelved: Boolean,
+)
+
+@Serializable
+data class BookBookmarkRequest(
+    val id: String,
+    val bookmarked: Boolean,
+)
+
+@Serializable
+data class BookIdRequest(
+    val id: String,
+)

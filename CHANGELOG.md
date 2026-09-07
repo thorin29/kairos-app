@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.74.0 — Reading (leisure book-tracker)
+- New Reading section, strictly your own — no one sees anyone else's books.
+- Add a book with an optional author and a size in pages and/or chapters (at
+  least one; if you give both, progress tracks pages and the chapter count shows
+  as a note). Log how much you read today; it feeds the Scholar stat.
+- Bookmark a book, or shelve it for later. A new Bookshelf groups everything into
+  To read / Bookmarked / Read — tap "Move to reading" (or "Reopen") to bring a
+  book back into your reading queue and log progress again.
+- Removing a book asks first.
+
 ## 0.73.0 — Money admin + home reminder
 - Parent admins can now manage money from the phone: approve or unapprove filed
   transactions (single or all at once), edit or delete any transaction, and set

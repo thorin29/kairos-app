@@ -376,6 +376,37 @@ class SessionRepository(
         runAuthed { requireService().setStartingFunds(body) }
     }
 
+    suspend fun loadBooks(): com.kairos.app.data.remote.dto.BooksDto =
+        runAuthed { requireService().books() }
+
+    suspend fun addBook(body: com.kairos.app.data.remote.dto.AddBookRequest) {
+        runAuthed { requireService().addBook(body) }
+    }
+
+    suspend fun logBook(id: String, amount: Int) {
+        runAuthed { requireService().logBook(com.kairos.app.data.remote.dto.LogBookRequest(id, amount)) }
+    }
+
+    suspend fun updateBook(body: com.kairos.app.data.remote.dto.UpdateBookRequest) {
+        runAuthed { requireService().updateBook(body) }
+    }
+
+    suspend fun finishBook(id: String, finished: Boolean) {
+        runAuthed { requireService().finishBook(com.kairos.app.data.remote.dto.BookFinishRequest(id, finished)) }
+    }
+
+    suspend fun shelfBook(id: String, shelved: Boolean) {
+        runAuthed { requireService().shelfBook(com.kairos.app.data.remote.dto.BookShelfRequest(id, shelved)) }
+    }
+
+    suspend fun bookmarkBook(id: String, bookmarked: Boolean) {
+        runAuthed { requireService().bookmarkBook(com.kairos.app.data.remote.dto.BookBookmarkRequest(id, bookmarked)) }
+    }
+
+    suspend fun deleteBook(id: String) {
+        runAuthed { requireService().deleteBook(com.kairos.app.data.remote.dto.BookIdRequest(id)) }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -497,6 +528,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 120
+        const val CLIENT_BUILD = 121
     }
 }

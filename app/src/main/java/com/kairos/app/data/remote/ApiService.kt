@@ -285,4 +285,28 @@ interface ApiService {
 
     @POST("money/starting")
     suspend fun setStartingFunds(@Body body: com.kairos.app.data.remote.dto.StartingFundsRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @GET("books")
+    suspend fun books(): Response<com.kairos.app.data.remote.dto.BooksDto>
+
+    @POST("books/add")
+    suspend fun addBook(@Body body: com.kairos.app.data.remote.dto.AddBookRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("books/log")
+    suspend fun logBook(@Body body: com.kairos.app.data.remote.dto.LogBookRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("books/update")
+    suspend fun updateBook(@Body body: com.kairos.app.data.remote.dto.UpdateBookRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("books/finish")
+    suspend fun finishBook(@Body body: com.kairos.app.data.remote.dto.BookFinishRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("books/shelf")
+    suspend fun shelfBook(@Body body: com.kairos.app.data.remote.dto.BookShelfRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("books/bookmark")
+    suspend fun bookmarkBook(@Body body: com.kairos.app.data.remote.dto.BookBookmarkRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("books/delete")
+    suspend fun deleteBook(@Body body: com.kairos.app.data.remote.dto.BookIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }
