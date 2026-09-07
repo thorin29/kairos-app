@@ -828,6 +828,7 @@ data class CalEventDto(
     val ownerName: String = "",
     val whoLabel: String = "",
     val notes: String? = null,
+    val didNotAttend: Boolean = false,
     val ownerId: String? = null,
     val eventTypeId: String? = null,
     val memberIds: List<String> = emptyList(),

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.67.0 — Did not attend, home workout menu, log tidy-up
+- Answering "No" to "did you attend?" now shows "Did not attend" in red on the
+  event detail, and a red marker beside the person on the agenda.
+- Home workout menu: removed "Mark as done" (Log workout covers it); the menu now
+  slides down before the log screen opens and reliably re-opens next time.
+- The "today's max" hint now only shows for weight logging (not times/reps).
+
 ## 0.66.0 — Log a HIIT/CrossFit workout by name
 - "Log a different workout" now shows "HIIT/CrossFit", and picking it lists your
   named workouts — the shared library (admin, incl. Hero) plus your own — instead

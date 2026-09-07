@@ -156,19 +156,22 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
 
 @Composable
 private fun MovementRow(m: MovementInput, vm: WorkoutLogViewModel) {
+    val maxHint = m.metric == "WEIGHT"
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(m.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            Text(
-                "today's max",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (maxHint) {
+                Text(
+                    "today's max",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         OutlinedTextField(
             value = m.value,
             onValueChange = { vm.onValue(m.poolExerciseId, it) },
-            placeholder = { Text("today's max") },
+            placeholder = { Text(if (maxHint) "today's max" else "0") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.width(128.dp),

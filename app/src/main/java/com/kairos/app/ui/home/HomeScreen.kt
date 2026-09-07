@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -131,6 +133,17 @@ fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (Strin
 @Composable
 private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
     val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    // Slide the sheet fully down before doing anything, so it doesn't linger on
+    // screen while the next screen appears (and leaves a clean state to reopen).
+    fun hideThen(action: () -> Unit) {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) {
+                vm.dismissWorkout()
+                action()
+            }
+        }
+    }
     ModalBottomSheet(onDismissRequest = vm::dismissWorkout, sheetState = sheetState) {
         Column(
             Modifier
@@ -141,17 +154,14 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String
             Text(task.title, style = MaterialTheme.typography.titleLarge)
 
             Button(
-                onClick = {
-                    vm.dismissWorkout()
-                    onLogWorkout(task.dueDate)
-                },
+                onClick = { hideThen { onLogWorkout(task.dueDate) } },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Log workout") }
 
             when (task.status) {
                 "COMPLETE" -> {
                     OutlinedButton(
-                        onClick = { vm.undoWorkout(task) },
+                        onClick = { hideThen { vm.undoWorkout(task) } },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Mark as not done") }
                 }
@@ -161,18 +171,10 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OutlinedButton(
-                        onClick = { vm.markWorkoutDone(task) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Mark as done") }
                 }
                 else -> {
                     OutlinedButton(
-                        onClick = { vm.markWorkoutDone(task) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Mark as done") }
-                    OutlinedButton(
-                        onClick = { vm.restDay(task) },
+                        onClick = { hideThen { vm.restDay(task) } },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Rest day") }
                 }
