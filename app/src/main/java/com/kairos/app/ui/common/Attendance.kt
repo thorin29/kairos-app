@@ -57,7 +57,7 @@ fun AttendeesColumn(
         }
         return
     }
-    Column(modifier, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier, horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         attendees.forEach { a ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (a.state.isNotBlank()) {
@@ -69,7 +69,7 @@ fun AttendeesColumn(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Start,
                     modifier = Modifier.alignByBaseline(),
                 )
             }

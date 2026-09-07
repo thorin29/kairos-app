@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.69.5 — Attendee names left-align
+- When an event has multiple people, their names now start from the same position
+  (left-aligned) instead of right-justifying.
+
 ## 0.69.4 — App attendance marker true baseline alignment
 - The app now baseline-aligns the attendance marker to the name (reporting the icon's
   baseline as its bottom edge), matching the web, so the marker's bottom sits on the
