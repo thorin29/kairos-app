@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.68.0 — Log wizard + did-not-attend everywhere
+## 0.68.1 — Log wizard + did-not-attend everywhere
 - "Log a different workout" is now "Log something else": a button that opens a
   step-by-step wizard — pick type, then (weights) muscle group → exercise → log,
   (running/rowing/etc.) straight to the value, (HIIT/CrossFit) pick workout → result.

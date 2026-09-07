@@ -571,9 +571,6 @@ data class PoolExerciseDto(
 )
 
 @Serializable
-data class MuscleGroupDto(val key: String, val label: String)
-
-@Serializable
 data class CustomLogRequest(
     val date: String,
     val category: String? = null,
