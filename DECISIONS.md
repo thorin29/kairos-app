@@ -70,3 +70,69 @@ irreversible.
 token; tokens are stored as a SHA-256 `tokenHash`, passwords/PINs are hashed,
 traffic is HTTPS. The Postgres data at rest is not encrypted — acceptable for a
 self-hosted home server; encrypting backups is the reasonable enhancement.
+
+## Collect screen state with collectAsState(), NOT collectAsStateWithLifecycle() (v0.68.4+)
+Hard-won. Symptom: after navigating away from a screen and back (especially via the
+drawer, which navigates with `popUpTo(Route.Home)` + `launchSingleTop`), tapping
+things did nothing — the screen rendered but ignored ViewModel updates — until the
+app was force-restarted. It was NOT the pop-up and NOT the tap handler.
+Root cause: `collectAsStateWithLifecycle()` only collects while the destination's
+lifecycle is ≥ STARTED, and this nav can leave a `NavBackStackEntry` stuck below
+RESUMED after returning, so collection stops and never restarts — the composable's
+`ui` freezes on its last value. Fix / standing rule: use `collectAsState()` for all
+screen/ViewModel state (applied app-wide). Add new screens with `collectAsState()`.
+Corollary: `ON_RESUME`-based "reload on return" (a `DisposableEffect` +
+`LifecycleEventObserver`) is ALSO unreliable under this nav — it doesn't fire. To
+reload a screen when it's shown again, use a nav signal instead: in AppRoot, watch
+`navController.currentBackStackEntryAsState()` and bump a `refreshKey` Int passed to
+the screen when it becomes the current destination; the screen does
+`LaunchedEffect(refreshKey) { vm.load() }`. (Home uses exactly this.)
+
+## Pop-ups use AnimatedDialog; selects use RollPicker (hard UI convention)
+Every pop-up must use `AnimatedDialog` (`ui/common/AnimatedDialog.kt`), never
+`AlertDialog`; every dropdown must use `RollPicker` (`ui/common/RollPicker.kt`),
+never `ExposedDropdownMenu`. AnimatedDialog eases in via a single
+`animateFloatAsState` through `graphicsLayer` — do NOT use `AnimatedVisibility +
+scaleIn` (stutters on the first frame). Signature:
+`AnimatedDialog(onDismissRequest, title?, confirmButton?, dismissButton?, content)`.
+Prefer AnimatedDialog over `ModalBottomSheet` even for action menus: a state-driven
+ModalBottomSheet leaked its window across navigation (popped up on the wrong screen
+and froze) and its auto-show didn't re-run reliably after the host was paused — the
+home workout menu was rebuilt as an AnimatedDialog to fix this (v0.68.3). Some
+dialogs added late (calendar colour picker, manage-custom-exercises, log-wizard
+confirm) still use AlertDialog/Dialog and are on the ROADMAP to convert — use
+AnimatedDialog/RollPicker for anything new.
+
+## Experimental Material3 APIs need @OptIn or the build FAILS
+The release build treats the "this material API is experimental" warning as an
+ERROR. Any composable using `TopAppBar`, `ModalBottomSheet`, `ExposedDropdownMenu*`,
+`MenuAnchorType`, etc. must be annotated `@OptIn(ExperimentalMaterial3Api::class)`.
+This bit us repeatedly (0.61.2, 0.62.1) — the sandbox can't run the Android build,
+so it only surfaces in CI. Include it in the missing-import scan.
+
+## Extension members can't be fully-qualified through their receiver
+Beyond scope members (above): Kotlin extension functions/properties can't be written
+fully-qualified through the receiver type — you must import the extension and call it
+short. Examples that failed in CI: `Icons.Filled.Close` / `Icons.AutoMirrored.Filled.
+ArrowBack` (import `androidx.compose.material.icons.filled.Close` etc.), `WindowInsets
+.statusBars` (import `androidx.compose.foundation.layout.statusBars`),
+`ExposedDropdownMenu` (call unqualified in the box scope), `alignByBaseline()`
+(RowScope, call unqualified), `NavDestination.hasRoute`. Writing
+`androidx.compose.material3.ExposedDropdownMenu(...)` does NOT resolve.
+
+## Check for an existing symbol before declaring one
+Before adding a DTO/data class/helper, grep the target file for the name — the
+codebase already had `MuscleGroupDto`, and a second identical declaration failed the
+build with a redeclaration error (0.68.1). Fold "grep for an existing declaration"
+into the pre-package ritual.
+
+## Custom icons: filled()/filledEvenOdd() helpers; Material core is limited
+Icons live in `ui/nav/KairosIcons.kt`. `stroked(name, *paths)` for line glyphs;
+`filled(name, path)` for a solid glyph; `filledEvenOdd(name, path)` for a solid glyph
+with a punched-out cut (person + check/X/? attendance markers). Material Icons *core*
+only ships a small set (`Check`, `Close`, `ArrowBack` are available; `Person`,
+`HowToReg`, etc. are in material-icons-*extended*, which we don't depend on) — draw
+custom glyphs rather than adding the dependency. To baseline-align an icon to text
+(bottom of icon on the text baseline), report the icon's baseline as its bottom via a
+`layout{}` modifier (`FirstBaseline`/`LastBaseline` → height) and `alignByBaseline()`
+on both — see `ui/common/Attendance.kt`.
