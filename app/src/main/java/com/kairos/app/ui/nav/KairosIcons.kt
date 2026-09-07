@@ -51,6 +51,24 @@ private fun filled(name: String, path: String): ImageVector {
     return builder.build()
 }
 
+/** A filled icon whose path cuts out inner shapes (even-odd) — e.g. a person
+ *  silhouette with a check / X / ? punched out. Single colour; Icon() tints it. */
+private fun filledEvenOdd(name: String, path: String): ImageVector {
+    val builder = ImageVector.Builder(
+        name = name,
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    )
+    builder.addPath(
+        pathData = PathParser().parsePathString(path).toNodes(),
+        fill = SolidColor(Color.Black),
+        pathFillType = androidx.compose.ui.graphics.PathFillType.EvenOdd,
+    )
+    return builder.build()
+}
+
 object KairosIcons {
     val Home = stroked(
         "Home",
@@ -148,5 +166,26 @@ object KairosIcons {
     val Share = filled(
         "Share",
         "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z",
+    )
+
+    // Attendance markers: a person silhouette with a check / X / ? punched out of
+    // the body (even-odd). Tinted at the call site (green / red / grey).
+    private const val PERSON_HEAD = "M12 3a3.2 3.2 0 1 0 0 6.4a3.2 3.2 0 1 0 0 -6.4z"
+    private const val PERSON_BODY = "M12 11c-4 0-7 2.1-7 4.7V20h14v-4.3c0-2.6-3-4.7-7-4.7z"
+    val PersonCheck = filledEvenOdd(
+        "PersonCheck",
+        PERSON_HEAD + PERSON_BODY +
+            "M10.9 18.7l-2.1-2.1 1-1 1.1 1.1 2.7-2.7 1 1z",
+    )
+    val PersonX = filledEvenOdd(
+        "PersonX",
+        PERSON_HEAD + PERSON_BODY +
+            "M14.5 15.4l-1-1-1.5 1.5-1.5-1.5-1 1 1.5 1.5-1.5 1.5 1 1 1.5-1.5 1.5 1.5 1-1-1.5-1.5z",
+    )
+    val PersonQuestion = filledEvenOdd(
+        "PersonQuestion",
+        PERSON_HEAD + PERSON_BODY +
+            "M12 13.5c-1.2 0-2.2.8-2.4 1.9l1.3.3c.1-.5.5-.8 1.1-.8.5 0 .9.3.9.8 0 .4-.3.6-.7.9-.6.4-.9.8-.9 1.6h1.3c0-.4.1-.6.6-1 .5-.4.9-.8.9-1.6 0-1.1-1-1.9-2.1-1.9z" +
+            "M11.4 19.4h1.3v1.3h-1.3z",
     )
 }

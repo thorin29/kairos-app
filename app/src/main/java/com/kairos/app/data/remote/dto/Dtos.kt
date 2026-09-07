@@ -137,6 +137,7 @@ data class ScheduleItemDto(
     val location: String? = null,
     val notes: String? = null,
     val didNotAttend: Boolean = false,
+    val attendees: List<AttendeeDto> = emptyList(),
 )
 
 @Serializable
@@ -813,6 +814,9 @@ data class AlwaysOpenRequest(
 // --- Calendar (GET /calendar, read-only Phase 1) ---
 
 @Serializable
+data class AttendeeDto(val name: String = "", val state: String = "")
+
+@Serializable
 data class CalEventDto(
     val id: String = "",
     val eventId: String = "",
@@ -832,6 +836,7 @@ data class CalEventDto(
     val whoLabel: String = "",
     val notes: String? = null,
     val didNotAttend: Boolean = false,
+    val attendees: List<AttendeeDto> = emptyList(),
     val ownerId: String? = null,
     val eventTypeId: String? = null,
     val memberIds: List<String> = emptyList(),

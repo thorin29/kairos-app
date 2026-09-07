@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,7 +21,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -62,6 +62,8 @@ import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.AnimatedDialog
+import com.kairos.app.ui.common.AttendanceIcon
+import com.kairos.app.ui.common.AttendeesColumn
 import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -281,20 +283,23 @@ private fun ScheduleDetailDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DetailLine("When", if (ev.allDay) "All day" else ev.timeLabel)
-                if (ev.ownerName.isNotBlank()) DetailLine("Who", ev.ownerName)
+                if (ev.attendees.any { it.state.isNotBlank() }) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Who", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ev.attendees.forEach { a ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AttendanceIcon(a.state, Modifier.size(18.dp))
+                                Text(a.name, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                } else if (ev.attendees.isNotEmpty()) {
+                    DetailLine("Who", ev.attendees.joinToString("\n") { it.name })
+                } else if (ev.ownerName.isNotBlank()) {
+                    DetailLine("Who", ev.ownerName)
+                }
                 if (!ev.location.isNullOrBlank()) DetailLine("Where", ev.location!!)
                 if (!ev.notes.isNullOrBlank()) DetailLine("Notes", ev.notes!!)
-                if (ev.didNotAttend) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text("Did not attend", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-                    }
-                }
             }
         },
     )
@@ -553,22 +558,12 @@ private fun ScheduleRow(ev: com.kairos.app.data.remote.dto.ScheduleItemDto, onCl
             }
             Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (ev.didNotAttend) {
-            Icon(
-                Icons.Filled.Close,
-                contentDescription = "Did not attend",
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 8.dp).size(18.dp),
-            )
-        }
-        if (ev.ownerName.isNotBlank()) {
-            Text(
-                ev.ownerName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
+        Spacer(Modifier.width(8.dp))
+        AttendeesColumn(
+            attendees = ev.attendees,
+            fallbackLabel = ev.ownerName,
+            modifier = Modifier.widthIn(max = 130.dp),
+        )
     }
 }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.69.0 — Per-person attendance markers
+- Sport events now show a per-person marker: a green check-person for attended, a red
+  X-person for did not attend, and a light-grey question-person when it's not answered
+  yet. One marker per person.
+- Agenda events, home schedule cards, and event details now list one name per line,
+  each with its own marker (family events just show "Family", no marker).
+
 ## 0.68.7 — Fix home not loading on first open
 - The dashboard now loads on first open again. 0.68.6 removed the old load trigger
   and only reloaded on return; since the ViewModel doesn't load in init, first open

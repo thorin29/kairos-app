@@ -33,7 +33,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -76,6 +75,8 @@ import com.kairos.app.data.remote.dto.CalEventDto
 import com.kairos.app.data.remote.dto.CalendarDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.common.AttendanceIcon
+import com.kairos.app.ui.common.AttendeesColumn
 import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import java.time.ZoneId
@@ -959,26 +960,12 @@ private fun EventRow(e: CalEventDto, onClick: () -> Unit) {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            if (e.didNotAttend) {
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    Icons.Filled.Close,
-                    contentDescription = "Did not attend",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-            if (e.whoLabel.isNotBlank()) {
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    e.whoLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 96.dp),
-                )
-            }
+            Spacer(Modifier.width(8.dp))
+            AttendeesColumn(
+                attendees = e.attendees,
+                fallbackLabel = e.whoLabel,
+                modifier = Modifier.widthIn(max = 120.dp),
+            )
         }
     }
 }
@@ -1350,15 +1337,15 @@ private fun EventDetailScreen(
                         event.notes?.takeIf { it.isNotBlank() }?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium)
                         }
-                        if (event.didNotAttend) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text("Did not attend", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        // Per-person attendance for sport events (owner + participants).
+                        if (event.attendees.any { it.state.isNotBlank() }) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                event.attendees.forEach { a ->
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        AttendanceIcon(a.state, Modifier.size(18.dp))
+                                        Text(a.name, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
                             }
                         }
                     }
