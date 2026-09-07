@@ -5,6 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -463,6 +471,97 @@ fun WeekGridPage(
                         onEventClick = onEventClick,
                         modifier = Modifier.weight(1f),
                     )
+                }
+            }
+        }
+    }
+}
+
+/** Data for one day column in the 3-day grid (already localized). */
+data class ThreeDayData(
+    val events: List<CalEventDto>,
+    val today: String,
+    val nowColor: String,
+)
+
+/**
+ * 3-day view as a single two-way-scrolling grid: frozen hour axis (left) and
+ * frozen day headers (top), a horizontally-snapping LazyRow of day columns for
+ * day-by-day paging, and — crucially — ONE shared vertical scroll for all three
+ * columns so they move in unison (the old per-column scrollers drifted apart on
+ * fast flings and at the edges). Headers slide with the horizontal scroll offset.
+ */
+@Composable
+fun ThreeDayGrid(
+    listState: LazyListState,
+    snapFling: FlingBehavior,
+    scroll: androidx.compose.foundation.ScrollState,
+    itemCount: Int,
+    dateFor: (Int) -> String,
+    dayData: (String) -> ThreeDayData?,
+    onEventClick: (CalEventDto) -> Unit,
+) {
+    val gridColor = MaterialTheme.colorScheme.outline
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val dayWidth = (maxWidth - GUTTER) / 3
+        Row(Modifier.fillMaxSize()) {
+            WeekAxisColumn(scroll)
+            Column(Modifier.weight(1f)) {
+                // Frozen day headers, sliding with the horizontal scroll offset.
+                Row(Modifier.fillMaxWidth().height(WEEK_HEADER_H)) {
+                    Box(Modifier.fillMaxSize().clipToBounds()) {
+                        val headerFirst by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+                        Row(
+                            Modifier
+                                .fillMaxHeight()
+                                .offset { IntOffset(-listState.firstVisibleItemScrollOffset, 0) },
+                        ) {
+                            for (i in headerFirst until headerFirst + 4) {
+                                val iso = dateFor(i)
+                                val pd = dayData(iso)
+                                Column(Modifier.width(dayWidth).fillMaxHeight()) {
+                                    DayHeader(iso, isToday = pd != null && pd.today == iso, Modifier.fillMaxWidth())
+                                    Column(
+                                        Modifier.fillMaxWidth().weight(1f).padding(horizontal = 1.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        pd?.events?.filter { it.allDay && it.dayISO == iso }?.take(2)?.forEach { e ->
+                                            AllDayChip(e) { onEventClick(e) }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+                // One vertical scroll for the whole grid; LazyRow pages days inside it.
+                Box(Modifier.weight(1f).verticalScroll(scroll)) {
+                    LazyRow(
+                        state = listState,
+                        flingBehavior = snapFling,
+                        modifier = Modifier.height(HOUR_H * HOURS),
+                    ) {
+                        items(itemCount) { index ->
+                            val iso = dateFor(index)
+                            val pd = dayData(iso)
+                            if (pd != null) {
+                                DayColumn(
+                                    iso = iso,
+                                    events = pd.events.filter { !it.allDay && it.dayISO == iso },
+                                    isToday = pd.today == iso,
+                                    nowColor = pd.nowColor,
+                                    gridColor = gridColor,
+                                    onEventClick = onEventClick,
+                                    modifier = Modifier.width(dayWidth),
+                                )
+                            } else {
+                                Box(Modifier.width(dayWidth).height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
+                                    androidx.compose.material3.CircularProgressIndicator()
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

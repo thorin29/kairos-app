@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.70.0 — 3-day view scrolls as one grid
+- Rebuilt the 3-day view as a single two-way-scrolling grid: one shared vertical
+  scroll for all three days (they no longer drift apart on fast flings or at the top/
+  bottom edges), with day-by-day horizontal snapping and frozen day headers + hour
+  axis preserved.
+
 ## 0.69.5 — Attendee names left-align
 - When an event has multiple people, their names now start from the same position
   (left-aligned) instead of right-justifying.

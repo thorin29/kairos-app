@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -492,36 +491,23 @@ private fun ThreeDayPager(
         }
     }
 
-    Row(Modifier.fillMaxSize()) {
-        WeekAxisColumn(vScroll)
-        androidx.compose.foundation.lazy.LazyRow(
-            state = listState,
-            flingBehavior = snapFling,
-            modifier = Modifier.weight(1f),
-        ) {
-            items(20001) { index ->
-                val iso = dateFor(index)
-                val pd = pages[iso]
-                Box(Modifier.fillParentMaxWidth(1f / 3f).fillMaxHeight()) {
-                    if (pd != null) {
-                        val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
-                        WeekGridPage(
-                            days = listOf(iso),
-                            events = evs,
-                            today = pd.today,
-                            nowColor = pd.nowColor,
-                            scroll = vScroll,
-                            onEventClick = onEventClick,
-                        )
-                    } else {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            androidx.compose.material3.CircularProgressIndicator()
-                        }
-                    }
-                }
+    ThreeDayGrid(
+        listState = listState,
+        snapFling = snapFling,
+        scroll = vScroll,
+        itemCount = 20001,
+        dateFor = ::dateFor,
+        dayData = { iso ->
+            pages[iso]?.let { pd ->
+                ThreeDayData(
+                    events = localizeEvents(pd.events, pd.timezone),
+                    today = pd.today,
+                    nowColor = pd.nowColor,
+                )
             }
-        }
-    }
+        },
+        onEventClick = onEventClick,
+    )
 }
 
 /**
