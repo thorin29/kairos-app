@@ -3,15 +3,16 @@ package com.kairos.app.ui.common
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,10 +59,9 @@ fun AttendeesColumn(
     }
     Column(modifier, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         attendees.forEach { a ->
-            Row(verticalAlignment = Alignment.Bottom) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (a.state.isNotBlank()) {
-                    AttendanceIcon(a.state, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
+                    AttendanceIcon(a.state, Modifier.size(16.dp).baselineAtBottom().alignByBaseline())
                 }
                 Text(
                     a.name,
@@ -70,8 +70,22 @@ fun AttendeesColumn(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.End,
+                    modifier = Modifier.alignByBaseline(),
                 )
             }
         }
+    }
+}
+
+/** Treat this composable's baseline as its bottom edge, so an icon can be
+ *  baseline-aligned (bottom-of-icon to text baseline) in a Row. */
+private fun Modifier.baselineAtBottom(): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    layout(
+        placeable.width,
+        placeable.height,
+        mapOf(FirstBaseline to placeable.height, LastBaseline to placeable.height),
+    ) {
+        placeable.place(0, 0)
     }
 }

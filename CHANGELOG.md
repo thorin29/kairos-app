@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.69.4 — App attendance marker true baseline alignment
+- The app now baseline-aligns the attendance marker to the name (reporting the icon's
+  baseline as its bottom edge), matching the web, so the marker's bottom sits on the
+  name's baseline instead of floating high.
+
 ## 0.69.3 — Attendance marker sits on the name baseline
 - Redrew the person marker to fill its box to the bottom so, bottom-aligned, its
   visible bottom lines up with the bottom of the name (matches web, which now
