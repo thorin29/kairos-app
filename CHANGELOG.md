@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.62.0 — Create / Edit workouts
+## 0.62.1 — Create / Edit workouts
 - The workout button is now "Create / Edit". The name box lists your saved workouts:
   pick one to load it (read-only), tap Edit (top right) to change any field including
   the name, with Delete + confirm; or type a new name to build one.
