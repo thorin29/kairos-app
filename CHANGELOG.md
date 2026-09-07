@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.69.3 — Attendance marker sits on the name baseline
+- Redrew the person marker to fill its box to the bottom so, bottom-aligned, its
+  visible bottom lines up with the bottom of the name (matches web, which now
+  baseline-aligns the marker).
+
 ## 0.69.2 — Attendance marker alignment
 - The attendance marker now bottom-aligns with the name text (and the person glyph
   sits lower in its box so its visible bottom lines up), on the app and web.
