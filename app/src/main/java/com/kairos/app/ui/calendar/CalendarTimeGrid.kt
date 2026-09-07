@@ -265,18 +265,17 @@ private fun DayColumn(
                     e.title,
                     style = if (compact) {
                         MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            lineHeight = 11.sp,
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp,
                         )
                     } else {
                         MaterialTheme.typography.labelSmall
                     },
                     color = Color.White,
-                    maxLines = when {
-                        compact && h > 48.dp -> 3
-                        h > 34.dp -> 2
-                        else -> 1
-                    },
+                    // Week view: one line + "…" so a too-long word never breaks into an
+                    // ugly fragment (e.g. a lone "p") on the next line. Wider day/3-day
+                    // columns can wrap to two lines.
+                    maxLines = if (compact) 1 else if (h > 34.dp) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

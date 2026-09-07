@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.71.2 — Week view names on one line
+- Week view event names now show on a single line with “…” when too long, instead of a
+  word breaking into an ugly fragment on the next line (e.g. a lone “p”). Day and 3-day
+  views keep two lines since their columns are wider.
+
 ## 0.71.1 — Week view event text
 - Week view now uses a smaller chip font so more of an event name fits (many names
   now show in full over two lines), with a clean “…” when a name is still too long —
