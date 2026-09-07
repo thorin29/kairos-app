@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.68.4 — Home workout menu opens reliably after navigation
+- Root cause fix: the dashboard state was collected tied to the screen lifecycle,
+  which stopped updating after navigating away and back, so tapping the workout did
+  nothing until an app restart. It now observes state while the screen is on-screen
+  regardless of lifecycle, so the menu opens every time.
+
 ## 0.68.3 — Home workout menu is now a reliable dialog
 - Replaced the home workout bottom sheet with the shared animated dialog. The sheet's
   window was leaking across navigation (popping up on the wrong screen and freezing);
