@@ -1,5 +1,6 @@
 package com.kairos.app.ui.bible
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -52,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -108,7 +108,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit) {
             initializer { BibleViewModel(container.sessionRepository) }
         },
     )
-    val ui by vm.ui.collectAsStateWithLifecycle()
+    val ui by vm.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var personalSub by remember { mutableStateOf<PersonalSub?>(null) }
 

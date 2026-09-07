@@ -25,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -53,7 +53,7 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
             initializer { BrowseWorkoutsViewModel(container.sessionRepository) }
         },
     )
-    val ui by vm.ui.collectAsStateWithLifecycle()
+    val ui by vm.ui.collectAsState()
     var heroOnly by remember { mutableStateOf(false) }
     var shareFor by remember { mutableStateOf<BrowseWorkoutDto?>(null) }
 

@@ -69,7 +69,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -93,7 +92,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
             initializer { CalendarViewModel(container.sessionRepository, container.settingsStore) }
         },
     )
-    val ui by vm.ui.collectAsStateWithLifecycle()
+    val ui by vm.ui.collectAsState()
     var monthExpanded by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showDefaultPicker by remember { mutableStateOf(false) }

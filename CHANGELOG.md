@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.68.5 — Apply the state-collection fix app-wide
+- Converted every screen from lifecycle-tied state collection to plain
+  collectAsState(), so the "screen frozen after navigating away and back" bug can't
+  appear anywhere else (chores, bible, calendar, all workout screens, etc.), not just
+  the home dashboard. Recorded as a standing rule in DECISIONS.
+
 ## 0.68.4 — Home workout menu opens reliably after navigation
 - Root cause fix: the dashboard state was collected tied to the screen lifecycle,
   which stopped updating after navigating away and back, so tapping the workout did

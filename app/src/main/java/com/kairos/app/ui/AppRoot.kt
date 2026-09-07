@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -67,7 +67,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AppRoot(container: AppContainer) {
     val session = container.sessionRepository
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.state.collectAsState()
 
     when (val s = state) {
         is SessionState.Loading -> LoadingScreen()
@@ -95,7 +95,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
 
     var open by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
-    val expanded by container.navExpanded.collectAsStateWithLifecycle()
+    val expanded by container.navExpanded.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
 
     val openProgress by animateFloatAsState(
