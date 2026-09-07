@@ -267,4 +267,22 @@ interface ApiService {
 
     @POST("money/rewards/approve-base")
     suspend fun approveRewardBase(@Body body: com.kairos.app.data.remote.dto.RewardApproveBaseRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/approve")
+    suspend fun approveMoney(@Body body: com.kairos.app.data.remote.dto.MoneyIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/unapprove")
+    suspend fun unapproveMoney(@Body body: com.kairos.app.data.remote.dto.MoneyIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/approve-all")
+    suspend fun approveAllMoney(): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/update")
+    suspend fun updateMoney(@Body body: com.kairos.app.data.remote.dto.UpdateMoneyRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/delete")
+    suspend fun deleteMoney(@Body body: com.kairos.app.data.remote.dto.MoneyIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("money/starting")
+    suspend fun setStartingFunds(@Body body: com.kairos.app.data.remote.dto.StartingFundsRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }

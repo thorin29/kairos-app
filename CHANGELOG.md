@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.73.0 — Money admin + home reminder
+- Parent admins can now manage money from the phone: approve or unapprove filed
+  transactions (single or all at once), edit or delete any transaction, and set
+  a person's starting funds — everything the web Money admin does except the
+  one-time CSV import. Approvals on the shared wall tablet still use the PIN.
+- The home dashboard shows an amber reminder when money needs attention
+  (transactions to approve and/or Bible-reading rewards ready); Review opens Money.
+- Bible-reading reward approvals now use the amber/orange styling from the web.
+- Adding a transaction is less cramped: Type, Category, For, and the frequent-
+  payment picker now open a quick pop-up instead of an inline dropdown. A child
+  only ever files for themselves (their name is filled in automatically).
+
 ## 0.72.0 — Money
 - New Money section: per-person ledger with running balances, add a deposit or
   payment (lands pending, balance moves right away), and search your transactions.

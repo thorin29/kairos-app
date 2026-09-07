@@ -104,6 +104,7 @@ data class RevokeResponse(
 data class DashboardDto(
     val date: String,
     val percent: Int? = null,
+    val money: DashboardMoneyDto? = null,
     val categories: List<CategoryBarDto> = emptyList(),
     val overdue: List<TaskDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
@@ -112,6 +113,12 @@ data class DashboardDto(
     val alwaysOpen: List<AlwaysOpenDashDto> = emptyList(),
     val schedule: List<ScheduleItemDto> = emptyList(),
     val sportPrompts: List<SportPromptDto> = emptyList(),
+)
+
+@Serializable
+data class DashboardMoneyDto(
+    val pendingApprovals: Int = 0,
+    val rewardMonths: Int = 0,
 )
 
 @Serializable
@@ -993,8 +1000,24 @@ data class MoneyDto(
     val rows: List<MoneyRowDto> = emptyList(),
     val roster: List<PersonDto> = emptyList(),
     val frequentPayments: List<String> = emptyList(),
+    val isAdmin: Boolean = false,
     val canApproveRewards: Boolean = false,
     val rewardMonths: List<MoneyRewardMonthDto> = emptyList(),
+    val pendingApprovals: List<MoneyPendingDto> = emptyList(),
+)
+
+@Serializable
+data class MoneyPendingDto(
+    val id: String = "",
+    val userId: String = "",
+    val userName: String = "",
+    val date: String = "",
+    val direction: String = "DEPOSIT",
+    val category: String? = null,
+    val detail: String? = null,
+    val amountCents: Long = 0,
+    val status: String = "PENDING",
+    val kind: String = "MANUAL",
 )
 
 @Serializable
@@ -1051,4 +1074,26 @@ data class RewardApproveMonthRequest(
 data class RewardApproveBaseRequest(
     val userId: String,
     val periodKey: String,
+)
+
+@Serializable
+data class MoneyIdRequest(
+    val id: String,
+)
+
+@Serializable
+data class UpdateMoneyRequest(
+    val id: String,
+    val direction: String,
+    val amountCents: Long,
+    val category: String? = null,
+    val detail: String? = null,
+    val date: String? = null,
+)
+
+@Serializable
+data class StartingFundsRequest(
+    val userId: String,
+    val amountCents: Long,
+    val date: String? = null,
 )

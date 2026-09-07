@@ -148,6 +148,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         person = person,
                         onOpenDrawer = { open = true },
                         onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
+                        onOpenMoney = { go(Route.Section("money"), "money") },
                         refreshKey = homeRefresh,
                     )
                 }

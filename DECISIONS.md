@@ -153,3 +153,22 @@ wire (`amountCents`), parsed from the dollar field on-device (no regex — manua
 split to dodge the Kotlin backslash-escaping trap). Reused patterns: RollPicker
 for every select, `DatePickerDialog` for the date (as in the calendar editor),
 `collectAsState()` for screen state, and act-then-reload in the ViewModel.
+
+## Money: full admin parity minus import; pop-up selectors; child auto-fills self (v0.73.0)
+Admins manage money entirely from the phone now: the ledger's "Awaiting approval"
+banner (household-wide pending) approves per-row or all at once; tapping any ledger
+row (admin only) opens an AnimatedDialog to approve/unapprove, edit, or delete; a
+"Set starting funds" action and the Bible-reward approvals round out parity with the
+web Money admin — everything except CSV import. Gated on `data.isAdmin` from
+`GET /money` (device role ADMIN); the shared web tablet keeps the PIN. The home
+dashboard shows an amber `MoneyReminder` when `dashboard.money` reports pending
+work; Review navigates to Money (no inline approve on Home).
+
+Add/Edit forms: selects (Type, Category, For, frequent-payment) are now compact
+rows that open a small `OptionsDialog` (AnimatedDialog) instead of inline
+`RollPicker` dropdowns — the inline expansion made the form scroll and feel clunky.
+Nested dialogs (OptionsDialog / DatePickerDialog opened from within the form
+AnimatedDialog) work fine, same as the calendar editor's date picker. A child's
+roster is just themselves, so the "For" picker is hidden and the entry auto-files
+for them; a parent/admin picks anyone they can see. Reward buttons + the home
+banner use the web's amber/orange palette.

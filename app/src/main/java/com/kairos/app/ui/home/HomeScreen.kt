@@ -65,6 +65,7 @@ import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.AttendanceIcon
 import com.kairos.app.ui.common.AttendeesColumn
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.nav.KairosIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +73,7 @@ fun HomeScreen(
     person: PersonDto,
     onOpenDrawer: () -> Unit,
     onLogWorkout: (String) -> Unit,
+    onOpenMoney: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
@@ -118,7 +120,7 @@ fun HomeScreen(
                     }
                 }
                 ui.dashboard == null -> ErrorState(ui.loadError, onRetry = vm::load)
-                else -> DashboardContent(person, ui, vm)
+                else -> DashboardContent(person, ui, vm, onOpenMoney)
             }
 
             ui.workoutSheet?.let { task -> WorkoutSheet(task, vm, onLogWorkout) }
@@ -159,7 +161,7 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel) {
+private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
     PullToRefreshBox(
@@ -173,6 +175,12 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(key = "header") { HeaderCard(person.name, d.percent) }
+
+            d.money?.let { m ->
+                if (m.pendingApprovals > 0 || m.rewardMonths > 0) {
+                    item(key = "money-reminder") { MoneyReminder(m, onOpenMoney) }
+                }
+            }
 
             if (d.categories.isNotEmpty()) {
                 item(key = "bars") { CategoryBars(d.categories) }
@@ -338,6 +346,67 @@ private fun SportPromptCard(
                     modifier = Modifier.weight(1f),
                 ) { Text("No") }
             }
+        }
+    }
+}
+
+@Composable
+private fun MoneyReminder(m: com.kairos.app.data.remote.dto.DashboardMoneyDto, onReview: () -> Unit) {
+    val amberBg = androidx.compose.ui.graphics.Color(0xFFFFFBEB)
+    val amberBorder = androidx.compose.ui.graphics.Color(0xFFFCD34D)
+    val amberDk = androidx.compose.ui.graphics.Color(0xFFB45309)
+    val amberText = androidx.compose.ui.graphics.Color(0xFF78350F)
+    val amberBtn = androidx.compose.ui.graphics.Color(0xFFD97706)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            .background(amberBg)
+            .border(1.dp, amberBorder, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (m.pendingApprovals > 0) {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                androidx.compose.material3.Icon(KairosIcons.Dollar, contentDescription = null, tint = amberDk, modifier = Modifier.size(16.dp))
+                androidx.compose.material3.Text(
+                    "${m.pendingApprovals} " + (if (m.pendingApprovals == 1) "transaction" else "transactions") + " to approve",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    color = amberText,
+                )
+            }
+        }
+        if (m.rewardMonths > 0) {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                androidx.compose.material3.Icon(KairosIcons.Bible, contentDescription = null, tint = amberDk, modifier = Modifier.size(16.dp))
+                androidx.compose.material3.Text(
+                    "Bible reading " + (if (m.rewardMonths == 1) "reward" else "rewards") + " ready" +
+                        (if (m.rewardMonths > 1) " (${m.rewardMonths} months)" else ""),
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    color = amberText,
+                )
+            }
+        }
+        Row(
+            Modifier
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                .background(amberBtn)
+                .clickable { onReview() }
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+        ) {
+            androidx.compose.material3.Text(
+                "Review",
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+                color = androidx.compose.ui.graphics.Color.White,
+            )
         }
     }
 }

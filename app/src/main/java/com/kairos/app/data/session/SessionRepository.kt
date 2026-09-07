@@ -352,6 +352,30 @@ class SessionRepository(
         }
     }
 
+    suspend fun approveMoney(id: String) {
+        runAuthed { requireService().approveMoney(com.kairos.app.data.remote.dto.MoneyIdRequest(id)) }
+    }
+
+    suspend fun unapproveMoney(id: String) {
+        runAuthed { requireService().unapproveMoney(com.kairos.app.data.remote.dto.MoneyIdRequest(id)) }
+    }
+
+    suspend fun approveAllMoney() {
+        runAuthed { requireService().approveAllMoney() }
+    }
+
+    suspend fun updateMoney(body: com.kairos.app.data.remote.dto.UpdateMoneyRequest) {
+        runAuthed { requireService().updateMoney(body) }
+    }
+
+    suspend fun deleteMoney(id: String) {
+        runAuthed { requireService().deleteMoney(com.kairos.app.data.remote.dto.MoneyIdRequest(id)) }
+    }
+
+    suspend fun setStartingFunds(body: com.kairos.app.data.remote.dto.StartingFundsRequest) {
+        runAuthed { requireService().setStartingFunds(body) }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -473,6 +497,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 119
+        const val CLIENT_BUILD = 120
     }
 }

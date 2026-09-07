@@ -56,13 +56,15 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.AddMoneyRequest
 import com.kairos.app.data.remote.dto.MoneyDto
 import com.kairos.app.data.remote.dto.MoneyParticipantDto
+import com.kairos.app.data.remote.dto.MoneyPendingDto
 import com.kairos.app.data.remote.dto.MoneyRewardCompleterDto
 import com.kairos.app.data.remote.dto.MoneyRewardMonthDto
 import com.kairos.app.data.remote.dto.MoneyRowDto
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.StartingFundsRequest
+import com.kairos.app.data.remote.dto.UpdateMoneyRequest
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
-import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import java.time.Instant
@@ -72,10 +74,25 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
 private val ACCENT = Color(0xFF0F5C63)   // global teal accent (buttons, active pill)
-private val MONEY = Color(0xFF15803D)    // money green (deposits, approved, section)
+private val MONEY = Color(0xFF15803D)    // money green (deposits, approved)
 private val NEG = Color(0xFFDC2626)      // red-600 (payments, negative balances)
-private val AMBER = Color(0xFFFBBF24)    // amber-400 (awaiting approval)
-private val GREEN600 = Color(0xFF16A34A) // per-person approve button
+private val PENDING_DOT = Color(0xFFFBBF24) // amber-400 (awaiting approval marker)
+private val GREEN600 = Color(0xFF16A34A) // approve button
+private val AMBER = Color(0xFFD97706)    // amber-600 (reward buttons)
+private val AMBER_DK = Color(0xFFB45309) // amber-700 (reward icon/accent)
+private val AMBER_BG = Color(0xFFFFFBEB) // amber-50 (reward/queue banner bg)
+private val AMBER_BORDER = Color(0xFFFCD34D) // amber-300 border
+private val DANGER = Color(0xFFDC2626)
+
+private data class EditTarget(
+    val id: String,
+    val date: String,
+    val direction: String,
+    val category: String?,
+    val detail: String?,
+    val amountCents: Long,
+    val who: String,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,6 +139,9 @@ private fun MoneyContent(vm: MoneyViewModel, ui: MoneyUiState, data: MoneyDto) {
     var query by remember { mutableStateOf("") }
     var confirmMonth by remember { mutableStateOf<MoneyRewardMonthDto?>(null) }
     var confirmBase by remember { mutableStateOf<Pair<MoneyRewardCompleterDto, String>?>(null) }
+    var rowAction by remember { mutableStateOf<MoneyRowDto?>(null) }
+    var editTarget by remember { mutableStateOf<EditTarget?>(null) }
+    var showStarting by remember { mutableStateOf(false) }
 
     val participants = data.participants.filter { it.person != null }
     val selected = participants.firstOrNull { it.person?.id == data.selectedId }
@@ -133,7 +153,21 @@ private fun MoneyContent(vm: MoneyViewModel, ui: MoneyUiState, data: MoneyDto) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Admin-only: outstanding Bible-reward payouts to approve, at the top.
+        // Admin: household transactions awaiting a verification mark.
+        if (data.isAdmin && data.pendingApprovals.isNotEmpty()) {
+            ApprovalQueue(
+                pending = data.pendingApprovals,
+                busy = ui.approving,
+                onApprove = { vm.approve(it) },
+                onApproveAll = { vm.approveAll() },
+                onEdit = { p ->
+                    vm.clearAddError()
+                    editTarget = EditTarget(p.id, p.date, p.direction, p.category, p.detail, p.amountCents, p.userName)
+                },
+            )
+        }
+
+        // Admin: outstanding Bible-reward payouts to approve.
         if (data.canApproveRewards && data.rewardMonths.isNotEmpty()) {
             RewardsSection(
                 months = data.rewardMonths,
@@ -144,8 +178,10 @@ private fun MoneyContent(vm: MoneyViewModel, ui: MoneyUiState, data: MoneyDto) {
 
         if (participants.isEmpty()) {
             EmptyLedger(onAdd = { vm.clearAddError(); showAdd = true })
+            if (data.isAdmin) {
+                StartingFundsButton { vm.clearAddError(); showStarting = true }
+            }
         } else {
-            // People selector — collapses to nothing when there's a single ledger.
             if (participants.size > 1) {
                 PeopleSelector(participants, data.selectedId) { vm.select(it) }
             }
@@ -166,7 +202,16 @@ private fun MoneyContent(vm: MoneyViewModel, ui: MoneyUiState, data: MoneyDto) {
                 SearchField(query) { query = it }
             }
 
-            LedgerCard(rows = data.rows, query = query)
+            LedgerCard(
+                rows = data.rows,
+                query = query,
+                isAdmin = data.isAdmin,
+                onRowClick = { rowAction = it },
+            )
+
+            if (data.isAdmin) {
+                StartingFundsButton { vm.clearAddError(); showStarting = true }
+            }
         }
     }
 
@@ -180,6 +225,45 @@ private fun MoneyContent(vm: MoneyViewModel, ui: MoneyUiState, data: MoneyDto) {
             serverError = ui.addError,
             onSubmit = { req -> vm.addEntry(req) { showAdd = false } },
             onDismiss = { showAdd = false },
+        )
+    }
+
+    if (showStarting) {
+        StartingFundsDialog(
+            today = data.today,
+            roster = data.roster,
+            adding = ui.adding,
+            serverError = ui.addError,
+            onSubmit = { req -> vm.setStarting(req) { showStarting = false } },
+            onDismiss = { showStarting = false },
+        )
+    }
+
+    rowAction?.let { r ->
+        RowActionDialog(
+            label = rowLabel(r),
+            amountText = (if (signedCents(r) < 0) "-" else "") + formatCents(r.amountCents),
+            approved = r.status == "APPROVED",
+            busy = ui.approving,
+            onApprove = { vm.approve(r.id) { rowAction = null } },
+            onUnapprove = { vm.unapprove(r.id) { rowAction = null } },
+            onEdit = {
+                vm.clearAddError()
+                editTarget = EditTarget(r.id, r.date, r.direction, r.category, r.detail, r.amountCents, "")
+                rowAction = null
+            },
+            onDelete = { vm.deleteEntry(r.id) { rowAction = null } },
+            onDismiss = { rowAction = null },
+        )
+    }
+
+    editTarget?.let { t ->
+        EditMoneyDialog(
+            target = t,
+            saving = ui.adding,
+            serverError = ui.addError,
+            onSubmit = { req -> vm.updateEntry(req) { editTarget = null } },
+            onDismiss = { editTarget = null },
         )
     }
 
@@ -231,6 +315,109 @@ private fun MoneyContent(vm: MoneyViewModel, ui: MoneyUiState, data: MoneyDto) {
                     Spacer(Modifier.height(8.dp))
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
+            }
+        }
+    }
+}
+
+// ---- Approval queue (admin) ----
+
+@Composable
+private fun ApprovalQueue(
+    pending: List<MoneyPendingDto>,
+    busy: Boolean,
+    onApprove: (String) -> Unit,
+    onApproveAll: () -> Unit,
+    onEdit: (MoneyPendingDto) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AMBER_BG)
+            .border(1.dp, AMBER_BORDER, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Awaiting approval",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                pending.size.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = AMBER_DK,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(AMBER_BORDER.copy(alpha = 0.5f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
+        pending.forEach { p ->
+            val out = p.direction != "DEPOSIT"
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        p.userName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "${formatShortYear(p.date)}  \u00b7  " + pendingLabel(p),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Text(
+                    (if (out) "-" else "") + formatCents(p.amountCents),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (out) NEG else MONEY,
+                )
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (busy) GREEN600.copy(alpha = 0.5f) else GREEN600)
+                        .clickable(enabled = !busy) { onApprove(p.id) }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Icon(KairosIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                    Text("Approve", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                }
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                        .clickable { onEdit(p) }
+                        .padding(6.dp),
+                ) {
+                    Icon(KairosIcons.Pencil, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                }
+            }
+        }
+        if (pending.size > 1) {
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (busy) AMBER.copy(alpha = 0.5f) else AMBER)
+                    .clickable(enabled = !busy) { onApproveAll() }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                Text("Approve all", style = MaterialTheme.typography.labelLarge, color = Color.White)
             }
         }
     }
@@ -314,18 +501,7 @@ private fun SelectedHeader(p: MoneyParticipantDto) {
 @Composable
 private fun ActionBar(searching: Boolean, onAdd: () -> Unit, onToggleSearch: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(ACCENT)
-                .clickable { onAdd() }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(KairosIcons.Plus, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-            Text("Add transaction", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color.White)
-        }
+        FilledButton("Add transaction", KairosIcons.Plus, onAdd)
         Spacer(Modifier.weight(1f))
         Box(
             Modifier
@@ -344,6 +520,36 @@ private fun ActionBar(searching: Boolean, onAdd: () -> Unit, onToggleSearch: () 
                 tint = if (searching) ACCENT else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun FilledButton(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(ACCENT)
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color.White)
+    }
+}
+
+@Composable
+private fun StartingFundsButton(onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+            Modifier.clickable { onClick() }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(KairosIcons.Dollar, contentDescription = null, tint = ACCENT, modifier = Modifier.size(16.dp))
+            Text("Set starting funds", style = MaterialTheme.typography.labelLarge, color = ACCENT)
         }
     }
 }
@@ -382,7 +588,12 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
 // ---- Ledger ----
 
 @Composable
-private fun LedgerCard(rows: List<MoneyRowDto>, query: String) {
+private fun LedgerCard(
+    rows: List<MoneyRowDto>,
+    query: String,
+    isAdmin: Boolean,
+    onRowClick: (MoneyRowDto) -> Unit,
+) {
     val q = query.trim().lowercase()
     val filtered = if (q.isEmpty()) rows else rows.filter { r ->
         listOf(
@@ -396,7 +607,6 @@ private fun LedgerCard(rows: List<MoneyRowDto>, query: String) {
 
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column {
-            // Header
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -418,7 +628,7 @@ private fun LedgerCard(rows: List<MoneyRowDto>, query: String) {
             } else {
                 filtered.forEach { r ->
                     Divider()
-                    LedgerRow(r)
+                    LedgerRow(r, isAdmin, onRowClick)
                 }
             }
         }
@@ -426,10 +636,13 @@ private fun LedgerCard(rows: List<MoneyRowDto>, query: String) {
 }
 
 @Composable
-private fun LedgerRow(r: MoneyRowDto) {
+private fun LedgerRow(r: MoneyRowDto, isAdmin: Boolean, onRowClick: (MoneyRowDto) -> Unit) {
     val out = signedCents(r) < 0
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier
+            .fillMaxWidth()
+            .then(if (isAdmin) Modifier.clickable { onRowClick(r) } else Modifier)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -455,9 +668,77 @@ private fun LedgerRow(r: MoneyRowDto) {
             if (r.status == "APPROVED") {
                 Icon(KairosIcons.Check, contentDescription = "Approved", tint = MONEY, modifier = Modifier.size(16.dp))
             } else {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(AMBER))
+                Box(Modifier.size(8.dp).clip(CircleShape).background(PENDING_DOT))
             }
         }
+    }
+}
+
+// ---- Row action (admin) ----
+
+@Composable
+private fun RowActionDialog(
+    label: String,
+    amountText: String,
+    approved: Boolean,
+    busy: Boolean,
+    onApprove: () -> Unit,
+    onUnapprove: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var confirmingDelete by remember { mutableStateOf(false) }
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = label,
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(amountText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (confirmingDelete) {
+                Text("Delete this transaction?", style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ActionRow("Cancel", null, MaterialTheme.colorScheme.outline, filled = false, enabled = true) { confirmingDelete = false }
+                    ActionRow("Delete", KairosIcons.Trash, DANGER, filled = true, enabled = !busy, onClick = onDelete)
+                }
+            } else {
+                if (approved) {
+                    ActionRow("Unapprove", null, AMBER_DK, filled = false, enabled = !busy, onClick = onUnapprove)
+                } else {
+                    ActionRow("Approve", KairosIcons.Check, GREEN600, filled = true, enabled = !busy, onClick = onApprove)
+                }
+                ActionRow("Edit", KairosIcons.Pencil, ACCENT, filled = false, enabled = true, onClick = onEdit)
+                ActionRow("Delete", KairosIcons.Trash, DANGER, filled = false, enabled = true) { confirmingDelete = true }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionRow(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector?,
+    color: Color,
+    filled: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = if (filled) (if (enabled) color else color.copy(alpha = 0.5f)) else Color.Transparent
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .then(if (filled) Modifier else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)))
+            .clickable(enabled = enabled) { onClick() }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = if (filled) Color.White else color, modifier = Modifier.size(16.dp))
+        }
+        Text(text, style = MaterialTheme.typography.labelLarge, color = if (filled) Color.White else color)
     }
 }
 
@@ -479,18 +760,7 @@ private fun EmptyLedger(onAdd: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Row(
-                Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(ACCENT)
-                    .clickable { onAdd() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(KairosIcons.Plus, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Text("Add transaction", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color.White)
-            }
+            FilledButton("Add transaction", KairosIcons.Plus, onAdd)
         }
     }
 }
@@ -505,62 +775,67 @@ private fun RewardsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(KairosIcons.Bible, contentDescription = null, tint = MONEY, modifier = Modifier.size(20.dp))
+            Icon(KairosIcons.Bible, contentDescription = null, tint = AMBER_DK, modifier = Modifier.size(20.dp))
             Text("Bible reading rewards", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         months.forEach { m ->
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(m.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                            Text(
-                                "${m.completers.size} " +
-                                    (if (m.completers.size == 1) "person" else "people") + " finished" +
-                                    (if (m.bonusAvailable) " \u2014 everyone finished, bonus available" else ""),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (m.bonusAvailable) MONEY else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Row(
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ACCENT)
-                                .clickable { onApproveMonth(m) }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                if (m.bonusAvailable) "Approve all + bonus" else "Approve all",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = Color.White,
-                            )
-                        }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AMBER_BG)
+                    .border(1.dp, AMBER_BORDER, RoundedCornerShape(14.dp))
+                    .padding(14.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(m.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(
+                            "${m.completers.size} " +
+                                (if (m.completers.size == 1) "person" else "people") + " finished" +
+                                (if (m.bonusAvailable) " \u2014 everyone finished, bonus available" else ""),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (m.bonusAvailable) MONEY else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    if (!m.bonusAvailable) {
-                        m.completers.forEach { c ->
-                            Divider()
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Text(c.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                Text(formatDollars(c.baseCents), style = MaterialTheme.typography.bodyMedium, color = MONEY)
-                                if (c.needsBase) {
-                                    Row(
-                                        Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(GREEN600)
-                                            .clickable { onApproveBase(c, m.periodKey) }
-                                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                                    ) {
-                                        Text("Approve", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                                    }
-                                } else {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Icon(KairosIcons.Check, contentDescription = null, tint = MONEY, modifier = Modifier.size(14.dp))
-                                        Text("Paid", style = MaterialTheme.typography.labelMedium, color = MONEY)
-                                    }
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AMBER)
+                            .clickable { onApproveMonth(m) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            if (m.bonusAvailable) "Approve all + bonus" else "Approve all",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White,
+                        )
+                    }
+                }
+                if (!m.bonusAvailable) {
+                    m.completers.forEach { c ->
+                        Divider()
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(c.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(formatDollars(c.baseCents), style = MaterialTheme.typography.bodyMedium, color = MONEY)
+                            if (c.needsBase) {
+                                Row(
+                                    Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(AMBER)
+                                        .clickable { onApproveBase(c, m.periodKey) }
+                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                ) {
+                                    Text("Approve", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                                }
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(KairosIcons.Check, contentDescription = null, tint = MONEY, modifier = Modifier.size(14.dp))
+                                    Text("Paid", style = MaterialTheme.typography.labelMedium, color = MONEY)
                                 }
                             }
                         }
@@ -571,9 +846,8 @@ private fun RewardsSection(
     }
 }
 
-// ---- Add transaction dialog ----
+// ---- Add / Edit / Starting forms ----
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddMoneyDialog(
     today: String,
@@ -592,6 +866,7 @@ private fun AddMoneyDialog(
     var detail by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+    var openSelector by remember { mutableStateOf<String?>(null) }
     var showDate by remember { mutableStateOf(false) }
 
     AnimatedDialog(
@@ -626,64 +901,26 @@ private fun AddMoneyDialog(
         },
     ) {
         Column(
-            Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (roster.size > 1) {
-                RollPicker(
-                    label = "For",
-                    selectedLabel = roster.firstOrNull { it.id == forId }?.name ?: "",
-                    options = roster.map { it.id to it.name },
-                    onSelect = { forId = it },
-                )
+                SelectRow("For", roster.firstOrNull { it.id == forId }?.name ?: "") { openSelector = "for" }
             }
-
-            Column {
-                Text("Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                        .clickable { showDate = true }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    Text(formatLongDate(dateIso), style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-
-            RollPicker(
-                label = "Type",
-                selectedLabel = if (direction == "DEPOSIT") "Deposit (money in)" else "Payment (money out)",
-                options = listOf("DEPOSIT" to "Deposit (money in)", "PAYMENT" to "Payment (money out)"),
-                onSelect = { direction = it },
-            )
-
+            DateRow(dateIso) { showDate = true }
+            SelectRow("Type", directionLabel(direction)) { openSelector = "type" }
             if (direction == "DEPOSIT") {
-                RollPicker(
-                    label = "Category",
-                    selectedLabel = categoryLabel(category),
-                    options = DEPOSIT_CATEGORIES,
-                    onSelect = { category = it },
-                )
+                SelectRow("Category", categoryLabel(category)) { openSelector = "category" }
             }
-
             if (direction == "PAYMENT" && frequentPayments.isNotEmpty()) {
-                RollPicker(
-                    label = "Frequently used",
-                    selectedLabel = "",
-                    options = frequentPayments.map { it to it },
-                    onSelect = { detail = it },
-                )
+                SelectRow("Frequently used", "", placeholder = "Pick a common payment\u2026") { openSelector = "frequent" }
             }
-
             FormField(
                 label = if (direction == "DEPOSIT") "Details (optional)" else "Details",
                 value = detail,
                 onValueChange = { detail = it },
                 placeholder = if (direction == "DEPOSIT") "e.g. from Grandma" else "e.g. bought a game",
             )
-
             FormField(
                 label = "Amount (USD)",
                 value = amount,
@@ -691,7 +928,6 @@ private fun AddMoneyDialog(
                 placeholder = "0.00",
                 keyboardType = KeyboardType.Decimal,
             )
-
             val err = localError ?: serverError
             if (err != null) {
                 Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -699,19 +935,250 @@ private fun AddMoneyDialog(
         }
     }
 
-    if (showDate) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(dateIso))
-        DatePickerDialog(
-            onDismissRequest = { showDate = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let { dateIso = utcMillisToIso(it) }
-                    showDate = false
-                }) { Text("OK") }
-            },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
-        ) { DatePicker(state = state) }
+    when (openSelector) {
+        "for" -> OptionsDialog("For", roster.map { it.id to it.name }, forId, { forId = it }, { openSelector = null })
+        "type" -> OptionsDialog("Type", DIRECTIONS, direction, { direction = it }, { openSelector = null })
+        "category" -> OptionsDialog("Category", DEPOSIT_CATEGORIES, category, { category = it }, { openSelector = null })
+        "frequent" -> OptionsDialog("Frequently used", frequentPayments.map { it to it }, null, { detail = it }, { openSelector = null })
     }
+
+    if (showDate) {
+        DatePickerOverlay(dateIso, onPick = { dateIso = it; showDate = false }, onDismiss = { showDate = false })
+    }
+}
+
+@Composable
+private fun EditMoneyDialog(
+    target: EditTarget,
+    saving: Boolean,
+    serverError: String?,
+    onSubmit: (UpdateMoneyRequest) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var direction by remember { mutableStateOf(target.direction) }
+    var dateIso by remember { mutableStateOf(target.date) }
+    var category by remember { mutableStateOf(target.category ?: "") }
+    var detail by remember { mutableStateOf(target.detail ?: "") }
+    var amount by remember { mutableStateOf(formatCents(target.amountCents)) }
+    var localError by remember { mutableStateOf<String?>(null) }
+    var openSelector by remember { mutableStateOf<String?>(null) }
+    var showDate by remember { mutableStateOf(false) }
+
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = if (target.who.isBlank()) "Edit transaction" else "Edit \u2014 ${target.who}",
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            TextButton(
+                enabled = !saving,
+                onClick = {
+                    val cents = parseAmountToCents(amount)
+                    when {
+                        cents == null || cents <= 0 -> localError = "Enter an amount over $0.00."
+                        direction == "DEPOSIT" && category.isBlank() -> localError = "Pick a category for the deposit."
+                        else -> {
+                            localError = null
+                            onSubmit(
+                                UpdateMoneyRequest(
+                                    id = target.id,
+                                    direction = direction,
+                                    amountCents = cents,
+                                    category = if (direction == "DEPOSIT") category else null,
+                                    detail = detail.trim().ifBlank { null },
+                                    date = dateIso,
+                                ),
+                            )
+                        }
+                    }
+                },
+            ) { Text(if (saving) "Saving\u2026" else "Save changes") }
+        },
+    ) {
+        Column(
+            Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            DateRow(dateIso) { showDate = true }
+            SelectRow("Type", directionLabel(direction)) { openSelector = "type" }
+            if (direction == "DEPOSIT") {
+                SelectRow("Category", categoryLabel(category)) { openSelector = "category" }
+            }
+            FormField(label = "Details", value = detail, onValueChange = { detail = it }, placeholder = "")
+            FormField(label = "Amount (USD)", value = amount, onValueChange = { amount = it }, placeholder = "0.00", keyboardType = KeyboardType.Decimal)
+            val err = localError ?: serverError
+            if (err != null) {
+                Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+
+    when (openSelector) {
+        "type" -> OptionsDialog("Type", DIRECTIONS, direction, { direction = it }, { openSelector = null })
+        "category" -> OptionsDialog("Category", DEPOSIT_CATEGORIES, category, { category = it }, { openSelector = null })
+    }
+    if (showDate) {
+        DatePickerOverlay(dateIso, onPick = { dateIso = it; showDate = false }, onDismiss = { showDate = false })
+    }
+}
+
+@Composable
+private fun StartingFundsDialog(
+    today: String,
+    roster: List<PersonDto>,
+    adding: Boolean,
+    serverError: String?,
+    onSubmit: (StartingFundsRequest) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var forId by remember { mutableStateOf(roster.firstOrNull()?.id ?: "") }
+    var dateIso by remember { mutableStateOf(today.ifBlank { LocalDate.now().toString() }) }
+    var amount by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+    var openSelector by remember { mutableStateOf<String?>(null) }
+    var showDate by remember { mutableStateOf(false) }
+
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = "Set starting funds",
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            TextButton(
+                enabled = !adding,
+                onClick = {
+                    val cents = parseAmountToCents(amount)
+                    when {
+                        forId.isBlank() -> localError = "Pick who this is for."
+                        cents == null || cents <= 0 -> localError = "Enter an amount over $0.00."
+                        else -> {
+                            localError = null
+                            onSubmit(StartingFundsRequest(userId = forId, amountCents = cents, date = dateIso))
+                        }
+                    }
+                },
+            ) { Text(if (adding) "Saving\u2026" else "Submit") }
+        },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "The balance already in hand before this ledger begins. Shown as a \u201cStarting funds\u201d line and approved automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (roster.size > 1) {
+                SelectRow("For", roster.firstOrNull { it.id == forId }?.name ?: "") { openSelector = "for" }
+            }
+            DateRow(dateIso) { showDate = true }
+            FormField(label = "Amount (USD)", value = amount, onValueChange = { amount = it }, placeholder = "0.00", keyboardType = KeyboardType.Decimal)
+            val err = localError ?: serverError
+            if (err != null) {
+                Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+
+    if (openSelector == "for") {
+        OptionsDialog("For", roster.map { it.id to it.name }, forId, { forId = it }, { openSelector = null })
+    }
+    if (showDate) {
+        DatePickerOverlay(dateIso, onPick = { dateIso = it; showDate = false }, onDismiss = { showDate = false })
+    }
+}
+
+// ---- Form building blocks ----
+
+@Composable
+private fun SelectRow(label: String, value: String, placeholder: String = "Choose\u2026", onClick: () -> Unit) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                value.ifBlank { placeholder },
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (value.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun DateRow(dateIso: String, onClick: () -> Unit) {
+    Column {
+        Text("Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Text(formatLongDate(dateIso), style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun OptionsDialog(
+    title: String,
+    options: List<Pair<String, String>>,
+    selectedKey: String?,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = title,
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) {
+        Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            options.forEach { (key, label) ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(key); onDismiss() }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        Modifier
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, if (key == selectedKey) ACCENT else MaterialTheme.colorScheme.outline, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (key == selectedKey) {
+                            Box(Modifier.size(10.dp).clip(CircleShape).background(ACCENT))
+                        }
+                    }
+                    Text(label, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerOverlay(dateIso: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(dateIso))
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { state.selectedDateMillis?.let { onPick(utcMillisToIso(it)) } }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) { DatePicker(state = state) }
 }
 
 @Composable
@@ -751,12 +1218,20 @@ private fun FormField(
     }
 }
 
-// ---- shared bits ----
-
 @Composable
 private fun Divider() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 }
+
+// ---- labels / formatting ----
+
+private val DIRECTIONS: List<Pair<String, String>> = listOf(
+    "DEPOSIT" to "Deposit (money in)",
+    "PAYMENT" to "Payment (money out)",
+)
+
+private fun directionLabel(d: String): String =
+    if (d == "PAYMENT") "Payment (money out)" else "Deposit (money in)"
 
 private val DEPOSIT_CATEGORIES: List<Pair<String, String>> = listOf(
     "BIRTHDAY" to "Birthday",
@@ -778,38 +1253,38 @@ private fun categoryLabel(c: String?): String = when (c) {
     else -> c
 }
 
-private fun rowLabel(r: MoneyRowDto): String {
-    if (r.kind == "STARTING") return "Starting funds"
-    if (r.kind == "BIBLE_REWARD") return "Bible reading reward"
-    if (r.kind == "BIBLE_BONUS") return "Bible reading bonus"
-    if (r.direction == "DEPOSIT") {
-        val cat = categoryLabel(r.category)
-        val d = r.detail
-        if (cat.isNotBlank() && !d.isNullOrBlank()) return "$cat \u2014 $d"
+private fun rowLabel(r: MoneyRowDto): String = labelFor(r.kind, r.direction, r.category, r.detail)
+
+private fun pendingLabel(p: MoneyPendingDto): String = labelFor(p.kind, p.direction, p.category, p.detail)
+
+private fun labelFor(kind: String, direction: String, category: String?, detail: String?): String {
+    if (kind == "STARTING") return "Starting funds"
+    if (kind == "BIBLE_REWARD") return "Bible reading reward"
+    if (kind == "BIBLE_BONUS") return "Bible reading bonus"
+    if (direction == "DEPOSIT") {
+        val cat = categoryLabel(category)
+        if (cat.isNotBlank() && !detail.isNullOrBlank()) return "$cat \u2014 $detail"
         if (cat.isNotBlank()) return cat
-        if (!d.isNullOrBlank()) return d
+        if (!detail.isNullOrBlank()) return detail
         return "Deposit"
     }
-    return r.detail?.takeIf { it.isNotBlank() } ?: "Payment"
+    return detail?.takeIf { it.isNotBlank() } ?: "Payment"
 }
 
 private fun signedCents(r: MoneyRowDto): Long =
     if (r.direction == "DEPOSIT") r.amountCents else -r.amountCents
 
-/** Bare magnitude, two decimals, no sign/symbol/grouping — table amounts. */
 private fun formatCents(cents: Long): String {
     val a = abs(cents)
     return "${a / 100}.${(a % 100).toString().padStart(2, '0')}"
 }
 
-/** A balance with a dollar sign, no grouping — the header total. */
 private fun formatDollars(cents: Long): String {
     val a = abs(cents)
     val body = "${a / 100}.${(a % 100).toString().padStart(2, '0')}"
     return (if (cents < 0) "-$" else "$") + body
 }
 
-/** Comma-grouped, two decimals, no symbol — the rail balances. */
 private fun formatAmountGrouped(cents: Long): String {
     val a = abs(cents)
     val whole = groupThousands(a / 100)
@@ -828,7 +1303,6 @@ private fun groupThousands(n: Long): String {
     return sb.toString()
 }
 
-/** Dollars-and-cents text to whole cents, tolerating "$", commas, spaces. */
 private fun parseAmountToCents(input: String): Long? {
     val cleaned = input.trim().replace(",", "").removePrefix("$").trim()
     if (cleaned.isEmpty()) return null

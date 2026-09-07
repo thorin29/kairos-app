@@ -109,4 +109,56 @@ class MoneyViewModel(
             }
         }
     }
+
+    // ---- Admin transaction management ----
+
+    private fun mutate(onDone: () -> Unit, block: suspend () -> Unit) {
+        if (_ui.value.approving) return
+        _ui.update { it.copy(approving = true, approveError = null) }
+        viewModelScope.launch {
+            try {
+                block()
+                _ui.update { it.copy(approving = false) }
+                onDone()
+                loadInternal(currentUser)
+            } catch (e: ApiException) {
+                _ui.update { it.copy(approving = false, approveError = e.error.message) }
+            }
+        }
+    }
+
+    fun approve(id: String, onDone: () -> Unit = {}) = mutate(onDone) { session.approveMoney(id) }
+    fun unapprove(id: String, onDone: () -> Unit = {}) = mutate(onDone) { session.unapproveMoney(id) }
+    fun approveAll(onDone: () -> Unit = {}) = mutate(onDone) { session.approveAllMoney() }
+    fun deleteEntry(id: String, onDone: () -> Unit = {}) = mutate(onDone) { session.deleteMoney(id) }
+
+    fun updateEntry(req: com.kairos.app.data.remote.dto.UpdateMoneyRequest, onDone: () -> Unit) {
+        if (_ui.value.adding) return
+        _ui.update { it.copy(adding = true, addError = null) }
+        viewModelScope.launch {
+            try {
+                session.updateMoney(req)
+                _ui.update { it.copy(adding = false) }
+                onDone()
+                loadInternal(currentUser)
+            } catch (e: ApiException) {
+                _ui.update { it.copy(adding = false, addError = e.error.message) }
+            }
+        }
+    }
+
+    fun setStarting(req: com.kairos.app.data.remote.dto.StartingFundsRequest, onDone: () -> Unit) {
+        if (_ui.value.adding) return
+        _ui.update { it.copy(adding = true, addError = null) }
+        viewModelScope.launch {
+            try {
+                session.setStartingFunds(req)
+                _ui.update { it.copy(adding = false) }
+                onDone()
+                loadInternal(currentUser)
+            } catch (e: ApiException) {
+                _ui.update { it.copy(adding = false, addError = e.error.message) }
+            }
+        }
+    }
 }
