@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.71.0 — Calendar colour picker rework
+- Calendar colour settings: "Now line" is now "Current time", with a bright bold
+  palette (blue, red, orange, black, white, etc.) so it's easy to see.
+- More diverse colours in the custom-colour palette.
+- The colour picker now confirms before applying: tap a colour to select it (it gets
+  a teal ring), or pick Default (its colour shown beside it, teal-ringed when chosen),
+  then Confirm or Cancel at the bottom.
+
 ## 0.70.1 — 3-day view scrolls as one grid
 - Rebuilt the 3-day view as a single two-way-scrolling grid: one shared vertical
   scroll for all three days (they no longer drift apart on fast flings or at the top/

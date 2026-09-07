@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -1068,9 +1069,10 @@ private fun SettingsPanel(
 
             if (cp.personalizeColors) {
                 Spacer(Modifier.size(6.dp))
-                ColorField("Now line", cp.nowColor, opt.nowSystemColor) {
-                    picker = ColorSlot("Now line", cp.nowColor, opt.nowSystemColor,
-                        { vm.savePrefs(nowColor = it) }, { vm.savePrefs(nowColor = null) })
+                ColorField("Current time", cp.nowColor, opt.nowSystemColor) {
+                    picker = ColorSlot("Current time", cp.nowColor, opt.nowSystemColor,
+                        { vm.savePrefs(nowColor = it) }, { vm.savePrefs(nowColor = null) },
+                        palette = NowPalette)
                 }
                 listOf("APPOINTMENT" to "Appointments", "CLASS" to "Class", "WORK" to "Work", "BIRTHDAY" to "Birthdays").forEach { (k, lbl) ->
                     ColorField(lbl, cp.kindColors[k], opt.meColor) {
@@ -1131,12 +1133,22 @@ private data class ColorSlot(
     val fallback: String,
     val onPick: (String) -> Unit,
     val onClear: () -> Unit,
+    val palette: List<String> = CalPalette,
 )
 
 private val MonthLine = androidx.compose.ui.graphics.Color(0xFFCBD5E1)
 private val CalPalette = listOf(
-    "#2563eb", "#db2777", "#059669", "#d97706", "#7c3aed", "#0891b2", "#c2410c",
-    "#4d7c0f", "#0f5c63", "#334155", "#b91c1c", "#be185d", "#15803d", "#1d4ed8",
+    "#2563eb", "#3b82f6", "#0ea5e9", "#0891b2", "#0d9488", "#059669",
+    "#16a34a", "#65a30d", "#ca8a04", "#d97706", "#ea580c", "#dc2626",
+    "#e11d48", "#db2777", "#c026d3", "#9333ea", "#7c3aed", "#6366f1",
+    "#475569", "#334155", "#78716c", "#111827",
+)
+
+// Bright, high-contrast colours for the current-time line so it's easy to spot.
+// White reads on the dark grid at night; black on the light grid by day.
+private val NowPalette = listOf(
+    "#2563eb", "#ef4444", "#f97316", "#10b981", "#06b6d4", "#a855f7",
+    "#ec4899", "#facc15", "#000000", "#ffffff",
 )
 
 @Composable
@@ -1160,27 +1172,71 @@ private fun ColorField(label: String, current: String?, fallback: String, onOpen
 
 @Composable
 private fun ColorPickerDialog(slot: ColorSlot, onClose: () -> Unit) {
+    // Pending selection: a hex, or null for "default". Applied only on Confirm.
+    var selected by remember(slot.title) { mutableStateOf(slot.current) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onClose,
         title = { Text(slot.title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                CalPalette.chunked(6).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                slot.palette.chunked(5).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { hex ->
-                            Box(
-                                Modifier.size(36.dp).clip(CircleShape).background(parseColor(hex))
-                                    .border(if (slot.current == hex) 3.dp else 1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                    .clickable { slot.onPick(hex); onClose() },
+                            Swatch(
+                                color = parseColor(hex),
+                                selected = selected?.equals(hex, ignoreCase = true) == true,
+                                onClick = { selected = hex },
                             )
                         }
                     }
                 }
+                HorizontalDivider()
+                // Default option: the fallback colour, chosen when nothing custom is set.
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                        .clickable { selected = null }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Swatch(
+                        color = parseColor(slot.fallback),
+                        selected = selected == null,
+                        onClick = { selected = null },
+                    )
+                    Text("Default", style = MaterialTheme.typography.bodyLarge)
+                }
             }
         },
-        confirmButton = { TextButton(onClick = { slot.onClear(); onClose() }) { Text("Use default") } },
+        confirmButton = {
+            TextButton(onClick = {
+                val sel = selected
+                if (sel == null) slot.onClear() else slot.onPick(sel)
+                onClose()
+            }) { Text("Confirm") }
+        },
         dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } },
     )
+}
+
+/** A colour swatch; when selected it gets a teal ring with a small gap. */
+@Composable
+private fun Swatch(color: Color, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(44.dp).clip(CircleShape)
+            .then(
+                if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                else Modifier,
+            )
+            .clickable { onClick() }
+            .padding(4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.size(34.dp).clip(CircleShape).background(color)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+        )
+    }
 }
 
 @Composable
