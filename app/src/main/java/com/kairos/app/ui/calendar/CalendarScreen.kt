@@ -1341,7 +1341,7 @@ private fun EventDetailScreen(
                         if (event.attendees.any { it.state.isNotBlank() }) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 event.attendees.forEach { a ->
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         AttendanceIcon(a.state, Modifier.size(18.dp))
                                         Text(a.name, style = MaterialTheme.typography.bodyMedium)
                                     }

@@ -287,7 +287,7 @@ private fun ScheduleDetailDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Who", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         ev.attendees.forEach { a ->
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 AttendanceIcon(a.state, Modifier.size(18.dp))
                                 Text(a.name, style = MaterialTheme.typography.bodyLarge)
                             }

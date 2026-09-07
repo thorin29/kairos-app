@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.69.2 — Attendance marker alignment
+- The attendance marker now bottom-aligns with the name text (and the person glyph
+  sits lower in its box so its visible bottom lines up), on the app and web.
+
 ## 0.69.1 — Attendance icon polish
 - Moved the attendance marker to the left of each name.
 - Redrew the person markers so the check / X / ? sits higher and centered, with a

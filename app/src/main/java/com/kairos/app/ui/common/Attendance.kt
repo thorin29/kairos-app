@@ -58,7 +58,7 @@ fun AttendeesColumn(
     }
     Column(modifier, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         attendees.forEach { a ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 if (a.state.isNotBlank()) {
                     AttendanceIcon(a.state, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))

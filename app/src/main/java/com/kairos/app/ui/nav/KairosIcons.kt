@@ -170,22 +170,22 @@ object KairosIcons {
 
     // Attendance markers: a person silhouette with a check / X / ? punched out of
     // the body (even-odd). Tinted at the call site (green / red / grey).
-    private const val PERSON_HEAD = "M12 3a3 3 0 1 0 0 6a3 3 0 1 0 0 -6z"
-    private const val PERSON_BODY = "M9 10h6a4 4 0 0 1 4 4v2.6a3.9 3.9 0 0 1-3.9 3.9H8.9A3.9 3.9 0 0 1 5 16.6V14a4 4 0 0 1 4-4z"
+    private const val PERSON_HEAD = "M12 5.5a3 3 0 1 0 0 6a3 3 0 1 0 0 -6z"
+    private const val PERSON_BODY = "M9 12.5h6a4 4 0 0 1 4 4v2.6a3.9 3.9 0 0 1-3.9 3.9H8.9A3.9 3.9 0 0 1 5 19.1V16.5a4 4 0 0 1 4-4z"
     val PersonCheck = filledEvenOdd(
         "PersonCheck",
         PERSON_HEAD + PERSON_BODY +
-            "M11.2 16.6l-1.9-1.9 1-1 .9.9 2.3-2.3 1 1z",
+            "M11.2 19.1l-1.9-1.9 1-1 .9.9 2.3-2.3 1 1z",
     )
     val PersonX = filledEvenOdd(
         "PersonX",
         PERSON_HEAD + PERSON_BODY +
-            "M12 13.9l1.6-1.6 1 1-1.6 1.6 1.6 1.6-1 1-1.6-1.6-1.6 1.6-1-1 1.6-1.6-1.6-1.6 1-1z",
+            "M12 16.4l1.6-1.6 1 1-1.6 1.6 1.6 1.6-1 1-1.6-1.6-1.6 1.6-1-1 1.6-1.6-1.6-1.6 1-1z",
     )
     val PersonQuestion = filledEvenOdd(
         "PersonQuestion",
         PERSON_HEAD + PERSON_BODY +
-            "M12 12.2c-1.1 0-2 .7-2.2 1.6l1.2.3c.1-.5.5-.7 1-.7.5 0 .9.3.9.7 0 .4-.3.6-.7.9-.6.4-.9.8-.9 1.5h1.2c0-.4.1-.5.6-.9.5-.4.9-.8.9-1.6 0-1-.9-1.8-2-1.8z" +
-            "M11.4 17h1.2v1.2h-1.2z",
+            "M12 14.7c-1.1 0-2 .7-2.2 1.6l1.2.3c.1-.5.5-.7 1-.7.5 0 .9.3.9.7 0 .4-.3.6-.7.9-.6.4-.9.8-.9 1.5h1.2c0-.4.1-.5.6-.9.5-.4.9-.8.9-1.6 0-1-.9-1.8-2-1.8z" +
+            "M11.4 19.5h1.2v1.2h-1.2z",
     )
 }
