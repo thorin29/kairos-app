@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.68.3 — Home workout menu is now a reliable dialog
+- Replaced the home workout bottom sheet with the shared animated dialog. The sheet's
+  window was leaking across navigation (popping up on the wrong screen and freezing);
+  the dialog opens every time you tap and disposes cleanly when you navigate away.
+
 ## 0.68.2 — Home workout sheet reliably reopens
 - Fixed the workout action sheet not sliding up after navigating around the app and
   returning to the dashboard: the sheet is now explicitly animated open and rebuilt

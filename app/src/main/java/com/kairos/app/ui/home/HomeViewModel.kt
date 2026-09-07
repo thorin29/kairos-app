@@ -24,8 +24,6 @@ data class HomeUiState(
     val busyIds: Set<String> = emptySet(),
     /** The workout prompt whose action sheet is open, if any. */
     val workoutSheet: TaskDto? = null,
-    /** Bumped on each open so the sheet is rebuilt fresh every time. */
-    val sheetNonce: Int = 0,
     val signingOut: Boolean = false,
 )
 
@@ -147,7 +145,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
     // --- Workout prompts: a small action sheet instead of a plain checkbox ---
 
     fun openWorkout(task: TaskDto) {
-        _ui.update { it.copy(workoutSheet = task, sheetNonce = it.sheetNonce + 1) }
+        _ui.update { it.copy(workoutSheet = task) }
     }
 
     fun dismissWorkout() {

@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -39,9 +38,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -69,6 +65,7 @@ import com.kairos.app.data.remote.dto.CategoryBarDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.ui.common.LogoMenuButton
+import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.rememberContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,68 +122,37 @@ fun HomeScreen(person: PersonDto, onOpenDrawer: () -> Unit, onLogWorkout: (Strin
                 else -> DashboardContent(person, ui, vm)
             }
 
-            ui.workoutSheet?.let { task ->
-                androidx.compose.runtime.key(ui.sheetNonce) {
-                    WorkoutSheet(task, vm, onLogWorkout)
-                }
-            }
+            ui.workoutSheet?.let { task -> WorkoutSheet(task, vm, onLogWorkout) }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
-    val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
-    // Explicitly animate the sheet up when it opens. ModalBottomSheet's built-in
-    // auto-show doesn't reliably re-run after the Home screen has been paused and
-    // resumed by navigation, which left a tap doing nothing until an app restart.
-    LaunchedEffect(Unit) { sheetState.show() }
-    // Slide the sheet fully down before doing anything, so it doesn't linger on
-    // screen while the next screen appears (and leaves a clean state to reopen).
-    fun hideThen(action: () -> Unit) {
-        scope.launch { sheetState.hide() }.invokeOnCompletion {
-            if (!sheetState.isVisible) {
-                vm.dismissWorkout()
-                action()
-            }
-        }
-    }
-    ModalBottomSheet(onDismissRequest = vm::dismissWorkout, sheetState = sheetState) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(task.title, style = MaterialTheme.typography.titleLarge)
-
+    // A centered animated dialog (not a bottom sheet): the sheet's window kept
+    // leaking across navigation and freezing, so this uses the shared reliable
+    // dialog instead — it opens every time and disposes cleanly on navigation.
+    AnimatedDialog(onDismissRequest = vm::dismissWorkout, title = task.title) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Button(
-                onClick = { hideThen { onLogWorkout(task.dueDate) } },
+                onClick = { vm.dismissWorkout(); onLogWorkout(task.dueDate) },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Log workout") }
 
             when (task.status) {
-                "COMPLETE" -> {
-                    OutlinedButton(
-                        onClick = { hideThen { vm.undoWorkout(task) } },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Mark as not done") }
-                }
-                "SKIPPED" -> {
-                    Text(
-                        "Marked as a rest day.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                else -> {
-                    OutlinedButton(
-                        onClick = { hideThen { vm.restDay(task) } },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Rest day") }
-                }
+                "COMPLETE" -> OutlinedButton(
+                    onClick = { vm.dismissWorkout(); vm.undoWorkout(task) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Mark as not done") }
+                "SKIPPED" -> Text(
+                    "Marked as a rest day.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> OutlinedButton(
+                    onClick = { vm.dismissWorkout(); vm.restDay(task) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Rest day") }
             }
         }
     }
