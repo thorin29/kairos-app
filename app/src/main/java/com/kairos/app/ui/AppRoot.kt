@@ -55,6 +55,7 @@ import com.kairos.app.ui.character.CharacterScreen
 import com.kairos.app.ui.character.GalleryScreen
 import com.kairos.app.ui.character.CoopScreen
 import com.kairos.app.ui.school.SchoolScreen
+import com.kairos.app.ui.school.AddSchoolWorkScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
@@ -196,7 +197,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else if (key == "reading") {
                         ReadingScreen(onOpenDrawer = { open = true })
                     } else if (key == "school") {
-                        SchoolScreen(onOpenDrawer = { open = true })
+                        SchoolScreen(
+                            onOpenDrawer = { open = true },
+                            onOpenAdd = { navController.navigate(Route.AddSchool) },
+                        )
                     } else if (key == "characters") {
                         CharacterScreen(
                             person = person,
@@ -244,6 +248,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.Coop> {
                     CoopScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.AddSchool> {
+                    AddSchoolWorkScreen(
+                        parentEntry = navController.previousBackStackEntry,
+                        onClose = { navController.popBackStack() },
+                    )
                 }
                 composable<Route.Rotation> {
                     RotationScreen(onBack = { navController.popBackStack() })

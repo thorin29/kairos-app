@@ -61,6 +61,12 @@ class SchoolViewModel(private val session: SessionRepository) : ViewModel() {
 
     fun complete(taskId: String) = act { session.completeTask(taskId) }
     fun delete(taskId: String) = act { session.deleteSchool(taskId) }
+    fun rename(taskId: String, title: String) = act { session.renameSchool(taskId, title) }
+
+    /** Apply several name edits at once, then reload. */
+    fun applyRenames(edits: Map<String, String>) = act {
+        edits.forEach { (id, title) -> session.renameSchool(id, title) }
+    }
 
     fun clearMessage() { _ui.update { it.copy(message = null) } }
 }

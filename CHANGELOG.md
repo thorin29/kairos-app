@@ -1,4 +1,11 @@
 # Changelog
+## 0.94.0
+- School: "Add school work" is now a full-screen wizard opened with + in the top
+  bar (with a calendar date picker). Parents/admins view children's work only —
+  no tick-off or delete. On your own work, a top-right Edit button lets you rename
+  or delete items (with a confirm), then Done to save; tick items off when not
+  editing.
+
 ## 0.93.0
 - School: new section. See each student's classes, open assignments/tests grouped
   by class (with due dates and late flags), and per-term progress. Add work, tick

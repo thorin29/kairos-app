@@ -22,8 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,6 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,50 +51,70 @@ import com.kairos.app.data.remote.dto.SchoolDto
 import com.kairos.app.data.remote.dto.SchoolItemDto
 import com.kairos.app.data.remote.dto.SchoolPersonDto
 import com.kairos.app.data.remote.dto.SchoolProgressDto
+import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
-import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 private val ACCENT = Color(0xFF0F5C63)
-private val DUE_FMT = DateTimeFormatter.ofPattern("EEE, MMM d")
-
-private data class DueOption(val iso: String, val label: String)
-
-private fun dueOptions(): List<DueOption> {
-    val today = LocalDate.now()
-    return (0..44).map { n ->
-        val d = today.plusDays(n.toLong())
-        val label = when (n) {
-            0 -> "Today"
-            1 -> "Tomorrow"
-            else -> d.format(DUE_FMT)
-        }
-        DueOption(d.toString(), label)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SchoolScreen(onOpenDrawer: () -> Unit) {
+fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit) {
     val container = rememberContainer()
     val vm: SchoolViewModel = viewModel(
         factory = viewModelFactory { initializer { SchoolViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
 
+    var editMode by remember { mutableStateOf(false) }
+    val edited = remember { mutableStateMapOf<String, String>() }
+    var deleting by remember { mutableStateOf<SchoolItemDto?>(null) }
+
+    val data = ui.data
+    val myItems = data?.people?.firstOrNull { it.id == data.meId }?.items ?: emptyList()
+    val canEdit = myItems.isNotEmpty()
+    if (!canEdit && editMode) editMode = false
+
+    fun enterEdit() {
+        edited.clear()
+        myItems.forEach { edited[it.id] = it.title }
+        editMode = true
+    }
+    fun saveEdits() {
+        val changes = myItems
+            .mapNotNull { it2 ->
+                val n = edited[it2.id]?.trim()
+                if (n != null && n.length >= 2 && n != it2.title) it2.id to n else null
+            }
+            .toMap()
+        if (changes.isNotEmpty()) vm.applyRenames(changes)
+        editMode = false
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("School") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+                actions = {
+                    if (editMode) {
+                        TextButton(onClick = { saveEdits() }) { Text("Done") }
+                    } else {
+                        if (canEdit) {
+                            IconButton(onClick = { enterEdit() }) {
+                                Icon(KairosIcons.Pencil, "Edit my work", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        IconButton(onClick = onOpenAdd) {
+                            Icon(KairosIcons.Plus, "Add school work", modifier = Modifier.size(22.dp))
+                        }
+                    }
+                },
             )
         },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
-            val data = ui.data
             when {
                 ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -102,21 +124,40 @@ fun SchoolScreen(onOpenDrawer: () -> Unit) {
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> SchoolContent(data, ui, vm)
+                else -> SchoolContent(data, ui, vm, editMode, edited, onDeleteRequest = { deleting = it })
             }
+        }
+    }
+
+    deleting?.let { item ->
+        AnimatedDialog(
+            onDismissRequest = { deleting = null },
+            title = "Delete item?",
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
+            confirmButton = {
+                TextButton(enabled = !ui.busy, onClick = { vm.delete(item.id); deleting = null }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+        ) {
+            Text("Remove \u201c${item.title}\u201d?", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
 @Composable
-private fun SchoolContent(data: SchoolDto, ui: SchoolUiState, vm: SchoolViewModel) {
-    val canActForSet = remember(data) { data.canActFor.map { it.id }.toSet() }
+private fun SchoolContent(
+    data: SchoolDto,
+    ui: SchoolUiState,
+    vm: SchoolViewModel,
+    editMode: Boolean,
+    edited: SnapshotStateMap<String, String>,
+    onDeleteRequest: (SchoolItemDto) -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        AddWorkCard(data, ui.busy) { u, t, ty, d, s, c -> vm.add(u, t, ty, d, s, c) }
-
         ui.message?.let { msg ->
             Text(msg, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF047857), modifier = Modifier.fillMaxWidth())
         }
@@ -125,7 +166,7 @@ private fun SchoolContent(data: SchoolDto, ui: SchoolUiState, vm: SchoolViewMode
         if (withWork.isEmpty()) {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Text(
-                    "Nothing due right now. Assignments and tests show here as they're added.",
+                    "Nothing due right now. Add work with the + button.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp),
@@ -133,10 +174,10 @@ private fun SchoolContent(data: SchoolDto, ui: SchoolUiState, vm: SchoolViewMode
             }
         }
         withWork.forEach { p ->
-            PersonSchoolCard(p, canActForSet.contains(p.id), ui.busy, { vm.complete(it) }, { vm.delete(it) })
+            val isOwn = p.id == data.meId
+            PersonSchoolCard(p, isOwn, editMode && isOwn, edited, ui.busy, { vm.complete(it) }, onDeleteRequest)
         }
 
-        // Progress
         Text("Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         val activeTerm = ui.term ?: data.selectedTermId
         TermPills(data, activeTerm) { vm.setTerm(it) }
@@ -171,7 +212,15 @@ private fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PersonSchoolCard(p: SchoolPersonDto, canAct: Boolean, busy: Boolean, onComplete: (String) -> Unit, onDelete: (String) -> Unit) {
+private fun PersonSchoolCard(
+    p: SchoolPersonDto,
+    isOwn: Boolean,
+    editMode: Boolean,
+    edited: SnapshotStateMap<String, String>,
+    busy: Boolean,
+    onComplete: (String) -> Unit,
+    onDeleteRequest: (SchoolItemDto) -> Unit,
+) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -203,7 +252,9 @@ private fun PersonSchoolCard(p: SchoolPersonDto, canAct: Boolean, busy: Boolean,
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     groups.forEach { (name, items) ->
                         Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        items.forEach { it2 -> ItemRow(it2, canAct, busy, onComplete, onDelete) }
+                        items.forEach { it2 ->
+                            ItemRow(it2, isOwn, editMode, edited, busy, onComplete, onDeleteRequest)
+                        }
                     }
                 }
             }
@@ -212,28 +263,59 @@ private fun PersonSchoolCard(p: SchoolPersonDto, canAct: Boolean, busy: Boolean,
 }
 
 @Composable
-private fun ItemRow(it: SchoolItemDto, canAct: Boolean, busy: Boolean, onComplete: (String) -> Unit, onDelete: (String) -> Unit) {
+private fun ItemRow(
+    item: SchoolItemDto,
+    isOwn: Boolean,
+    editMode: Boolean,
+    edited: SnapshotStateMap<String, String>,
+    busy: Boolean,
+    onComplete: (String) -> Unit,
+    onDeleteRequest: (SchoolItemDto) -> Unit,
+) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (canAct) {
+        // Own work outside edit mode: tap the circle to mark it done.
+        if (isOwn && !editMode) {
             Box(
                 Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
                     .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                    .clickable(enabled = !busy) { onComplete(it.id) },
+                    .clickable(enabled = !busy) { onComplete(item.id) },
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(it.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            if (isOwn && editMode) {
+                NameField(edited[item.id] ?: item.title) { edited[item.id] = it.take(120) }
+            } else {
+                Text(item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            }
             Text(
-                "${it.typeLabel} \u00b7 due ${it.dueISO}",
+                "${item.typeLabel} \u00b7 due ${item.dueISO}",
                 style = MaterialTheme.typography.labelSmall,
-                color = if (it.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (canAct) {
-            Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onDelete(it.id) }.padding(6.dp)) {
-                Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        if (isOwn && editMode) {
+            Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onDeleteRequest(item) }.padding(6.dp)) {
+                Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun NameField(value: String, onChange: (String) -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -259,76 +341,6 @@ private fun ProgressCard(pr: SchoolProgressDto) {
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AddWorkCard(data: SchoolDto, busy: Boolean, onAdd: (String, String, String, String, String?, String?) -> Unit) {
-    val dates = remember { dueOptions() }
-    var personId by remember(data.canActFor) { mutableStateOf(data.canActFor.firstOrNull()?.id ?: "") }
-    var title by remember { mutableStateOf("") }
-    var typeKey by remember(data.types) { mutableStateOf(data.types.firstOrNull { it.key == "ASSIGNMENT" }?.key ?: data.types.firstOrNull()?.key ?: "ASSIGNMENT") }
-    var classId by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf("") }
-    var dueIso by remember { mutableStateOf(dates.first().iso) }
-
-    val personName = data.canActFor.firstOrNull { it.id == personId }?.name ?: ""
-    val typeLabel = data.types.firstOrNull { it.key == typeKey }?.label ?: ""
-    val classes = data.classOptionsByUser[personId] ?: emptyList()
-    val classLabel = if (classId.isBlank()) "No class" else classes.firstOrNull { it.id == classId }?.name ?: "No class"
-    val dueLabel = dates.firstOrNull { it.iso == dueIso }?.label ?: dueIso
-
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Add school work", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-
-            if (data.canActFor.size > 1) {
-                RollPicker("For", personName, data.canActFor.map { it.id to it.name }, { personId = it; classId = "" }, !busy, Modifier.fillMaxWidth())
-            }
-            Field(title, { title = it.take(120) }, "Title (e.g. Chapter 4 quiz)")
-            RollPicker("Type", typeLabel, data.types.map { it.key to it.label }, { typeKey = it }, !busy, Modifier.fillMaxWidth())
-            RollPicker(
-                "Class",
-                classLabel,
-                listOf("" to "No class") + classes.map { it.id to it.name },
-                { classId = it },
-                !busy,
-                Modifier.fillMaxWidth(),
-            )
-            Field(subject, { subject = it.take(60) }, "Subject (optional)")
-            RollPicker("Due", dueLabel, dates.map { it.iso to it.label }, { dueIso = it }, !busy, Modifier.fillMaxWidth())
-
-            OutlinedButton(
-                onClick = {
-                    onAdd(personId, title.trim(), typeKey, dueIso, subject.trim().ifBlank { null }, classId.ifBlank { null })
-                    title = ""; subject = ""
-                },
-                enabled = !busy && personId.isNotBlank() && title.trim().length >= 2,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Add") }
-        }
-    }
-}
-
-@Composable
-private fun Field(value: String, onChange: (String) -> Unit, placeholder: String) {
-    Box(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-            .padding(horizontal = 12.dp, vertical = 11.dp),
-    ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth(),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                inner()
-            },
-        )
     }
 }
 

@@ -42,6 +42,9 @@ sealed interface Route {
     data object Coop : Route
 
     @Serializable
+    data object AddSchool : Route
+
+    @Serializable
     data object Rotation : Route
 
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry

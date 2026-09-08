@@ -1371,6 +1371,7 @@ data class CoopProposalIdRequest(val proposalId: String)
 
 @Serializable
 data class SchoolDto(
+    val meId: String = "",
     val seasonHint: String = "",
     val terms: List<SchoolTermDto> = emptyList(),
     val selectedTermId: String? = null,
@@ -1448,3 +1449,6 @@ data class AddSchoolRequest(
 
 @Serializable
 data class SchoolTaskIdRequest(val taskId: String)
+
+@Serializable
+data class SchoolRenameRequest(val taskId: String, val title: String)

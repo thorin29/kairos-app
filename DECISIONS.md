@@ -324,3 +324,13 @@ sees self + all active children — while add/delete are gated to admins-or-self
 the existing tasks/{id}/complete endpoint (the item is a SCHOOL Task). Shared
 add/delete cores in src/lib/school-core.ts; the web School page + actions are
 unchanged. Due-date picker uses java.time (already used elsewhere in the app).
+
+## App School: add wizard, view-only for others, edit toggle (0.94.0 / web 0.270.0)
+Add moved to a full-screen wizard (Route.AddSchool, Material3 DatePicker), sharing
+the section's SchoolViewModel via previousBackStackEntry so the add reflects on
+return. Interaction is owner-scoped: tick-off (complete) and the top-right Edit
+toggle (rename own items inline / delete with a confirm dialog) show only on the
+card where person.id == meId; a parent viewing a child's card is read-only.
+Rename batches via vm.applyRenames (single act/reload; the per-call busy guard
+would otherwise drop concurrent renames). Web adds meId to /api/v1/school and a
+/school/rename endpoint (owner-or-admin), delegating to school-core.

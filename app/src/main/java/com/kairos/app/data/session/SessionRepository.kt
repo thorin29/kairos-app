@@ -469,6 +469,9 @@ class SessionRepository(
     suspend fun deleteSchool(taskId: String) {
         runAuthed { requireService().deleteSchool(com.kairos.app.data.remote.dto.SchoolTaskIdRequest(taskId)) }
     }
+    suspend fun renameSchool(taskId: String, title: String) {
+        runAuthed { requireService().renameSchool(com.kairos.app.data.remote.dto.SchoolRenameRequest(taskId, title)) }
+    }
 
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
@@ -591,6 +594,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 143
+        const val CLIENT_BUILD = 144
     }
 }
