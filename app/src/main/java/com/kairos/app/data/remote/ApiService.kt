@@ -358,4 +358,13 @@ interface ApiService {
 
     @POST("coop/remove")
     suspend fun removeCoop(@Body body: com.kairos.app.data.remote.dto.CoopProposalIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @GET("school")
+    suspend fun school(@Query("term") term: String?): Response<com.kairos.app.data.remote.dto.SchoolDto>
+
+    @POST("school/add")
+    suspend fun addSchool(@Body body: com.kairos.app.data.remote.dto.AddSchoolRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("school/delete")
+    suspend fun deleteSchool(@Body body: com.kairos.app.data.remote.dto.SchoolTaskIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }

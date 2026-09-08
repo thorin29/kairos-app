@@ -315,3 +315,12 @@ Shared cores live in src/lib/coop-core.ts; the web actions (actions/coop.ts) and
 device routes both delegate, so the web /coop page is unchanged. propose/vote are
 open to any device (proposer/voter = self); select/grant/remove require the device
 person be privileged (role ADMIN or kind PARENT), enforced in the routes.
+
+## App: School section (0.93.0 / web 0.269.0)
+Mirrors the web personal School page. GET /api/v1/school scopes by the device
+person the same way personalVisibleIds does — CHILD sees only self, PARENT (kind)
+sees self + all active children — while add/delete are gated to admins-or-self
+(matching requireCanActFor) and returned as `canActFor`. Completing an item reuses
+the existing tasks/{id}/complete endpoint (the item is a SCHOOL Task). Shared
+add/delete cores in src/lib/school-core.ts; the web School page + actions are
+unchanged. Due-date picker uses java.time (already used elsewhere in the app).

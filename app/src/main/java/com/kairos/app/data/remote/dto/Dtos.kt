@@ -1368,3 +1368,83 @@ data class ProposeCoopRequest(val title: String, val detail: String)
 
 @Serializable
 data class CoopProposalIdRequest(val proposalId: String)
+
+@Serializable
+data class SchoolDto(
+    val seasonHint: String = "",
+    val terms: List<SchoolTermDto> = emptyList(),
+    val selectedTermId: String? = null,
+    val subjects: List<String> = emptyList(),
+    val types: List<SchoolTypeDto> = emptyList(),
+    val canActFor: List<SchoolActorDto> = emptyList(),
+    val classOptionsByUser: Map<String, List<ClassOptionDto>> = emptyMap(),
+    val people: List<SchoolPersonDto> = emptyList(),
+    val progress: List<SchoolProgressDto> = emptyList(),
+)
+
+@Serializable
+data class SchoolTermDto(val id: String = "", val name: String = "")
+
+@Serializable
+data class SchoolTypeDto(val key: String = "", val label: String = "")
+
+@Serializable
+data class SchoolActorDto(val id: String = "", val name: String = "")
+
+@Serializable
+data class ClassOptionDto(val id: String = "", val name: String = "", val color: String? = null)
+
+@Serializable
+data class SchoolPersonDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String? = null,
+    val pending: Int = 0,
+    val overdue: Int = 0,
+    val classes: List<SchoolClassDto> = emptyList(),
+    val items: List<SchoolItemDto> = emptyList(),
+)
+
+@Serializable
+data class SchoolClassDto(val id: String = "", val name: String = "", val color: String? = null, val meeting: String? = null)
+
+@Serializable
+data class SchoolItemDto(
+    val id: String = "",
+    val title: String = "",
+    val type: String = "",
+    val typeLabel: String = "",
+    val className: String? = null,
+    val classColor: String? = null,
+    val dueISO: String = "",
+    val overdue: Boolean = false,
+)
+
+@Serializable
+data class SchoolProgressDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String? = null,
+    val pct: Int = 0,
+    val completed: Int = 0,
+    val total: Int = 0,
+    val onTime: Int = 0,
+    val overdue: Int = 0,
+    val byClass: List<SchoolByClassDto> = emptyList(),
+)
+
+@Serializable
+data class SchoolByClassDto(val key: String = "", val color: String? = null, val completed: Int = 0, val total: Int = 0)
+
+@Serializable
+data class AddSchoolRequest(
+    val userId: String,
+    val title: String,
+    val type: String,
+    val dueDate: String,
+    val subject: String? = null,
+    val classId: String? = null,
+)
+
+@Serializable
+data class SchoolTaskIdRequest(val taskId: String)

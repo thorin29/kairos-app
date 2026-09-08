@@ -54,6 +54,7 @@ import com.kairos.app.ui.groceries.GroceriesScreen
 import com.kairos.app.ui.character.CharacterScreen
 import com.kairos.app.ui.character.GalleryScreen
 import com.kairos.app.ui.character.CoopScreen
+import com.kairos.app.ui.school.SchoolScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
@@ -194,6 +195,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         MoneyScreen(onOpenDrawer = { open = true })
                     } else if (key == "reading") {
                         ReadingScreen(onOpenDrawer = { open = true })
+                    } else if (key == "school") {
+                        SchoolScreen(onOpenDrawer = { open = true })
                     } else if (key == "characters") {
                         CharacterScreen(
                             person = person,

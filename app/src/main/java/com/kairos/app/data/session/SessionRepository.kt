@@ -461,6 +461,15 @@ class SessionRepository(
         runAuthed { requireService().removeCoop(com.kairos.app.data.remote.dto.CoopProposalIdRequest(proposalId)) }
     }
 
+    suspend fun loadSchool(term: String?): com.kairos.app.data.remote.dto.SchoolDto =
+        runAuthed { requireService().school(term) }
+    suspend fun addSchool(userId: String, title: String, type: String, dueDate: String, subject: String?, classId: String?) {
+        runAuthed { requireService().addSchool(com.kairos.app.data.remote.dto.AddSchoolRequest(userId, title, type, dueDate, subject, classId)) }
+    }
+    suspend fun deleteSchool(taskId: String) {
+        runAuthed { requireService().deleteSchool(com.kairos.app.data.remote.dto.SchoolTaskIdRequest(taskId)) }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -582,6 +591,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 142
+        const val CLIENT_BUILD = 143
     }
 }

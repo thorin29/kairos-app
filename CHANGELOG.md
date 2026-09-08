@@ -1,4 +1,10 @@
 # Changelog
+## 0.93.0
+- School: new section. See each student's classes, open assignments/tests grouped
+  by class (with due dates and late flags), and per-term progress. Add work, tick
+  it off, or remove it. A child sees only their own; a parent sees their kids too
+  (and can add/complete/remove for them).
+
 ## 0.92.0
 - Family goal: the card on the Characters page is now tappable and opens a full
   co-op screen — see each kid's season-tier progress toward the goal, browse
