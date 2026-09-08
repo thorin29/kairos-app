@@ -509,3 +509,17 @@ not a per-scenario patch. Also: HomeViewModel.freshDashboard now applies school/
 (insertDashSchool -> SCHOOL group, self only) and reading/mark (personalReading.read);
 togglePersonalReading made optimistic. Reading add verified safe (flat list append).
 Bible section + calendar->home come with their batches. Batch 1 remaining: Bible.
+
+## App: Bible optimistic offline (0.108.0) — batch 1 complete
+BibleViewModel: optimistic markDay (toggleDay flips the matching plan day's read),
+saveBook (setBookChapters rewrites that book's "Book|Chapter" readKeys), bulkBooks
+(bulkSetBooks adds/removes all chapter keys using BIBLE_BOOKS chapter counts),
+deletePlan (clearPlan). freshData = applyPending(loadReading, pendingWrites) parses
+reading/mark, reading/books, reading/books/bulk, reading/plan/delete. Coverage grids
+are client-derived from readKeys so they update immediately; the server-computed stat
+bars lag until the next sync. createPlan stays non-optimistic (server generates the
+day schedule) — do it online. BibleScreen refreshKey = dataRevision. Bible->Home:
+the day's passage already flows via reading/mark applied in freshDashboard (0.107.0).
+Batch 1 DONE (school, reading, chores, bible). Also fixed the offline-no-cache message
+wording in ApiClient. Next: batch 2 (groceries, money), then batch 3 (calendar,
+workouts+create), then settings.

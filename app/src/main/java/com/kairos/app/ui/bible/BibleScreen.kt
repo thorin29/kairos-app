@@ -101,7 +101,7 @@ private fun relativeLabel(offset: Int): String = when {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BibleScreen(onOpenDrawer: () -> Unit) {
+fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: BibleViewModel = viewModel(
         factory = viewModelFactory {
@@ -109,6 +109,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit) {
         },
     )
     val ui by vm.ui.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
     val snackbar = remember { SnackbarHostState() }
     var personalSub by remember { mutableStateOf<PersonalSub?>(null) }
 

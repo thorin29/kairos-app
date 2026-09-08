@@ -207,7 +207,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
                         )
                     } else if (key == "bible") {
-                        BibleScreen(onOpenDrawer = { open = true })
+                        BibleScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
                     } else if (key == "chores") {
                         ChoresScreen(onOpenDrawer = { open = true })
                     } else if (key == "calendar") {

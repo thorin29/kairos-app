@@ -1,4 +1,12 @@
 # Changelog
+## 0.108.0
+- Offline optimism now covers Bible: marking a plan day, marking a book's chapters,
+  bulk-marking books, and deleting a plan all update instantly (the coverage grids
+  fill right away), survive navigation/restart offline, and reconcile on sync.
+  (Creating a plan is still online-only — its schedule is generated server-side.)
+- Reworded the offline message shown when a page was never loaded: "You're offline
+  — this page hasn't been cached yet."
+
 ## 0.107.0
 - Offline reliability: any change you make offline now reliably appears on the
   screen you're on (and reconciles on sync) — the visible page re-derives itself

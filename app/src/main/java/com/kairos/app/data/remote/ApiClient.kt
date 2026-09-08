@@ -156,9 +156,9 @@ private class OfflineInterceptor(
             .build()
         val res = chain.proceed(offline)
         if (res.code == 504) {
-            // only-if-cached with nothing stored: no offline copy of this screen.
+            // only-if-cached with nothing stored: this page was never loaded online.
             res.close()
-            throw IOException("You're offline and this hasn't been saved yet.")
+            throw IOException("You're offline \u2014 this page hasn't been cached yet.")
         }
         return res
     }
