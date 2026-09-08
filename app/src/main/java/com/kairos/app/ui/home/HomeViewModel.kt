@@ -56,21 +56,45 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         load()
     }
 
-    /** Toggle a task, then reload so the server-derived bars/percent stay right. */
+    /** Toggle a task with an optimistic flip: the row updates immediately, then
+     *  we reload (online) to refresh the server-derived bars/percent, or keep the
+     *  optimistic state (offline) until it syncs. Reverts on a real failure. */
     fun toggle(taskId: String, currentlyComplete: Boolean) {
         if (_ui.value.busyIds.contains(taskId)) return
-        _ui.update { it.copy(busyIds = it.busyIds + taskId, actionError = null) }
+        val before = _ui.value.dashboard
+        val newStatus = if (currentlyComplete) "PENDING" else "COMPLETE"
+        _ui.update {
+            it.copy(
+                busyIds = it.busyIds + taskId,
+                actionError = null,
+                dashboard = it.dashboard?.let { d -> mutateTaskStatus(d, taskId, newStatus) },
+            )
+        }
         viewModelScope.launch {
             try {
                 if (currentlyComplete) session.uncompleteTask(taskId)
                 else session.completeTask(taskId)
-                val data = session.loadDashboard()
-                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - taskId) }
+                if (session.isOnline()) {
+                    val data = session.loadDashboard()
+                    _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - taskId) }
+                } else {
+                    _ui.update { it.copy(busyIds = it.busyIds - taskId) }
+                }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - taskId, actionError = e.error.message) }
+                _ui.update {
+                    it.copy(dashboard = before, busyIds = it.busyIds - taskId, actionError = e.error.message)
+                }
             }
         }
     }
+
+    private fun mutateTaskStatus(dash: DashboardDto, id: String, status: String): DashboardDto =
+        dash.copy(
+            overdue = dash.overdue.map { if (it.id == id) it.copy(status = status) else it },
+            groups = dash.groups.map { g ->
+                g.copy(items = g.items.map { if (it.id == id) it.copy(status = status) else it })
+            },
+        )
 
     /** Answer a "Did you do X?" sport prompt (yes/no), then reload. */
     fun answerSport(eventId: String, done: Boolean) {

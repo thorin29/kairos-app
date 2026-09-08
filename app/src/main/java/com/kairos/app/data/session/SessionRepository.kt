@@ -563,6 +563,10 @@ class SessionRepository(
     private fun requireService() =
         service ?: throw ApiException(ApiError.Unknown("No server configured."))
 
+    /** Live connectivity, so optimistic UI can skip the reload (which would read
+     *  the stale offline cache and undo the optimistic change) while offline. */
+    fun isOnline(): Boolean = networkMonitor?.isOnline() ?: true
+
     private suspend fun <T> runAuthed(block: suspend () -> Response<T>): T {
         try {
             return apiCall(block)
@@ -605,6 +609,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 151
+        const val CLIENT_BUILD = 152
     }
 }

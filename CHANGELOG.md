@@ -1,4 +1,10 @@
 # Changelog
+## 0.102.0
+- Offline (phase 3): ticking a task off now updates instantly — on the Home
+  dashboard and the Tasks page — even offline, instead of waiting for the change
+  to sync. Online it still refreshes the day's totals right after; offline the
+  tick sticks and the change is queued. A genuine failure reverts the tick.
+
 ## 0.101.0
 - Offline: fixed the "You're offline" bar getting stuck (or not appearing) until
   you reopened the app. Connectivity is now tracked live from the system's network

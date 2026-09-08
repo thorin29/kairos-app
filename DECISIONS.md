@@ -407,3 +407,19 @@ Dropped the VALIDATED requirement to guarantee the bar never wedges (tradeoff: a
 no-internet Wi-Fi briefly reads online and a request just fails rather than serving
 cache). isOnline() now returns online.value so the interceptor and UI share one
 source of truth. Signature unchanged; no other files affected.
+
+## App: offline phase 3 — optimistic completion on Home + Tasks (0.102.0)
+Per-screen optimistic UI for the most common offline action (checking things off),
+scoped to Home dashboard + Tasks page as agreed. Pattern: flip local state
+immediately (Home: mutateTaskStatus toggles a TaskDto.status in groups+overdue;
+Tasks: moveTask shifts a task between open/done), fire the write, then
+session.isOnline() ? reload (refresh server-derived %/bars) : keep optimistic
+(a reload would read the stale offline cache and undo it). Revert to the captured
+`before` state on a real ApiException. SessionRepository.isOnline() added
+(delegates to networkMonitor) as the single source. Home TaskRow no longer shows a
+per-row spinner while busy — the optimistic status IS the feedback; busyIds still
+guards double-tap of the same row. KNOWN edge: rapidly toggling two DIFFERENT tasks
+online can briefly flicker (one row's reload lands before the other's write), self-
+correcting; offline has no reload so no flicker. add/claim/reading/workout on Home
+and add on Tasks are NOT yet optimistic (out of scope). Extend the same pattern to
+other screens/actions later if wanted.

@@ -525,7 +525,6 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
     ) {
         Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
             when {
-                busy -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 done -> Icon(
                     Icons.Filled.Check,
                     contentDescription = "Done",
