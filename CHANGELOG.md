@@ -1,4 +1,14 @@
 # Changelog
+## 0.88.0
+- Gallery: locked creatures now show an era silhouette for every era (Modern,
+  Toon, Arcade, Dragon, Vintage, Wartime), with a generic fallback — no more
+  plain "?".
+
+## 0.87.0
+- Characters: the top now reads "Season · <name>".
+- Gallery: locked creatures show an era silhouette placeholder (Modern, Vintage,
+  Dragon) instead of a plain "?"; other eras still use "?" until art is added.
+
 ## 0.86.0
 - Characters: the top now shows the season name (not "Characters"); the XP bar
   under the creature is the segmented, colour-by-domain bar from the web; and the

@@ -1,5 +1,6 @@
 package com.kairos.app.ui.character
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,12 +41,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.SubcomposeAsyncImage
+import com.kairos.app.R
 import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.dto.CollectSpeciesDto
 import com.kairos.app.data.remote.dto.EraDto
@@ -57,6 +60,17 @@ private fun rarityColor(rarity: String): Color = when (rarity) {
     "rare" -> Color(0xFF3B82F6)
     "uncommon" -> Color(0xFF10B981)
     else -> Color(0xFF94A3B8)
+}
+
+/** Per-era silhouette shown for locked (mystery) creatures. */
+private fun mysteryDrawable(eraKey: String): Int = when (eraKey) {
+    "MODERN" -> R.drawable.mystery_modern
+    "TOON" -> R.drawable.mystery_toon
+    "ARCADE" -> R.drawable.mystery_arcade
+    "DRAGON" -> R.drawable.mystery_dragon
+    "VINTAGE" -> R.drawable.mystery_vintage
+    "WW2" -> R.drawable.mystery_ww2
+    else -> R.drawable.mystery_generic
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,17 +129,18 @@ private fun EraSection(era: EraDto, onOpen: (CollectSpeciesDto) -> Unit) {
             Text("Coming soon", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                era.species.forEach { sp -> Slot(sp, onOpen) }
+                era.species.forEach { sp -> Slot(sp, era.key, onOpen) }
             }
         }
     }
 }
 
 @Composable
-private fun Slot(sp: CollectSpeciesDto, onOpen: (CollectSpeciesDto) -> Unit) {
+private fun Slot(sp: CollectSpeciesDto, eraKey: String, onOpen: (CollectSpeciesDto) -> Unit) {
     val container = rememberContainer()
     val base = container.sessionRepository.baseUrlRaw
     val ring = rarityColor(sp.rarity)
+    val placeholder = mysteryDrawable(eraKey)
 
     Box(
         Modifier.size(72.dp)
@@ -144,10 +159,17 @@ private fun Slot(sp: CollectSpeciesDto, onOpen: (CollectSpeciesDto) -> Unit) {
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
                 loading = {},
-                error = { Text("?", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                error = {
+                    Image(painterResource(placeholder), contentDescription = "Locked", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                },
             )
         } else {
-            Text("?", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Image(
+                painter = painterResource(placeholder),
+                contentDescription = "Locked",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

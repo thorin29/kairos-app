@@ -66,7 +66,7 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(ui.data?.seasonName?.ifBlank { null } ?: "Season") },
+                title = { Text(ui.data?.seasonName?.ifBlank { null }?.let { "Season \u00b7 $it" } ?: "Season") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
             )
         },
