@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.ApiClient
+import com.kairos.app.data.remote.dto.AddSchoolRequest
 import com.kairos.app.data.remote.dto.AddTaskRequest
 import com.kairos.app.data.remote.dto.TaskGroupDto
 import java.time.LocalDate
@@ -11,6 +12,7 @@ import java.util.UUID
 import com.kairos.app.data.remote.dto.AlwaysOpenRequest
 import com.kairos.app.data.remote.dto.ClaimChoreRequest
 import com.kairos.app.data.remote.dto.DashboardDto
+import com.kairos.app.data.remote.dto.MarkReadingRequest
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +75,13 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                     }.getOrNull() ?: continue
                     if (req.userId == me) d = insertDashTask(d, req.title, req.dueDate)
                 }
+                path == "school/add" -> {
+                    val body = w.body ?: continue
+                    val req = runCatching {
+                        ApiClient.json.decodeFromString(AddSchoolRequest.serializer(), body)
+                    }.getOrNull() ?: continue
+                    if (req.userId == me) d = insertDashSchool(d, req.title, req.dueDate)
+                }
                 path.startsWith("tasks/") && path.endsWith("/complete") ->
                     d = mutateTaskStatus(d, path.removePrefix("tasks/").removeSuffix("/complete"), "COMPLETE")
                 path.startsWith("tasks/") && path.endsWith("/uncomplete") ->
@@ -88,6 +97,16 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                         runCatching { ApiClient.json.decodeFromString(AlwaysOpenRequest.serializer(), it) }.getOrNull()
                     } ?: continue
                     d = bumpAlwaysOpen(d, req.choreId)
+                }
+                path == "reading/mark" -> {
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(MarkReadingRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    d = d.copy(
+                        personalReading = d.personalReading?.let {
+                            if (it.passage == req.passage) it.copy(read = req.read) else it
+                        },
+                    )
                 }
             }
         }
@@ -107,12 +126,31 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
             completable = true,
             isOverdue = overdue,
         )
+        return insertDashItem(dash, "OTHER", "Tasks", task)
+    }
+
+    /** Drop a queued-but-unsynced assignment into the dashboard's School group. */
+    private fun insertDashSchool(dash: DashboardDto, title: String, dueDate: String): DashboardDto {
+        val overdue = try { LocalDate.parse(dueDate).isBefore(LocalDate.now()) } catch (_: Exception) { false }
+        val task = TaskDto(
+            id = "temp-${UUID.randomUUID()}",
+            title = title,
+            category = "SCHOOL",
+            status = "PENDING",
+            dueDate = dueDate,
+            completable = true,
+            isOverdue = overdue,
+        )
+        return insertDashItem(dash, "SCHOOL", "School", task)
+    }
+
+    private fun insertDashItem(dash: DashboardDto, category: String, label: String, task: TaskDto): DashboardDto {
         val groups = dash.groups.toMutableList()
-        val idx = groups.indexOfFirst { it.category == "OTHER" }
+        val idx = groups.indexOfFirst { it.category == category }
         if (idx >= 0) {
             groups[idx] = groups[idx].copy(items = groups[idx].items + task)
         } else {
-            groups.add(TaskGroupDto(category = "OTHER", label = "Tasks", items = listOf(task)))
+            groups.add(TaskGroupDto(category = category, label = label, items = listOf(task)))
         }
         return dash.copy(groups = groups)
     }
@@ -243,14 +281,25 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
     fun togglePersonalReading(passage: String, currentlyRead: Boolean) {
         val key = "personal-reading"
         if (_ui.value.busyIds.contains(key)) return
-        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        val before = _ui.value.dashboard
+        val newRead = !currentlyRead
+        _ui.update {
+            it.copy(
+                busyIds = it.busyIds + key,
+                actionError = null,
+                dashboard = it.dashboard?.let { d -> d.copy(personalReading = d.personalReading?.copy(read = newRead)) },
+            )
+        }
         viewModelScope.launch {
             try {
-                session.markReading(passage, !currentlyRead)
-                val data = freshDashboard()
-                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+                session.markReading(passage, newRead)
+                if (session.isOnline()) {
+                    _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                } else {
+                    _ui.update { it.copy(busyIds = it.busyIds - key) }
+                }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - key, actionError = e.error.message) }
             }
         }
     }

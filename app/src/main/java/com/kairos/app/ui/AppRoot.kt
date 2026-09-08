@@ -149,7 +149,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         }
     }
 
-    LaunchedEffect(syncRevision) { if (syncRevision > 0) homeRefresh++ }
+    // Any queue change (a write queued, or one synced) or a sync pass reconciles
+    // the visible screens: they reload and re-derive from the durable queue, so an
+    // offline change always shows even if an optimistic in-VM update was missed.
+    var dataRevision by remember { mutableStateOf(0) }
+    LaunchedEffect(syncRevision, pendingWrites) {
+        if (syncRevision > 0 || pendingWrites > 0) {
+            dataRevision++
+            homeRefresh++
+        }
+    }
 
     val openProgress by animateFloatAsState(
         targetValue = if (open) 1f else 0f,
@@ -206,18 +215,18 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else if (key == "money") {
                         MoneyScreen(onOpenDrawer = { open = true })
                     } else if (key == "reading") {
-                        ReadingScreen(onOpenDrawer = { open = true }, refreshKey = syncRevision)
+                        ReadingScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
                     } else if (key == "tasks") {
                         TasksScreen(
                             onOpenDrawer = { open = true },
                             onOpenAssign = { navController.navigate(Route.AssignTask) },
-                            refreshKey = syncRevision,
+                            refreshKey = dataRevision,
                         )
                     } else if (key == "school") {
                         SchoolScreen(
                             onOpenDrawer = { open = true },
                             onOpenAdd = { navController.navigate(Route.AddSchool) },
-                            refreshKey = syncRevision,
+                            refreshKey = dataRevision,
                         )
                     } else if (key == "characters") {
                         CharacterScreen(

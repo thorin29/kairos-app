@@ -497,3 +497,15 @@ Made HomeViewModel.claimChore (remove from upForGrabs) and completeAlwaysOpen
 chores/claim (ClaimChoreRequest) and chores/always-open (AlwaysOpenRequest).
 Batch 1 remaining: Bible (mark day / save book / bulk / plans — its chapter-grid
 ReadingDto needs its own careful transforms, next).
+
+## App: offline reliability net + more Home population (0.107.0)
+Root fix for "queued but not shown" (e.g. an add wizard whose VM wasn't shared with
+the screen behind it): AppRoot now derives a dataRevision that bumps on any change to
+syncManager.revision OR pendingCount, and passes it as refreshKey to Tasks/School/
+Reading (and bumps homeRefresh). So whenever the offline queue changes, the visible
+screen reloads and re-derives via applyPending from the durable queue — the change is
+guaranteed to appear regardless of which VM made it. This is a structural guarantee,
+not a per-scenario patch. Also: HomeViewModel.freshDashboard now applies school/add
+(insertDashSchool -> SCHOOL group, self only) and reading/mark (personalReading.read);
+togglePersonalReading made optimistic. Reading add verified safe (flat list append).
+Bible section + calendar->home come with their batches. Batch 1 remaining: Bible.

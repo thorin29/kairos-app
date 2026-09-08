@@ -1,4 +1,12 @@
 # Changelog
+## 0.107.0
+- Offline reliability: any change you make offline now reliably appears on the
+  screen you're on (and reconciles on sync) — the visible page re-derives itself
+  from the pending-changes queue whenever it changes, so a change can no longer be
+  queued without showing.
+- School assignments you add offline now also show on the Home dashboard (under
+  School), and ticking the day's Bible reading on Home is instant too.
+
 ## 0.106.0
 - Offline optimism extended to Reading (add/edit a book, set your page, finish,
   shelve, delete — all instant and durable offline) and to the chore actions on
