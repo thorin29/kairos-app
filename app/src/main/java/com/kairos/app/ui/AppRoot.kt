@@ -241,6 +241,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onAddItem = { navController.navigate(Route.AddGrocery) },
                             meId = person.id,
                             canDeleteAny = person.kind == "PARENT" || person.role == "ADMIN",
+                            refreshKey = dataRevision,
                         )
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })

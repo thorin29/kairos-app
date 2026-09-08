@@ -523,3 +523,16 @@ the day's passage already flows via reading/mark applied in freshDashboard (0.10
 Batch 1 DONE (school, reading, chores, bible). Also fixed the offline-no-cache message
 wording in ApiClient. Next: batch 2 (groceries, money), then batch 3 (calendar,
 workouts+create), then settings.
+
+## App: Groceries optimistic offline (0.109.0) — batch 2, screen 1
+GroceriesViewModel: optimistic add (insertLine temp row), addFromCatalog
+(insertFromCatalog resolves catalog id -> name/icon/defaultStore), remove
+(removeLine from saved + trip items), move (moveLine storeId), setPurchased
+(setPurchasedLine in saved + trip items), completeTrip (drop the trip). freshData =
+applyPending(loadGroceries, pendingWrites) parses groceries/{add,add-catalog,remove,
+move,purchased,trip/complete}. startTrip stays non-optimistic (creates a server trip
++ navigates). GroceriesScreen refreshKey = dataRevision. No Home representation for
+groceries. MONEY DEFERRED to next turn: it looks similar but has server-computed
+balances (from entries + starting funds + reward logic) and an approval workflow
+(approve/unapprove/all + reward-month/base), so it's a bigger, more nuanced job -
+doing it carefully next rather than stacking two complex models.

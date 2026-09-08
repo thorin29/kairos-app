@@ -1,4 +1,10 @@
 # Changelog
+## 0.109.0
+- Offline optimism now covers Groceries: adding items (typed or from the catalog),
+  ticking them off, moving them between stores, removing them, and finishing a
+  shopping run all update instantly, survive navigation/restart offline, and
+  reconcile on sync.
+
 ## 0.108.0
 - Offline optimism now covers Bible: marking a plan day, marking a book's chapters,
   bulk-marking books, and deleting a plan all update instantly (the coverage grids

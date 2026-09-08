@@ -61,12 +61,13 @@ private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: String, canDeleteAny: Boolean) {
+fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: String, canDeleteAny: Boolean, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: GroceriesViewModel = viewModel(
         factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
     var editMode by remember { mutableStateOf(false) }
 
     val hasItems = ui.data?.let { d -> d.saved.isNotEmpty() || d.trips.any { it.items.isNotEmpty() } } ?: false
