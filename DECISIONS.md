@@ -334,3 +334,15 @@ card where person.id == meId; a parent viewing a child's card is read-only.
 Rename batches via vm.applyRenames (single act/reload; the per-call busy guard
 would otherwise drop concurrent renames). Web adds meId to /api/v1/school and a
 /school/rename endpoint (owner-or-admin), delegating to school-core.
+
+## App Tasks section + assign wizard (0.96.0 / web 0.271.0)
+New "tasks" section (Route.Section) + Route.AssignTask wizard, launched from a +
+on Home and from the Tasks page. General tasks are Category.OTHER; GET
+/api/v1/tasks groups them by person (CHILD self, PARENT self+kids), open+complete;
+POST /api/v1/tasks/add (admin-or-self) defaults a blank due date to today so it
+lands on Home. Complete/uncomplete reuse tasks/{id}. Interaction is owner-scoped:
+the tick circle shows only on your own group (userId == meId); parents view kids'
+read-only. The wizard scopes TasksViewModel to previousBackStackEntry (add
+coroutine survives the pop); onClose bumps AppRoot.homeRefresh so Home reloads and
+shows the new task. NOTE: new DTO named TaskUserGroupDto to avoid colliding with
+the dashboard's existing TaskGroupDto.

@@ -56,6 +56,8 @@ import com.kairos.app.ui.character.GalleryScreen
 import com.kairos.app.ui.character.CoopScreen
 import com.kairos.app.ui.school.SchoolScreen
 import com.kairos.app.ui.school.AddSchoolWorkScreen
+import com.kairos.app.ui.tasks.TasksScreen
+import com.kairos.app.ui.tasks.AssignTaskScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
@@ -171,6 +173,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenDrawer = { open = true },
                         onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
                         onOpenMoney = { go(Route.Section("money"), "money") },
+                        onAssignTask = { navController.navigate(Route.AssignTask) },
                         refreshKey = homeRefresh,
                     )
                 }
@@ -196,6 +199,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         MoneyScreen(onOpenDrawer = { open = true })
                     } else if (key == "reading") {
                         ReadingScreen(onOpenDrawer = { open = true })
+                    } else if (key == "tasks") {
+                        TasksScreen(
+                            onOpenDrawer = { open = true },
+                            onOpenAssign = { navController.navigate(Route.AssignTask) },
+                        )
                     } else if (key == "school") {
                         SchoolScreen(
                             onOpenDrawer = { open = true },
@@ -253,6 +261,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     AddSchoolWorkScreen(
                         parentEntry = navController.previousBackStackEntry,
                         onClose = { navController.popBackStack() },
+                    )
+                }
+                composable<Route.AssignTask> {
+                    AssignTaskScreen(
+                        parentEntry = navController.previousBackStackEntry,
+                        onClose = { homeRefresh++; navController.popBackStack() },
                     )
                 }
                 composable<Route.Rotation> {

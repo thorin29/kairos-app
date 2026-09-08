@@ -74,6 +74,7 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit,
     onLogWorkout: (String) -> Unit,
     onOpenMoney: () -> Unit = {},
+    onAssignTask: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
@@ -104,6 +105,11 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Home") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+                actions = {
+                    IconButton(onClick = onAssignTask) {
+                        Icon(KairosIcons.Plus, contentDescription = "Assign a task")
+                    }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },

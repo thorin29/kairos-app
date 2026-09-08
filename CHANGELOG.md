@@ -1,4 +1,11 @@
 # Changelog
+## 0.96.0
+- Tasks: new section plus an "assign a task" button (+) on the Home screen. The
+  wizard asks who it's for, the task name, and an optional due date (calendar
+  picker) — the task then shows on that person's Home until done. The Tasks page
+  lists tasks by person (a child sees only their own), open and completed, with a
+  "Show/Hide done" toggle. You tick off your own tasks; parents view the kids'.
+
 ## 0.95.0
 - School: the Add school work wizard now shows its form on a white card (matching
   the workout wizard) instead of on the bare background.

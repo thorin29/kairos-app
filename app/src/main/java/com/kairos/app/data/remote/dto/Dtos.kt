@@ -1452,3 +1452,32 @@ data class SchoolTaskIdRequest(val taskId: String)
 
 @Serializable
 data class SchoolRenameRequest(val taskId: String, val title: String)
+
+@Serializable
+data class TasksListDto(
+    val meId: String = "",
+    val isParent: Boolean = false,
+    val canActFor: List<TaskActorDto> = emptyList(),
+    val groups: List<TaskUserGroupDto> = emptyList(),
+)
+
+@Serializable
+data class TaskActorDto(val id: String = "", val name: String = "")
+
+@Serializable
+data class TaskUserGroupDto(
+    val userId: String = "",
+    val name: String = "",
+    val color: String? = null,
+    val open: List<TaskOpenDto> = emptyList(),
+    val done: List<TaskDoneDto> = emptyList(),
+)
+
+@Serializable
+data class TaskOpenDto(val id: String = "", val title: String = "", val dueISO: String = "", val overdue: Boolean = false)
+
+@Serializable
+data class TaskDoneDto(val id: String = "", val title: String = "", val dueISO: String = "")
+
+@Serializable
+data class AddTaskRequest(val userId: String, val title: String, val dueDate: String? = null)

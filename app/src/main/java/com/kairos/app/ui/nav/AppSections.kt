@@ -18,6 +18,7 @@ data class AppSection(
 
 val APP_SECTIONS: List<AppSection> = listOf(
     AppSection("home", "Home", Color(0xFF0F5C63), KairosIcons.Home, built = true),
+    AppSection("tasks", "Tasks", Color(0xFF334155), KairosIcons.Tasks, built = true),
     AppSection("calendar", "Calendar", Color(0xFF2563EB), KairosIcons.Calendar),
     AppSection("chores", "Chores", Color(0xFFD97706), KairosIcons.Chores),
     AppSection("bible", "Bible reading", Color(0xFF7C3AED), KairosIcons.Bible),

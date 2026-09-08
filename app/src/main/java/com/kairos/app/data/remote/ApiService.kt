@@ -370,4 +370,10 @@ interface ApiService {
 
     @POST("school/rename")
     suspend fun renameSchool(@Body body: com.kairos.app.data.remote.dto.SchoolRenameRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @GET("tasks")
+    suspend fun tasksList(): Response<com.kairos.app.data.remote.dto.TasksListDto>
+
+    @POST("tasks/add")
+    suspend fun addTask(@Body body: com.kairos.app.data.remote.dto.AddTaskRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }
