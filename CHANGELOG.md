@@ -1,4 +1,10 @@
 # Changelog
+## 0.101.0
+- Offline: fixed the "You're offline" bar getting stuck (or not appearing) until
+  you reopened the app. Connectivity is now tracked live from the system's network
+  events, so the bar shows and clears within a second of losing/regaining a
+  connection — no relaunch or manual refresh needed.
+
 ## 0.100.0
 - Offline support (phase 2): changes you make while offline (ticking things off,
   adding, editing) are now saved and sent automatically once you're back online,

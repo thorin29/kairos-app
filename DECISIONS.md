@@ -393,3 +393,17 @@ reload-based screens (a reload reads the stale cache), but the change is capture
 the pending count reflects it, and it syncs on reconnect. Rich-response writes
 (hatch, trip start, plan preview) still queue but their offline synthetic result
 is empty. Phase 3 (optional): per-screen optimistic state for instant offline UI.
+
+## App: connectivity monitor fix (0.101.0)
+The offline banner could get stuck / not appear until an app relaunch. Cause:
+NetworkMonitor listened on registerDefaultNetworkCallback and re-queried
+cm.activeNetwork + its capabilities *inside* each callback — that read lags right
+after a network transition, so the flow could latch a wrong value (esp. the
+NET_CAPABILITY_VALIDATED check on reconnect). Rewritten to track the set of
+connected networks directly from the callback events (registerNetworkCallback with
+a NET_CAPABILITY_INTERNET request; add on onAvailable, remove on onLost), so
+online = the set is non-empty and updates the instant Android reports a change.
+Dropped the VALIDATED requirement to guarantee the bar never wedges (tradeoff: a
+no-internet Wi-Fi briefly reads online and a request just fails rather than serving
+cache). isOnline() now returns online.value so the interceptor and UI share one
+source of truth. Signature unchanged; no other files affected.
