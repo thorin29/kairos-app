@@ -6,6 +6,7 @@ import com.kairos.app.data.remote.dto.TaskDoneDto
 import com.kairos.app.data.remote.dto.TaskOpenDto
 import com.kairos.app.data.remote.dto.TasksListDto
 import java.time.LocalDate
+import java.util.UUID
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,20 +41,6 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
     }
 
     fun toggleCompleted() { _ui.update { it.copy(showCompleted = !it.showCompleted) } }
-
-    private fun act(onDone: (() -> Unit)? = null, block: suspend () -> Unit) {
-        if (_ui.value.busy) return
-        _ui.update { it.copy(busy = true, message = null) }
-        viewModelScope.launch {
-            try {
-                block()
-                _ui.update { it.copy(busy = false, data = session.loadTasksList()) }
-                onDone?.invoke()
-            } catch (e: Exception) {
-                _ui.update { it.copy(busy = false, message = e.message ?: "Something went wrong.") }
-            }
-        }
-    }
 
     fun complete(id: String) = optimisticMove(id, toDone = true) { session.completeTask(id) }
     fun uncomplete(id: String) = optimisticMove(id, toDone = false) { session.uncompleteTask(id) }
@@ -99,8 +86,33 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
         return data.copy(groups = groups)
     }
 
-    fun add(userId: String, title: String, dueDate: String?, onDone: () -> Unit) =
-        act(onDone) { session.addTask(userId, title, dueDate) }
+    fun add(userId: String, title: String, dueDate: String?, onDone: () -> Unit) {
+        if (_ui.value.busy) return
+        val before = _ui.value.data
+        val optimistic = before?.let { insertTask(it, userId, title, dueDate) }
+        _ui.update { it.copy(busy = true, message = null, data = optimistic ?: it.data) }
+        onDone() // close the wizard right away; the task already shows on the list
+        viewModelScope.launch {
+            try {
+                session.addTask(userId, title, dueDate)
+                if (session.isOnline()) {
+                    _ui.update { it.copy(busy = false, data = session.loadTasksList()) }
+                } else {
+                    _ui.update { it.copy(busy = false) }
+                }
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Couldn't add the task.") }
+            }
+        }
+    }
+
+    private fun insertTask(data: TasksListDto, userId: String, title: String, dueDate: String?): TasksListDto {
+        val due = dueDate ?: LocalDate.now().toString()
+        val overdue = try { LocalDate.parse(due).isBefore(LocalDate.now()) } catch (_: Exception) { false }
+        val temp = TaskOpenDto("temp-${UUID.randomUUID()}", title, due, overdue)
+        val groups = data.groups.map { g -> if (g.userId == userId) g.copy(open = g.open + temp) else g }
+        return data.copy(groups = groups)
+    }
 
     fun clearMessage() { _ui.update { it.copy(message = null) } }
 }

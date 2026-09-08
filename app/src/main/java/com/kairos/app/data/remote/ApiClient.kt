@@ -60,7 +60,8 @@ object ApiClient {
         }
         val ok = builder
             .addInterceptor(logging)
-            .connectTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 

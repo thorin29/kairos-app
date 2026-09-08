@@ -423,3 +423,21 @@ online can briefly flicker (one row's reload lands before the other's write), se
 correcting; offline has no reload so no flicker. add/claim/reading/workout on Home
 and add on Tasks are NOT yet optimistic (out of scope). Extend the same pattern to
 other screens/actions later if wanted.
+
+## App: offline robustness + optimistic add (0.102.1)
+Two fixes from a field repro (open app, airplane-on, open a never-loaded screen ->
+spinner hung; add-a-task offline didn't appear):
+1) NetworkMonitor.isOnline() now returns a FRESH synchronous snapshot() (activeNetwork
+   + INTERNET) instead of online.value. The reactive flow value can lag the radio by a
+   beat, so a request fired right at airplane-on slipped past the offline check to the
+   network and hung; a fresh read decides on current state and takes the offline path
+   (only-if-cached -> 504 -> clean "offline, no saved copy" error) immediately. The
+   reactive `online` flow still drives the banner.
+2) Added OkHttp callTimeout(20s) (+ connectTimeout 12s) as a hard backstop so no
+   request can spin indefinitely.
+3) TasksViewModel.add is now optimistic: insertTask() drops a temp-id TaskOpenDto into
+   the target person's group and closes the wizard immediately; online it reloads to
+   swap in the real row, offline it keeps the temp until sync (a 4xx on a temp-id
+   completion would just be dropped). Removed the now-dead act() helper.
+   NOTE: add from the Home + still won't show on Home optimistically (wizard shares the
+   Tasks-section VM, not HomeViewModel) — shows after sync; extend later if wanted.

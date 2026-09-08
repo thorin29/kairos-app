@@ -1,4 +1,11 @@
 # Changelog
+## 0.102.1
+- Fixed the loading spinner hanging when opening a screen for the first time while
+  offline — it now fails fast to a clear "you're offline" message with Retry, and
+  no request can hang for more than 20s.
+- Adding a task now shows it immediately (optimistically), online or offline,
+  instead of only appearing after it syncs.
+
 ## 0.102.0
 - Offline (phase 3): ticking a task off now updates instantly — on the Home
   dashboard and the Tasks page — even offline, instead of waiting for the change

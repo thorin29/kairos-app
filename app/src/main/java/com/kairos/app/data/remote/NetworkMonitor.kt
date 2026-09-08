@@ -57,6 +57,9 @@ class NetworkMonitor(context: Context, scope: CoroutineScope) {
         awaitClose { runCatching { cm?.unregisterNetworkCallback(callback) } }
     }.distinctUntilChanged().stateIn(scope, SharingStarted.Eagerly, snapshot())
 
-    /** Live connectivity for the offline interceptor — same source as the UI. */
-    fun isOnline(): Boolean = online.value
+    /** Live connectivity for the offline interceptor: a *fresh* synchronous read
+     *  each call, so a request made the instant the radio drops is decided on the
+     *  current state (and fails fast) rather than a slightly-stale flow value. The
+     *  reactive [online] flow drives the UI banner. */
+    fun isOnline(): Boolean = snapshot()
 }
