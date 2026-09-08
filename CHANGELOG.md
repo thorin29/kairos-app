@@ -1,4 +1,13 @@
 # Changelog
+## 0.75.0
+- Groceries: the shared family shopping list is now in the app. See the saved
+  list grouped by store, add an item (its store is remembered from the catalog,
+  and the picker is skipped when there's only one store), tap **I'm going
+  shopping** to pick a store and start a run, tick items off as you go with a
+  live progress bar, and finish with **Done shopping** — bought items drop and
+  the rest go back on the list. Shopper defaults to you. Store and catalog
+  editing stays on the web.
+
 
 ## 0.74.2 — Reading: page-you're-on + white pop-ups
 - Reading now works by the page you're on: enter what page (or chapter) you're up

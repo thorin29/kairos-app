@@ -403,6 +403,29 @@ class SessionRepository(
         runAuthed { requireService().deleteBook(com.kairos.app.data.remote.dto.BookIdRequest(id)) }
     }
 
+    // ---- Groceries (shared family list) ----
+    suspend fun loadGroceries(): com.kairos.app.data.remote.dto.GroceriesDto =
+        runAuthed { requireService().groceries() }
+
+    suspend fun addGrocery(name: String, storeId: String, note: String? = null) {
+        runAuthed { requireService().addGrocery(com.kairos.app.data.remote.dto.AddGroceryRequest(name, storeId, note)) }
+    }
+
+    suspend fun removeGrocery(id: String) {
+        runAuthed { requireService().removeGrocery(com.kairos.app.data.remote.dto.GroceryIdRequest(id)) }
+    }
+
+    suspend fun setGroceryPurchased(id: String, purchased: Boolean) {
+        runAuthed { requireService().setGroceryPurchased(com.kairos.app.data.remote.dto.GroceryPurchasedRequest(id, purchased)) }
+    }
+
+    suspend fun startGroceryTrip(storeId: String, shopperId: String? = null): com.kairos.app.data.remote.dto.StartTripDto =
+        runAuthed { requireService().startGroceryTrip(com.kairos.app.data.remote.dto.StartTripRequest(storeId, shopperId)) }
+
+    suspend fun completeGroceryTrip(tripId: String) {
+        runAuthed { requireService().completeGroceryTrip(com.kairos.app.data.remote.dto.CompleteTripRequest(tripId)) }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -524,6 +547,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 122
+        const val CLIENT_BUILD = 124
     }
 }

@@ -188,3 +188,16 @@ page via Edit. Dialogs use `AnimatedDialog` with **no tonal tint** (`tonalElevat
 = 0`, `shadowElevation = 6`) so every pop-up is a uniform white — Material's
 tonal elevation was tinting elevated surfaces with the teal primary. State via
 `collectAsState()`; delete confirmed through `AnimatedDialog`.
+
+## Groceries section (v0.75.0)
+Mirrors the existing web feature against the new device API. **Shared family
+data**, not self-only: one GET returns the whole board (stores, saved list,
+active trips, catalog) and any enrolled device can add/shop/tick. Store
+membership follows the **catalog**: in the add dialog, a typed name matching a
+catalog item pre-selects that item's remembered store (chips hidden when there's
+one store) — the same rule the web uses. Flow is hub + inline cart: **I'm going
+shopping** → pick a store → a trip starts (shopper defaults to me) and that
+store's card becomes a checkable cart with a got/total bar; **Done shopping**
+completes it. App v1 deliberately skips the who's-shopping picker, assignees,
+drag-reorder, and admin (store/catalog editing stays web-only). New dialogs use
+AnimatedDialog; the store picker is chips, not ExposedDropdownMenu.

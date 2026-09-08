@@ -306,4 +306,26 @@ interface ApiService {
 
     @POST("books/delete")
     suspend fun deleteBook(@Body body: com.kairos.app.data.remote.dto.BookIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    // ---- Groceries ----
+    @GET("groceries")
+    suspend fun groceries(): Response<com.kairos.app.data.remote.dto.GroceriesDto>
+
+    @POST("groceries/add")
+    suspend fun addGrocery(@Body body: com.kairos.app.data.remote.dto.AddGroceryRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("groceries/add-catalog")
+    suspend fun addGroceryFromCatalog(@Body body: com.kairos.app.data.remote.dto.AddCatalogRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("groceries/remove")
+    suspend fun removeGrocery(@Body body: com.kairos.app.data.remote.dto.GroceryIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("groceries/purchased")
+    suspend fun setGroceryPurchased(@Body body: com.kairos.app.data.remote.dto.GroceryPurchasedRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("groceries/trip/start")
+    suspend fun startGroceryTrip(@Body body: com.kairos.app.data.remote.dto.StartTripRequest): Response<com.kairos.app.data.remote.dto.StartTripDto>
+
+    @POST("groceries/trip/complete")
+    suspend fun completeGroceryTrip(@Body body: com.kairos.app.data.remote.dto.CompleteTripRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }

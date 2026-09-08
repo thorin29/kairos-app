@@ -1160,3 +1160,100 @@ data class BookShelfRequest(
 data class BookIdRequest(
     val id: String,
 )
+
+// ---- Groceries (shared family shopping list) ----
+
+@Serializable
+data class GroceryStoreDto(
+    val id: String = "",
+    val name: String = "",
+    val icon: String = "",
+)
+
+@Serializable
+data class GroceryPersonDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String? = null,
+    val avatarPath: String? = null,
+    val avatarPosition: String? = null,
+)
+
+@Serializable
+data class GroceryLineDto(
+    val id: String = "",
+    val name: String = "",
+    val icon: String = "",
+    val storeId: String = "",
+    val note: String? = null,
+    val purchased: Boolean = false,
+    val assignee: GroceryPersonDto? = null,
+)
+
+@Serializable
+data class GroceryTripDto(
+    val id: String = "",
+    val storeId: String = "",
+    val shopper: GroceryPersonDto = GroceryPersonDto(),
+    val items: List<GroceryLineDto> = emptyList(),
+    val total: Int = 0,
+    val got: Int = 0,
+)
+
+@Serializable
+data class GroceryCatalogDto(
+    val id: String = "",
+    val name: String = "",
+    val icon: String = "",
+    val defaultStoreId: String? = null,
+)
+
+@Serializable
+data class GroceriesDto(
+    val stores: List<GroceryStoreDto> = emptyList(),
+    val saved: List<GroceryLineDto> = emptyList(),
+    val trips: List<GroceryTripDto> = emptyList(),
+    val catalog: List<GroceryCatalogDto> = emptyList(),
+    val roster: List<GroceryPersonDto> = emptyList(),
+)
+
+@Serializable
+data class AddGroceryRequest(
+    val name: String,
+    val storeId: String,
+    val note: String? = null,
+)
+
+@Serializable
+data class AddCatalogRequest(
+    val catalogId: String,
+    val storeId: String? = null,
+)
+
+@Serializable
+data class GroceryIdRequest(
+    val id: String,
+)
+
+@Serializable
+data class GroceryPurchasedRequest(
+    val id: String,
+    val purchased: Boolean,
+)
+
+@Serializable
+data class StartTripRequest(
+    val storeId: String,
+    val shopperId: String? = null,
+)
+
+@Serializable
+data class StartTripDto(
+    val ok: Boolean = false,
+    val reason: String? = null,
+)
+
+@Serializable
+data class CompleteTripRequest(
+    val tripId: String,
+)
