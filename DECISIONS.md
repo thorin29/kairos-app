@@ -212,3 +212,14 @@ we `popBackStack()` immediately after firing it — a child-screen VM would be
 cleared mid-request. Item delete is gated behind a per-row edit (pencil): the
 editor offers Change store (a `groceries/move` call, hidden mid-trip) and Delete
 (confirmed). Change-store icon is `KairosIcons.Swap` (circular arrows).
+
+## Groceries: drawn glyphs + page-level edit mode (0.77.0)
+Some common items have no emoji (napkins, bottled water). The server guesser now
+emits "ic:*" tokens for those; both web and app render them through a small
+`GroceryGlyph` helper (drawn `KairosIcons`/`icons.tsx` glyph for a token, emoji
+otherwise, box fallback for unknown tokens). Re-syncing the catalog upgrades
+existing items. Item editing moved from a per-row pencil to a single page-level
+edit toggle in the TopAppBar (pencil → "Done"): in edit mode each row exposes
+change-store (saved items) and delete inline; row-tap toggles are disabled so
+edits aren't mistaken for ticks. Delete in edit mode is immediate (entering edit
+mode is the deliberate gate), matching the RecentWorkouts edit-mode pattern.

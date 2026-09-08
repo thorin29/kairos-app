@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -66,12 +67,27 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit) {
         factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    var editMode by remember { mutableStateOf(false) }
+
+    val hasItems = ui.data?.let { d -> d.saved.isNotEmpty() || d.trips.any { it.items.isNotEmpty() } } ?: false
+    if (!hasItems && editMode) editMode = false
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Groceries") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+                actions = {
+                    if (hasItems) {
+                        if (editMode) {
+                            TextButton(onClick = { editMode = false }) { Text("Done") }
+                        } else {
+                            IconButton(onClick = { editMode = true }) {
+                                Icon(KairosIcons.Pencil, contentDescription = "Edit list", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                },
             )
         },
     ) { inner ->
@@ -88,17 +104,16 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit) {
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> GroceriesContent(vm, ui, data, onAddItem)
+                else -> GroceriesContent(vm, ui, data, onAddItem, editMode)
             }
         }
     }
 }
 
 @Composable
-private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data: GroceriesDto, onAddItem: () -> Unit) {
+private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data: GroceriesDto, onAddItem: () -> Unit, editMode: Boolean) {
     var showShopPicker by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<GroceryLineDto?>(null) }
-    var editingInTrip by remember { mutableStateOf(false) }
+    var movingItem by remember { mutableStateOf<GroceryLineDto?>(null) }
 
     val tripStoreIds = data.trips.map { it.storeId }.toSet()
     val storeById = data.stores.associateBy { it.id }
@@ -134,15 +149,32 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
             }
         }
 
+        if (editMode) {
+            Text(
+                "Editing \u2014 change a store or remove items, then tap Done.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         // Active shopping runs first.
         data.trips.forEach { trip ->
             val store = storeById[trip.storeId]
-            if (store != null) TripCard(trip, store, ui.busy, vm, onEdit = { editing = it; editingInTrip = true })
+            if (store != null) {
+                TripCard(
+                    trip, store, ui.busy, vm, editMode,
+                    onDelete = { vm.remove(it.id) },
+                )
+            }
         }
 
         // The saved list, grouped by store.
         savedStores.forEach { store ->
-            SavedStoreCard(store, savedByStore[store.id].orEmpty(), ui.busy, onEdit = { editing = it; editingInTrip = false })
+            SavedStoreCard(
+                store, savedByStore[store.id].orEmpty(), ui.busy, editMode,
+                onChangeStore = { movingItem = it },
+                onDelete = { vm.remove(it.id) },
+            )
         }
 
         if (data.trips.isEmpty() && savedStores.isEmpty()) {
@@ -162,21 +194,19 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
         )
     }
 
-    editing?.let { item ->
-        EditItemDialog(
+    movingItem?.let { item ->
+        MoveStoreDialog(
             item = item,
-            inTrip = editingInTrip,
             stores = data.stores,
             busy = ui.busy,
-            onMove = { storeId -> vm.move(item.id, storeId); editing = null },
-            onDelete = { vm.remove(item.id); editing = null },
-            onDismiss = { editing = null },
+            onPick = { storeId -> vm.move(item.id, storeId); movingItem = null },
+            onDismiss = { movingItem = null },
         )
     }
 }
 
 @Composable
-private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean, vm: GroceriesViewModel, onEdit: (GroceryLineDto) -> Unit) {
+private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean, vm: GroceriesViewModel, editMode: Boolean, onDelete: (GroceryLineDto) -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -199,8 +229,11 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
                             item = item,
                             showTick = true,
                             busy = busy,
+                            editMode = editMode,
+                            canMove = false,
                             onToggle = { vm.setPurchased(item.id, !item.purchased) },
-                            onEdit = { onEdit(item) },
+                            onChangeStore = {},
+                            onDelete = { onDelete(item) },
                         )
                     }
                 }
@@ -217,7 +250,14 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
 }
 
 @Composable
-private fun SavedStoreCard(store: GroceryStoreDto, items: List<GroceryLineDto>, busy: Boolean, onEdit: (GroceryLineDto) -> Unit) {
+private fun SavedStoreCard(
+    store: GroceryStoreDto,
+    items: List<GroceryLineDto>,
+    busy: Boolean,
+    editMode: Boolean,
+    onChangeStore: (GroceryLineDto) -> Unit,
+    onDelete: (GroceryLineDto) -> Unit,
+) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -231,8 +271,11 @@ private fun SavedStoreCard(store: GroceryStoreDto, items: List<GroceryLineDto>, 
                         item = item,
                         showTick = false,
                         busy = busy,
+                        editMode = editMode,
+                        canMove = true,
                         onToggle = {},
-                        onEdit = { onEdit(item) },
+                        onChangeStore = { onChangeStore(item) },
+                        onDelete = { onDelete(item) },
                     )
                 }
             }
@@ -245,12 +288,15 @@ private fun ItemRow(
     item: GroceryLineDto,
     showTick: Boolean,
     busy: Boolean,
+    editMode: Boolean,
+    canMove: Boolean,
     onToggle: () -> Unit,
-    onEdit: () -> Unit,
+    onChangeStore: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth()
-            .clickable(enabled = !busy && showTick) { onToggle() }
+            .clickable(enabled = !busy && showTick && !editMode) { onToggle() }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -262,7 +308,7 @@ private fun ItemRow(
                     .background(if (item.purchased) ACCENT else Color.Transparent),
             )
         }
-        Text(item.icon, style = MaterialTheme.typography.bodyLarge)
+        GroceryGlyph(item.icon, emojiStyle = MaterialTheme.typography.bodyLarge, size = 20.dp)
         Text(
             item.name,
             style = MaterialTheme.typography.bodyMedium,
@@ -272,88 +318,49 @@ private fun ItemRow(
             textDecoration = if (item.purchased) TextDecoration.LineThrough else null,
             color = if (item.purchased) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         )
-        Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onEdit() }.padding(6.dp)) {
-            Icon(KairosIcons.Pencil, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        if (editMode) {
+            if (canMove) {
+                Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onChangeStore() }.padding(6.dp)) {
+                    Icon(KairosIcons.Swap, contentDescription = "Change store", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                }
+            }
+            Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onDelete() }.padding(6.dp)) {
+                Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EditItemDialog(
+private fun MoveStoreDialog(
     item: GroceryLineDto,
-    inTrip: Boolean,
     stores: List<GroceryStoreDto>,
     busy: Boolean,
-    onMove: (String) -> Unit,
-    onDelete: () -> Unit,
+    onPick: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var mode by remember { mutableStateOf("main") } // main | store | delete
-
     AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = when (mode) {
-            "store" -> "Move to\u2026"
-            "delete" -> "Delete item?"
-            else -> item.name
-        },
-        dismissButton = {
-            TextButton(onClick = { if (mode != "main") mode = "main" else onDismiss() }) {
-                Text(if (mode != "main") "Back" else "Close")
-            }
-        },
-        confirmButton = {
-            if (mode == "delete") {
-                TextButton(enabled = !busy, onClick = { onDelete() }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            }
-        },
+        title = "Move \u201c${item.name}\u201d to\u2026",
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     ) {
-        when (mode) {
-            "store" -> {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    stores.forEach { store ->
-                        val selected = store.id == item.storeId
-                        Row(
-                            Modifier.clip(RoundedCornerShape(999.dp))
-                                .background(if (selected) ACCENT else MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable(enabled = !busy) { onMove(store.id) }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(store.icon, style = MaterialTheme.typography.bodyMedium)
-                            Text(store.name, style = MaterialTheme.typography.labelLarge, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                }
-            }
-            "delete" -> {
-                Text("Remove \u201c${item.name}\u201d from the list?", style = MaterialTheme.typography.bodyMedium)
-            }
-            else -> {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (!inTrip) {
-                        EditActionRow(KairosIcons.Swap, "Change store") { mode = "store" }
-                    }
-                    EditActionRow(KairosIcons.Trash, "Delete", tint = MaterialTheme.colorScheme.error) { mode = "delete" }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            stores.forEach { store ->
+                val selected = store.id == item.storeId
+                Row(
+                    Modifier.clip(RoundedCornerShape(999.dp))
+                        .background(if (selected) ACCENT else MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable(enabled = !busy) { onPick(store.id) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(store.icon, style = MaterialTheme.typography.bodyMedium)
+                    Text(store.name, style = MaterialTheme.typography.labelLarge, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun EditActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color = MaterialTheme.colorScheme.onSurface, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onClick() }.padding(horizontal = 8.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = tint)
     }
 }
 

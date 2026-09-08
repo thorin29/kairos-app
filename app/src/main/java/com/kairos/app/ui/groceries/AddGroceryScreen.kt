@@ -77,6 +77,7 @@ fun AddGroceryScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
     var pending by remember { mutableStateOf<PendingAdd?>(null) }
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = { Text(if (pending == null) "Add an item" else "Which store?") },
@@ -184,7 +185,7 @@ private fun ItemStep(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(c.icon, style = MaterialTheme.typography.titleMedium)
+                    GroceryGlyph(c.icon, emojiStyle = MaterialTheme.typography.titleMedium, size = 22.dp)
                     Text(c.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }

@@ -1,4 +1,13 @@
 # Changelog
+## 0.77.0
+- Item icons: napkins and bottled water now show a small drawn glyph instead of
+  a generic box (there's no emoji for either).
+- The add wizard has a white background.
+- Editing the list: an edit (pencil) icon at the top-right of the Groceries page
+  turns on edit mode for the whole list. While editing, every line shows a
+  change-store button (saved items) and a delete button; tap Done to finish.
+  Items no longer delete on a stray tap outside edit mode.
+
 ## 0.76.0
 - Add item is now a full-screen page: search the whole catalog (so you reuse an
   item instead of duplicating it) or add a new one, then pick a store. Matching
