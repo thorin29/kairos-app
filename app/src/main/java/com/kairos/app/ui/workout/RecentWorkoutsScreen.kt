@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
@@ -109,10 +109,9 @@ fun RecentWorkoutsScreen(onBack: () -> Unit) {
     }
 
     pendingDelete?.let { target ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete this workout?") },
-            text = { Text("${target.label}${if (target.result.isNotBlank()) " · ${target.result}" else ""} on ${shortDate(target.date)}") },
+            title = "Delete this workout?",
             confirmButton = {
                 TextButton(onClick = {
                     vm.delete(target.id)
@@ -122,7 +121,9 @@ fun RecentWorkoutsScreen(onBack: () -> Unit) {
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
             },
-        )
+        ) {
+            Text("${target.label}${if (target.result.isNotBlank()) " · ${target.result}" else ""} on ${shortDate(target.date)}")
+        }
     }
 }
 

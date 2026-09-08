@@ -1,4 +1,9 @@
 # Changelog
+## 0.98.0
+- Consistency: every pop-up now uses the app's animated dialog (converted the last
+  stock AlertDialogs in Home, Calendar, Bible, and the workout wizard).
+- Hid the Game time section from the drawer (kept for a future enhancement).
+
 ## 0.97.0
 - Tasks: new checkbox-style Tasks icon (clearer vs Chores). Assign-task example
   text now reads "Wash the car".

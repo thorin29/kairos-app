@@ -22,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -190,17 +190,18 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
     }
 
     if (confirmDelete) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmDelete = false },
+            title = "Delete this workout?",
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; vm.deleteWorkout() }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
-            title = { Text("Delete this workout?") },
-            text = { Text("It'll be removed from your workouts. Copies you've shared are unaffected.") },
-        )
+        ) {
+            Text("It'll be removed from your workouts. Copies you've shared are unaffected.")
+        }
     }
 }
 
@@ -494,17 +495,18 @@ private fun ManageExercisesDialog(
     }
 
     confirmDeleteId?.let { id ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmDeleteId = null },
+            title = "Delete this exercise?",
             confirmButton = {
                 TextButton(onClick = { onDelete(id); confirmDeleteId = null }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmDeleteId = null }) { Text("Cancel") } },
-            title = { Text("Delete this exercise?") },
-            text = { Text("It'll be removed from your exercise list and from any of your workouts that use it.") },
-        )
+        ) {
+            Text("It'll be removed from your exercise list and from any of your workouts that use it.")
+        }
     }
 }
 
@@ -524,8 +526,9 @@ private fun MetricField(label: String, value: String, onChange: (String) -> Unit
 @Composable
 private fun AddCustomExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String) -> Unit) {
     var name by remember { mutableStateOf("") }
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
+        title = "New exercise",
         confirmButton = {
             TextButton(
                 onClick = { if (name.trim().length >= 2) onAdd(name.trim()) },
@@ -533,17 +536,15 @@ private fun AddCustomExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String)
             ) { Text("Add") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        title = { Text("New exercise") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Exercise name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-    )
+    ) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Exercise name") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable

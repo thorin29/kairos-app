@@ -33,7 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.AlertDialog
+import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -1174,10 +1174,10 @@ private fun ColorField(label: String, current: String?, fallback: String, onOpen
 private fun ColorPickerDialog(slot: ColorSlot, onClose: () -> Unit) {
     // Pending selection: a hex, or null for "default". Applied only on Confirm.
     var selected by remember(slot.title) { mutableStateOf(slot.current) }
-    androidx.compose.material3.AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onClose,
-        title = { Text(slot.title) },
-        text = {
+        title = slot.title,
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 slot.palette.chunked(5).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1292,10 +1292,10 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
         "agenda" to "Agenda", "day" to "Day", "three_day" to "3 Days",
         "week" to "Week", "month" to "Month", "last" to "Last view",
     )
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Default view") },
-        text = {
+        title = "Default view",
+        content = {
             Column {
                 options.forEach { (value, label) ->
                     Row(
@@ -1409,10 +1409,10 @@ private fun EventDetailScreen(
 
     if (confirmDelete) {
         if (event.recurring) {
-            androidx.compose.material3.AlertDialog(
+            AnimatedDialog(
                 onDismissRequest = { confirmDelete = false },
-                title = { Text("Delete repeating event") },
-                text = {
+                title = "Delete repeating event",
+                content = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         DeleteScopeRow("This event", !ui.deleting) {
                             confirmDelete = false; vm.deleteEvent(event.eventId, "one", occurrenceISO) { onClose() }
@@ -1429,10 +1429,10 @@ private fun EventDetailScreen(
                 dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
             )
         } else {
-            androidx.compose.material3.AlertDialog(
+            AnimatedDialog(
                 onDismissRequest = { confirmDelete = false },
-                title = { Text("Delete event?") },
-                text = { Text("This can't be undone.") },
+                title = "Delete event?",
+                content = { Text("This can't be undone.") },
                 confirmButton = {
                     TextButton(
                         enabled = !ui.deleting,

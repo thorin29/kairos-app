@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -30,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -148,17 +148,18 @@ private fun PlanOverview(
         }
     }
     if (confirm) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirm = false },
-            title = { Text("Delete this plan?") },
-            text = { Text("Your reading plan will be removed. Your logged progress stays.") },
+            title = "Delete this plan?",
             confirmButton = {
                 TextButton(onClick = { confirm = false; vm.deletePlan(); onDeleted() }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } },
-        )
+        ) {
+            Text("Your reading plan will be removed. Your logged progress stays.")
+        }
     }
 }
 

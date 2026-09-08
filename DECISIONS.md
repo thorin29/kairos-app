@@ -346,3 +346,12 @@ read-only. The wizard scopes TasksViewModel to previousBackStackEntry (add
 coroutine survives the pop); onClose bumps AppRoot.homeRefresh so Home reloads and
 shows the new task. NOTE: new DTO named TaskUserGroupDto to avoid colliding with
 the dashboard's existing TaskGroupDto.
+
+## App: AlertDialog -> AnimatedDialog cleanup (0.98.0)
+Converted all remaining stock Material3 AlertDialogs to the house AnimatedDialog
+(Home event detail, AppRoot sign-out, Bible PlanWizard/PersonalPlanSection,
+workout wizard x3, RecentWorkouts, Calendar x4, CalendarAddEvent x2). AnimatedDialog
+takes title as a String; where a dialog had a styled/composable title (Home event
+detail) it moved into the content lambda. AlertDialog's `text` maps to AnimatedDialog's
+`content` (passed as a named arg, so no reordering). Game time hidden from nav/drawer
+on both web and app (code kept for later).

@@ -284,17 +284,16 @@ private fun ScheduleDetailDialog(
     ev: com.kairos.app.data.remote.dto.ScheduleItemDto,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
         confirmButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Close") } },
-        title = {
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.width(4.dp).height(20.dp).clip(RoundedCornerShape(2.dp)).background(parseScheduleColor(ev.color)))
                 Spacer(Modifier.width(8.dp))
                 Text(ev.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
-        },
-        text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DetailLine("When", if (ev.allDay) "All day" else ev.timeLabel)
                 if (ev.attendees.any { it.state.isNotBlank() }) {
@@ -315,8 +314,8 @@ private fun ScheduleDetailDialog(
                 if (!ev.location.isNullOrBlank()) DetailLine("Where", ev.location!!)
                 if (!ev.notes.isNullOrBlank()) DetailLine("Notes", ev.notes!!)
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable

@@ -49,6 +49,7 @@ import androidx.compose.ui.window.Dialog
 import com.kairos.app.data.remote.dto.CalendarDto
 import com.kairos.app.data.remote.dto.CreateEventRequest
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.AnimatedDialog
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -320,10 +321,10 @@ fun AddEventOverlay(
     }
 
     if (showPeople) {
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { showPeople = false },
-            title = { Text("Share with") },
-            text = {
+            title = "Share with",
+            content = {
                 Column {
                     data.options.people.forEach { p ->
                         val checked = p.id in participants
@@ -350,10 +351,10 @@ fun AddEventOverlay(
     }
 
     if (showScope) {
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { showScope = false },
-            title = { Text("Edit repeating event") },
-            text = {
+            title = "Edit repeating event",
+            content = {
                 Column {
                     Text(
                         "This event",

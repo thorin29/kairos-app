@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -161,10 +162,9 @@ private fun PlanView(
     }
 
     if (confirmDelete) {
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete plan?") },
-            text = { Text("Delete this reading plan? Your read chapters stay.") },
+            title = "Delete plan?",
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
@@ -174,7 +174,9 @@ private fun PlanView(
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
             },
-        )
+        ) {
+            Text("Delete this reading plan? Your read chapters stay.")
+        }
     }
 }
 

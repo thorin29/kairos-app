@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsTopHeight
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
@@ -56,6 +55,7 @@ import com.kairos.app.ui.character.GalleryScreen
 import com.kairos.app.ui.character.CoopScreen
 import com.kairos.app.ui.school.SchoolScreen
 import com.kairos.app.ui.school.AddSchoolWorkScreen
+import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.tasks.TasksScreen
 import com.kairos.app.ui.tasks.AssignTaskScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
@@ -321,10 +321,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         }
 
         if (confirmSignOut) {
-            AlertDialog(
+            AnimatedDialog(
                 onDismissRequest = { confirmSignOut = false },
-                title = { Text("Sign out?") },
-                text = { Text("You'll need your password and a device code to sign in again on this phone.") },
+                title = "Sign out?",
                 confirmButton = {
                     TextButton(onClick = {
                         confirmSignOut = false
@@ -335,7 +334,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 dismissButton = {
                     TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") }
                 },
-            )
+            ) {
+                Text("You'll need your password and a device code to sign in again on this phone.")
+            }
         }
     }
 }
