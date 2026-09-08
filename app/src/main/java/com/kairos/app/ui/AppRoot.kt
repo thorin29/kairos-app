@@ -51,6 +51,7 @@ import com.kairos.app.ui.calendar.CalendarScreen
 import com.kairos.app.ui.chores.ChoresScreen
 import com.kairos.app.ui.money.MoneyScreen
 import com.kairos.app.ui.groceries.GroceriesScreen
+import com.kairos.app.ui.character.CharacterScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
@@ -75,7 +76,21 @@ fun AppRoot(container: AppContainer) {
     val session = container.sessionRepository
     val state by session.state.collectAsState()
 
-    when (val s = state) {
+    // Show the branded splash for at least ~2s on launch, even when the session
+    // resolves instantly, so the logo + καιρός is actually seen.
+    var minSplashDone by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(2000)
+        minSplashDone = true
+    }
+
+    val s = state
+    if (!minSplashDone || s is SessionState.Loading) {
+        LoadingScreen()
+        return
+    }
+
+    when (s) {
         is SessionState.Loading -> LoadingScreen()
         is SessionState.NeedsSetup -> SetupScreen()
         is SessionState.NeedsEnroll -> AuthFlow()
@@ -177,6 +192,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         MoneyScreen(onOpenDrawer = { open = true })
                     } else if (key == "reading") {
                         ReadingScreen(onOpenDrawer = { open = true })
+                    } else if (key == "characters") {
+                        CharacterScreen(person = person, onOpenDrawer = { open = true })
                     } else if (key == "groceries") {
                         GroceriesScreen(
                             onOpenDrawer = { open = true },

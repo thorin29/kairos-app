@@ -331,4 +331,7 @@ interface ApiService {
 
     @POST("groceries/move")
     suspend fun moveGrocery(@Body body: com.kairos.app.data.remote.dto.MoveGroceryRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @GET("characters")
+    suspend fun character(): Response<com.kairos.app.data.remote.dto.CharacterDto>
 }

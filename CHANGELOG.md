@@ -1,4 +1,10 @@
 # Changelog
+## 0.84.0
+- Startup: the logo + καιρός screen now shows for about 2 seconds on launch.
+- Characters: new section mirroring the web personal view — your companion
+  (creature or incubating egg), level & XP, season tier, per-domain stat bars,
+  streak and badges, and mastery titles. You only ever see your own character.
+
 ## 0.83.0
 - Workouts: the Create / Edit button now shows "HIIT/CrossFit" beneath it.
 - Create / Edit wizard: each step now sits on a white card (matching the review

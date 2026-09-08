@@ -275,3 +275,14 @@ exercises, instructions). Header reads "Create / Edit" over "HIIT/CrossFit".
 Time cap was dropped from the UI — submit sends capSec=null (cap logic stays
 dormant in the VM). The existing view-locked-until-Edit model is preserved: an
 existing workout opens read-only across steps; the top-bar Edit unlocks it.
+
+## App: Characters section + branded splash hold (0.84.0 / web 0.259.0)
+Characters mirrors the web /summary personal view via GET /api/v1/characters
+(loadPersonProgress for the enrolled device's own person only). Companion sprites
+are served device-authed from GET /api/v1/companions/* (mirror of /public/companions,
+same pattern as avatars — /public is behind Authelia). The screen renders the
+companion card (creature/egg with the skill-blend glow), level/XP, season tier,
+stat bars, streak+badge chips, and mastery. Startup now holds LoadingScreen for
+~2s (min-splash gate in AppRoot) so the logo + καιρός is actually seen.
+PENDING: the collection page (6 eras, mystery-until-unlocked slots, tap-to-enlarge)
+is the next Characters increment.

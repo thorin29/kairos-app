@@ -1263,3 +1263,42 @@ data class MoveGroceryRequest(
     val id: String,
     val storeId: String,
 )
+
+@Serializable
+data class CharacterDto(
+    val className: String = "",
+    val level: CharLevelDto = CharLevelDto(),
+    val season: CharSeasonDto = CharSeasonDto(),
+    val stats: List<CharStatDto> = emptyList(),
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
+    val milestones: List<Int> = emptyList(),
+    val perfectWeeks: Int = 0,
+    val bestWeekPct: Double? = null,
+    val masteries: List<CharMasteryDto> = emptyList(),
+    val companion: CharCompanionDto = CharCompanionDto(),
+)
+
+@Serializable
+data class CharLevelDto(val level: Int = 1, val pct: Double = 0.0, val toNext: Int = 0)
+
+@Serializable
+data class CharSeasonDto(val tier: Int = 0, val maxTier: Int = 10, val pct: Double = 0.0, val complete: Boolean = false)
+
+@Serializable
+data class CharStatDto(val label: String = "", val level: Int = 0, val pct: Double = 0.0)
+
+@Serializable
+data class CharMasteryDto(val chore: String = "", val title: String = "", val count: Int = 0)
+
+@Serializable
+data class CharCompanionDto(
+    val active: Boolean = false,
+    val speciesName: String? = null,
+    val stageName: String? = null,
+    val shiny: Boolean = false,
+    val incubationPct: Int = 0,
+    val eggReady: Boolean = false,
+    val image: String = "",
+    val color: String = "#94a3b8",
+)
