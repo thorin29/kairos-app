@@ -1,4 +1,10 @@
 # Changelog
+## 0.83.0
+- Workouts: the Create / Edit button now shows "HIIT/CrossFit" beneath it.
+- Create / Edit wizard: each step now sits on a white card (matching the review
+  page), and opening the saved-workout dropdown (or tapping elsewhere) closes the
+  keyboard so the list is visible.
+
 ## 0.82.0
 - Create / Edit workout is now a step-by-step wizard (HIIT/CrossFit): 1) name
   (new or pick one to edit, rename or delete), 2) exercises (add, add/edit custom),

@@ -193,6 +193,7 @@ fun WorkoutsScreen(
                         ) { onOpenBrowse() }
                         ActionCard(
                             KairosIcons.Plus, "Create / Edit", Modifier.weight(1f),
+                            subtitle = "HIIT/CrossFit",
                         ) { onOpenCreatePersonal() }
                         ActionCard(
                             KairosIcons.Dumbbell, "Calculator", Modifier.weight(1f),
@@ -223,6 +224,7 @@ private fun ActionCard(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
     enabled: Boolean = true,
+    subtitle: String? = null,
     onClick: () -> Unit,
 ) {
     val tint =
@@ -246,6 +248,14 @@ private fun ActionCard(
                 textAlign = TextAlign.Center,
                 color = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

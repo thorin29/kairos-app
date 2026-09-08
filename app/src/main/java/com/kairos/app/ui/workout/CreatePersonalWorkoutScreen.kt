@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -144,8 +147,11 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
             return@Scaffold
         }
 
+        val focusManager = LocalFocusManager.current
         Column(
-            Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().padding(pad)
+                .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+                .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
@@ -198,6 +204,18 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
     }
 }
 
+// ---- shared white card wrapper for a wizard step ----
+@Composable
+private fun StepCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            content = content,
+        )
+    }
+}
+
 // ---- Step 1: name + type ----
 @Composable
 private fun NameStep(
@@ -206,27 +224,29 @@ private fun NameStep(
     enabled: Boolean,
     onDelete: () -> Unit,
 ) {
-    NameCombo(
-        name = ui.name,
-        enabled = enabled,
-        existing = ui.myWorkouts.map { it.id to it.name },
-        onName = vm::onName,
-        onPickExisting = vm::selectExisting,
-        onNew = { vm.startNew("") },
-    )
+    StepCard {
+        NameCombo(
+            name = ui.name,
+            enabled = enabled,
+            existing = ui.myWorkouts.map { it.id to it.name },
+            onName = vm::onName,
+            onPickExisting = vm::selectExisting,
+            onNew = { vm.startNew("") },
+        )
 
-    RollPicker(
-        label = "Type",
-        selectedLabel = ui.types.firstOrNull { it.key == ui.typeKey }?.label ?: "",
-        options = ui.types.map { it.key to it.label },
-        onSelect = vm::onType,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-    )
+        RollPicker(
+            label = "Type",
+            selectedLabel = ui.types.firstOrNull { it.key == ui.typeKey }?.label ?: "",
+            options = ui.types.map { it.key to it.label },
+            onSelect = vm::onType,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
-    if (ui.editingId != null && !ui.locked) {
-        OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-            Text("Delete workout", color = MaterialTheme.colorScheme.error)
+        if (ui.editingId != null && !ui.locked) {
+            OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                Text("Delete workout", color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }
@@ -240,51 +260,53 @@ private fun ExercisesStep(
     onAddCustom: () -> Unit,
     onManage: () -> Unit,
 ) {
-    Text("Exercises", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    StepCard {
+        Text("Exercises", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
-    if (ui.rows.isEmpty()) {
-        Text(
-            "Add at least one exercise below.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
-    ui.rows.forEachIndexed { i, row ->
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(row.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                if (enabled) {
-                    IconButton(onClick = { vm.removeRow(i) }) { Icon(Icons.Filled.Close, "Remove") }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetricField("Reps", row.reps, { vm.onReps(i, it) }, enabled, Modifier.weight(1f))
-                MetricField("Weight", row.weight, { vm.onWeight(i, it) }, enabled, Modifier.weight(1f))
-                MetricField("Dist", row.distance, { vm.onDistance(i, it) }, enabled, Modifier.weight(1f))
-            }
-        }
-        HorizontalDivider()
-    }
-
-    if (enabled) {
-        if (ui.pool.isNotEmpty()) {
-            RollPicker(
-                label = "Add an exercise",
-                selectedLabel = "",
-                options = ui.pool.map { it.id to it.name },
-                onSelect = vm::addExercise,
-                enabled = true,
-                modifier = Modifier.fillMaxWidth(),
+        if (ui.rows.isEmpty()) {
+            Text(
+                "Add at least one exercise below.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        OutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
-            Icon(KairosIcons.Plus, null, Modifier.width(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Add custom exercise")
+
+        ui.rows.forEachIndexed { i, row ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(row.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    if (enabled) {
+                        IconButton(onClick = { vm.removeRow(i) }) { Icon(Icons.Filled.Close, "Remove") }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MetricField("Reps", row.reps, { vm.onReps(i, it) }, enabled, Modifier.weight(1f))
+                    MetricField("Weight", row.weight, { vm.onWeight(i, it) }, enabled, Modifier.weight(1f))
+                    MetricField("Dist", row.distance, { vm.onDistance(i, it) }, enabled, Modifier.weight(1f))
+                }
+            }
+            HorizontalDivider()
         }
-        OutlinedButton(onClick = onManage, modifier = Modifier.fillMaxWidth()) {
-            Text("Edit custom exercises")
+
+        if (enabled) {
+            if (ui.pool.isNotEmpty()) {
+                RollPicker(
+                    label = "Add an exercise",
+                    selectedLabel = "",
+                    options = ui.pool.map { it.id to it.name },
+                    onSelect = vm::addExercise,
+                    enabled = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            OutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
+                Icon(KairosIcons.Plus, null, Modifier.width(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Add custom exercise")
+            }
+            OutlinedButton(onClick = onManage, modifier = Modifier.fillMaxWidth()) {
+                Text("Edit custom exercises")
+            }
         }
     }
 }
@@ -292,16 +314,18 @@ private fun ExercisesStep(
 // ---- Step 3: instructions ----
 @Composable
 private fun InstructionsStep(ui: CreateWorkoutUi, vm: CreatePersonalWorkoutViewModel, enabled: Boolean) {
-    Text("Instructions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-    OutlinedTextField(
-        value = ui.instructions,
-        onValueChange = vm::onInstructions,
-        label = { Text("Instructions (optional)") },
-        placeholder = { Text(INSTRUCTIONS_HINT) },
-        enabled = enabled,
-        minLines = 4,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    StepCard {
+        Text("Instructions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        OutlinedTextField(
+            value = ui.instructions,
+            onValueChange = vm::onInstructions,
+            label = { Text("Instructions (optional)") },
+            placeholder = { Text(INSTRUCTIONS_HINT) },
+            enabled = enabled,
+            minLines = 4,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 // ---- Step 4: review ----
@@ -367,6 +391,7 @@ private fun NameCombo(
     onNew: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     Column {
         OutlinedTextField(
             value = name,
@@ -376,7 +401,7 @@ private fun NameCombo(
             readOnly = !enabled,
             singleLine = true,
             trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }) {
+                IconButton(onClick = { focusManager.clearFocus(); expanded = !expanded }) {
                     Icon(KairosIcons.ChevronDown, "Saved workouts", Modifier.rotate(if (expanded) 180f else 0f))
                 }
             },
@@ -393,9 +418,9 @@ private fun NameCombo(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             ) {
                 Column {
-                    OptionRow("\uFF0B New workout") { onNew(); expanded = false }
+                    OptionRow("\uFF0B New workout") { focusManager.clearFocus(); onNew(); expanded = false }
                     existing.forEach { (id, label) ->
-                        OptionRow(label) { onPickExisting(id); expanded = false }
+                        OptionRow(label) { focusManager.clearFocus(); onPickExisting(id); expanded = false }
                     }
                     if (existing.isEmpty()) {
                         Text(
