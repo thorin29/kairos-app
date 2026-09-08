@@ -61,7 +61,7 @@ private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit) {
+fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: String, canDeleteAny: Boolean) {
     val container = rememberContainer()
     val vm: GroceriesViewModel = viewModel(
         factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository) } },
@@ -104,16 +104,23 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit) {
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> GroceriesContent(vm, ui, data, onAddItem, editMode)
+                else -> GroceriesContent(vm, ui, data, onAddItem, editMode, meId, canDeleteAny)
             }
         }
     }
 }
 
 @Composable
-private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data: GroceriesDto, onAddItem: () -> Unit, editMode: Boolean) {
+private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data: GroceriesDto, onAddItem: () -> Unit, editMode: Boolean, meId: String, canDeleteAny: Boolean) {
     var showShopPicker by remember { mutableStateOf(false) }
     var movingItem by remember { mutableStateOf<GroceryLineDto?>(null) }
+    var deletingItem by remember { mutableStateOf<GroceryLineDto?>(null) }
+
+    // You may remove items you added; parents and admins may remove anything.
+    val canDelete: (GroceryLineDto) -> Boolean = { line ->
+        val adderId = line.assignee?.id
+        canDeleteAny || (adderId != null && adderId.isNotBlank() && adderId == meId)
+    }
 
     val tripStoreIds = data.trips.map { it.storeId }.toSet()
     val storeById = data.stores.associateBy { it.id }
@@ -163,7 +170,8 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
             if (store != null) {
                 TripCard(
                     trip, store, ui.busy, vm, editMode,
-                    onDelete = { vm.remove(it.id) },
+                    canDelete = canDelete,
+                    onDelete = { deletingItem = it },
                 )
             }
         }
@@ -172,8 +180,9 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
         savedStores.forEach { store ->
             SavedStoreCard(
                 store, savedByStore[store.id].orEmpty(), ui.busy, editMode,
+                canDelete = canDelete,
                 onChangeStore = { movingItem = it },
-                onDelete = { vm.remove(it.id) },
+                onDelete = { deletingItem = it },
             )
         }
 
@@ -203,10 +212,35 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
             onDismiss = { movingItem = null },
         )
     }
+
+    deletingItem?.let { item ->
+        DeleteConfirmDialog(
+            item = item,
+            busy = ui.busy,
+            onConfirm = { vm.remove(item.id); deletingItem = null },
+            onDismiss = { deletingItem = null },
+        )
+    }
 }
 
 @Composable
-private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean, vm: GroceriesViewModel, editMode: Boolean, onDelete: (GroceryLineDto) -> Unit) {
+private fun DeleteConfirmDialog(item: GroceryLineDto, busy: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = "Delete item?",
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            TextButton(enabled = !busy, onClick = onConfirm) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+    ) {
+        Text("Remove \u201c${item.name}\u201d from the list?", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean, vm: GroceriesViewModel, editMode: Boolean, canDelete: (GroceryLineDto) -> Boolean, onDelete: (GroceryLineDto) -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -231,6 +265,7 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
                             busy = busy,
                             editMode = editMode,
                             canMove = false,
+                            canDelete = canDelete(item),
                             onToggle = { vm.setPurchased(item.id, !item.purchased) },
                             onChangeStore = {},
                             onDelete = { onDelete(item) },
@@ -255,6 +290,7 @@ private fun SavedStoreCard(
     items: List<GroceryLineDto>,
     busy: Boolean,
     editMode: Boolean,
+    canDelete: (GroceryLineDto) -> Boolean,
     onChangeStore: (GroceryLineDto) -> Unit,
     onDelete: (GroceryLineDto) -> Unit,
 ) {
@@ -273,6 +309,7 @@ private fun SavedStoreCard(
                         busy = busy,
                         editMode = editMode,
                         canMove = true,
+                        canDelete = canDelete(item),
                         onToggle = {},
                         onChangeStore = { onChangeStore(item) },
                         onDelete = { onDelete(item) },
@@ -290,6 +327,7 @@ private fun ItemRow(
     busy: Boolean,
     editMode: Boolean,
     canMove: Boolean,
+    canDelete: Boolean,
     onToggle: () -> Unit,
     onChangeStore: () -> Unit,
     onDelete: () -> Unit,
@@ -324,8 +362,10 @@ private fun ItemRow(
                     Icon(KairosIcons.Swap, contentDescription = "Change store", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
             }
-            Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onDelete() }.padding(6.dp)) {
-                Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+            if (canDelete) {
+                Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onDelete() }.padding(6.dp)) {
+                    Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                }
             }
         }
     }

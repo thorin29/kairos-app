@@ -1,4 +1,11 @@
 # Changelog
+## 0.79.0
+- Deleting a shopping item now asks to confirm and names the item, so it's
+  harder to remove something by accident.
+- You can only delete items you added — no delete button on other people's
+  items. Parents and admins can delete anything. (Changing an item's store is
+  still open to everyone.)
+
 ## 0.78.0
 - Napkins, paper towels, bottled water, and protein now show real picture icons
   (bundled artwork) instead of a box.

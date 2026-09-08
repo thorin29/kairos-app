@@ -235,3 +235,13 @@ lines, and cart lines order by name server-side (loadGroceries/loadCart), the
 admin catalog orders by name, and the app add wizard sorts client-side. The web
 add-box "Common" chips stay most-used (by design). Note: web drag-to-reorder no
 longer changes saved-list display order (alphabetical wins).
+
+## Groceries: confirm-delete + adder-only delete (app 0.79.0 / web 0.255.0)
+Deleting a shopping line in the app now goes through a named confirm dialog
+("Remove "<name>"?") instead of deleting on tap. Delete is also permission-
+gated: the trash icon shows only when the current person added the item
+(line.assignee.id == me.id) or is privileged (kind PARENT or role ADMIN). This
+is enforced server-side too, on the device remove endpoint (fetches the item's
+assignedToId and 403s otherwise) — the shared removeItemCore is unchanged so the
+web board keeps its existing behaviour. Change-store is intentionally NOT gated.
+Item "adder" is carried as assignedToId (addItemCore stamps the requester there).
