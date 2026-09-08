@@ -107,11 +107,11 @@ class ReadingViewModel(
 
     // ---- transforms, also used to re-apply the offline queue on load ----
 
-    private fun insertBook(data: BooksDto, req: AddBookRequest): BooksDto {
+    private fun insertBook(data: BooksDto, req: AddBookRequest, id: String = "temp-${UUID.randomUUID()}"): BooksDto {
         val unit = if (req.chapters != null) "CHAPTERS" else "PAGES"
         val length = req.pages ?: req.chapters ?: 0
         val book = BookDto(
-            id = "temp-${UUID.randomUUID()}",
+            id = id,
             title = req.title,
             author = req.author,
             unit = unit,
@@ -156,7 +156,7 @@ class ReadingViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "books/add" -> parse(w.body, AddBookRequest.serializer())?.let { d = insertBook(d, it) }
+                "books/add" -> parse(w.body, AddBookRequest.serializer())?.let { d = insertBook(d, it, "temp-${w.id}") }
                 "books/update" -> parse(w.body, UpdateBookRequest.serializer())?.let { d = updateBook(d, it) }
                 "books/log" -> parse(w.body, LogBookRequest.serializer())?.let { d = setRead(d, it.id, it.page) }
                 "books/finish" -> parse(w.body, BookFinishRequest.serializer())?.let { d = setFinished(d, it.id, it.finished) }

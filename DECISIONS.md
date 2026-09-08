@@ -562,3 +562,16 @@ until sync; recurring events show only the first occurrence optimistically. Cale
 refreshKey = dataRevision -> vm.reload(). Home agenda: freshDashboard applies calendar/event
 for today (if isFamily / self / a participant) via insertDashSchedule. calendar/prefs not
 queued (device pref applies locally). Batch 3 remaining: Workouts (+ create wizard).
+
+## App: offline add-then-delete cancellation (0.112.0)
+An item created offline gets a temp id equal to its queued create's id: applyPending
+now inserts created items with id = "temp-${w.id}" (w = the PendingWrite) instead of a
+fresh UUID, so the on-screen temp id IS the pending-create's id. When a delete/remove
+write is enqueued offline, OfflineInterceptor scans the URL+body for "temp-<id>"; if
+found it removes that pending create from the queue and returns a synthetic 200 WITHOUT
+queuing the delete (add+delete offline = net no-op). Covers reading/groceries/school/
+money/calendar (all put the id in the body; regex also checks the URL). Immediate in-VM
+optimistic inserts still use a random temp id (default param) - the stable id lands on
+the first queue re-apply, which is well before the user can tap delete. Dashboard temp
+inserts left as random (not deletable there). Interceptor synthetic() helper extracted.
+Batch 3 remaining: Workouts (+ create/edit wizard) - the last screen, doing it solo next.

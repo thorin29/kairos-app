@@ -130,6 +130,19 @@ private class OfflineInterceptor(
                     b.writeTo(buffer)
                     buffer.readUtf8()
                 }
+                // Deleting an item created offline and not yet synced: it only
+                // exists as a queued create, so drop that create instead of queuing
+                // a delete against an id the server never had (add-then-delete = no-op).
+                val isDelete = path.endsWith("/delete") || path.endsWith("/remove")
+                val cancelId = if (isDelete) {
+                    Regex("temp-([0-9a-fA-F-]+)").find(req.url.toString() + (bodyStr ?: ""))?.groupValues?.get(1)
+                } else {
+                    null
+                }
+                if (cancelId != null) {
+                    runBlocking { queue!!.remove(cancelId) }
+                    return synthetic(req)
+                }
                 runBlocking {
                     queue!!.enqueue(
                         PendingWrite(
@@ -141,13 +154,7 @@ private class OfflineInterceptor(
                         ),
                     )
                 }
-                return OkResponse.Builder()
-                    .request(req)
-                    .protocol(Protocol.HTTP_1_1)
-                    .code(200)
-                    .message("Queued offline")
-                    .body("{}".toResponseBody("application/json".toMediaType()))
-                    .build()
+                return synthetic(req)
             }
             throw IOException("You're offline. Reconnect to make changes.")
         }
@@ -162,6 +169,16 @@ private class OfflineInterceptor(
         }
         return res
     }
+
+    /** A 200 {} response so a queued (or cancelled) offline write looks successful. */
+    private fun synthetic(req: okhttp3.Request): OkResponse =
+        OkResponse.Builder()
+            .request(req)
+            .protocol(Protocol.HTTP_1_1)
+            .code(200)
+            .message("Queued offline")
+            .body("{}".toResponseBody("application/json".toMediaType()))
+            .build()
 }
 
 private const val OFFLINE_MAX_STALE = 60 * 60 * 24 * 30 // 30 days

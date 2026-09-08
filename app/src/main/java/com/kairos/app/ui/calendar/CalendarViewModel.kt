@@ -377,11 +377,10 @@ class CalendarViewModel(
         else if (endMin > startMin) "${fmtTime(startMin)} \u2013 ${fmtTime(endMin)}"
         else fmtTime(startMin)
 
-    private fun insertEvent(data: CalendarDto, req: CreateEventRequest): CalendarDto {
+    private fun insertEvent(data: CalendarDto, req: CreateEventRequest, id: String = "temp-${UUID.randomUUID()}"): CalendarDto {
         if (req.date !in data.rangeDays) return data
         val startMin = parseHHMM(req.start) ?: 0
         val endMin = parseHHMM(req.end) ?: startMin
-        val id = "temp-${UUID.randomUUID()}"
         val ev = CalEventDto(
             id = id, eventId = id, title = req.title, location = req.location,
             dayISO = req.date, allDay = req.allDay, startMin = startMin, endMin = endMin,
@@ -430,7 +429,7 @@ class CalendarViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "calendar/event" -> parse(w.body, CreateEventRequest.serializer())?.let { d = insertEvent(d, it) }
+                "calendar/event" -> parse(w.body, CreateEventRequest.serializer())?.let { d = insertEvent(d, it, "temp-${w.id}") }
                 "calendar/event/update" -> parse(w.body, UpdateEventRequest.serializer())?.let { d = updateEventIn(d, it) }
                 "calendar/event/delete" -> parse(w.body, DeleteEventRequest.serializer())?.let { d = removeEvent(d, it.eventId, it.scope, it.occurrenceISO) }
             }

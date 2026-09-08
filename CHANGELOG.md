@@ -1,4 +1,10 @@
 # Changelog
+## 0.112.0
+- Offline changes that cancel each other out no longer leave a trace: if you add
+  something offline and then delete it before reconnecting, both are dropped, so
+  nothing syncs and the item can't reappear. Works across reading, groceries, school,
+  money and the calendar.
+
 ## 0.111.0
 - Offline optimism now covers the Calendar: adding, editing and deleting events show
   right away (across day/week/month views), survive navigation/restart offline, and

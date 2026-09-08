@@ -118,13 +118,14 @@ class SchoolViewModel(private val session: SessionRepository) : ViewModel() {
         type: String,
         dueDate: String,
         classId: String?,
+        id: String = "temp-${UUID.randomUUID()}",
     ): SchoolDto {
         val overdue = try { LocalDate.parse(dueDate).isBefore(LocalDate.now()) } catch (_: Exception) { false }
         val typeLabel = data.types.firstOrNull { it.key == type }?.label ?: type
         val cls = if (classId.isNullOrBlank()) null
         else data.classOptionsByUser[userId]?.firstOrNull { it.id == classId }
         val item = SchoolItemDto(
-            id = "temp-${UUID.randomUUID()}",
+            id = id,
             title = title,
             type = type,
             typeLabel = typeLabel,
@@ -158,7 +159,7 @@ class SchoolViewModel(private val session: SessionRepository) : ViewModel() {
                     val req = w.body?.let {
                         runCatching { ApiClient.json.decodeFromString(AddSchoolRequest.serializer(), it) }.getOrNull()
                     } ?: continue
-                    d = insertItem(d, req.userId, req.title, req.type, req.dueDate, req.classId)
+                    d = insertItem(d, req.userId, req.title, req.type, req.dueDate, req.classId, "temp-${w.id}")
                 }
                 path == "school/delete" -> {
                     val req = w.body?.let {

@@ -135,10 +135,10 @@ class MoneyViewModel(
 
     // ---- transforms, also used to re-apply the offline queue on load ----
 
-    private fun insertRow(data: MoneyDto, req: AddMoneyRequest): MoneyDto {
+    private fun insertRow(data: MoneyDto, req: AddMoneyRequest, id: String = "temp-${UUID.randomUUID()}"): MoneyDto {
         if (req.userId != data.selectedId) return data
         val row = MoneyRowDto(
-            id = "temp-${UUID.randomUUID()}",
+            id = id,
             date = req.date ?: data.today,
             direction = req.direction,
             category = req.category,
@@ -191,7 +191,7 @@ class MoneyViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "money/entry" -> parse(w.body, AddMoneyRequest.serializer())?.let { d = insertRow(d, it) }
+                "money/entry" -> parse(w.body, AddMoneyRequest.serializer())?.let { d = insertRow(d, it, "temp-${w.id}") }
                 "money/update" -> parse(w.body, UpdateMoneyRequest.serializer())?.let { d = updateRow(d, it) }
                 "money/delete" -> parse(w.body, MoneyIdRequest.serializer())?.let { d = removeRow(d, it.id) }
                 "money/approve" -> parse(w.body, MoneyIdRequest.serializer())?.let { d = setApproved(d, it.id, true) }
