@@ -1,4 +1,8 @@
 # Changelog
+## 0.95.0
+- School: the Add school work wizard now shows its form on a white card (matching
+  the workout wizard) instead of on the bare background.
+
 ## 0.94.0
 - School: "Add school work" is now a full-screen wizard opened with + in the top
   bar (with a calendar date picker). Parents/admins view children's work only —

@@ -20,6 +20,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -96,24 +97,27 @@ fun AddSchoolWorkScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (data.canActFor.size > 1) {
-                RollPicker("For", personName, data.canActFor.map { it.id to it.name }, { personId = it; classId = "" }, !ui.busy, Modifier.fillMaxWidth())
-            }
-            Labeled("Title") { Field(title, { title = it.take(120) }, "e.g. Chapter 4 quiz") }
-            RollPicker("Type", typeLabel, data.types.map { it.key to it.label }, { typeKey = it }, !ui.busy, Modifier.fillMaxWidth())
-            RollPicker(
-                "Class", classLabel,
-                listOf("" to "No class") + classes.map { it.id to it.name },
-                { classId = it }, !ui.busy, Modifier.fillMaxWidth(),
-            )
-            Labeled("Subject (optional)") { Field(subject, { subject = it.take(60) }, "e.g. Math") }
-
-            Labeled("Due") {
-                Box(
-                    Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                        .clickable { showDate = true }.padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    Text(dueLabel, style = MaterialTheme.typography.bodyLarge)
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    if (data.canActFor.size > 1) {
+                        RollPicker("For", personName, data.canActFor.map { it.id to it.name }, { personId = it; classId = "" }, !ui.busy, Modifier.fillMaxWidth())
+                    }
+                    Labeled("Title") { Field(title, { title = it.take(120) }, "e.g. Chapter 4 quiz") }
+                    RollPicker("Type", typeLabel, data.types.map { it.key to it.label }, { typeKey = it }, !ui.busy, Modifier.fillMaxWidth())
+                    RollPicker(
+                        "Class", classLabel,
+                        listOf("" to "No class") + classes.map { it.id to it.name },
+                        { classId = it }, !ui.busy, Modifier.fillMaxWidth(),
+                    )
+                    Labeled("Subject (optional)") { Field(subject, { subject = it.take(60) }, "e.g. Math") }
+                    Labeled("Due") {
+                        Box(
+                            Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                                .clickable { showDate = true }.padding(horizontal = 14.dp, vertical = 12.dp),
+                        ) {
+                            Text(dueLabel, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                 }
             }
 
