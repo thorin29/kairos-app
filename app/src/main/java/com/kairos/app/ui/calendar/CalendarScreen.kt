@@ -86,7 +86,7 @@ private val WEEKDAYS = listOf("S", "M", "T", "W", "T", "F", "S")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(onOpenDrawer: () -> Unit) {
+fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
@@ -94,6 +94,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit) {
         },
     )
     val ui by vm.ui.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.reload() }
     var monthExpanded by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showDefaultPicker by remember { mutableStateOf(false) }

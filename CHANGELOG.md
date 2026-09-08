@@ -1,4 +1,9 @@
 # Changelog
+## 0.111.0
+- Offline optimism now covers the Calendar: adding, editing and deleting events show
+  right away (across day/week/month views), survive navigation/restart offline, and
+  reconcile on sync. An event you add for today also lands on the Home agenda.
+
 ## 0.110.0
 - Offline optimism now covers Money: adding, editing and deleting transactions, and
   approving / unapproving (including approve-all and the Bible-reward approvals) all

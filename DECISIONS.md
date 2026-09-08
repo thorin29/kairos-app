@@ -549,3 +549,16 @@ Per-person balanceCents are server-computed so they lag until sync (rows/approva
 update at once). setStarting stays non-optimistic (recomputes balances). MoneyScreen
 refreshKey = dataRevision. Batch 2 DONE. Next: batch 3 (calendar, workouts+create),
 then settings.
+
+## App: Calendar optimistic offline (0.111.0) — batch 3, screen 1
+Rather than per-action optimistic mutates (calendar caches multiple views), routed
+EVERY calendar load through loadCal = applyPending(session.loadCalendar(view,date),
+pendingWrites()) - the existing create/update/delete already call load() after the
+write, so offline changes reload from cache + re-apply the queue and show durably.
+applyPending parses calendar/event (insertEvent, only if req.date in rangeDays; adds
+a monthDot), calendar/event/update (updateEventIn), calendar/event/delete (removeEvent,
+scope "one" removes that occurrence else all). Event color/owner/who are placeholders
+until sync; recurring events show only the first occurrence optimistically. CalendarScreen
+refreshKey = dataRevision -> vm.reload(). Home agenda: freshDashboard applies calendar/event
+for today (if isFamily / self / a participant) via insertDashSchedule. calendar/prefs not
+queued (device pref applies locally). Batch 3 remaining: Workouts (+ create wizard).

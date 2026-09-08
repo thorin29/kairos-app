@@ -3,7 +3,13 @@ package com.kairos.app.ui.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
+import com.kairos.app.data.remote.ApiClient
+import com.kairos.app.data.remote.PendingWrite
+import com.kairos.app.data.remote.dto.CalEventDto
 import com.kairos.app.data.remote.dto.CalendarDto
+import com.kairos.app.data.remote.dto.CreateEventRequest
+import com.kairos.app.data.remote.dto.DeleteEventRequest
+import com.kairos.app.data.remote.dto.UpdateEventRequest
 import com.kairos.app.data.session.SessionRepository
 import com.kairos.app.data.settings.SettingsStore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /** The calendar views. `serverValue` is the `view` param the API expects. */
 enum class CalTab(val serverValue: String, val label: String) {
@@ -69,7 +76,7 @@ class CalendarViewModel(
         inFlightDays.add(iso)
         viewModelScope.launch {
             try {
-                val dto = session.loadCalendar("day", iso)
+                val dto = loadCal("day", iso)
                 _pages.update { it + (dto.date to dto) }
             } catch (_: Exception) {
                 // Leave uncached; the page shows a spinner and can retry on the next swipe.
@@ -97,7 +104,7 @@ class CalendarViewModel(
         inFlightMonths.add(monthStartIso)
         viewModelScope.launch {
             try {
-                val dto = session.loadCalendar("month", monthStartIso)
+                val dto = loadCal("month", monthStartIso)
                 _monthPages.update { it + (monthStartIso to dto) }
             } catch (_: Exception) {
             } finally {
@@ -123,7 +130,7 @@ class CalendarViewModel(
         inFlightWeeks.add(weekStartIso)
         viewModelScope.launch {
             try {
-                val dto = session.loadCalendar("week", weekStartIso)
+                val dto = loadCal("week", weekStartIso)
                 _weekPages.update { it + (weekStartIso to dto) }
             } catch (_: Exception) {
             } finally {
@@ -152,7 +159,7 @@ class CalendarViewModel(
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
             try {
-                val data = session.loadCalendar(s.tab.serverValue, s.date)
+                val data = loadCal(s.tab.serverValue, s.date)
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
                 if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
                 if (s.tab == CalTab.AGENDA) _pages.update { it + (data.date to data) }
@@ -342,5 +349,92 @@ class CalendarViewModel(
                 _ui.update { it.copy(loadError = e.error.message) }
             }
         }
+    }
+
+    // ---- offline queue-apply: every load re-applies pending calendar writes ----
+
+    private suspend fun loadCal(view: String, date: String?): CalendarDto =
+        applyPending(session.loadCalendar(view, date), session.pendingWrites())
+
+    private fun parseHHMM(s: String?): Int? {
+        val parts = s?.split(":") ?: return null
+        if (parts.size != 2) return null
+        val h = parts[0].toIntOrNull() ?: return null
+        val m = parts[1].toIntOrNull() ?: return null
+        return h * 60 + m
+    }
+
+    private fun fmtTime(min: Int): String {
+        val h = min / 60
+        val m = min % 60
+        val ampm = if (h < 12) "AM" else "PM"
+        val h12 = ((h + 11) % 12) + 1
+        return if (m == 0) "$h12 $ampm" else "%d:%02d %s".format(h12, m, ampm)
+    }
+
+    private fun timeLabel(allDay: Boolean, startMin: Int, endMin: Int): String =
+        if (allDay) "All day"
+        else if (endMin > startMin) "${fmtTime(startMin)} \u2013 ${fmtTime(endMin)}"
+        else fmtTime(startMin)
+
+    private fun insertEvent(data: CalendarDto, req: CreateEventRequest): CalendarDto {
+        if (req.date !in data.rangeDays) return data
+        val startMin = parseHHMM(req.start) ?: 0
+        val endMin = parseHHMM(req.end) ?: startMin
+        val id = "temp-${UUID.randomUUID()}"
+        val ev = CalEventDto(
+            id = id, eventId = id, title = req.title, location = req.location,
+            dayISO = req.date, allDay = req.allDay, startMin = startMin, endMin = endMin,
+            timeLabel = timeLabel(req.allDay, startMin, endMin),
+            isFamily = req.isFamily ?: false, kind = req.kind ?: "",
+            recurring = !req.repeat.isNullOrBlank() && req.repeat != "none",
+        )
+        val events = (data.events + ev).sortedWith(compareBy({ it.dayISO }, { it.startMin }))
+        val dots = if (data.monthDays.contains(req.date)) {
+            data.monthDots + (req.date to ((data.monthDots[req.date] ?: emptyList()) + ev.color))
+        } else {
+            data.monthDots
+        }
+        return data.copy(events = events, monthDots = dots)
+    }
+
+    private fun updateEventIn(data: CalendarDto, req: UpdateEventRequest): CalendarDto {
+        val startMin = parseHHMM(req.start) ?: 0
+        val endMin = parseHHMM(req.end) ?: startMin
+        return data.copy(
+            events = data.events.map {
+                if (it.eventId != req.eventId) it
+                else it.copy(
+                    title = req.title, allDay = req.allDay, dayISO = req.date,
+                    startMin = startMin, endMin = endMin,
+                    timeLabel = timeLabel(req.allDay, startMin, endMin),
+                    location = req.location, isFamily = req.isFamily ?: it.isFamily,
+                )
+            },
+        )
+    }
+
+    private fun removeEvent(data: CalendarDto, eventId: String, scope: String?, occurrenceISO: String?): CalendarDto {
+        val events = if (scope == "one" && occurrenceISO != null) {
+            data.events.filterNot { it.eventId == eventId && it.dayISO == occurrenceISO }
+        } else {
+            data.events.filterNot { it.eventId == eventId }
+        }
+        return data.copy(events = events)
+    }
+
+    private fun <T> parse(body: String?, ser: kotlinx.serialization.KSerializer<T>): T? =
+        body?.let { runCatching { ApiClient.json.decodeFromString(ser, it) }.getOrNull() }
+
+    private fun applyPending(data: CalendarDto, pending: List<PendingWrite>): CalendarDto {
+        var d = data
+        for (w in pending) {
+            when (w.url.substringAfter("/api/v1/", "")) {
+                "calendar/event" -> parse(w.body, CreateEventRequest.serializer())?.let { d = insertEvent(d, it) }
+                "calendar/event/update" -> parse(w.body, UpdateEventRequest.serializer())?.let { d = updateEventIn(d, it) }
+                "calendar/event/delete" -> parse(w.body, DeleteEventRequest.serializer())?.let { d = removeEvent(d, it.eventId, it.scope, it.occurrenceISO) }
+            }
+        }
+        return d
     }
 }

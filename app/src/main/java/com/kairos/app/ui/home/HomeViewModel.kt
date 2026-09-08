@@ -11,6 +11,8 @@ import java.time.LocalDate
 import java.util.UUID
 import com.kairos.app.data.remote.dto.AlwaysOpenRequest
 import com.kairos.app.data.remote.dto.ClaimChoreRequest
+import com.kairos.app.data.remote.dto.CreateEventRequest
+import com.kairos.app.data.remote.dto.ScheduleItemDto
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.MarkReadingRequest
 import com.kairos.app.data.remote.dto.TaskDto
@@ -108,6 +110,13 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                         },
                     )
                 }
+                path == "calendar/event" -> {
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(CreateEventRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    val mine = req.isFamily == true || req.participants == null || (me != null && req.participants!!.contains(me))
+                    if (req.date == d.date && mine) d = insertDashSchedule(d, req)
+                }
             }
         }
         return d
@@ -153,6 +162,36 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
             groups.add(TaskGroupDto(category = category, label = label, items = listOf(task)))
         }
         return dash.copy(groups = groups)
+    }
+
+    /** Drop a queued-but-unsynced calendar event onto today's agenda. */
+    private fun insertDashSchedule(dash: DashboardDto, req: CreateEventRequest): DashboardDto {
+        val startMin = parseHHMM(req.start) ?: 0
+        val item = ScheduleItemDto(
+            title = req.title,
+            allDay = req.allDay,
+            timeLabel = if (req.allDay) "All day" else fmtTime(startMin),
+            startMin = startMin,
+            color = "#64748b",
+            location = req.location,
+        )
+        return dash.copy(schedule = (dash.schedule + item).sortedBy { it.startMin })
+    }
+
+    private fun parseHHMM(s: String?): Int? {
+        val parts = s?.split(":") ?: return null
+        if (parts.size != 2) return null
+        val h = parts[0].toIntOrNull() ?: return null
+        val m = parts[1].toIntOrNull() ?: return null
+        return h * 60 + m
+    }
+
+    private fun fmtTime(min: Int): String {
+        val h = min / 60
+        val m = min % 60
+        val ampm = if (h < 12) "AM" else "PM"
+        val h12 = ((h + 11) % 12) + 1
+        return if (m == 0) "$h12 $ampm" else "%d:%02d %s".format(h12, m, ampm)
     }
 
     fun refresh() {
