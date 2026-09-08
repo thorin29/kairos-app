@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 /** One write the app couldn't send because it was offline. Persisted so it
@@ -31,22 +32,23 @@ class WriteQueue(
     private val json: Json,
 ) {
     private val key = stringPreferencesKey("offline_write_queue")
+    private val listSerializer = ListSerializer(PendingWrite.serializer())
 
     private fun decode(raw: String?): List<PendingWrite> =
-        raw?.let { runCatching { json.decodeFromString<List<PendingWrite>>(it) }.getOrDefault(emptyList()) }
+        raw?.let { runCatching { json.decodeFromString(listSerializer, it) }.getOrDefault(emptyList()) }
             ?: emptyList()
 
     val items: Flow<List<PendingWrite>> = dataStore.data.map { decode(it[key]) }
 
     suspend fun enqueue(write: PendingWrite) {
         dataStore.edit { prefs ->
-            prefs[key] = json.encodeToString(decode(prefs[key]) + write)
+            prefs[key] = json.encodeToString(listSerializer, decode(prefs[key]) + write)
         }
     }
 
     suspend fun remove(id: String) {
         dataStore.edit { prefs ->
-            prefs[key] = json.encodeToString(decode(prefs[key]).filterNot { it.id == id })
+            prefs[key] = json.encodeToString(listSerializer, decode(prefs[key]).filterNot { it.id == id })
         }
     }
 
