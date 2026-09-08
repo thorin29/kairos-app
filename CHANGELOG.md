@@ -1,4 +1,10 @@
 # Changelog
+## 0.78.0
+- Napkins, paper towels, bottled water, and protein now show real picture icons
+  (bundled artwork) instead of a box.
+- The add wizard's item list is sorted alphabetically. (Saved/shopping lists are
+  alphabetical too, from the server.)
+
 ## 0.77.0
 - Item icons: napkins and bottled water now show a small drawn glyph instead of
   a generic box (there's no emoji for either).

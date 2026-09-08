@@ -139,7 +139,8 @@ private fun ItemStep(
     contentPadding: PaddingValues,
 ) {
     val q = query.trim().lowercase()
-    val list = if (q.isEmpty()) data.catalog else data.catalog.filter { it.name.lowercase().contains(q) }
+    val list = (if (q.isEmpty()) data.catalog else data.catalog.filter { it.name.lowercase().contains(q) })
+        .sortedBy { it.name.lowercase() }
     val exact = data.catalog.any { it.name.lowercase() == q }
 
     Column(Modifier.padding(contentPadding).fillMaxSize().padding(16.dp)) {

@@ -223,3 +223,15 @@ edit toggle in the TopAppBar (pencil → "Done"): in edit mode each row exposes
 change-store (saved items) and delete inline; row-tap toggles are disabled so
 edits aren't mistaken for ticks. Delete in edit mode is immediate (entering edit
 mode is the deliberate gate), matching the RecentWorkouts edit-mode pattern.
+
+## Groceries: picture icons for no-emoji items; alphabetical lists (0.78.0 / web 0.254.0)
+Napkins, paper towels, bottled water, and protein have no good emoji, so the
+guesser emits "ic:*" tokens and both platforms render bundled artwork via the
+shared GroceryGlyph (web `<img src="/grocery-icons/*.png">` from /public; app
+`Image(painterResource(R.drawable.grocery_*))` from res/drawable-nodpi). Source
+PNGs are trimmed onto a white rounded tile with a light border so white subjects
+(napkin, paper towel) stay visible. Lists are alphabetical: saved lines, trip
+lines, and cart lines order by name server-side (loadGroceries/loadCart), the
+admin catalog orders by name, and the app add wizard sorts client-side. The web
+add-box "Common" chips stay most-used (by design). Note: web drag-to-reorder no
+longer changes saved-list display order (alphabetical wins).
