@@ -3,6 +3,11 @@ package com.kairos.app.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
+import com.kairos.app.data.remote.ApiClient
+import com.kairos.app.data.remote.dto.AddTaskRequest
+import com.kairos.app.data.remote.dto.TaskGroupDto
+import java.time.LocalDate
+import java.util.UUID
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
@@ -55,9 +60,17 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
      *  tick made offline stays put even after navigating away and back. */
     private suspend fun freshDashboard(): DashboardDto {
         var d = session.loadDashboard()
+        val me = session.currentPersonId()
         for (w in session.pendingWrites()) {
             val path = w.url.substringAfter("/api/v1/", "")
             when {
+                path == "tasks/add" -> {
+                    val body = w.body ?: continue
+                    val req = runCatching {
+                        ApiClient.json.decodeFromString(AddTaskRequest.serializer(), body)
+                    }.getOrNull() ?: continue
+                    if (req.userId == me) d = insertDashTask(d, req.title, req.dueDate)
+                }
                 path.startsWith("tasks/") && path.endsWith("/complete") ->
                     d = mutateTaskStatus(d, path.removePrefix("tasks/").removeSuffix("/complete"), "COMPLETE")
                 path.startsWith("tasks/") && path.endsWith("/uncomplete") ->
@@ -65,6 +78,29 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
             }
         }
         return d
+    }
+
+    /** Drop a queued-but-unsynced task into the dashboard's Tasks (OTHER) group. */
+    private fun insertDashTask(dash: DashboardDto, title: String, dueDate: String?): DashboardDto {
+        val due = dueDate ?: LocalDate.now().toString()
+        val overdue = try { LocalDate.parse(due).isBefore(LocalDate.now()) } catch (_: Exception) { false }
+        val task = TaskDto(
+            id = "temp-${UUID.randomUUID()}",
+            title = title,
+            category = "OTHER",
+            status = "PENDING",
+            dueDate = due,
+            completable = true,
+            isOverdue = overdue,
+        )
+        val groups = dash.groups.toMutableList()
+        val idx = groups.indexOfFirst { it.category == "OTHER" }
+        if (idx >= 0) {
+            groups[idx] = groups[idx].copy(items = groups[idx].items + task)
+        } else {
+            groups.add(TaskGroupDto(category = "OTHER", label = "Tasks", items = listOf(task)))
+        }
+        return dash.copy(groups = groups)
     }
 
     fun refresh() {

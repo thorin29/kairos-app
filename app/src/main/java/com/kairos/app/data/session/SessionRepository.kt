@@ -572,6 +572,10 @@ class SessionRepository(
     suspend fun pendingWrites(): List<com.kairos.app.data.remote.PendingWrite> =
         writeQueue?.snapshot() ?: emptyList()
 
+    /** The enrolled person's id, or null — so a screen can tell which queued
+     *  writes belong to "me" (e.g. a task added for this device's person). */
+    fun currentPersonId(): String? = (_state.value as? SessionState.Ready)?.person?.id
+
     private suspend fun <T> runAuthed(block: suspend () -> Response<T>): T {
         try {
             return apiCall(block)
@@ -614,6 +618,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 154
+        const val CLIENT_BUILD = 155
     }
 }

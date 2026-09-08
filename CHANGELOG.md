@@ -1,4 +1,9 @@
 # Changelog
+## 0.104.0
+- A task you add offline now also shows immediately on the Home dashboard (under
+  Tasks), not just the Tasks page — and it survives navigation and app restarts
+  until it syncs, same as before.
+
 ## 0.103.0
 - Offline changes now survive navigation: a task added or ticked off offline stays
   put when you leave the Tasks/Home screen and come back, instead of vanishing until

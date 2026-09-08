@@ -460,3 +460,14 @@ lands. This is the REFERENCE pattern for extending optimistic UI to the other sc
 needs (a) optimistic local mutation on its actions, (b) applyPending in its load, and
 (c) refreshKey = revision. NOTE: add-from-Home-+ still not optimistic on Home's
 dashboard (would need a synthetic categorized TaskDto); shows after sync.
+
+## App: dashboard optimistic add (0.104.0)
+HomeViewModel.freshDashboard now also applies queued tasks/add writes: for a pending
+add whose userId == session.currentPersonId() (added SessionRepository.currentPersonId()
+from SessionState.Ready.person.id), insertDashTask drops a temp-id completable TaskDto
+into the dashboard's OTHER group (labelled "Tasks", created if absent). Combined with
+the existing complete/uncomplete apply + homeRefresh-on-revision, an offline-added
+self task now shows on Home and the Tasks page, survives nav + app restart, and
+reconciles on sync. Batch 1 (chores/bible/reading/school optimistic) still to do,
+one screen at a time per the established pattern (optimistic mutation + applyPending
+in load + refreshKey = revision).
