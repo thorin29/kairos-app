@@ -5,6 +5,7 @@
          permission needed for the first flows; camera (for QR scan) is added in
          a later increment. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".KairosApp"

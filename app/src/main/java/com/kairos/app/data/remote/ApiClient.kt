@@ -2,8 +2,11 @@ package com.kairos.app.data.remote
 
 import com.kairos.app.data.remote.dto.ApiErrorEnvelope
 import kotlinx.serialization.json.Json
+import okhttp3.Cache
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Response as OkResponse
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -26,14 +29,30 @@ object ApiClient {
         coerceInputValues = true
     }
 
-    fun create(baseUrl: String, tokenProvider: () -> String?): ApiService {
+    fun create(
+        baseUrl: String,
+        cache: Cache? = null,
+        monitor: NetworkMonitor? = null,
+        tokenProvider: () -> String?,
+    ): ApiService {
         val logging = HttpLoggingInterceptor().apply {
             // Headers only — never log bodies, which would print the token.
             level = HttpLoggingInterceptor.Level.BASIC
         }
 
-        val ok = OkHttpClient.Builder()
+        val builder = OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(tokenProvider))
+        if (cache != null && monitor != null) {
+            // Read-through offline cache: when online, GET responses are stored
+            // (server sends no-cache, so the network interceptor makes them
+            // storable); when offline, GETs are served from the last stored copy
+            // and writes fail fast with a clear message.
+            builder
+                .cache(cache)
+                .addInterceptor(OfflineInterceptor(monitor))
+                .addNetworkInterceptor(CacheableResponseInterceptor())
+        }
+        val ok = builder
             .addInterceptor(logging)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -67,6 +86,45 @@ object ApiClient {
         return origin + path
     }
 }
+
+/** Network interceptor (online path only): make GET responses storable in the
+ *  disk cache even though the server marks them no-cache. A tiny max-age keeps
+ *  data effectively live online while giving offline a copy to fall back on. */
+private class CacheableResponseInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): OkResponse {
+        val res = chain.proceed(chain.request())
+        if (chain.request().method != "GET") return res
+        return res.newBuilder()
+            .removeHeader("Pragma")
+            .removeHeader("Cache-Control")
+            .header("Cache-Control", "public, max-age=0")
+            .build()
+    }
+}
+
+/** Application interceptor: when offline, serve GETs from the disk cache (any
+ *  age) and fail writes fast with a clear message instead of a long timeout. */
+private class OfflineInterceptor(private val monitor: NetworkMonitor) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): OkResponse {
+        val req = chain.request()
+        if (monitor.isOnline()) return chain.proceed(req)
+        if (req.method != "GET") {
+            throw IOException("You're offline. Reconnect to make changes.")
+        }
+        val offline = req.newBuilder()
+            .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")
+            .build()
+        val res = chain.proceed(offline)
+        if (res.code == 504) {
+            // only-if-cached with nothing stored: no offline copy of this screen.
+            res.close()
+            throw IOException("You're offline and this hasn't been saved yet.")
+        }
+        return res
+    }
+}
+
+private const val OFFLINE_MAX_STALE = 60 * 60 * 24 * 30 // 30 days
 
 /**
  * Maps a Retrofit [Response] to either its body or a thrown [ApiException].

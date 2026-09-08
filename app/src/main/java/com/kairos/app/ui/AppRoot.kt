@@ -40,6 +40,8 @@ import com.kairos.app.ui.auth.AuthFlow
 import com.kairos.app.ui.common.LoadingScreen
 import com.kairos.app.ui.common.PlaceholderScreen
 import com.kairos.app.ui.common.rememberContainer
+import androidx.compose.ui.Alignment
+import com.kairos.app.ui.common.OfflineBanner
 import com.kairos.app.ui.devices.DevicesScreen
 import com.kairos.app.ui.home.HomeScreen
 import com.kairos.app.ui.nav.KairosRail
@@ -123,6 +125,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     var open by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
     val expanded by container.navExpanded.collectAsState()
+    val online by container.networkMonitor.online.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
 
     // Bump each time we come back to Home from another destination, so Home can
@@ -338,5 +341,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 Text("You'll need your password and a device code to sign in again on this phone.")
             }
         }
+
+        OfflineBanner(online = online, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }

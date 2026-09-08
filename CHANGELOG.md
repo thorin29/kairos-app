@@ -1,4 +1,12 @@
 # Changelog
+## 0.99.0
+- Offline support (phase 1): screens now keep showing their last-synced data when
+  you lose connection, with a slim "You're offline" bar at the bottom. Reads fall
+  back to a local cache of the last successful response for every screen; changes
+  (ticking things off, adding, etc.) wait until you're back online with a clear
+  message. The cache is cleared on sign-out so a device never shows a previous
+  user's data.
+
 ## 0.98.0
 - Consistency: every pop-up now uses the app's animated dialog (converted the last
   stock AlertDialogs in Home, Calendar, Bible, and the workout wizard).

@@ -355,3 +355,20 @@ takes title as a String; where a dialog had a styled/composable title (Home even
 detail) it moved into the content lambda. AlertDialog's `text` maps to AnimatedDialog's
 `content` (passed as a named arg, so no reordering). Game time hidden from nav/drawer
 on both web and app (code kept for later).
+
+## App: offline support, phase 1 — read-through HTTP cache (0.99.0)
+Offline reads for every GET at once, done in the network layer rather than per-DTO
+Room tables: an OkHttp disk Cache (15 MB) plus two interceptors in ApiClient.create.
+A network interceptor rewrites GET responses to "Cache-Control: public, max-age=0"
+so they're STORED but always revalidated online (the server sends no-cache) — max-age=0
+(not >0) so a reload right after a write still fetches fresh, never a stale copy.
+An application OfflineInterceptor, when NetworkMonitor.isOnline() is false, rewrites
+GETs to only-if-cached + 30-day max-stale (serves the stored copy), turns a cache
+miss (504) into a clean "offline, no saved copy" IOException, and fails writes fast
+with "reconnect to make changes". NetworkMonitor uses ConnectivityManager and
+requires NET_CAPABILITY_VALIDATED (correct for the Cloudflare-tunneled server, which
+needs WAN; revisit if a LAN endpoint is added). httpCache.evictAll() on enroll /
+signOut / changeServer prevents one user's cache leaking to the next on a shared
+device. OfflineBanner (bottom, slides up) is driven by NetworkMonitor.online in
+AppRoot. Manifest gains ACCESS_NETWORK_STATE. PHASE 2 (later): optimistic write
+queue so changes made offline replay on reconnect.

@@ -4,7 +4,10 @@ import android.content.Context
 import coil.ImageLoader
 import com.kairos.app.data.appDataStore
 import com.kairos.app.data.remote.AuthInterceptor
+import com.kairos.app.data.remote.NetworkMonitor
+import okhttp3.Cache
 import okhttp3.OkHttpClient
+import java.io.File
 import com.kairos.app.data.secure.TokenStore
 import com.kairos.app.data.session.SessionRepository
 import com.kairos.app.data.settings.SettingsStore
@@ -27,10 +30,19 @@ class AppContainer(context: Context) {
     val settingsStore = SettingsStore(dataStore)
     val tokenStore = TokenStore(dataStore)
 
+    /** Tracks connectivity; drives the offline banner and the read-through cache. */
+    val networkMonitor = NetworkMonitor(context.applicationContext, appScope)
+
+    /** Disk cache for GET responses so screens still render their last-synced
+     *  data when offline. 15 MB is plenty for JSON. */
+    private val httpCache = Cache(File(context.applicationContext.cacheDir, "api-cache"), 15L * 1024 * 1024)
+
     val sessionRepository = SessionRepository(
         settings = settingsStore,
         tokens = tokenStore,
         appScope = appScope,
+        httpCache = httpCache,
+        networkMonitor = networkMonitor,
     )
 
     /** Coil loader for device-authed avatars: reuses the same bearer token as

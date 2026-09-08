@@ -45,6 +45,8 @@ class SessionRepository(
     private val settings: SettingsStore,
     private val tokens: TokenStore,
     private val appScope: CoroutineScope,
+    private val httpCache: okhttp3.Cache? = null,
+    private val networkMonitor: com.kairos.app.data.remote.NetworkMonitor? = null,
 ) {
     private val _state = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = _state.asStateFlow()
@@ -67,7 +69,7 @@ class SessionRepository(
 
     private fun rebuildService(rawBase: String) {
         baseUrlRaw = rawBase
-        service = ApiClient.create(rawBase) { tokens.current() }
+        service = ApiClient.create(rawBase, httpCache, networkMonitor) { tokens.current() }
     }
 
     /** Decide the start destination on launch. */
@@ -106,7 +108,7 @@ class SessionRepository(
     /** Validate a candidate server with the /meta handshake, and adopt it on
      *  success. Throws [ApiException] if it can't be reached or is too new. */
     suspend fun configureServer(rawBase: String) {
-        val candidate = ApiClient.create(rawBase) { tokens.current() }
+        val candidate = ApiClient.create(rawBase, httpCache, networkMonitor) { tokens.current() }
         val meta = apiCall { candidate.meta() }
         if (meta.minClient > CLIENT_BUILD) {
             throw ApiException(
@@ -142,6 +144,7 @@ class SessionRepository(
         }
         tokens.save(res.token)
         loginToken = null
+        runCatching { httpCache?.evictAll() } // fresh device: no prior user's cached data
         _state.value = SessionState.Ready(res.person)
     }
 
@@ -152,6 +155,7 @@ class SessionRepository(
             runCatching { apiCall { svc.revoke() } }
         }
         tokens.clear()
+        runCatching { httpCache?.evictAll() }
         _state.value = SessionState.NeedsEnroll
     }
 
@@ -163,6 +167,7 @@ class SessionRepository(
             runCatching { apiCall { svc.revoke() } }
         }
         tokens.clear()
+        runCatching { httpCache?.evictAll() }
         settings.clearBaseUrl()
         service = null
         baseUrlRaw = null
@@ -599,6 +604,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 148
+        const val CLIENT_BUILD = 149
     }
 }
