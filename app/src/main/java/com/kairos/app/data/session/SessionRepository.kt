@@ -567,6 +567,11 @@ class SessionRepository(
      *  the stale offline cache and undo the optimistic change) while offline. */
     fun isOnline(): Boolean = networkMonitor?.isOnline() ?: true
 
+    /** The writes still waiting to sync, so a screen can re-apply them on top of a
+     *  (possibly cached) load and keep offline changes visible across navigation. */
+    suspend fun pendingWrites(): List<com.kairos.app.data.remote.PendingWrite> =
+        writeQueue?.snapshot() ?: emptyList()
+
     private suspend fun <T> runAuthed(block: suspend () -> Response<T>): T {
         try {
             return apiCall(block)
@@ -609,6 +614,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 153
+        const val CLIENT_BUILD = 154
     }
 }

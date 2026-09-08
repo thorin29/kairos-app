@@ -36,7 +36,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         _ui.update { it.copy(loading = it.dashboard == null, loadError = null) }
         viewModelScope.launch {
             try {
-                val data = session.loadDashboard()
+                val data = freshDashboard()
                 _ui.update { it.copy(loading = false, refreshing = false, dashboard = data, loadError = null) }
             } catch (e: ApiException) {
                 _ui.update {
@@ -49,6 +49,22 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                 }
             }
         }
+    }
+
+    /** Load the dashboard and re-apply any still-unsynced task completions, so a
+     *  tick made offline stays put even after navigating away and back. */
+    private suspend fun freshDashboard(): DashboardDto {
+        var d = session.loadDashboard()
+        for (w in session.pendingWrites()) {
+            val path = w.url.substringAfter("/api/v1/", "")
+            when {
+                path.startsWith("tasks/") && path.endsWith("/complete") ->
+                    d = mutateTaskStatus(d, path.removePrefix("tasks/").removeSuffix("/complete"), "COMPLETE")
+                path.startsWith("tasks/") && path.endsWith("/uncomplete") ->
+                    d = mutateTaskStatus(d, path.removePrefix("tasks/").removeSuffix("/uncomplete"), "PENDING")
+            }
+        }
+        return d
     }
 
     fun refresh() {
@@ -75,7 +91,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                 if (currentlyComplete) session.uncompleteTask(taskId)
                 else session.completeTask(taskId)
                 if (session.isOnline()) {
-                    val data = session.loadDashboard()
+                    val data = freshDashboard()
                     _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - taskId) }
                 } else {
                     _ui.update { it.copy(busyIds = it.busyIds - taskId) }
@@ -105,7 +121,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 if (done) session.sportConfirm(eventId, date) else session.sportDecline(eventId, date)
-                val data = session.loadDashboard()
+                val data = freshDashboard()
                 _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
@@ -121,7 +137,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 session.claimChore(taskId)
-                val data = session.loadDashboard()
+                val data = freshDashboard()
                 _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
@@ -137,7 +153,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 session.completeAlwaysOpen(choreId)
-                val data = session.loadDashboard()
+                val data = freshDashboard()
                 _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
@@ -158,7 +174,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 session.markReading(passage, !currentlyRead)
-                val data = session.loadDashboard()
+                val data = freshDashboard()
                 _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
@@ -189,7 +205,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 block()
-                val data = session.loadDashboard()
+                val data = freshDashboard()
                 _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - task.id) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busyIds = it.busyIds - task.id, actionError = e.error.message) }

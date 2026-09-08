@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.dto.TaskDoneDto
 import com.kairos.app.data.remote.dto.TaskOpenDto
+import com.kairos.app.data.remote.ApiClient
+import com.kairos.app.data.remote.dto.AddTaskRequest
 import com.kairos.app.data.remote.dto.TasksListDto
 import java.time.LocalDate
 import java.util.UUID
@@ -33,11 +35,39 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
         _ui.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(loading = false, data = session.loadTasksList()) }
+                _ui.update { it.copy(loading = false, data = freshData()) }
             } catch (e: Exception) {
                 _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load tasks.") }
             }
         }
+    }
+
+    private suspend fun freshData(): TasksListDto =
+        applyPending(session.loadTasksList(), session.pendingWrites())
+
+    /** Re-apply the still-unsynced writes on top of a load so offline changes stay
+     *  visible even after navigating away and back (the optimistic VM state alone
+     *  is lost when the screen is recreated). Once a write syncs it leaves the
+     *  queue, so a later load naturally shows the real server row instead. */
+    private fun applyPending(data: TasksListDto, pending: List<com.kairos.app.data.remote.PendingWrite>): TasksListDto {
+        var d = data
+        for (w in pending) {
+            val path = w.url.substringAfter("/api/v1/", "")
+            when {
+                path == "tasks/add" -> {
+                    val body = w.body ?: continue
+                    val req = runCatching {
+                        ApiClient.json.decodeFromString(AddTaskRequest.serializer(), body)
+                    }.getOrNull() ?: continue
+                    d = insertTask(d, req.userId, req.title, req.dueDate)
+                }
+                path.startsWith("tasks/") && path.endsWith("/complete") ->
+                    d = moveTask(d, path.removePrefix("tasks/").removeSuffix("/complete"), toDone = true)
+                path.startsWith("tasks/") && path.endsWith("/uncomplete") ->
+                    d = moveTask(d, path.removePrefix("tasks/").removeSuffix("/uncomplete"), toDone = false)
+            }
+        }
+        return d
     }
 
     fun toggleCompleted() { _ui.update { it.copy(showCompleted = !it.showCompleted) } }
@@ -55,7 +85,7 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
             try {
                 write()
                 if (session.isOnline()) {
-                    _ui.update { it.copy(busy = false, data = session.loadTasksList()) }
+                    _ui.update { it.copy(busy = false, data = freshData()) }
                 } else {
                     _ui.update { it.copy(busy = false) }
                 }
@@ -96,7 +126,7 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
             try {
                 session.addTask(userId, title, dueDate)
                 if (session.isOnline()) {
-                    _ui.update { it.copy(busy = false, data = session.loadTasksList()) }
+                    _ui.update { it.copy(busy = false, data = freshData()) }
                 } else {
                     _ui.update { it.copy(busy = false) }
                 }

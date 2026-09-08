@@ -211,6 +211,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         TasksScreen(
                             onOpenDrawer = { open = true },
                             onOpenAssign = { navController.navigate(Route.AssignTask) },
+                            refreshKey = syncRevision,
                         )
                     } else if (key == "school") {
                         SchoolScreen(

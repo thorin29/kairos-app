@@ -1,4 +1,10 @@
 # Changelog
+## 0.103.0
+- Offline changes now survive navigation: a task added or ticked off offline stays
+  put when you leave the Tasks/Home screen and come back, instead of vanishing until
+  it syncs. And once you reconnect, the screens refresh themselves the moment the
+  change syncs — no more navigating away and back to see it.
+
 ## 0.102.1
 - Fixed the loading spinner hanging when opening a screen for the first time while
   offline — it now fails fast to a clear "you're offline" message with Retry, and

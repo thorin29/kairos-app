@@ -441,3 +441,22 @@ spinner hung; add-a-task offline didn't appear):
    completion would just be dropped). Removed the now-dead act() helper.
    NOTE: add from the Home + still won't show on Home optimistically (wizard shares the
    Tasks-section VM, not HomeViewModel) — shows after sync; extend later if wanted.
+
+## App: durable offline optimism — apply queue on load + refresh on sync (0.103.0)
+Fixes two field bugs: (1) an offline change vanished when navigating away from a
+section screen (its VM, holding the optimistic state, is destroyed by popUpTo(Home));
+(2) after reconnect the screen didn't refresh until a manual nav. Foundation:
+SessionRepository.pendingWrites() exposes WriteQueue.snapshot(). Each screen's load
+now re-applies the still-unsynced writes on top of the (possibly cached) response, so
+optimistic state is reconstructed from the DURABLE queue rather than living only in
+the VM: TasksViewModel.freshData() = applyPending(loadTasksList(), pendingWrites())
+handles tasks/add (parse AddTaskRequest -> insert temp row), tasks/{id}/complete|
+uncomplete (moveTask); HomeViewModel.freshDashboard() applies complete/uncomplete
+(mutateTaskStatus). Once a write syncs it leaves the queue, so a later load shows the
+real row. Auto-refresh: TasksScreen now takes refreshKey = syncManager.revision (Home
+already bumps homeRefresh on revision), so an open screen reloads the instant a sync
+lands. This is the REFERENCE pattern for extending optimistic UI to the other screens
+(calendar, workouts+create, chores, bible, reading, school, groceries, money): each
+needs (a) optimistic local mutation on its actions, (b) applyPending in its load, and
+(c) refreshKey = revision. NOTE: add-from-Home-+ still not optimistic on Home's
+dashboard (would need a synthetic categorized TaskDto); shows after sync.
