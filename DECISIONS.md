@@ -286,3 +286,14 @@ stat bars, streak+badge chips, and mastery. Startup now holds LoadingScreen for
 ~2s (min-splash gate in AppRoot) so the logo + καιρός is actually seen.
 PENDING: the collection page (6 eras, mystery-until-unlocked slots, tap-to-enlarge)
 is the next Characters increment.
+
+## App Characters: companion render fix + family goal + hatch (0.85.0 / web 0.260.0)
+The companion sprite wasn't showing because the AsyncImage had only a height
+constraint (+ empty loading/error) — it now uses fillMaxWidth().height(120) with
+ContentScale.Fit, a loading spinner, and an egg-emoji error fallback. Added a
+level-progress bar under the creature, the Family goal card (from the endpoint's
+new familyGoal, derived from loadCoop), and hatch controls that call
+POST /api/v1/characters/hatch ("new"/"deepen") via a shared hatchEggCore. Hatch
+reloads the character after. Note the deep endpoint reads /public via
+process.cwd() (Next standalone's documented path; Dockerfile copies public to
+/app/public).

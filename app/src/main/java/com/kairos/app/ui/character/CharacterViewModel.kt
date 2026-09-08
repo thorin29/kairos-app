@@ -14,6 +14,8 @@ data class CharacterUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val data: CharacterDto? = null,
+    val busy: Boolean = false,
+    val message: String? = null,
 )
 
 class CharacterViewModel(private val session: SessionRepository) : ViewModel() {
@@ -33,4 +35,22 @@ class CharacterViewModel(private val session: SessionRepository) : ViewModel() {
             }
         }
     }
+
+    fun hatch(mode: String) {
+        if (_ui.value.busy) return
+        _ui.update { it.copy(busy = true, message = null) }
+        viewModelScope.launch {
+            try {
+                val r = session.hatchCompanion(mode)
+                val data = session.loadCharacter()
+                _ui.update {
+                    it.copy(busy = false, data = data, message = r.hatched?.let { h -> "It's $h!" } ?: "Done!")
+                }
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false, message = e.message ?: "Couldn't hatch right now.") }
+            }
+        }
+    }
+
+    fun clearMessage() { _ui.update { it.copy(message = null) } }
 }

@@ -1266,6 +1266,7 @@ data class MoveGroceryRequest(
 
 @Serializable
 data class CharacterDto(
+    val familyGoal: FamilyGoalDto = FamilyGoalDto(),
     val className: String = "",
     val level: CharLevelDto = CharLevelDto(),
     val season: CharSeasonDto = CharSeasonDto(),
@@ -1302,3 +1303,12 @@ data class CharCompanionDto(
     val image: String = "",
     val color: String = "#94a3b8",
 )
+
+@Serializable
+data class FamilyGoalDto(val text: String = "", val kids: String? = null)
+
+@Serializable
+data class HatchRequest(val mode: String = "new")
+
+@Serializable
+data class HatchResultDto(val hatched: String? = null)

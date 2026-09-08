@@ -1,4 +1,10 @@
 # Changelog
+## 0.85.0
+- Characters: the companion sprite now renders (fixed image sizing), with a
+  progress bar under it. Added the Family goal card at the top, and the hatch
+  buttons under the creature when your egg is ready ("Hatch a new companion" and,
+  if you already have one, "Deepen instead").
+
 ## 0.84.0
 - Startup: the logo + καιρός screen now shows for about 2 seconds on launch.
 - Characters: new section mirroring the web personal view — your companion

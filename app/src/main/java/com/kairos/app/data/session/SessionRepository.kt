@@ -437,6 +437,9 @@ class SessionRepository(
     suspend fun loadCharacter(): com.kairos.app.data.remote.dto.CharacterDto =
         runAuthed { requireService().character() }
 
+    suspend fun hatchCompanion(mode: String): com.kairos.app.data.remote.dto.HatchResultDto =
+        runAuthed { requireService().hatchCompanion(com.kairos.app.data.remote.dto.HatchRequest(mode)) }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -558,6 +561,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 134
+        const val CLIENT_BUILD = 135
     }
 }

@@ -18,9 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -43,6 +45,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.SubcomposeAsyncImage
 import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.dto.CharCompanionDto
+import com.kairos.app.data.remote.dto.FamilyGoalDto
 import com.kairos.app.data.remote.dto.CharacterDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.ui.common.PersonAvatar
@@ -81,61 +84,122 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit) {
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> CharacterContent(person, data)
+                else -> CharacterContent(person, ui, vm)
             }
         }
     }
 }
 
 @Composable
-private fun CharacterContent(person: PersonDto, data: CharacterDto) {
+private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel) {
+    val data = ui.data ?: return
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        CompanionCard(data.companion)
+        FamilyGoalCard(data.familyGoal)
+        CompanionCard(
+            c = data.companion,
+            levelPct = data.level.pct.toFloat() / 100f,
+            busy = ui.busy,
+            onHatch = { vm.hatch(it) },
+        )
+        ui.message?.let { msg ->
+            Text(
+                msg,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF047857),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         PersonCard(person, data)
     }
 }
 
 @Composable
-private fun CompanionCard(c: CharCompanionDto) {
+private fun FamilyGoalCard(goal: FamilyGoalDto) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("\uD83C\uDFC6", style = MaterialTheme.typography.titleMedium)
+            Column(Modifier.weight(1f)) {
+                Text("Family goal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(
+                    goal.text.ifBlank { "Propose and vote on a family reward" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (goal.kids != null) {
+                Text(goal.kids, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompanionCard(c: CharCompanionDto, levelPct: Float, busy: Boolean, onHatch: (String) -> Unit) {
     val container = rememberContainer()
     val base = container.sessionRepository.baseUrlRaw
     val glow = parseHex(c.color)
 
-    Box(
+    Column(
         Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(glow.copy(alpha = 0.08f))
             .border(1.5.dp, glow.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
             .padding(16.dp),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (base != null && c.image.isNotBlank()) {
-                SubcomposeAsyncImage(
-                    model = ApiClient.resolveUrl(base, c.image),
-                    imageLoader = container.imageLoader,
-                    contentDescription = c.speciesName,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.height(96.dp),
-                    loading = {},
-                    error = {},
-                )
-            }
-            if (c.active && c.speciesName != null) {
-                Row {
-                    Text(c.speciesName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    if (c.stageName != null) {
-                        Text("  \u00b7 ${c.stageName}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (base != null && c.image.isNotBlank()) {
+            SubcomposeAsyncImage(
+                model = ApiClient.resolveUrl(base, c.image),
+                imageLoader = container.imageLoader,
+                contentDescription = c.speciesName ?: "Companion egg",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                loading = {
+                    Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
                     }
-                    if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = glow)
+                },
+                error = {
+                    Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                        Text("\uD83E\uDD5A", style = MaterialTheme.typography.displaySmall)
+                    }
+                },
+            )
+        }
+
+        if (c.active && c.speciesName != null) {
+            Row {
+                Text(c.speciesName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                if (c.stageName != null) {
+                    Text("  \u00b7 ${c.stageName}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            } else {
-                Text(if (c.eggReady) "Ready to hatch!" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Bar(c.incubationPct / 100f, glow, Modifier.width(160.dp))
-                Text("${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = glow)
+            }
+            Bar(levelPct, glow, Modifier.width(180.dp))
+        } else {
+            Text(if (c.eggReady) "Ready to hatch!" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Bar(c.incubationPct / 100f, glow, Modifier.width(180.dp))
+            Text("${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (c.eggReady) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { onHatch("new") }, enabled = !busy) {
+                    Text(if (busy) "Hatching\u2026" else "Hatch a new companion")
+                }
+                if (c.active) {
+                    OutlinedButton(onClick = { onHatch("deepen") }, enabled = !busy) {
+                        Text("Deepen instead")
+                    }
+                }
             }
         }
     }
