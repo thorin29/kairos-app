@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
@@ -212,6 +213,8 @@ private fun BookCard(
     onDelete: () -> Unit,
 ) {
     var page by remember(book.id, book.position) { mutableStateOf(if (book.position > 0) book.position.toString() else "") }
+    var saved by remember(book.id) { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     val pct = if (book.length > 0) (book.read * 100 / book.length) else 0
     val done = if (book.length > 0) (book.read >= book.length) else false
 
@@ -253,7 +256,7 @@ private fun BookCard(
                 ) {
                     BasicTextField(
                         value = page,
-                        onValueChange = { s -> page = s.filter { it.isDigit() }.take(6) },
+                        onValueChange = { s -> page = s.filter { it.isDigit() }.take(6); saved = false },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -265,10 +268,15 @@ private fun BookCard(
                     )
                 }
                 Row(
-                    Modifier.clip(RoundedCornerShape(999.dp)).background(ACCENT)
-                        .clickable(enabled = !busy) { onLog(page.toIntOrNull() ?: 0) }
+                    Modifier.clip(RoundedCornerShape(999.dp)).background(if (saved) ACCENT.copy(alpha = 0.4f) else ACCENT)
+                        .clickable(enabled = !busy) { focusManager.clearFocus(); onLog(page.toIntOrNull() ?: 0); saved = true }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
-                ) { Text("Save", style = MaterialTheme.typography.labelLarge, color = Color.White) }
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (saved) Icon(KairosIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    Text(if (saved) "Saved" else "Save", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                }
             }
 
             Spacer(Modifier.height(8.dp))

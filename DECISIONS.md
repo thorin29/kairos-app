@@ -245,3 +245,11 @@ is enforced server-side too, on the device remove endpoint (fetches the item's
 assignedToId and 403s otherwise) — the shared removeItemCore is unchanged so the
 web board keeps its existing behaviour. Change-store is intentionally NOT gated.
 Item "adder" is carried as assignedToId (addItemCore stamps the requester there).
+
+## App: avatar ring parity, branded loading screen, reading save feedback (0.80.0)
+PersonAvatar and the KairosRail drawer avatar now render the person's colour as a
+2–2.5dp ring over a 12%-tint disc with colour-tinted initials (matching the web
+Avatar's boxShadow ring), instead of a solid colour fill. LoadingScreen shows the
+logo with "καιρός" (Koine Greek) in Gentium Plus (res/font/gentium_plus.ttf, SIL
+OFL). Reading save clears field focus (clearFocus) and flips the Save button to a
+lighter "Saved ✓" state, reset when the page value is edited.

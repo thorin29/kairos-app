@@ -1,6 +1,7 @@
 package com.kairos.app.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -34,43 +35,48 @@ fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
     val url = person.avatarUrl
     val tint = parsePersonColor(person.color)
 
-    Box(
-        Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(tint),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (url != null && base != null) {
-            val xf = parseAvatarXf(person.avatarPosition)
-            SubcomposeAsyncImage(
-                model = ApiClient.resolveUrl(base, url),
-                imageLoader = container.imageLoader,
-                contentDescription = person.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .graphicsLayer {
-                        scaleX = xf.scale
-                        scaleY = xf.scale
-                        translationX = xf.tx / 100f * this.size.width
-                        translationY = xf.ty / 100f * this.size.height
-                    },
-                loading = { Initials(label) },
-                error = { Initials(label) },
-            )
-        } else {
-            Initials(label)
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (url != null && base != null) {
+                val xf = parseAvatarXf(person.avatarPosition)
+                SubcomposeAsyncImage(
+                    model = ApiClient.resolveUrl(base, url),
+                    imageLoader = container.imageLoader,
+                    contentDescription = person.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .graphicsLayer {
+                            scaleX = xf.scale
+                            scaleY = xf.scale
+                            translationX = xf.tx / 100f * this.size.width
+                            translationY = xf.ty / 100f * this.size.height
+                        },
+                    loading = { Initials(label, tint) },
+                    error = { Initials(label, tint) },
+                )
+            } else {
+                Initials(label, tint)
+            }
         }
+        // The person's colour is the ring (matches the web avatar), drawn on top
+        // so it stays crisp over a photo edge.
+        Box(Modifier.fillMaxSize().border(2.5.dp, tint, CircleShape))
     }
 }
 
 @Composable
-private fun Initials(label: String) {
+private fun Initials(label: String, color: Color) {
     Text(
         label,
-        color = Color.White,
+        color = color,
         style = MaterialTheme.typography.labelLarge,
     )
 }

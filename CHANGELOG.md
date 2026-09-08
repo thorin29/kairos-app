@@ -1,4 +1,13 @@
 # Changelog
+## 0.80.0
+- Reading: saving a page now clears the input (the cursor stops blinking and the
+  keyboard closes) and the Save button turns lighter and reads "Saved ✓".
+- Startup screen shows the logo with "καιρός" (Koine Greek for kairos) beneath it, set
+  in Gentium Plus.
+- Avatars: the side-menu profile now has the person's coloured ring, and profile
+  icons on the chores page use a coloured ring instead of a solid colour fill —
+  matching the web.
+
 ## 0.79.0
 - Deleting a shopping item now asks to confirm and names the item, so it's
   harder to remove something by accident.

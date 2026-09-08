@@ -6,6 +6,7 @@ import com.kairos.app.data.remote.ApiClient
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.SubcomposeAsyncImage
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -257,35 +258,52 @@ private fun Avatar(person: PersonDto) {
     val label = person.avatarIcon ?: initials(person.name)
     val base = container.sessionRepository.baseUrlRaw
     val url = person.avatarUrl
-    Box(
-        Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.22f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (url != null && base != null) {
-            val xf = parseAvatarXf(person.avatarPosition)
-            SubcomposeAsyncImage(
-                model = ApiClient.resolveUrl(base, url),
-                imageLoader = container.imageLoader,
-                contentDescription = person.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .graphicsLayer {
-                        scaleX = xf.scale
-                        scaleY = xf.scale
-                        translationX = xf.tx / 100f * size.width
-                        translationY = xf.ty / 100f * size.height
-                    },
-                loading = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
-                error = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
-            )
-        } else {
-            Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
+    val ring = parsePersonColorRail(person.color)
+    Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (url != null && base != null) {
+                val xf = parseAvatarXf(person.avatarPosition)
+                SubcomposeAsyncImage(
+                    model = ApiClient.resolveUrl(base, url),
+                    imageLoader = container.imageLoader,
+                    contentDescription = person.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .graphicsLayer {
+                            scaleX = xf.scale
+                            scaleY = xf.scale
+                            translationX = xf.tx / 100f * size.width
+                            translationY = xf.ty / 100f * size.height
+                        },
+                    loading = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
+                    error = { Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall) },
+                )
+            } else {
+                Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
+            }
         }
+        Box(Modifier.fillMaxSize().border(2.dp, ring, CircleShape))
+    }
+}
+
+private fun parsePersonColorRail(hex: String?): Color {
+    val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)
+    return try {
+        when (s.length) {
+            6 -> Color(("FF$s").toLong(16))
+            8 -> Color(s.toLong(16))
+            else -> Color(0xFF64748B)
+        }
+    } catch (_: NumberFormatException) {
+        Color(0xFF64748B)
     }
 }
 
