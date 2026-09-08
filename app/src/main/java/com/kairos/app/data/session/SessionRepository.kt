@@ -443,6 +443,24 @@ class SessionRepository(
     suspend fun loadCollection(): com.kairos.app.data.remote.dto.CollectionDto =
         runAuthed { requireService().collection() }
 
+    suspend fun loadCoop(): com.kairos.app.data.remote.dto.CoopDto =
+        runAuthed { requireService().coop() }
+    suspend fun proposeCoop(title: String, detail: String) {
+        runAuthed { requireService().proposeCoop(com.kairos.app.data.remote.dto.ProposeCoopRequest(title, detail)) }
+    }
+    suspend fun voteCoop(proposalId: String) {
+        runAuthed { requireService().voteCoop(com.kairos.app.data.remote.dto.CoopProposalIdRequest(proposalId)) }
+    }
+    suspend fun selectCoop(proposalId: String) {
+        runAuthed { requireService().selectCoop(com.kairos.app.data.remote.dto.CoopProposalIdRequest(proposalId)) }
+    }
+    suspend fun grantCoop(proposalId: String) {
+        runAuthed { requireService().grantCoop(com.kairos.app.data.remote.dto.CoopProposalIdRequest(proposalId)) }
+    }
+    suspend fun removeCoop(proposalId: String) {
+        runAuthed { requireService().removeCoop(com.kairos.app.data.remote.dto.CoopProposalIdRequest(proposalId)) }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -564,6 +582,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 141
+        const val CLIENT_BUILD = 142
     }
 }

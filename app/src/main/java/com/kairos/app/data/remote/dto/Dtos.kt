@@ -1335,3 +1335,36 @@ data class CollectSpeciesDto(
     val name: String? = null,
     val image: String? = null,
 )
+
+@Serializable
+data class CoopDto(
+    val seasonLabel: String = "",
+    val floor: Int = 0,
+    val childrenMeeting: Int = 0,
+    val childrenTotal: Int = 0,
+    val gateMet: Boolean = false,
+    val meId: String = "",
+    val isAdmin: Boolean = false,
+    val children: List<CoopChildDto> = emptyList(),
+    val proposals: List<CoopProposalDto> = emptyList(),
+)
+
+@Serializable
+data class CoopChildDto(val name: String = "", val color: String? = null, val tier: Int = 0, val meets: Boolean = false)
+
+@Serializable
+data class CoopProposalDto(
+    val id: String = "",
+    val title: String = "",
+    val detail: String? = null,
+    val proposedByName: String = "",
+    val status: String = "PROPOSED",
+    val votes: Int = 0,
+    val iVoted: Boolean = false,
+)
+
+@Serializable
+data class ProposeCoopRequest(val title: String, val detail: String)
+
+@Serializable
+data class CoopProposalIdRequest(val proposalId: String)

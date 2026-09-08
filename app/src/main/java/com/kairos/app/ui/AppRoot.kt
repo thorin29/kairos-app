@@ -53,6 +53,7 @@ import com.kairos.app.ui.money.MoneyScreen
 import com.kairos.app.ui.groceries.GroceriesScreen
 import com.kairos.app.ui.character.CharacterScreen
 import com.kairos.app.ui.character.GalleryScreen
+import com.kairos.app.ui.character.CoopScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
@@ -198,6 +199,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             person = person,
                             onOpenDrawer = { open = true },
                             onOpenGallery = { navController.navigate(Route.Gallery) },
+                            onOpenCoop = { navController.navigate(Route.Coop) },
                         )
                     } else if (key == "groceries") {
                         GroceriesScreen(
@@ -236,6 +238,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.Gallery> {
                     GalleryScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.Coop> {
+                    CoopScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Rotation> {
                     RotationScreen(onBack = { navController.popBackStack() })

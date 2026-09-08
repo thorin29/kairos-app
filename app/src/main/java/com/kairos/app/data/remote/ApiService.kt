@@ -340,4 +340,22 @@ interface ApiService {
 
     @GET("characters/collection")
     suspend fun collection(): Response<com.kairos.app.data.remote.dto.CollectionDto>
+
+    @GET("coop")
+    suspend fun coop(): Response<com.kairos.app.data.remote.dto.CoopDto>
+
+    @POST("coop/propose")
+    suspend fun proposeCoop(@Body body: com.kairos.app.data.remote.dto.ProposeCoopRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("coop/vote")
+    suspend fun voteCoop(@Body body: com.kairos.app.data.remote.dto.CoopProposalIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("coop/select")
+    suspend fun selectCoop(@Body body: com.kairos.app.data.remote.dto.CoopProposalIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("coop/grant")
+    suspend fun grantCoop(@Body body: com.kairos.app.data.remote.dto.CoopProposalIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("coop/remove")
+    suspend fun removeCoop(@Body body: com.kairos.app.data.remote.dto.CoopProposalIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }

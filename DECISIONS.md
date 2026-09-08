@@ -307,3 +307,11 @@ always). Gallery (Route.Gallery) loads GET /api/v1/characters/collection: eras
 with owned (art, tap-to-enlarge) vs mystery (rarity-ringed "?" slot). Companion
 image endpoint now tries process.cwd()/public and /app/public to survive cwd
 differences (the earlier "egg fallback" was this endpoint 404ing).
+
+## App: Family goal / co-op screen (0.92.0 / web 0.268.0)
+The Family goal card (CharacterScreen) is now clickable → Route.Coop → CoopScreen,
+backed by GET /api/v1/coop and POST /api/v1/coop/{propose,vote,select,grant,remove}.
+Shared cores live in src/lib/coop-core.ts; the web actions (actions/coop.ts) and
+device routes both delegate, so the web /coop page is unchanged. propose/vote are
+open to any device (proposer/voter = self); select/grant/remove require the device
+person be privileged (role ADMIN or kind PARENT), enforced in the routes.

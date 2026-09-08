@@ -1,4 +1,10 @@
 # Changelog
+## 0.92.0
+- Family goal: the card on the Characters page is now tappable and opens a full
+  co-op screen — see each kid's season-tier progress toward the goal, browse
+  reward proposals and vote, and propose your own. Parents/admins can also
+  select, grant, or remove rewards.
+
 ## 0.91.0
 - Characters: the Hatch icon is now a plain egg with a single crack across the
   middle (removed the side lines), and a bit bigger.

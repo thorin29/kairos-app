@@ -56,7 +56,7 @@ private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: () -> Unit) {
+fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit) {
     val container = rememberContainer()
     val vm: CharacterViewModel = viewModel(
         factory = viewModelFactory { initializer { CharacterViewModel(container.sessionRepository) } },
@@ -84,21 +84,21 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: 
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> CharacterContent(person, ui, vm, onOpenGallery)
+                else -> CharacterContent(person, ui, vm, onOpenGallery, onOpenCoop)
             }
         }
     }
 }
 
 @Composable
-private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel, onOpenGallery: () -> Unit) {
+private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit) {
     val data = ui.data ?: return
     val c = data.companion
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        FamilyGoalCard(data.familyGoal)
+        FamilyGoalCard(data.familyGoal, onClick = onOpenCoop)
         CompanionCard(c)
 
         // Actions below the card — only what applies. Same card design throughout.
@@ -148,8 +148,8 @@ private fun CharAction(
 }
 
 @Composable
-private fun FamilyGoalCard(goal: FamilyGoalDto) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
+private fun FamilyGoalCard(goal: FamilyGoalDto, onClick: () -> Unit) {
+    OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
