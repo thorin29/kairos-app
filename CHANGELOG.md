@@ -1,4 +1,11 @@
 # Changelog
+## 0.113.0
+- Offline optimism now covers Workouts: marking today's workout done, taking a rest
+  day, undoing it, and logging a workout all update instantly — on the workout screen
+  and on the Home dashboard — survive navigation/restart offline, and reconcile on
+  sync. (Building/editing workouts and plans stays online-only, since their structure
+  is generated server-side.)
+
 ## 0.112.0
 - Offline changes that cancel each other out no longer leave a trace: if you add
   something offline and then delete it before reconnecting, both are dropped, so

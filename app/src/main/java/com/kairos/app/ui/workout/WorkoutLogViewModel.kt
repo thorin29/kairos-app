@@ -3,6 +3,11 @@ package com.kairos.app.ui.workout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
+import com.kairos.app.data.remote.ApiClient
+import com.kairos.app.data.remote.PendingWrite
+import com.kairos.app.data.remote.dto.WorkoutDateRequest
+import com.kairos.app.data.remote.dto.WorkoutLogRequest
+import com.kairos.app.data.remote.dto.WorkoutPlanDto
 import com.kairos.app.data.remote.dto.PlannedEntryDto
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +62,7 @@ class WorkoutLogViewModel(
         _ui.update { it.copy(loading = it.inputs.isEmpty(), loadError = null) }
         viewModelScope.launch {
             try {
-                val plan = session.loadWorkout(initialDate)
+                val plan = freshPlan()
                 date = plan.date
                 plannedWorkoutId = plan.plannedWorkoutId
                 val inputs = plan.exercises.map { e ->
@@ -76,6 +81,31 @@ class WorkoutLogViewModel(
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
             }
         }
+    }
+
+    /** Load today's plan and re-apply any queued complete/rest/log so a workout
+     *  marked offline still reads as done (loggable = false) until it syncs. */
+    private suspend fun freshPlan(): WorkoutPlanDto =
+        applyPending(session.loadWorkout(initialDate), session.pendingWrites())
+
+    private fun <T> parse(body: String?, ser: kotlinx.serialization.KSerializer<T>): T? =
+        body?.let { runCatching { ApiClient.json.decodeFromString(ser, it) }.getOrNull() }
+
+    private fun applyPending(plan: WorkoutPlanDto, pending: List<PendingWrite>): WorkoutPlanDto {
+        var loggable = plan.loggable
+        for (w in pending) {
+            val path = w.url.substringAfter("/api/v1/", "")
+            val d = when (path) {
+                "workouts/complete", "workouts/uncomplete", "workouts/rest" ->
+                    parse(w.body, WorkoutDateRequest.serializer())?.date
+                "workouts/log" -> parse(w.body, WorkoutLogRequest.serializer())?.date
+                else -> null
+            }
+            if (d != null && d == plan.date) {
+                loggable = path == "workouts/uncomplete"
+            }
+        }
+        return plan.copy(loggable = loggable)
     }
 
     fun onValue(id: String, v: String) {

@@ -14,6 +14,7 @@ import com.kairos.app.data.remote.dto.ClaimChoreRequest
 import com.kairos.app.data.remote.dto.CreateEventRequest
 import com.kairos.app.data.remote.dto.ScheduleItemDto
 import com.kairos.app.data.remote.dto.DashboardDto
+import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import com.kairos.app.data.remote.dto.MarkReadingRequest
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
@@ -116,6 +117,18 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                     } ?: continue
                     val mine = req.isFamily == true || req.participants == null || (me != null && req.participants!!.contains(me))
                     if (req.date == d.date && mine) d = insertDashSchedule(d, req)
+                }
+                path == "workouts/complete" || path == "workouts/rest" -> {
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(WorkoutDateRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    d = setWorkoutStatus(d, req.date, "COMPLETE")
+                }
+                path == "workouts/uncomplete" -> {
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(WorkoutDateRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    d = setWorkoutStatus(d, req.date, "PENDING")
                 }
             }
         }
@@ -353,26 +366,40 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         _ui.update { it.copy(workoutSheet = null) }
     }
 
-    fun markWorkoutDone(task: TaskDto) = workoutOp(task) { session.workoutComplete(task.dueDate) }
+    fun markWorkoutDone(task: TaskDto) = workoutOp(task, "COMPLETE") { session.workoutComplete(task.dueDate) }
 
-    fun undoWorkout(task: TaskDto) = workoutOp(task) { session.workoutUncomplete(task.dueDate) }
+    fun undoWorkout(task: TaskDto) = workoutOp(task, "PENDING") { session.workoutUncomplete(task.dueDate) }
 
-    fun restDay(task: TaskDto) = workoutOp(task) { session.workoutRest(task.dueDate) }
+    fun restDay(task: TaskDto) = workoutOp(task, "COMPLETE") { session.workoutRest(task.dueDate) }
 
-    private fun workoutOp(task: TaskDto, block: suspend () -> Unit) {
+    private fun workoutOp(task: TaskDto, status: String, block: suspend () -> Unit) {
+        val before = _ui.value.dashboard
         _ui.update {
-            it.copy(workoutSheet = null, busyIds = it.busyIds + task.id, actionError = null)
+            it.copy(
+                workoutSheet = null,
+                busyIds = it.busyIds + task.id,
+                actionError = null,
+                dashboard = it.dashboard?.let { d -> mutateTaskStatus(d, task.id, status) },
+            )
         }
         viewModelScope.launch {
             try {
                 block()
-                val data = freshDashboard()
+                val data = if (session.isOnline()) freshDashboard() else _ui.value.dashboard
                 _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - task.id) }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - task.id, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - task.id, actionError = e.error.message) }
             }
         }
     }
+
+    private fun setWorkoutStatus(dash: DashboardDto, date: String, status: String): DashboardDto =
+        dash.copy(
+            overdue = dash.overdue.map { if (it.isWorkout && it.dueDate == date) it.copy(status = status) else it },
+            groups = dash.groups.map { g ->
+                g.copy(items = g.items.map { if (it.isWorkout && it.dueDate == date) it.copy(status = status) else it })
+            },
+        )
 
     fun signOut() {
         _ui.update { it.copy(signingOut = true) }

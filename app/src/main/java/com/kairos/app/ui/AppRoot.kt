@@ -205,6 +205,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenBrowse = { navController.navigate(Route.BrowseWorkouts) },
                             onOpenCreatePersonal = { navController.navigate(Route.CreatePersonalWorkout) },
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
+                            refreshKey = dataRevision,
                         )
                     } else if (key == "bible") {
                         BibleScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)

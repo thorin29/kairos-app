@@ -575,3 +575,19 @@ optimistic inserts still use a random temp id (default param) - the stable id la
 the first queue re-apply, which is well before the user can tap delete. Dashboard temp
 inserts left as random (not deletable there). Interceptor synthetic() helper extracted.
 Batch 3 remaining: Workouts (+ create/edit wizard) - the last screen, doing it solo next.
+
+## App: Workouts optimistic offline (0.113.0) — batch 3 complete
+Daily-use logging only (the frequent action). WorkoutLogViewModel.load() now routes
+through freshPlan = applyPending(loadWorkout, pendingWrites): parses workouts/{complete,
+rest,log} -> loggable=false, workouts/uncomplete -> loggable=true, matched by date ==
+plan.date. So a workout marked offline reads as done on the main screen. WorkoutsScreen
+refreshKey = dataRevision (reloads plan + progress + week). Home dashboard: workoutOp
+(markWorkoutDone/restDay -> "COMPLETE", undoWorkout -> "PENDING") now optimistic via
+mutateTaskStatus; freshDashboard applies workouts/complete|rest -> setWorkoutStatus
+COMPLETE, workouts/uncomplete -> PENDING (matched by isWorkout && dueDate == date).
+Progress chart bars are server-computed so they lag until sync.
+DEFERRED (online-only, intentional, like reading-plan create): create/edit personal
+workout (CreatePersonalWorkoutViewModel), plan editor + rotation + movement mgmt
+(EditPlanViewModel) - server generates the plan/workout structure, faking it offline
+is risky. These queue offline and reconcile on sync. Batch 3 DONE. Offline optimism
+effort complete for all daily-use flows. Next: Settings menu.

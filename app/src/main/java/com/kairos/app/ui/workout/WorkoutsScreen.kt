@@ -70,6 +70,7 @@ fun WorkoutsScreen(
     onOpenBrowse: () -> Unit,
     onOpenCreatePersonal: () -> Unit,
     onOpenEditPlan: () -> Unit,
+    refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -89,6 +90,15 @@ fun WorkoutsScreen(
         runCatching { container.sessionRepository.loadWeek() }
             .getOrNull()?.let { week = it }
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
+    }
+    LaunchedEffect(refreshKey) {
+        if (refreshKey > 0) {
+            vm.load()
+            runCatching { container.sessionRepository.loadWorkoutProgress() }
+                .getOrNull()?.let { progress = it }
+            runCatching { container.sessionRepository.loadWeek() }
+                .getOrNull()?.let { week = it }
+        }
     }
 
     Scaffold(
