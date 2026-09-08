@@ -1,4 +1,12 @@
 # Changelog
+## 0.76.0
+- Add item is now a full-screen page: search the whole catalog (so you reuse an
+  item instead of duplicating it) or add a new one, then pick a store. Matching
+  is case-insensitive on the server, so "napkins" and "Napkins" are one item.
+- Items no longer delete on a stray tap. Each item has an edit (pencil) icon;
+  from there you can Change store (pop-up of stores) or Delete. Change store is
+  hidden while an item is in an active shopping run.
+
 ## 0.75.1
 - Groceries add matches the web: start typing and it suggests items you already
   have (with their icons) so you don't create duplicates, plus one-tap **Common**

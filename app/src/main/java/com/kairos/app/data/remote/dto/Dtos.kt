@@ -1257,3 +1257,9 @@ data class StartTripDto(
 data class CompleteTripRequest(
     val tripId: String,
 )
+
+@Serializable
+data class MoveGroceryRequest(
+    val id: String,
+    val storeId: String,
+)

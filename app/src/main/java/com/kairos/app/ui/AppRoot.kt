@@ -51,6 +51,7 @@ import com.kairos.app.ui.calendar.CalendarScreen
 import com.kairos.app.ui.chores.ChoresScreen
 import com.kairos.app.ui.money.MoneyScreen
 import com.kairos.app.ui.groceries.GroceriesScreen
+import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
@@ -177,7 +178,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else if (key == "reading") {
                         ReadingScreen(onOpenDrawer = { open = true })
                     } else if (key == "groceries") {
-                        GroceriesScreen(onOpenDrawer = { open = true })
+                        GroceriesScreen(
+                            onOpenDrawer = { open = true },
+                            onAddItem = { navController.navigate(Route.AddGrocery) },
+                        )
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
                     }
@@ -198,6 +202,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     EditPlanScreen(
                         onBack = { navController.popBackStack() },
                         onOpenRotation = { navController.navigate(Route.Rotation) },
+                    )
+                }
+                composable<Route.AddGrocery> {
+                    AddGroceryScreen(
+                        parentEntry = navController.previousBackStackEntry,
+                        onClose = { navController.popBackStack() },
                     )
                 }
                 composable<Route.Rotation> {

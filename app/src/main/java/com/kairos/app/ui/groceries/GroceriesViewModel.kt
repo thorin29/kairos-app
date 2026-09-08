@@ -51,6 +51,7 @@ class GroceriesViewModel(
     fun add(name: String, storeId: String) = act { session.addGrocery(name, storeId, null) }
     fun addFromCatalog(catalogId: String, storeId: String?) = act { session.addGroceryFromCatalog(catalogId, storeId) }
     fun remove(id: String) = act { session.removeGrocery(id) }
+    fun move(id: String, storeId: String) = act { session.moveGrocery(id, storeId) }
     fun setPurchased(id: String, purchased: Boolean) = act { session.setGroceryPurchased(id, purchased) }
     fun completeTrip(tripId: String) = act { session.completeGroceryTrip(tripId) }
 

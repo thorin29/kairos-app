@@ -147,6 +147,14 @@ object KairosIcons {
         "m21 21-4.3-4.3",
     )
     val Pencil = stroked("Pencil", "M12 20h9", "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z")
+
+    val Swap = stroked(
+        "Swap",
+        "M23 4v6h-6",
+        "M1 20v-6h6",
+        "M3.51 9a9 9 0 0 1 14.85-3.36L23 10",
+        "M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
+    )
     val Repeat = stroked("Repeat", "M17 2l4 4-4 4", "M3 11v-1a4 4 0 0 1 4-4h14", "M7 22l-4-4 4-4", "M21 13v1a4 4 0 0 1-4 4H3")
     val Globe = stroked("Globe", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z", "M3 12h18", "M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-6-3.5-9s1-6.5 3.5-9Z")
     val DragHandle = stroked("DragHandle", "M4 9h16", "M4 15h16")

@@ -201,3 +201,14 @@ store's card becomes a checkable cart with a got/total bar; **Done shopping**
 completes it. App v1 deliberately skips the who's-shopping picker, assignees,
 drag-reorder, and admin (store/catalog editing stays web-only). New dialogs use
 AnimatedDialog; the store picker is chips, not ExposedDropdownMenu.
+
+## Groceries: full-screen add wizard shares the hub's ViewModel (0.76.0)
+The add flow is a full-screen route (`Route.AddGrocery`), not a dialog, so more
+catalog items show at once. Its `GroceriesViewModel` is scoped to the groceries
+hub's back-stack entry (`viewModel(viewModelStoreOwner = previousBackStackEntry)`),
+which (a) shares state so the hub reflects the add on return without an
+ON_RESUME reload, and (b) keeps the add coroutine alive in the parent scope when
+we `popBackStack()` immediately after firing it — a child-screen VM would be
+cleared mid-request. Item delete is gated behind a per-row edit (pencil): the
+editor offers Change store (a `groceries/move` call, hidden mid-trip) and Delete
+(confirmed). Change-store icon is `KairosIcons.Swap` (circular arrows).

@@ -430,6 +430,10 @@ class SessionRepository(
         runAuthed { requireService().completeGroceryTrip(com.kairos.app.data.remote.dto.CompleteTripRequest(tripId)) }
     }
 
+    suspend fun moveGrocery(id: String, storeId: String) {
+        runAuthed { requireService().moveGrocery(com.kairos.app.data.remote.dto.MoveGroceryRequest(id, storeId)) }
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -551,6 +555,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 125
+        const val CLIENT_BUILD = 126
     }
 }

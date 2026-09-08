@@ -33,6 +33,9 @@ sealed interface Route {
     data object EditPlan : Route
 
     @Serializable
+    data object AddGrocery : Route
+
+    @Serializable
     data object Rotation : Route
 
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry

@@ -60,7 +60,7 @@ private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroceriesScreen(onOpenDrawer: () -> Unit) {
+fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit) {
     val container = rememberContainer()
     val vm: GroceriesViewModel = viewModel(
         factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository) } },
@@ -88,16 +88,17 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit) {
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> GroceriesContent(vm, ui, data)
+                else -> GroceriesContent(vm, ui, data, onAddItem)
             }
         }
     }
 }
 
 @Composable
-private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data: GroceriesDto) {
-    var showAdd by remember { mutableStateOf(false) }
+private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data: GroceriesDto, onAddItem: () -> Unit) {
     var showShopPicker by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<GroceryLineDto?>(null) }
+    var editingInTrip by remember { mutableStateOf(false) }
 
     val tripStoreIds = data.trips.map { it.storeId }.toSet()
     val storeById = data.stores.associateBy { it.id }
@@ -118,7 +119,7 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
             }
             PillButton("Add item", KairosIcons.Plus, filled = false, enabled = !ui.busy) {
                 vm.clearMessage()
-                showAdd = true
+                onAddItem()
             }
         }
 
@@ -136,12 +137,12 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
         // Active shopping runs first.
         data.trips.forEach { trip ->
             val store = storeById[trip.storeId]
-            if (store != null) TripCard(trip, store, ui.busy, vm)
+            if (store != null) TripCard(trip, store, ui.busy, vm, onEdit = { editing = it; editingInTrip = true })
         }
 
         // The saved list, grouped by store.
         savedStores.forEach { store ->
-            SavedStoreCard(store, savedByStore[store.id].orEmpty(), ui.busy, vm)
+            SavedStoreCard(store, savedByStore[store.id].orEmpty(), ui.busy, onEdit = { editing = it; editingInTrip = false })
         }
 
         if (data.trips.isEmpty() && savedStores.isEmpty()) {
@@ -153,16 +154,6 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
         }
     }
 
-    if (showAdd) {
-        AddItemDialog(
-            data = data,
-            saving = ui.busy,
-            onAddCatalog = { catalogId, storeId -> vm.addFromCatalog(catalogId, storeId); showAdd = false },
-            onAddNew = { name, storeId -> vm.add(name, storeId); showAdd = false },
-            onDismiss = { showAdd = false },
-        )
-    }
-
     if (showShopPicker) {
         ShopPickerDialog(
             stores = shoppableStores,
@@ -170,10 +161,22 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
             onDismiss = { showShopPicker = false },
         )
     }
+
+    editing?.let { item ->
+        EditItemDialog(
+            item = item,
+            inTrip = editingInTrip,
+            stores = data.stores,
+            busy = ui.busy,
+            onMove = { storeId -> vm.move(item.id, storeId); editing = null },
+            onDelete = { vm.remove(item.id); editing = null },
+            onDismiss = { editing = null },
+        )
+    }
 }
 
 @Composable
-private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean, vm: GroceriesViewModel) {
+private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean, vm: GroceriesViewModel, onEdit: (GroceryLineDto) -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -197,7 +200,7 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
                             showTick = true,
                             busy = busy,
                             onToggle = { vm.setPurchased(item.id, !item.purchased) },
-                            onRemove = { vm.remove(item.id) },
+                            onEdit = { onEdit(item) },
                         )
                     }
                 }
@@ -214,7 +217,7 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
 }
 
 @Composable
-private fun SavedStoreCard(store: GroceryStoreDto, items: List<GroceryLineDto>, busy: Boolean, vm: GroceriesViewModel) {
+private fun SavedStoreCard(store: GroceryStoreDto, items: List<GroceryLineDto>, busy: Boolean, onEdit: (GroceryLineDto) -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -229,7 +232,7 @@ private fun SavedStoreCard(store: GroceryStoreDto, items: List<GroceryLineDto>, 
                         showTick = false,
                         busy = busy,
                         onToggle = {},
-                        onRemove = { vm.remove(item.id) },
+                        onEdit = { onEdit(item) },
                     )
                 }
             }
@@ -243,7 +246,7 @@ private fun ItemRow(
     showTick: Boolean,
     busy: Boolean,
     onToggle: () -> Unit,
-    onRemove: () -> Unit,
+    onEdit: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth()
@@ -269,156 +272,55 @@ private fun ItemRow(
             textDecoration = if (item.purchased) TextDecoration.LineThrough else null,
             color = if (item.purchased) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         )
-        Box(Modifier.clickable(enabled = !busy) { onRemove() }.padding(4.dp)) {
-            Icon(KairosIcons.Trash, contentDescription = "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onEdit() }.padding(6.dp)) {
+            Icon(KairosIcons.Pencil, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
         }
     }
 }
 
-private data class PendingAdd(val label: String, val catalogId: String?, val defaultStoreId: String?)
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AddItemDialog(
-    data: GroceriesDto,
-    saving: Boolean,
-    onAddCatalog: (catalogId: String, storeId: String?) -> Unit,
-    onAddNew: (name: String, storeId: String) -> Unit,
+private fun EditItemDialog(
+    item: GroceryLineDto,
+    inTrip: Boolean,
+    stores: List<GroceryStoreDto>,
+    busy: Boolean,
+    onMove: (String) -> Unit,
+    onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var query by remember { mutableStateOf("") }
-    var pending by remember { mutableStateOf<PendingAdd?>(null) }
-    var chosenStore by remember { mutableStateOf<String?>(null) }
-
-    val only = if (data.stores.size == 1) data.stores.first().id else null
-
-    // Take an item towards the list: with one store, add straight away; with
-    // several, drop into store-pick, pre-selecting the item's usual store.
-    fun commit(p: PendingAdd) {
-        if (only != null) {
-            if (p.catalogId != null) onAddCatalog(p.catalogId, only) else onAddNew(p.label, only)
-        } else {
-            chosenStore = p.defaultStoreId ?: data.stores.firstOrNull()?.id
-            pending = p
-        }
-    }
-
-    fun submitTyped() {
-        val label = query.trim()
-        if (label.isEmpty()) return
-        val hit = data.catalog.firstOrNull { it.name.lowercase() == label.lowercase() }
-        commit(if (hit != null) PendingAdd(hit.name, hit.id, hit.defaultStoreId) else PendingAdd(label, null, null))
-    }
-
-    fun commitChosen() {
-        val p = pending ?: return
-        val s = chosenStore ?: return
-        if (p.catalogId != null) onAddCatalog(p.catalogId, s) else onAddNew(p.label, s)
-    }
+    var mode by remember { mutableStateOf("main") } // main | store | delete
 
     AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = if (pending == null) "Add an item" else "Which store?",
+        title = when (mode) {
+            "store" -> "Move to\u2026"
+            "delete" -> "Delete item?"
+            else -> item.name
+        },
         dismissButton = {
-            TextButton(onClick = { if (pending != null) pending = null else onDismiss() }) {
-                Text(if (pending != null) "Back" else "Cancel")
+            TextButton(onClick = { if (mode != "main") mode = "main" else onDismiss() }) {
+                Text(if (mode != "main") "Back" else "Close")
             }
         },
         confirmButton = {
-            if (pending == null) {
-                TextButton(enabled = !saving && query.trim().isNotEmpty(), onClick = { submitTyped() }) { Text("Add") }
-            } else {
-                TextButton(enabled = !saving && chosenStore != null, onClick = { commitChosen() }) { Text("Add") }
+            if (mode == "delete") {
+                TextButton(enabled = !busy, onClick = { onDelete() }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
             }
         },
     ) {
-        val p = pending
-        if (p == null) {
-            val q = query.trim().lowercase()
-            val matches = if (q.isEmpty()) emptyList() else data.catalog.filter { it.name.lowercase().contains(q) }.take(6)
-            val exact = data.catalog.any { it.name.lowercase() == q }
-            val common = data.catalog.take(12)
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    BasicTextField(
-                        value = query,
-                        onValueChange = { query = it.take(60) },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (query.isEmpty()) Text("Add an item\u2026", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            inner()
-                        },
-                    )
-                }
-
-                if (q.isEmpty()) {
-                    if (common.isNotEmpty()) {
-                        Text("COMMON", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            common.forEach { c ->
-                                Row(
-                                    Modifier.clip(RoundedCornerShape(999.dp))
-                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                                        .clickable(enabled = !saving) { commit(PendingAdd(c.name, c.id, c.defaultStoreId)) }
-                                        .padding(horizontal = 12.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                ) {
-                                    Text(c.icon, style = MaterialTheme.typography.bodyMedium)
-                                    Text(c.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Column {
-                        matches.forEach { c ->
-                            Row(
-                                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                                    .clickable(enabled = !saving) { commit(PendingAdd(c.name, c.id, c.defaultStoreId)) }
-                                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Text(c.icon, style = MaterialTheme.typography.bodyLarge)
-                                Text(c.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                            }
-                        }
-                        if (!exact) {
-                            Row(
-                                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                                    .clickable(enabled = !saving) { commit(PendingAdd(query.trim(), null, null)) }
-                                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Icon(KairosIcons.Plus, contentDescription = null, tint = ACCENT, modifier = Modifier.size(16.dp))
-                                Text("Add \u201c${query.trim()}\u201d", style = MaterialTheme.typography.bodyMedium, color = ACCENT)
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Add \u201c${p.label}\u201d to:", style = MaterialTheme.typography.bodyMedium)
+        when (mode) {
+            "store" -> {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    data.stores.forEach { store ->
-                        val selected = store.id == chosenStore
+                    stores.forEach { store ->
+                        val selected = store.id == item.storeId
                         Row(
                             Modifier.clip(RoundedCornerShape(999.dp))
                                 .background(if (selected) ACCENT else MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { chosenStore = store.id }
-                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                                .clickable(enabled = !busy) { onMove(store.id) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
@@ -428,7 +330,30 @@ private fun AddItemDialog(
                     }
                 }
             }
+            "delete" -> {
+                Text("Remove \u201c${item.name}\u201d from the list?", style = MaterialTheme.typography.bodyMedium)
+            }
+            else -> {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (!inTrip) {
+                        EditActionRow(KairosIcons.Swap, "Change store") { mode = "store" }
+                    }
+                    EditActionRow(KairosIcons.Trash, "Delete", tint = MaterialTheme.colorScheme.error) { mode = "delete" }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun EditActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color = MaterialTheme.colorScheme.onSurface, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onClick() }.padding(horizontal = 8.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = tint)
     }
 }
 
