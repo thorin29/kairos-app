@@ -1,4 +1,13 @@
 # Changelog
+## 0.86.0
+- Characters: the top now shows the season name (not "Characters"); the XP bar
+  under the creature is the segmented, colour-by-domain bar from the web; and the
+  Hatch / Deepen / Gallery buttons are matching cards below the character card,
+  shown only when they apply.
+- Gallery: browse your collection by era — unlocked creatures show their art
+  (tap to enlarge), the rest are mysteries with a rarity-coloured slot.
+- Companion sprite endpoint made more robust (should fix the creature not showing).
+
 ## 0.85.0
 - Characters: the companion sprite now renders (fixed image sizing), with a
   progress bar under it. Added the Family goal card at the top, and the hatch

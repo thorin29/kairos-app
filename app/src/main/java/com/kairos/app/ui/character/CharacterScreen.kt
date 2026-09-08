@@ -18,11 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,13 +49,14 @@ import com.kairos.app.data.remote.dto.CharacterDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.ui.common.PersonAvatar
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.common.LogoMenuButton
 
 private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit) {
+fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: () -> Unit) {
     val container = rememberContainer()
     val vm: CharacterViewModel = viewModel(
         factory = viewModelFactory { initializer { CharacterViewModel(container.sessionRepository) } },
@@ -66,7 +66,7 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Characters") },
+                title = { Text(ui.data?.seasonName?.ifBlank { null } ?: "Season") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
             )
         },
@@ -84,35 +84,66 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit) {
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> CharacterContent(person, ui, vm)
+                else -> CharacterContent(person, ui, vm, onOpenGallery)
             }
         }
     }
 }
 
 @Composable
-private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel) {
+private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel, onOpenGallery: () -> Unit) {
     val data = ui.data ?: return
+    val c = data.companion
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         FamilyGoalCard(data.familyGoal)
-        CompanionCard(
-            c = data.companion,
-            levelPct = data.level.pct.toFloat() / 100f,
-            busy = ui.busy,
-            onHatch = { vm.hatch(it) },
-        )
+        CompanionCard(c)
+
+        // Actions below the card — only what applies. Same card design throughout.
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (c.eggReady) {
+                CharAction(KairosIcons.Plus, "Hatch", Modifier.weight(1f), highlighted = true, enabled = !ui.busy) { vm.hatch("new") }
+                if (c.active) {
+                    CharAction(KairosIcons.Palette, "Deepen", Modifier.weight(1f), enabled = !ui.busy) { vm.hatch("deepen") }
+                }
+            }
+            CharAction(KairosIcons.Trophy, "Gallery", Modifier.weight(1f)) { onOpenGallery() }
+        }
+
         ui.message?.let { msg ->
+            Text(msg, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF047857), modifier = Modifier.fillMaxWidth())
+        }
+
+        PersonCard(person, data)
+    }
+}
+
+@Composable
+private fun CharAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    OutlinedCard(onClick = onClick, enabled = enabled, modifier = modifier.height(76.dp)) {
+        Column(
+            Modifier.fillMaxSize().padding(8.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
-                msg,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF047857),
-                modifier = Modifier.fillMaxWidth(),
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
         }
-        PersonCard(person, data)
     }
 }
 
@@ -141,7 +172,7 @@ private fun FamilyGoalCard(goal: FamilyGoalDto) {
 }
 
 @Composable
-private fun CompanionCard(c: CharCompanionDto, levelPct: Float, busy: Boolean, onHatch: (String) -> Unit) {
+private fun CompanionCard(c: CharCompanionDto) {
     val container = rememberContainer()
     val base = container.sessionRepository.baseUrlRaw
     val glow = parseHex(c.color)
@@ -183,24 +214,27 @@ private fun CompanionCard(c: CharCompanionDto, levelPct: Float, busy: Boolean, o
                 }
                 if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = glow)
             }
-            Bar(levelPct, glow, Modifier.width(180.dp))
+            XpCells(c.xpCells)
         } else {
             Text(if (c.eggReady) "Ready to hatch!" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Bar(c.incubationPct / 100f, glow, Modifier.width(180.dp))
             Text("${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
 
-        if (c.eggReady) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { onHatch("new") }, enabled = !busy) {
-                    Text(if (busy) "Hatching\u2026" else "Hatch a new companion")
-                }
-                if (c.active) {
-                    OutlinedButton(onClick = { onHatch("deepen") }, enabled = !busy) {
-                        Text("Deepen instead")
-                    }
-                }
-            }
+/** The web's segmented level bar: 20 little squares, filled ones coloured by
+ *  which domain earned the XP. */
+@Composable
+private fun XpCells(cells: List<String>) {
+    val slots = if (cells.isEmpty()) List(20) { "" } else cells
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        slots.forEach { hex ->
+            val filled = hex.isNotBlank()
+            Box(
+                Modifier.size(10.dp).clip(RoundedCornerShape(2.dp))
+                    .background(if (filled) parseHex(hex) else MaterialTheme.colorScheme.outlineVariant),
+            )
         }
     }
 }

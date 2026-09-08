@@ -1266,6 +1266,7 @@ data class MoveGroceryRequest(
 
 @Serializable
 data class CharacterDto(
+    val seasonName: String = "",
     val familyGoal: FamilyGoalDto = FamilyGoalDto(),
     val className: String = "",
     val level: CharLevelDto = CharLevelDto(),
@@ -1302,6 +1303,7 @@ data class CharCompanionDto(
     val eggReady: Boolean = false,
     val image: String = "",
     val color: String = "#94a3b8",
+    val xpCells: List<String> = emptyList(),
 )
 
 @Serializable
@@ -1312,3 +1314,24 @@ data class HatchRequest(val mode: String = "new")
 
 @Serializable
 data class HatchResultDto(val hatched: String? = null)
+
+@Serializable
+data class CollectionDto(val eras: List<EraDto> = emptyList())
+
+@Serializable
+data class EraDto(
+    val key: String = "",
+    val label: String = "",
+    val total: Int = 0,
+    val unlocked: Int = 0,
+    val species: List<CollectSpeciesDto> = emptyList(),
+)
+
+@Serializable
+data class CollectSpeciesDto(
+    val id: String = "",
+    val rarity: String = "common",
+    val owned: Boolean = false,
+    val name: String? = null,
+    val image: String? = null,
+)

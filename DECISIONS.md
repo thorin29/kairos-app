@@ -297,3 +297,13 @@ POST /api/v1/characters/hatch ("new"/"deepen") via a shared hatchEggCore. Hatch
 reloads the character after. Note the deep endpoint reads /public via
 process.cwd() (Next standalone's documented path; Dockerfile copies public to
 /app/public).
+
+## App Characters: gallery + segmented XP bar + action cards (0.86.0 / web 0.261.0)
+Season name replaces the "Characters" title. The XP bar renders server-computed
+`companion.xpCells` (20 domain-coloured cells, mirroring web XpBar). Hatch/Deepen/
+Gallery are OutlinedCard actions below the companion card (workout ActionCard
+style), conditional (Hatch when eggReady, Deepen when eggReady && active, Gallery
+always). Gallery (Route.Gallery) loads GET /api/v1/characters/collection: eras
+with owned (art, tap-to-enlarge) vs mystery (rarity-ringed "?" slot). Companion
+image endpoint now tries process.cwd()/public and /app/public to survive cwd
+differences (the earlier "egg fallback" was this endpoint 404ing).
