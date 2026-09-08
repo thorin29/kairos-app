@@ -272,6 +272,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onClose = { navController.popBackStack() },
                     )
                 }
+                composable<Route.Settings> {
+                    com.kairos.app.ui.settings.SettingsScreen(onBack = { navController.popBackStack() })
+                }
                 composable<Route.Gallery> {
                     GalleryScreen(onBack = { navController.popBackStack() })
                 }
@@ -331,6 +334,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 onToggleExpanded = { container.navExpanded.value = !container.navExpanded.value },
                 onLogoClick = { open = false },
                 onSignOut = { confirmSignOut = true },
+                onOpenSettings = {
+                    open = false
+                    navController.navigate(Route.Settings)
+                },
             )
             // Subtle darker shade over the status-bar strip for icon readability.
             Box(

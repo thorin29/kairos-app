@@ -591,3 +591,15 @@ workout (CreatePersonalWorkoutViewModel), plan editor + rotation + movement mgmt
 (EditPlanViewModel) - server generates the plan/workout structure, faking it offline
 is risky. These queue offline and reconcile on sync. Batch 3 DONE. Offline optimism
 effort complete for all daily-use flows. Next: Settings menu.
+
+## App: Settings foundation (0.114.0)
+Route.Settings + SettingsScreen (ui/settings). Entry: a real gear (Lucide "settings"
+cog, KairosIcons.Settings - rendered + verified as an actual gear) in the drawer
+FooterPerson, next to the name, before sign-out. onOpenSettings closes the drawer and
+navigates. Screen is a scaffold listing three sections (Appearance, Profile,
+Notifications) - filled in over subsequent phases. Added KairosIcons.Bell + PersonCircle.
+PENDING DECISION before building themes: do theme/dark-mode choices sync per-user
+(server) or stay per-device (local)? That determines whether the theme pref lives in
+SettingsStore (local) or a server field. Phases: (2) app themes, (2b) web themes in
+admin, (3) profile editing (needs new device endpoints: avatar upload, position, ring
+color), (4) calendar/birthday notifications (settings model + Android scheduling).

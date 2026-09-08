@@ -1,4 +1,9 @@
 # Changelog
+## 0.114.0
+- Added a Settings screen, reached by a gear next to your name in the menu drawer.
+  It lists what's coming — Appearance (dark mode + colour themes), Profile (photo,
+  framing, your colour), and Notifications — which roll out over the next updates.
+
 ## 0.113.0
 - Offline optimism now covers Workouts: marking today's workout done, taking a rest
   day, undoing it, and logging a workout all update instantly — on the workout screen

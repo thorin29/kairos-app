@@ -61,6 +61,7 @@ fun KairosRail(
     onToggleExpanded: () -> Unit,
     onLogoClick: () -> Unit,
     onSignOut: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Column(modifier) {
         // Teal starts at the status-bar bottom (right under the top bar) with the
@@ -111,7 +112,7 @@ fun KairosRail(
             HorizontalDivider(color = OnSidebar.copy(alpha = 0.2f))
 
             Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                FooterPerson(person, expanded, onSignOut)
+                FooterPerson(person, expanded, onSignOut, onOpenSettings)
                 if (expanded) {
                     // Collapse control on the left, version pinned far-right.
                     Row(
@@ -216,7 +217,7 @@ private fun RailRow(
 }
 
 @Composable
-private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> Unit) {
+private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> Unit, onOpenSettings: () -> Unit) {
     if (expanded) {
         Row(
             Modifier
@@ -236,6 +237,14 @@ private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> 
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    KairosIcons.Settings,
+                    contentDescription = "Settings",
+                    tint = OnSidebar.copy(alpha = 0.85f),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             IconButton(onClick = onSignOut) {
                 Icon(
                     KairosIcons.Switch,
