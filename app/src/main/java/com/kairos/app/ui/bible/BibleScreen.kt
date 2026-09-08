@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,19 +66,18 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private val FAMILY_COLOR = Color(0xFF0F5C63)
 
 /** "#rrggbb" -> Color, defaulting to the family teal on anything unparseable. */
 fun parseHexColor(hex: String?): Color {
-    val s = hex?.trim()?.removePrefix("#") ?: return FAMILY_COLOR
+    val s = hex?.trim()?.removePrefix("#") ?: return KairosThemeState.accent
     return try {
         when (s.length) {
             6 -> Color(("FF$s").toLong(16))
             8 -> Color(s.toLong(16))
-            else -> FAMILY_COLOR
+            else -> KairosThemeState.accent
         }
     } catch (_: NumberFormatException) {
-        FAMILY_COLOR
+        KairosThemeState.accent
     }
 }
 
@@ -248,7 +248,7 @@ private fun TabPill(label: String, active: Boolean, onClick: () -> Unit) {
 private fun FamilyContent(data: com.kairos.app.data.remote.dto.ReadingDto) {
     val family = data.family
     if (family.havePlan && family.cards.isNotEmpty()) {
-        ReadingDeck(family.cards, family.todayIndex, FAMILY_COLOR)
+        ReadingDeck(family.cards, family.todayIndex, KairosThemeState.accent)
         family.lastDayISO?.let { last ->
             Text(
                 "${family.remaining} days left \u00b7 plan runs out ${formatShortISO(last)}",
@@ -258,9 +258,9 @@ private fun FamilyContent(data: com.kairos.app.data.remote.dto.ReadingDto) {
         }
     }
 
-    SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, FAMILY_COLOR)
-    CoverageCards(family.stats, FAMILY_COLOR)
-    GroupsCard(family.stats.groups, FAMILY_COLOR)
+    SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, KairosThemeState.accent)
+    CoverageCards(family.stats, KairosThemeState.accent)
+    GroupsCard(family.stats.groups, KairosThemeState.accent)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,7 +42,6 @@ import com.kairos.app.BuildConfig
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.ui.common.LogoMenuButton
 
-private val SidebarColor = Color(0xFF86A0A3) // --color-sidebar
 private val OnSidebar = Color.White
 
 /**
@@ -72,7 +72,7 @@ fun KairosRail(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .clip(RoundedCornerShape(topEnd = 22.dp))
-                .background(SidebarColor)
+                .background(KairosThemeState.sidebar)
                 .navigationBarsPadding()
                 .padding(bottom = 6.dp),
         ) {

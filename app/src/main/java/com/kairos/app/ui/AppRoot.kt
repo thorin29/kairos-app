@@ -273,7 +273,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     )
                 }
                 composable<Route.Settings> {
-                    com.kairos.app.ui.settings.SettingsScreen(onBack = { navController.popBackStack() })
+                    com.kairos.app.ui.settings.SettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenAppearance = { navController.navigate(Route.SettingsAppearance) },
+                    )
+                }
+                composable<Route.SettingsAppearance> {
+                    com.kairos.app.ui.settings.AppearanceScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Gallery> {
                     GalleryScreen(onBack = { navController.popBackStack() })

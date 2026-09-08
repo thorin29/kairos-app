@@ -1,4 +1,10 @@
 # Changelog
+## 0.115.0
+- Settings → Appearance: dark mode, plus a colour theme for the whole app — teal
+  (default), olive drab, green, blue, purple, pink, orange, or red. The accent,
+  sidebar, buttons, highlights and backgrounds all follow your choice. Stored per
+  device, so each tablet or phone can look how you like.
+
 ## 0.114.0
 - Added a Settings screen, reached by a gear next to your name in the menu drawer.
   It lists what's coming — Appearance (dark mode + colour themes), Profile (photo,

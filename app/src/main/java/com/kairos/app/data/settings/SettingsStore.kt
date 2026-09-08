@@ -3,6 +3,7 @@ package com.kairos.app.data.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -46,9 +47,25 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_CAL_LAST_VIEW] = v }
     }
 
+    /** Colour theme, per device (a ThemeScheme name); defaults to TEAL. */
+    val themeScheme: Flow<String> = dataStore.data.map { it[KEY_THEME] ?: "TEAL" }
+
+    suspend fun setThemeScheme(v: String) {
+        dataStore.edit { it[KEY_THEME] = v }
+    }
+
+    /** Dark mode, per device; off by default. */
+    val darkMode: Flow<Boolean> = dataStore.data.map { it[KEY_DARK] ?: false }
+
+    suspend fun setDarkMode(on: Boolean) {
+        dataStore.edit { it[KEY_DARK] = on }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
+        val KEY_THEME = stringPreferencesKey("theme_scheme")
+        val KEY_DARK = booleanPreferencesKey("dark_mode")
     }
 }

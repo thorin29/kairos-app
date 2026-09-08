@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -73,7 +74,6 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
-private val ACCENT = Color(0xFF0F5C63)   // global teal accent (buttons, active pill)
 private val MONEY = Color(0xFF15803D)    // money green (deposits, approved)
 private val NEG = Color(0xFFDC2626)      // red-600 (payments, negative balances)
 private val PENDING_DOT = Color(0xFFFBBF24) // amber-400 (awaiting approval marker)
@@ -442,7 +442,7 @@ private fun PeopleSelector(
             Row(
                 Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (active) ACCENT.copy(alpha = 0.10f) else Color.Transparent)
+                    .background(if (active) KairosThemeState.accent.copy(alpha = 0.10f) else Color.Transparent)
                     .clickable { onSelect(person.id) }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -453,7 +453,7 @@ private fun PeopleSelector(
                     person.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = if (active) ACCENT else MaterialTheme.colorScheme.onSurface,
+                    color = if (active) KairosThemeState.accent else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -462,7 +462,7 @@ private fun PeopleSelector(
                     style = MaterialTheme.typography.bodySmall,
                     color = when {
                         p.balanceCents < 0 -> NEG
-                        active -> ACCENT
+                        active -> KairosThemeState.accent
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
@@ -509,7 +509,7 @@ private fun ActionBar(searching: Boolean, onAdd: () -> Unit, onToggleSearch: () 
                 .clip(RoundedCornerShape(8.dp))
                 .border(
                     1.dp,
-                    if (searching) ACCENT else MaterialTheme.colorScheme.outline,
+                    if (searching) KairosThemeState.accent else MaterialTheme.colorScheme.outline,
                     RoundedCornerShape(8.dp),
                 )
                 .clickable { onToggleSearch() }
@@ -518,7 +518,7 @@ private fun ActionBar(searching: Boolean, onAdd: () -> Unit, onToggleSearch: () 
             Icon(
                 KairosIcons.Search,
                 contentDescription = "Search transactions",
-                tint = if (searching) ACCENT else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (searching) KairosThemeState.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -530,7 +530,7 @@ private fun FilledButton(text: String, icon: androidx.compose.ui.graphics.vector
     Row(
         Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(ACCENT)
+            .background(KairosThemeState.accent)
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -549,8 +549,8 @@ private fun StartingFundsButton(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(KairosIcons.Dollar, contentDescription = null, tint = ACCENT, modifier = Modifier.size(16.dp))
-            Text("Set starting funds", style = MaterialTheme.typography.labelLarge, color = ACCENT)
+            Icon(KairosIcons.Dollar, contentDescription = null, tint = KairosThemeState.accent, modifier = Modifier.size(16.dp))
+            Text("Set starting funds", style = MaterialTheme.typography.labelLarge, color = KairosThemeState.accent)
         }
     }
 }
@@ -709,7 +709,7 @@ private fun RowActionDialog(
                 } else {
                     ActionRow("Approve", KairosIcons.Check, GREEN600, filled = true, enabled = !busy, onClick = onApprove)
                 }
-                ActionRow("Edit", KairosIcons.Pencil, ACCENT, filled = false, enabled = true, onClick = onEdit)
+                ActionRow("Edit", KairosIcons.Pencil, KairosThemeState.accent, filled = false, enabled = true, onClick = onEdit)
                 ActionRow("Delete", KairosIcons.Trash, DANGER, filled = false, enabled = true) { confirmingDelete = true }
             }
         }
@@ -1155,11 +1155,11 @@ private fun OptionsDialog(
                         Modifier
                             .size(18.dp)
                             .clip(CircleShape)
-                            .border(2.dp, if (key == selectedKey) ACCENT else MaterialTheme.colorScheme.outline, CircleShape),
+                            .border(2.dp, if (key == selectedKey) KairosThemeState.accent else MaterialTheme.colorScheme.outline, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (key == selectedKey) {
-                            Box(Modifier.size(10.dp).clip(CircleShape).background(ACCENT))
+                            Box(Modifier.size(10.dp).clip(CircleShape).background(KairosThemeState.accent))
                         }
                     }
                     Text(label, style = MaterialTheme.typography.bodyLarge)

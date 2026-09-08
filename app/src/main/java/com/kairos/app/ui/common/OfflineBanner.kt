@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kairos.app.ui.nav.KairosIcons
@@ -39,7 +40,7 @@ fun OfflineBanner(online: Boolean, pending: Int, syncing: Boolean, modifier: Mod
         pending > 0 -> "$changes waiting to sync"
         else -> ""
     }
-    val color = if (!online) Color(0xFF334155) else Color(0xFF0F5C63)
+    val color = if (!online) Color(0xFF334155) else KairosThemeState.accent
     val icon = if (syncing) KairosIcons.Repeat else KairosIcons.Globe
 
     AnimatedVisibility(

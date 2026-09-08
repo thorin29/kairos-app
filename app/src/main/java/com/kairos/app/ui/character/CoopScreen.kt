@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -52,7 +53,6 @@ import com.kairos.app.data.remote.dto.CoopDto
 import com.kairos.app.data.remote.dto.CoopProposalDto
 import com.kairos.app.ui.common.rememberContainer
 
-private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +105,7 @@ private fun CoopContent(data: CoopDto, ui: CoopUiState, vm: CoopViewModel) {
                     fontWeight = FontWeight.SemiBold,
                 )
                 val frac = if (data.childrenTotal > 0) data.childrenMeeting.toFloat() / data.childrenTotal else 0f
-                Bar(frac, if (data.gateMet) Color(0xFF10B981) else ACCENT, Modifier.fillMaxWidth())
+                Bar(frac, if (data.gateMet) Color(0xFF10B981) else KairosThemeState.accent, Modifier.fillMaxWidth())
                 data.children.forEach { c -> ChildRow(c, data.floor) }
             }
         }
@@ -150,7 +150,7 @@ private fun ProposalCard(p: CoopProposalDto, data: CoopDto, busy: Boolean, vm: C
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(p.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 if (granted) StatusPill("Earned", Color(0xFF10B981))
-                else if (selected) StatusPill("Selected", ACCENT)
+                else if (selected) StatusPill("Selected", KairosThemeState.accent)
             }
             if (!p.detail.isNullOrBlank()) {
                 Text(p.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

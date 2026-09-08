@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -52,7 +53,6 @@ import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.common.LogoMenuButton
 
-private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -258,7 +258,7 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
 
             // Character XP
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Bar(data.level.pct.toFloat() / 100f, ACCENT, Modifier.fillMaxWidth())
+                Bar(data.level.pct.toFloat() / 100f, KairosThemeState.accent, Modifier.fillMaxWidth())
                 Text(
                     "${data.level.toNext} XP to level ${data.level.level + 1}",
                     style = MaterialTheme.typography.bodySmall,
@@ -288,7 +288,7 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
                 }
                 Bar(
                     data.season.pct.toFloat() / 100f,
-                    if (data.season.complete) Color(0xFF10B981) else ACCENT,
+                    if (data.season.complete) Color(0xFF10B981) else KairosThemeState.accent,
                     Modifier.fillMaxWidth(),
                 )
             }
@@ -304,7 +304,7 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
                                         Text(s.label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                                         Text("Lv ${s.level}", style = MaterialTheme.typography.labelMedium)
                                     }
-                                    Bar(s.pct.toFloat() / 100f, ACCENT, Modifier.fillMaxWidth())
+                                    Bar(s.pct.toFloat() / 100f, KairosThemeState.accent, Modifier.fillMaxWidth())
                                 }
                             }
                             if (pair.size == 1) Box(Modifier.weight(1f))

@@ -603,3 +603,18 @@ PENDING DECISION before building themes: do theme/dark-mode choices sync per-use
 SettingsStore (local) or a server field. Phases: (2) app themes, (2b) web themes in
 admin, (3) profile editing (needs new device endpoints: avatar upload, position, ring
 color), (4) calendar/birthday notifications (settings model + Android scheduling).
+
+## App: Appearance / themes (0.115.0) - Phase 2 (per-device, per Marco)
+Theme.kt: ThemeScheme enum (8: teal/olive/green/blue/purple/pink/orange/red),
+light+dark Material colorScheme per scheme + complete dark neutrals. KairosThemeState
+(snapshot object: accent, sidebar, onSidebar, dark) written by KairosTheme via SideEffect
+so out-of-Material brand reads (the per-screen top-level `ACCENT` vals) update reactively.
+Migrated all `private val ACCENT = 0F5C63` (10 screens) + BibleScreen FAMILY_COLOR +
+BookProgress + PlanWizard (package-shared ACCENT) + LoadingScreen + OfflineBanner +
+SettingsScreen tint + KairosRail SidebarColor -> KairosThemeState. 23 screens already used
+colorScheme roles so dark mode + accent flip through Material automatically. SettingsStore:
+theme_scheme + dark_mode prefs (per-device local, booleanPreferencesKey added). MainActivity
+observes both, passes to KairosTheme, flips status-bar icon colour. Settings > Appearance
+screen (dark Switch + scheme picker). Known minor: AppSections home tile colour still hardcoded
+teal (section-identity colour system, separate); revisit if it clashes. Next: web themes
+(admin), then profile (needs device endpoints), then notifications.

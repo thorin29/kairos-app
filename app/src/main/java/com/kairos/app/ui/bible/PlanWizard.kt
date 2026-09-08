@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -182,7 +183,7 @@ private fun BooksStep(picked: MutableList<String>, name: String, onName: (String
     }
 
     BIBLE_GROUPS.forEach { group ->
-        val gColor = GROUP_COLOR[group] ?: ACCENT
+        val gColor = GROUP_COLOR[group] ?: KairosThemeState.accent
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(gColor))

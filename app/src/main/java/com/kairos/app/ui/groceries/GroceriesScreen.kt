@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -57,7 +58,6 @@ import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
-private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,7 +277,7 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
 
             Spacer(Modifier.height(10.dp))
             Row(
-                Modifier.clip(RoundedCornerShape(999.dp)).background(ACCENT)
+                Modifier.clip(RoundedCornerShape(999.dp)).background(KairosThemeState.accent)
                     .clickable(enabled = !busy) { vm.completeTrip(trip.id) }
                     .padding(horizontal = 16.dp, vertical = 9.dp),
             ) { Text("Done shopping", style = MaterialTheme.typography.labelLarge, color = Color.White) }
@@ -343,8 +343,8 @@ private fun ItemRow(
         if (showTick) {
             Box(
                 Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
-                    .border(2.dp, if (item.purchased) ACCENT else MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                    .background(if (item.purchased) ACCENT else Color.Transparent),
+                    .border(2.dp, if (item.purchased) KairosThemeState.accent else MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+                    .background(if (item.purchased) KairosThemeState.accent else Color.Transparent),
             )
         }
         GroceryGlyph(item.icon, emojiStyle = MaterialTheme.typography.bodyLarge, size = 20.dp)
@@ -391,7 +391,7 @@ private fun MoveStoreDialog(
                 val selected = store.id == item.storeId
                 Row(
                     Modifier.clip(RoundedCornerShape(999.dp))
-                        .background(if (selected) ACCENT else MaterialTheme.colorScheme.surfaceVariant)
+                        .background(if (selected) KairosThemeState.accent else MaterialTheme.colorScheme.surfaceVariant)
                         .clickable(enabled = !busy) { onPick(store.id) }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -443,14 +443,14 @@ private fun ShopPickerDialog(
 private fun PillButton(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, filled: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Row(
         Modifier.clip(RoundedCornerShape(999.dp))
-            .then(if (filled) Modifier.background(ACCENT) else Modifier.border(1.dp, ACCENT, RoundedCornerShape(999.dp)))
+            .then(if (filled) Modifier.background(KairosThemeState.accent) else Modifier.border(1.dp, KairosThemeState.accent, RoundedCornerShape(999.dp)))
             .clickable(enabled = enabled) { onClick() }
             .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = if (filled) Color.White else ACCENT, modifier = Modifier.size(18.dp))
-        Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, color = if (filled) Color.White else ACCENT)
+        Icon(icon, contentDescription = null, tint = if (filled) Color.White else KairosThemeState.accent, modifier = Modifier.size(18.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, color = if (filled) Color.White else KairosThemeState.accent)
     }
 }
 
@@ -462,7 +462,7 @@ private fun ProgressBar(pct: Int) {
     ) {
         Box(
             Modifier.fillMaxWidth(fraction = (pct.coerceIn(0, 100)) / 100f)
-                .height(8.dp).clip(RoundedCornerShape(999.dp)).background(ACCENT),
+                .height(8.dp).clip(RoundedCornerShape(999.dp)).background(KairosThemeState.accent),
         )
     }
 }

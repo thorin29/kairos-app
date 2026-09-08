@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,7 +55,6 @@ import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private val ACCENT = Color(0xFF0F5C63)
 private val DONE = Color(0xFF15803D)
 private val MISS = Color(0xFFB91C1C)
 
@@ -127,14 +127,14 @@ private fun PauseBanner(name: String) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(ACCENT.copy(alpha = 0.10f))
-            .border(1.dp, ACCENT.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
+            .background(KairosThemeState.accent.copy(alpha = 0.10f))
+            .border(1.dp, KairosThemeState.accent.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(KairosIcons.Moon, contentDescription = null, tint = ACCENT, modifier = Modifier.size(20.dp))
+        Icon(KairosIcons.Moon, contentDescription = null, tint = KairosThemeState.accent, modifier = Modifier.size(20.dp))
         Column {
-            Text("Chores are paused for $name", fontWeight = FontWeight.SemiBold, color = ACCENT)
+            Text("Chores are paused for $name", fontWeight = FontWeight.SemiBold, color = KairosThemeState.accent)
             Text(
                 "Nothing's due while you're away. Chores pick back up the day after the break ends.",
                 style = MaterialTheme.typography.bodySmall,

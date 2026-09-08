@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -37,7 +38,7 @@ fun LoadingScreen() {
             "\u03BA\u03B1\u03B9\u03C1\u03CC\u03C2", // καιρός
             fontFamily = Gentium,
             fontSize = 52.sp,
-            color = Color(0xFF0F5C63),
+            color = KairosThemeState.accent,
         )
     }
 }

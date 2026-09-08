@@ -33,13 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kairos.app.ui.nav.KairosIcons
 
-internal val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -107,7 +107,7 @@ fun BookProgress(
             }
 
             BIBLE_GROUPS.forEach { group ->
-                val gColor = GROUP_COLOR[group] ?: ACCENT
+                val gColor = GROUP_COLOR[group] ?: KairosThemeState.accent
                 val books = BIBLE_BOOKS.filter { it.group == group }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -198,7 +198,7 @@ private fun ChapterEditor(
     onDismiss: () -> Unit,
     onSave: (List<Int>) -> Unit,
 ) {
-    val color = GROUP_COLOR[book.group] ?: ACCENT
+    val color = GROUP_COLOR[book.group] ?: KairosThemeState.accent
     val original = remember(book.name) {
         (1..book.chapters).filter { "${book.name}|$it" in keys }.toSet()
     }

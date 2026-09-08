@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +50,6 @@ import com.kairos.app.data.remote.dto.GroceriesDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
-private val ACCENT = Color(0xFF0F5C63)
 
 internal data class PendingAdd(val label: String, val catalogId: String?, val defaultStoreId: String?)
 
@@ -173,8 +173,8 @@ private fun ItemStep(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Icon(KairosIcons.Plus, contentDescription = null, tint = ACCENT, modifier = Modifier.size(20.dp))
-                        Text("Add \u201c${query.trim()}\u201d", style = MaterialTheme.typography.bodyLarge, color = ACCENT, fontWeight = FontWeight.Medium)
+                        Icon(KairosIcons.Plus, contentDescription = null, tint = KairosThemeState.accent, modifier = Modifier.size(20.dp))
+                        Text("Add \u201c${query.trim()}\u201d", style = MaterialTheme.typography.bodyLarge, color = KairosThemeState.accent, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -215,7 +215,7 @@ private fun StoreStep(
             val usual = store.id == usualStoreId
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                    .then(if (usual) Modifier.border(1.5.dp, ACCENT, RoundedCornerShape(12.dp)) else Modifier)
+                    .then(if (usual) Modifier.border(1.5.dp, KairosThemeState.accent, RoundedCornerShape(12.dp)) else Modifier)
                     .clickable(enabled = !busy) { onPick(store.id) }
                     .padding(horizontal = 14.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -223,7 +223,7 @@ private fun StoreStep(
             ) {
                 Text(store.icon, style = MaterialTheme.typography.titleMedium)
                 Text(store.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                if (usual) Text("usual", style = MaterialTheme.typography.labelSmall, color = ACCENT)
+                if (usual) Text("usual", style = MaterialTheme.typography.labelSmall, color = KairosThemeState.accent)
             }
         }
     }

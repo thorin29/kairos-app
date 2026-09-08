@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -57,7 +58,6 @@ import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
-private val ACCENT = Color(0xFF0F5C63)      // global teal accent (buttons, progress)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,7 +128,7 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
         }
 
         Row(
-            Modifier.clip(RoundedCornerShape(8.dp)).background(ACCENT)
+            Modifier.clip(RoundedCornerShape(8.dp)).background(KairosThemeState.accent)
                 .clickable { vm.clearSaveError(); showAdd = true }
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -269,7 +269,7 @@ private fun BookCard(
                     )
                 }
                 Row(
-                    Modifier.clip(RoundedCornerShape(999.dp)).background(if (saved) ACCENT.copy(alpha = 0.4f) else ACCENT)
+                    Modifier.clip(RoundedCornerShape(999.dp)).background(if (saved) KairosThemeState.accent.copy(alpha = 0.4f) else KairosThemeState.accent)
                         .clickable(enabled = !busy) { focusManager.clearFocus(); onLog(page.toIntOrNull() ?: 0); saved = true }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -284,7 +284,7 @@ private fun BookCard(
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 TextLink("Edit") { onEdit() }
                 TextLink("Shelve") { if (!busy) onShelve() }
-                TextLink(if (done) "Mark finished \u2713" else "Mark finished", color = ACCENT) { if (!busy) onFinish() }
+                TextLink(if (done) "Mark finished \u2713" else "Mark finished", color = KairosThemeState.accent) { if (!busy) onFinish() }
             }
         }
     }
@@ -338,7 +338,7 @@ private fun ShelfGroup(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    TextLink(if (kind == "read") "Reopen" else "Move to reading", color = ACCENT) {
+                    TextLink(if (kind == "read") "Reopen" else "Move to reading", color = KairosThemeState.accent) {
                         if (!busy) {
                             if (kind == "read") vm.finish(b.id, false) else vm.shelf(b.id, false)
                         }
@@ -431,7 +431,7 @@ private fun ProgressBar(pct: Int) {
     ) {
         Box(
             Modifier.fillMaxWidth(fraction = (pct.coerceIn(0, 100)) / 100f)
-                .height(8.dp).clip(RoundedCornerShape(999.dp)).background(ACCENT),
+                .height(8.dp).clip(RoundedCornerShape(999.dp)).background(KairosThemeState.accent),
         )
     }
 }

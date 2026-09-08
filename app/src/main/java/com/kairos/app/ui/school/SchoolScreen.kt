@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,7 +57,6 @@ import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
-private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -204,9 +204,9 @@ private fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
         style = MaterialTheme.typography.labelLarge,
-        color = if (selected) ACCENT else MaterialTheme.colorScheme.onSurfaceVariant,
+        color = if (selected) KairosThemeState.accent else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.clip(RoundedCornerShape(999.dp))
-            .border(1.dp, if (selected) ACCENT else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+            .border(1.dp, if (selected) KairosThemeState.accent else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
