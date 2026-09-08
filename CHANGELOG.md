@@ -1,4 +1,10 @@
 # Changelog
+## 0.106.0
+- Offline optimism extended to Reading (add/edit a book, set your page, finish,
+  shelve, delete — all instant and durable offline) and to the chore actions on
+  Home (claiming an up-for-grabs chore and tapping an always-open chore done). Both
+  survive navigation and restarts offline and reconcile on sync.
+
 ## 0.105.0
 - Offline optimism now covers School: adding work, ticking it off, renaming, and
   deleting all update instantly and survive navigation and app restarts while

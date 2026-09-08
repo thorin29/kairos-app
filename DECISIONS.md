@@ -484,3 +484,16 @@ completions ride the shared task endpoint). removeItem/insertItem keep the perso
 pending/overdue counts in sync; temp-id used for optimistic inserts. SchoolScreen gains
 refreshKey = syncManager.revision (wired in AppRoot) so it reloads when a sync lands.
 Batch 1 remaining: reading, bible, chores.
+
+## App: Reading + Chores optimistic offline (0.106.0) — batch 1, screens 2-3
+Reading (ReadingViewModel): rewrote to the durable pattern. One mutate() helper
+(keeps the saving/busy flag split the screen relies on) applies the change, closes
+the sheet, writes, then online? freshData(): keep, revert on error. Transforms:
+insertBook/updateBook/setRead/setFinished/setShelved/removeBook. applyPending parses
+books/{add,update,log,finish,shelf,delete}. ReadingScreen gains refreshKey =
+revision. Chores: the Chores SECTION is display-only, so the actions live on Home.
+Made HomeViewModel.claimChore (remove from upForGrabs) and completeAlwaysOpen
+(bumpAlwaysOpen -> myCount+1) optimistic, and freshDashboard now also applies
+chores/claim (ClaimChoreRequest) and chores/always-open (AlwaysOpenRequest).
+Batch 1 remaining: Bible (mark day / save book / bulk / plans — its chapter-grid
+ReadingDto needs its own careful transforms, next).

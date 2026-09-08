@@ -8,6 +8,8 @@ import com.kairos.app.data.remote.dto.AddTaskRequest
 import com.kairos.app.data.remote.dto.TaskGroupDto
 import java.time.LocalDate
 import java.util.UUID
+import com.kairos.app.data.remote.dto.AlwaysOpenRequest
+import com.kairos.app.data.remote.dto.ClaimChoreRequest
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
@@ -75,6 +77,18 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
                     d = mutateTaskStatus(d, path.removePrefix("tasks/").removeSuffix("/complete"), "COMPLETE")
                 path.startsWith("tasks/") && path.endsWith("/uncomplete") ->
                     d = mutateTaskStatus(d, path.removePrefix("tasks/").removeSuffix("/uncomplete"), "PENDING")
+                path == "chores/claim" -> {
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(ClaimChoreRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    d = d.copy(upForGrabs = d.upForGrabs.filterNot { it.id == req.taskId })
+                }
+                path == "chores/always-open" -> {
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(AlwaysOpenRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    d = bumpAlwaysOpen(d, req.choreId)
+                }
             }
         }
         return d
@@ -169,14 +183,24 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
     fun claimChore(taskId: String) {
         val key = "claim-$taskId"
         if (_ui.value.busyIds.contains(key)) return
-        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        val before = _ui.value.dashboard
+        _ui.update {
+            it.copy(
+                busyIds = it.busyIds + key,
+                actionError = null,
+                dashboard = it.dashboard?.let { d -> d.copy(upForGrabs = d.upForGrabs.filterNot { g -> g.id == taskId }) },
+            )
+        }
         viewModelScope.launch {
             try {
                 session.claimChore(taskId)
-                val data = freshDashboard()
-                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+                if (session.isOnline()) {
+                    _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                } else {
+                    _ui.update { it.copy(busyIds = it.busyIds - key) }
+                }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - key, actionError = e.error.message) }
             }
         }
     }
@@ -185,17 +209,30 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
     fun completeAlwaysOpen(choreId: String) {
         val key = "always-$choreId"
         if (_ui.value.busyIds.contains(key)) return
-        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        val before = _ui.value.dashboard
+        _ui.update {
+            it.copy(
+                busyIds = it.busyIds + key,
+                actionError = null,
+                dashboard = it.dashboard?.let { d -> bumpAlwaysOpen(d, choreId) },
+            )
+        }
         viewModelScope.launch {
             try {
                 session.completeAlwaysOpen(choreId)
-                val data = freshDashboard()
-                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+                if (session.isOnline()) {
+                    _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                } else {
+                    _ui.update { it.copy(busyIds = it.busyIds - key) }
+                }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - key, actionError = e.error.message) }
             }
         }
     }
+
+    private fun bumpAlwaysOpen(dash: DashboardDto, choreId: String): DashboardDto =
+        dash.copy(alwaysOpen = dash.alwaysOpen.map { if (it.id == choreId) it.copy(myCount = it.myCount + 1) else it })
 
     fun clearActionError() {
         _ui.update { it.copy(actionError = null) }

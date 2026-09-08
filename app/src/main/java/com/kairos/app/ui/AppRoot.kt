@@ -206,7 +206,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else if (key == "money") {
                         MoneyScreen(onOpenDrawer = { open = true })
                     } else if (key == "reading") {
-                        ReadingScreen(onOpenDrawer = { open = true })
+                        ReadingScreen(onOpenDrawer = { open = true }, refreshKey = syncRevision)
                     } else if (key == "tasks") {
                         TasksScreen(
                             onOpenDrawer = { open = true },

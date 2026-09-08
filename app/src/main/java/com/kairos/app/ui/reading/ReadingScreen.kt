@@ -61,12 +61,13 @@ private val ACCENT = Color(0xFF0F5C63)      // global teal accent (buttons, prog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReadingScreen(onOpenDrawer: () -> Unit) {
+fun ReadingScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: ReadingViewModel = viewModel(
         factory = viewModelFactory { initializer { ReadingViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
     Scaffold(
         topBar = {
