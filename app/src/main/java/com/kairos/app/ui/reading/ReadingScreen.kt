@@ -57,7 +57,6 @@ import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
 private val ACCENT = Color(0xFF0F5C63)      // global teal accent (buttons, progress)
-private val BOOKMARK = Color(0xFFF59E0B)    // amber-500 bookmark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,9 +101,9 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
     var editTarget by remember { mutableStateOf<BookDto?>(null) }
     var deleteTarget by remember { mutableStateOf<BookDto?>(null) }
 
-    val queue = data.books.filter { !it.shelved && !it.finished }
-    val toRead = data.books.filter { it.shelved && !it.finished }
-    val bookmarked = data.books.filter { it.bookmarked }
+    val queue = data.books.filter { !it.shelved && !it.bookmarked && !it.finished }
+    val toRead = data.books.filter { it.shelved && !it.bookmarked && !it.finished }
+    val bookmarked = data.books.filter { it.bookmarked && !it.finished }
     val read = data.books.filter { it.finished }
     val shelfCount = toRead.size + bookmarked.size + read.size
 
@@ -120,7 +119,7 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
                 book = b,
                 busy = ui.busy,
                 onLog = { amt -> vm.log(b.id, amt) },
-                onBookmark = { vm.bookmark(b.id, !b.bookmarked) },
+                onBookmark = { vm.bookmark(b.id, true) },
                 onShelve = { vm.shelf(b.id, true) },
                 onFinish = { vm.finish(b.id, true) },
                 onEdit = { vm.clearSaveError(); editTarget = b },
@@ -229,14 +228,6 @@ private fun BookCard(
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Box(Modifier.clickable(enabled = !busy) { onBookmark() }.padding(4.dp)) {
-                    Icon(
-                        KairosIcons.Bookmark,
-                        contentDescription = if (book.bookmarked) "Remove bookmark" else "Bookmark",
-                        tint = if (book.bookmarked) BOOKMARK else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
                 Box(Modifier.clickable { onDelete() }.padding(4.dp)) {
                     Icon(KairosIcons.Trash, contentDescription = "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
@@ -282,7 +273,8 @@ private fun BookCard(
 
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                TextLink("Edit", onEdit)
+                TextLink("Edit") { onEdit() }
+                TextLink("Bookmark") { if (!busy) onBookmark() }
                 TextLink("Shelve") { if (!busy) onShelve() }
                 TextLink(if (done) "Mark finished \u2713" else "Mark finished", color = ACCENT) { if (!busy) onFinish() }
             }
@@ -324,23 +316,24 @@ private fun ShelfGroup(
                             textDecoration = if (b.finished) TextDecoration.LineThrough else null,
                             color = if (b.finished) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         )
+                        val place = when (kind) {
+                            "read" -> "Read"
+                            "bookmarked" -> "On ${b.read} of ${b.length} ${unitLabel(b.unit, b.length)}"
+                            else -> if (b.read > 0) "$pct%" else "Not started"
+                        }
                         Text(
-                            (b.author?.takeIf { it.isNotBlank() }?.let { "$it  \u00b7  " } ?: "") +
-                                (if (kind == "read") "Read" else "$pct%"),
+                            (b.author?.takeIf { it.isNotBlank() }?.let { "$it  \u00b7  " } ?: "") + place,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    if (kind != "bookmarked" || b.shelved || b.finished) {
-                        TextLink(if (kind == "read") "Reopen" else "Move to reading", color = ACCENT) {
-                            if (!busy) vm.returnToQueue(b)
-                        }
-                    }
-                    if (kind == "bookmarked") {
-                        Box(Modifier.clickable(enabled = !busy) { vm.bookmark(b.id, false) }.padding(2.dp)) {
-                            Icon(KairosIcons.Bookmark, contentDescription = "Remove bookmark", tint = BOOKMARK, modifier = Modifier.size(16.dp))
+                    TextLink(if (kind == "read") "Reopen" else "Move to reading", color = ACCENT) {
+                        if (!busy) when (kind) {
+                            "read" -> vm.finish(b.id, false)
+                            "bookmarked" -> vm.bookmark(b.id, false)
+                            else -> vm.shelf(b.id, false)
                         }
                     }
                     Box(Modifier.clickable { onDelete(b) }.padding(2.dp)) {

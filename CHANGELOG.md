@@ -1,13 +1,14 @@
 # Changelog
 
-## 0.74.0 — Reading (leisure book-tracker)
+## 0.74.1 — Reading (leisure book-tracker)
 - New Reading section, strictly your own — no one sees anyone else's books.
 - Add a book with an optional author and a size in pages and/or chapters (at
   least one; if you give both, progress tracks pages and the chapter count shows
   as a note). Log how much you read today; it feeds the Scholar stat.
-- Bookmark a book, or shelve it for later. A new Bookshelf groups everything into
-  To read / Bookmarked / Read — tap "Move to reading" (or "Reopen") to bring a
-  book back into your reading queue and log progress again.
+- Set a book aside two ways: **bookmark** it to keep your place and resume later,
+  or **shelve** it to save for later. The Bookshelf groups everything into To
+  read / Bookmarked / Read; "Move to reading" (or "Reopen") brings a book back and
+  resumes from your last logged page. A bookmarked book shows where you left off.
 - Removing a book asks first.
 
 ## 0.73.0 — Money admin + home reminder

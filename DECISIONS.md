@@ -178,6 +178,9 @@ Self-only leisure book-tracker mirroring the web. One screen holds the reading
 queue, an "Add a book" dialog (title, optional author, pages and/or chapters —
 at least one), and an inline **Bookshelf** toggle grouping To read / Bookmarked /
 Read (rather than a separate route, to avoid the drawer-nav reload pitfalls).
-`returnToQueue` combines un-finish + un-shelve into **one** VM action so the two
-server calls don't collide on the busy guard and there's a single reload. State
-via `collectAsState()`; delete confirmed through `AnimatedDialog`.
+Bookmark and Shelve are two mutually-exclusive ways to move a book off the queue
+onto the shelf (Bookmarked = keep your place and resume; To read = save for
+later); the server clears the other flag, so "Move to reading" just clears the
+one flag for that bucket (`bookmark(false)`/`shelf(false)`/`finish(false)`) —
+one call, one reload, no busy-guard collision. There is no favourite/star.
+State via `collectAsState()`; delete confirmed through `AnimatedDialog`.

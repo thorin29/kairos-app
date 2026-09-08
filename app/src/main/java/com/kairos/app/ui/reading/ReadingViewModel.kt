@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.AddBookRequest
-import com.kairos.app.data.remote.dto.BookDto
 import com.kairos.app.data.remote.dto.BooksDto
 import com.kairos.app.data.remote.dto.UpdateBookRequest
 import com.kairos.app.data.session.SessionRepository
@@ -61,12 +60,6 @@ class ReadingViewModel(
     fun shelf(id: String, shelved: Boolean, onDone: () -> Unit = {}) = act(onDone) { session.shelfBook(id, shelved) }
     fun bookmark(id: String, bookmarked: Boolean) = act { session.bookmarkBook(id, bookmarked) }
     fun delete(id: String, onDone: () -> Unit = {}) = act(onDone) { session.deleteBook(id) }
-
-    /** Bring a shelved/finished book back into the reading queue in one reload. */
-    fun returnToQueue(book: BookDto, onDone: () -> Unit = {}) = act(onDone) {
-        if (book.finished) session.finishBook(book.id, false)
-        if (book.shelved) session.shelfBook(book.id, false)
-    }
 
     private fun form(onDone: () -> Unit, block: suspend () -> Unit) {
         if (_ui.value.saving) return
