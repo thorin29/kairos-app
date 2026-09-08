@@ -411,6 +411,10 @@ class SessionRepository(
         runAuthed { requireService().addGrocery(com.kairos.app.data.remote.dto.AddGroceryRequest(name, storeId, note)) }
     }
 
+    suspend fun addGroceryFromCatalog(catalogId: String, storeId: String? = null) {
+        runAuthed { requireService().addGroceryFromCatalog(com.kairos.app.data.remote.dto.AddCatalogRequest(catalogId, storeId)) }
+    }
+
     suspend fun removeGrocery(id: String) {
         runAuthed { requireService().removeGrocery(com.kairos.app.data.remote.dto.GroceryIdRequest(id)) }
     }
@@ -547,6 +551,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 124
+        const val CLIENT_BUILD = 125
     }
 }

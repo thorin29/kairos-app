@@ -1,4 +1,11 @@
 # Changelog
+## 0.75.1
+- Groceries add matches the web: start typing and it suggests items you already
+  have (with their icons) so you don't create duplicates, plus one-tap **Common**
+  items when the box is empty. Picking a suggestion uses its remembered store;
+  a brand-new item asks which store (pre-selecting its usual one, skipped when
+  there's only one store).
+
 ## 0.75.0
 - Groceries: the shared family shopping list is now in the app. See the saved
   list grouped by store, add an item (its store is remembered from the catalog,

@@ -157,7 +157,8 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
         AddItemDialog(
             data = data,
             saving = ui.busy,
-            onAdd = { name, storeId -> vm.add(name, storeId); showAdd = false },
+            onAddCatalog = { catalogId, storeId -> vm.addFromCatalog(catalogId, storeId); showAdd = false },
+            onAddNew = { name, storeId -> vm.add(name, storeId); showAdd = false },
             onDismiss = { showAdd = false },
         )
     }
@@ -274,58 +275,145 @@ private fun ItemRow(
     }
 }
 
+private data class PendingAdd(val label: String, val catalogId: String?, val defaultStoreId: String?)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddItemDialog(
     data: GroceriesDto,
     saving: Boolean,
-    onAdd: (name: String, storeId: String) -> Unit,
+    onAddCatalog: (catalogId: String, storeId: String?) -> Unit,
+    onAddNew: (name: String, storeId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf("") }
+    var pending by remember { mutableStateOf<PendingAdd?>(null) }
     var chosenStore by remember { mutableStateOf<String?>(null) }
 
-    val catalogStore = data.catalog.firstOrNull {
-        it.name.trim().equals(name.trim(), ignoreCase = true)
-    }?.defaultStoreId
-    val effectiveStore = chosenStore ?: catalogStore ?: data.stores.firstOrNull()?.id
-    val single = data.stores.size <= 1
+    val only = if (data.stores.size == 1) data.stores.first().id else null
+
+    // Take an item towards the list: with one store, add straight away; with
+    // several, drop into store-pick, pre-selecting the item's usual store.
+    fun commit(p: PendingAdd) {
+        if (only != null) {
+            if (p.catalogId != null) onAddCatalog(p.catalogId, only) else onAddNew(p.label, only)
+        } else {
+            chosenStore = p.defaultStoreId ?: data.stores.firstOrNull()?.id
+            pending = p
+        }
+    }
+
+    fun submitTyped() {
+        val label = query.trim()
+        if (label.isEmpty()) return
+        val hit = data.catalog.firstOrNull { it.name.lowercase() == label.lowercase() }
+        commit(if (hit != null) PendingAdd(hit.name, hit.id, hit.defaultStoreId) else PendingAdd(label, null, null))
+    }
+
+    fun commitChosen() {
+        val p = pending ?: return
+        val s = chosenStore ?: return
+        if (p.catalogId != null) onAddCatalog(p.catalogId, s) else onAddNew(p.label, s)
+    }
 
     AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = "Add an item",
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = if (pending == null) "Add an item" else "Which store?",
+        dismissButton = {
+            TextButton(onClick = { if (pending != null) pending = null else onDismiss() }) {
+                Text(if (pending != null) "Back" else "Cancel")
+            }
+        },
         confirmButton = {
-            TextButton(
-                enabled = !saving && name.trim().isNotEmpty() && effectiveStore != null,
-                onClick = { effectiveStore?.let { onAdd(name.trim(), it) } },
-            ) { Text("Add") }
+            if (pending == null) {
+                TextButton(enabled = !saving && query.trim().isNotEmpty(), onClick = { submitTyped() }) { Text("Add") }
+            } else {
+                TextButton(enabled = !saving && chosenStore != null, onClick = { commitChosen() }) { Text("Add") }
+            }
         },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-            ) {
-                BasicTextField(
-                    value = name,
-                    onValueChange = { name = it.take(60) },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { inner ->
-                        if (name.isEmpty()) Text("What do you need?", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        inner()
-                    },
-                )
+        val p = pending
+        if (p == null) {
+            val q = query.trim().lowercase()
+            val matches = if (q.isEmpty()) emptyList() else data.catalog.filter { it.name.lowercase().contains(q) }.take(6)
+            val exact = data.catalog.any { it.name.lowercase() == q }
+            val common = data.catalog.take(12)
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    BasicTextField(
+                        value = query,
+                        onValueChange = { query = it.take(60) },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { inner ->
+                            if (query.isEmpty()) Text("Add an item\u2026", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            inner()
+                        },
+                    )
+                }
+
+                if (q.isEmpty()) {
+                    if (common.isNotEmpty()) {
+                        Text("COMMON", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            common.forEach { c ->
+                                Row(
+                                    Modifier.clip(RoundedCornerShape(999.dp))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+                                        .clickable(enabled = !saving) { commit(PendingAdd(c.name, c.id, c.defaultStoreId)) }
+                                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                ) {
+                                    Text(c.icon, style = MaterialTheme.typography.bodyMedium)
+                                    Text(c.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Column {
+                        matches.forEach { c ->
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                                    .clickable(enabled = !saving) { commit(PendingAdd(c.name, c.id, c.defaultStoreId)) }
+                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Text(c.icon, style = MaterialTheme.typography.bodyLarge)
+                                Text(c.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                        if (!exact) {
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                                    .clickable(enabled = !saving) { commit(PendingAdd(query.trim(), null, null)) }
+                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(KairosIcons.Plus, contentDescription = null, tint = ACCENT, modifier = Modifier.size(16.dp))
+                                Text("Add \u201c${query.trim()}\u201d", style = MaterialTheme.typography.bodyMedium, color = ACCENT)
+                            }
+                        }
+                    }
+                }
             }
-            if (!single) {
-                Text("Store", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Add \u201c${p.label}\u201d to:", style = MaterialTheme.typography.bodyMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     data.stores.forEach { store ->
-                        val selected = store.id == effectiveStore
+                        val selected = store.id == chosenStore
                         Row(
                             Modifier.clip(RoundedCornerShape(999.dp))
                                 .background(if (selected) ACCENT else MaterialTheme.colorScheme.surfaceVariant)
@@ -335,11 +423,7 @@ private fun AddItemDialog(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Text(store.icon, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                store.name,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
-                            )
+                            Text(store.name, style = MaterialTheme.typography.labelLarge, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
