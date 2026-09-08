@@ -1,4 +1,12 @@
 # Changelog
+## 0.110.0
+- Offline optimism now covers Money: adding, editing and deleting transactions, and
+  approving / unapproving (including approve-all and the Bible-reward approvals) all
+  update instantly, survive navigation/restart offline, and reconcile on sync. The
+  per-person balance figures are computed on the server, so they catch up on the next
+  sync while the ledger itself updates right away. (Setting starting funds stays
+  online-only, since it re-computes balances.)
+
 ## 0.109.0
 - Offline optimism now covers Groceries: adding items (typed or from the catalog),
   ticking them off, moving them between stores, removing them, and finishing a

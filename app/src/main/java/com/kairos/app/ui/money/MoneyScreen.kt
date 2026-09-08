@@ -96,7 +96,7 @@ private data class EditTarget(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoneyScreen(onOpenDrawer: () -> Unit) {
+fun MoneyScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: MoneyViewModel = viewModel(
         factory = viewModelFactory {
@@ -104,6 +104,7 @@ fun MoneyScreen(onOpenDrawer: () -> Unit) {
         },
     )
     val ui by vm.ui.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
     Scaffold(
         topBar = {

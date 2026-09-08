@@ -536,3 +536,16 @@ groceries. MONEY DEFERRED to next turn: it looks similar but has server-computed
 balances (from entries + starting funds + reward logic) and an approval workflow
 (approve/unapprove/all + reward-month/base), so it's a bigger, more nuanced job -
 doing it carefully next rather than stacking two complex models.
+
+## App: Money optimistic offline (0.110.0) — batch 2 complete
+MoneyViewModel: one optimistic(form,onDone,mutate,write) helper (form=adding flag,
+else approving flag). addEntry->insertRow (only if req.userId == data.selectedId),
+updateEntry->updateRow, delete->removeRow (+ pendingApprovals), approve/unapprove->
+setApproved (row status + pendingApprovals), approveAll->approveAllRows, reward month/
+base->setRewardMonth/setRewardBase (flip bonusAvailable / completer.needsBase).
+freshData(user)=applyPending(loadMoney(user), pendingWrites()) parses money/{entry,
+update,delete,approve,unapprove,approve-all,rewards/approve-month,rewards/approve-base}.
+Per-person balanceCents are server-computed so they lag until sync (rows/approvals
+update at once). setStarting stays non-optimistic (recomputes balances). MoneyScreen
+refreshKey = dataRevision. Batch 2 DONE. Next: batch 3 (calendar, workouts+create),
+then settings.

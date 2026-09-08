@@ -213,7 +213,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else if (key == "calendar") {
                         CalendarScreen(onOpenDrawer = { open = true })
                     } else if (key == "money") {
-                        MoneyScreen(onOpenDrawer = { open = true })
+                        MoneyScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
                     } else if (key == "reading") {
                         ReadingScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
                     } else if (key == "tasks") {
