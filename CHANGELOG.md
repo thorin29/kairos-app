@@ -1,4 +1,8 @@
 # Changelog
+## 0.90.0
+- Characters: the Hatch egg icon is bigger and clearer (matches the reference),
+  and the Hatch/Deepen/Gallery button icons are a bit larger overall.
+
 ## 0.89.0
 - Characters: the Hatch button now uses a cracking-egg icon instead of a plus.
 

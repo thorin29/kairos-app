@@ -136,7 +136,7 @@ private fun CharAction(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(28.dp))
             Spacer(Modifier.height(6.dp))
             Text(
                 label,
