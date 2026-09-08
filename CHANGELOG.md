@@ -1,4 +1,7 @@
 # Changelog
+## 0.89.0
+- Characters: the Hatch button now uses a cracking-egg icon instead of a plus.
+
 ## 0.88.0
 - Gallery: locked creatures now show an era silhouette for every era (Modern,
   Toon, Arcade, Dragon, Vintage, Wartime), with a generic fallback — no more

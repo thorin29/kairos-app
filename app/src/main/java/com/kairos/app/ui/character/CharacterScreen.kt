@@ -104,7 +104,7 @@ private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: Charac
         // Actions below the card — only what applies. Same card design throughout.
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (c.eggReady) {
-                CharAction(KairosIcons.Plus, "Hatch", Modifier.weight(1f), highlighted = true, enabled = !ui.busy) { vm.hatch("new") }
+                CharAction(KairosIcons.Egg, "Hatch", Modifier.weight(1f), highlighted = true, enabled = !ui.busy) { vm.hatch("new") }
                 if (c.active) {
                     CharAction(KairosIcons.Palette, "Deepen", Modifier.weight(1f), enabled = !ui.busy) { vm.hatch("deepen") }
                 }

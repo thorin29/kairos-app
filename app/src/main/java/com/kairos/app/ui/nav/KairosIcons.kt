@@ -156,6 +156,17 @@ object KairosIcons {
         "M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
     )
 
+    // Hatching egg: a cracked egg with little "shake" ticks either side.
+    val Egg = stroked(
+        "Egg",
+        "M12 3.4c-3.1 0-5.3 4.8-5.3 8.7a5.3 5.3 0 0 0 10.6 0c0-3.9-2.2-8.7-5.3-8.7z",
+        "M9.3 11.9l1.3-1.1 1 1.1 1.1-1.1 1.3 1.1",
+        "M4 10.6l1.7 1",
+        "M4 13.6l1.7-1",
+        "M20 10.6l-1.7 1",
+        "M20 13.6l-1.7-1",
+    )
+
     // Drawn glyphs for common items Unicode has no emoji for.
     val Napkin = stroked("Napkin", "M3 19h18L12 5Z", "M12 5 8.5 19", "M12 5 15.5 19")
 
