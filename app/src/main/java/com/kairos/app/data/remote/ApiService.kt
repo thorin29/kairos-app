@@ -304,9 +304,6 @@ interface ApiService {
     @POST("books/shelf")
     suspend fun shelfBook(@Body body: com.kairos.app.data.remote.dto.BookShelfRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
-    @POST("books/bookmark")
-    suspend fun bookmarkBook(@Body body: com.kairos.app.data.remote.dto.BookBookmarkRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
-
     @POST("books/delete")
     suspend fun deleteBook(@Body body: com.kairos.app.data.remote.dto.BookIdRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 }

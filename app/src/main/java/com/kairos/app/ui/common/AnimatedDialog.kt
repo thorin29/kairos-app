@@ -50,7 +50,8 @@ fun AnimatedDialog(
         )
         Surface(
             shape = RoundedCornerShape(28.dp),
-            tonalElevation = 6.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 6.dp,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .alpha(progress)

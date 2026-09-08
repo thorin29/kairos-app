@@ -101,11 +101,10 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
     var editTarget by remember { mutableStateOf<BookDto?>(null) }
     var deleteTarget by remember { mutableStateOf<BookDto?>(null) }
 
-    val queue = data.books.filter { !it.shelved && !it.bookmarked && !it.finished }
-    val toRead = data.books.filter { it.shelved && !it.bookmarked && !it.finished }
-    val bookmarked = data.books.filter { it.bookmarked && !it.finished }
+    val queue = data.books.filter { !it.shelved && !it.finished }
+    val toRead = data.books.filter { it.shelved && !it.finished }
     val read = data.books.filter { it.finished }
-    val shelfCount = toRead.size + bookmarked.size + read.size
+    val shelfCount = toRead.size + read.size
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -118,8 +117,7 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
             BookCard(
                 book = b,
                 busy = ui.busy,
-                onLog = { amt -> vm.log(b.id, amt) },
-                onBookmark = { vm.bookmark(b.id, true) },
+                onLog = { page -> vm.log(b.id, page) },
                 onShelve = { vm.shelf(b.id, true) },
                 onFinish = { vm.finish(b.id, true) },
                 onEdit = { vm.clearSaveError(); editTarget = b },
@@ -154,7 +152,6 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
             }
             if (showShelf) {
                 ShelfGroup("To read", toRead, "toRead", ui.busy, vm) { deleteTarget = it }
-                ShelfGroup("Bookmarked", bookmarked, "bookmarked", ui.busy, vm) { deleteTarget = it }
                 ShelfGroup("Read", read, "read", ui.busy, vm) { deleteTarget = it }
             }
         }
@@ -167,7 +164,7 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
             initial = null,
             saving = ui.saving,
             serverError = ui.saveError,
-            onSubmit = { t, a, p, c ->
+            onSubmit = { t, a, p, c, _ ->
                 vm.add(AddBookRequest(title = t, author = a, pages = p, chapters = c)) { showAdd = false }
             },
             onDismiss = { showAdd = false },
@@ -181,8 +178,8 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
             initial = b,
             saving = ui.saving,
             serverError = ui.saveError,
-            onSubmit = { t, a, p, c ->
-                vm.update(UpdateBookRequest(id = b.id, title = t, author = a, pages = p, chapters = c)) { editTarget = null }
+            onSubmit = { t, a, p, c, pos ->
+                vm.update(UpdateBookRequest(id = b.id, title = t, author = a, pages = p, chapters = c, position = pos)) { editTarget = null }
             },
             onDismiss = { editTarget = null },
         )
@@ -209,13 +206,12 @@ private fun BookCard(
     book: BookDto,
     busy: Boolean,
     onLog: (Int) -> Unit,
-    onBookmark: () -> Unit,
     onShelve: () -> Unit,
     onFinish: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var amount by remember(book.id, book.todayAmount) { mutableStateOf(if (book.todayAmount > 0) book.todayAmount.toString() else "") }
+    var page by remember(book.id, book.position) { mutableStateOf(if (book.position > 0) book.position.toString() else "") }
     val pct = if (book.length > 0) (book.read * 100 / book.length) else 0
     val done = if (book.length > 0) (book.read >= book.length) else false
 
@@ -245,28 +241,32 @@ private fun BookCard(
 
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Read today:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (book.unit == "PAGES") "Page you're on:" else "Chapter you're on:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Box(
                     Modifier.width(72.dp).clip(RoundedCornerShape(6.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                 ) {
                     BasicTextField(
-                        value = amount,
-                        onValueChange = { s -> amount = s.filter { it.isDigit() }.take(6) },
+                        value = page,
+                        onValueChange = { s -> page = s.filter { it.isDigit() }.take(6) },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         decorationBox = { inner ->
-                            if (amount.isEmpty()) Text("0", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (page.isEmpty()) Text("0", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             inner()
                         },
                     )
                 }
                 Row(
                     Modifier.clip(RoundedCornerShape(999.dp)).background(ACCENT)
-                        .clickable(enabled = !busy) { onLog(amount.toIntOrNull() ?: 0) }
+                        .clickable(enabled = !busy) { onLog(page.toIntOrNull() ?: 0) }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                 ) { Text("Save", style = MaterialTheme.typography.labelLarge, color = Color.White) }
             }
@@ -274,7 +274,6 @@ private fun BookCard(
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 TextLink("Edit") { onEdit() }
-                TextLink("Bookmark") { if (!busy) onBookmark() }
                 TextLink("Shelve") { if (!busy) onShelve() }
                 TextLink(if (done) "Mark finished \u2713" else "Mark finished", color = ACCENT) { if (!busy) onFinish() }
             }
@@ -300,7 +299,6 @@ private fun ShelfGroup(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         books.forEach { b ->
-            val pct = if (b.length > 0) (b.read * 100 / b.length) else 0
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
@@ -316,10 +314,12 @@ private fun ShelfGroup(
                             textDecoration = if (b.finished) TextDecoration.LineThrough else null,
                             color = if (b.finished) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         )
-                        val place = when (kind) {
-                            "read" -> "Read"
-                            "bookmarked" -> "On ${b.read} of ${b.length} ${unitLabel(b.unit, b.length)}"
-                            else -> if (b.read > 0) "$pct%" else "Not started"
+                        val place = if (kind == "read") {
+                            "Read"
+                        } else if (b.position > 0) {
+                            "On ${b.read} of ${b.length} ${unitLabel(b.unit, b.length)}"
+                        } else {
+                            "Not started"
                         }
                         Text(
                             (b.author?.takeIf { it.isNotBlank() }?.let { "$it  \u00b7  " } ?: "") + place,
@@ -330,10 +330,8 @@ private fun ShelfGroup(
                         )
                     }
                     TextLink(if (kind == "read") "Reopen" else "Move to reading", color = ACCENT) {
-                        if (!busy) when (kind) {
-                            "read" -> vm.finish(b.id, false)
-                            "bookmarked" -> vm.bookmark(b.id, false)
-                            else -> vm.shelf(b.id, false)
+                        if (!busy) {
+                            if (kind == "read") vm.finish(b.id, false) else vm.shelf(b.id, false)
                         }
                     }
                     Box(Modifier.clickable { onDelete(b) }.padding(2.dp)) {
@@ -352,13 +350,14 @@ private fun BookFormDialog(
     initial: BookDto?,
     saving: Boolean,
     serverError: String?,
-    onSubmit: (title: String, author: String?, pages: Int?, chapters: Int?) -> Unit,
+    onSubmit: (title: String, author: String?, pages: Int?, chapters: Int?, position: Int?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var bookTitle by remember { mutableStateOf(initial?.title ?: "") }
     var author by remember { mutableStateOf(initial?.author ?: "") }
     var pages by remember { mutableStateOf(initial?.pages?.toString() ?: "") }
     var chapters by remember { mutableStateOf(initial?.chapters?.toString() ?: "") }
+    var position by remember { mutableStateOf(if ((initial?.position ?: 0) > 0) initial!!.position.toString() else "") }
     var localError by remember { mutableStateOf<String?>(null) }
 
     AnimatedDialog(
@@ -376,7 +375,13 @@ private fun BookFormDialog(
                         p <= 0 && c <= 0 -> localError = "Enter a page or chapter count."
                         else -> {
                             localError = null
-                            onSubmit(bookTitle.trim(), author.trim().ifBlank { null }, p.takeIf { it > 0 }, c.takeIf { it > 0 })
+                            onSubmit(
+                                bookTitle.trim(),
+                                author.trim().ifBlank { null },
+                                p.takeIf { it > 0 },
+                                c.takeIf { it > 0 },
+                                if (initial != null) (position.toIntOrNull() ?: 0) else null,
+                            )
                         }
                     }
                 },
@@ -389,6 +394,15 @@ private fun BookFormDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.weight(1f)) { LabeledField("Pages", pages, { s -> pages = s.filter { it.isDigit() }.take(6) }, "0", KeyboardType.Number) }
                 Box(Modifier.weight(1f)) { LabeledField("Chapters", chapters, { s -> chapters = s.filter { it.isDigit() }.take(6) }, "0", KeyboardType.Number) }
+            }
+            if (initial != null) {
+                LabeledField(
+                    if (initial.unit == "PAGES") "Page you're on" else "Chapter you're on",
+                    position,
+                    { s -> position = s.filter { it.isDigit() }.take(6) },
+                    "0",
+                    KeyboardType.Number,
+                )
             }
             Text("Enter pages and/or chapters \u2014 at least one.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             (localError ?: serverError)?.let {

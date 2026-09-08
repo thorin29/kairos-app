@@ -24,7 +24,7 @@ data class ReadingUiState(
 
 /**
  * Owns the leisure Reading surface: one self-only read (GET /books), add a book,
- * log today's reading, edit, finish/reopen, shelve/un-shelve, bookmark, delete.
+ * set the page you're up to, edit, finish/reopen, shelve/un-shelve, delete.
  * Mutations reload so the queue and bookshelf refresh in place.
  */
 class ReadingViewModel(
@@ -55,10 +55,9 @@ class ReadingViewModel(
     fun add(req: AddBookRequest, onDone: () -> Unit) = form(onDone) { session.addBook(req) }
     fun update(req: UpdateBookRequest, onDone: () -> Unit) = form(onDone) { session.updateBook(req) }
 
-    fun log(id: String, amount: Int) = act { session.logBook(id, amount) }
+    fun log(id: String, page: Int) = act { session.logBook(id, page) }
     fun finish(id: String, finished: Boolean, onDone: () -> Unit = {}) = act(onDone) { session.finishBook(id, finished) }
     fun shelf(id: String, shelved: Boolean, onDone: () -> Unit = {}) = act(onDone) { session.shelfBook(id, shelved) }
-    fun bookmark(id: String, bookmarked: Boolean) = act { session.bookmarkBook(id, bookmarked) }
     fun delete(id: String, onDone: () -> Unit = {}) = act(onDone) { session.deleteBook(id) }
 
     private fun form(onDone: () -> Unit, block: suspend () -> Unit) {

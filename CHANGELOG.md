@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.74.2 — Reading: page-you're-on + white pop-ups
+- Reading now works by the page you're on: enter what page (or chapter) you're up
+  to and how far you've read is figured out from that for the Scholar stat —
+  paging back and forth never double-counts, each page counts once. Mark finished
+  completes the book to 100%.
+- Bookmark was dropped as redundant with Shelve (both just moved a book to the
+  shelf and kept your place). The Bookshelf is now To read / Read, and a shelved
+  book shows where you left off so you resume there. Edit a book to correct the
+  page you're on.
+- All pop-ups are now a uniform white (removed the faint teal tint on dialogs).
+
 ## 0.74.1 — Reading (leisure book-tracker)
 - New Reading section, strictly your own — no one sees anyone else's books.
 - Add a book with an optional author and a size in pages and/or chapters (at

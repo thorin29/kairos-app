@@ -178,9 +178,13 @@ Self-only leisure book-tracker mirroring the web. One screen holds the reading
 queue, an "Add a book" dialog (title, optional author, pages and/or chapters —
 at least one), and an inline **Bookshelf** toggle grouping To read / Bookmarked /
 Read (rather than a separate route, to avoid the drawer-nav reload pitfalls).
-Bookmark and Shelve are two mutually-exclusive ways to move a book off the queue
-onto the shelf (Bookmarked = keep your place and resume; To read = save for
-later); the server clears the other flag, so "Move to reading" just clears the
-one flag for that bucket (`bookmark(false)`/`shelf(false)`/`finish(false)`) —
-one call, one reload, no busy-guard collision. There is no favourite/star.
-State via `collectAsState()`; delete confirmed through `AnimatedDialog`.
+Reading tracks the **page/chapter you're up to** (`position` on the book). How
+far you've read and the Scholar XP derive from it at read time, so paging back and
+forth never banks extra credit — each page counts once. Mark finished sets the
+position to the full length (100%). **Bookmark was removed** as redundant with
+Shelve (both just moved a book to the shelf keeping your place); the shelf is now
+To read / Read, and a shelved book shows where you left off. Correct a mis-typed
+page via Edit. Dialogs use `AnimatedDialog` with **no tonal tint** (`tonalElevation
+= 0`, `shadowElevation = 6`) so every pop-up is a uniform white — Material's
+tonal elevation was tinting elevated surfaces with the teal primary. State via
+`collectAsState()`; delete confirmed through `AnimatedDialog`.

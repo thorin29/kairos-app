@@ -1102,7 +1102,6 @@ data class StartingFundsRequest(
 
 @Serializable
 data class BooksDto(
-    val today: String = "",
     val books: List<BookDto> = emptyList(),
 )
 
@@ -1115,12 +1114,10 @@ data class BookDto(
     val length: Int = 0,
     val pages: Int? = null,
     val chapters: Int? = null,
+    val position: Int = 0,
     val read: Int = 0,
-    val rawRead: Int = 0,
-    val todayAmount: Int = 0,
     val finished: Boolean = false,
     val shelved: Boolean = false,
-    val bookmarked: Boolean = false,
 )
 
 @Serializable
@@ -1134,7 +1131,7 @@ data class AddBookRequest(
 @Serializable
 data class LogBookRequest(
     val id: String,
-    val amount: Int,
+    val page: Int,
 )
 
 @Serializable
@@ -1144,6 +1141,7 @@ data class UpdateBookRequest(
     val author: String? = null,
     val pages: Int? = null,
     val chapters: Int? = null,
+    val position: Int? = null,
 )
 
 @Serializable
@@ -1156,12 +1154,6 @@ data class BookFinishRequest(
 data class BookShelfRequest(
     val id: String,
     val shelved: Boolean,
-)
-
-@Serializable
-data class BookBookmarkRequest(
-    val id: String,
-    val bookmarked: Boolean,
 )
 
 @Serializable

@@ -383,8 +383,8 @@ class SessionRepository(
         runAuthed { requireService().addBook(body) }
     }
 
-    suspend fun logBook(id: String, amount: Int) {
-        runAuthed { requireService().logBook(com.kairos.app.data.remote.dto.LogBookRequest(id, amount)) }
+    suspend fun logBook(id: String, page: Int) {
+        runAuthed { requireService().logBook(com.kairos.app.data.remote.dto.LogBookRequest(id, page)) }
     }
 
     suspend fun updateBook(body: com.kairos.app.data.remote.dto.UpdateBookRequest) {
@@ -397,10 +397,6 @@ class SessionRepository(
 
     suspend fun shelfBook(id: String, shelved: Boolean) {
         runAuthed { requireService().shelfBook(com.kairos.app.data.remote.dto.BookShelfRequest(id, shelved)) }
-    }
-
-    suspend fun bookmarkBook(id: String, bookmarked: Boolean) {
-        runAuthed { requireService().bookmarkBook(com.kairos.app.data.remote.dto.BookBookmarkRequest(id, bookmarked)) }
     }
 
     suspend fun deleteBook(id: String) {
