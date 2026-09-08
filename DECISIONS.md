@@ -253,3 +253,15 @@ Avatar's boxShadow ring), instead of a solid colour fill. LoadingScreen shows th
 logo with "καιρός" (Koine Greek) in Gentium Plus (res/font/gentium_plus.ttf, SIL
 OFL). Reading save clears field focus (clearFocus) and flips the Save button to a
 lighter "Saved ✓" state, reset when the page value is edited.
+
+## App: workouts restyle + avatar ring scaling (0.81.0)
+Workout screens were overriding the Scaffold containerColor to surface (white),
+which flattened the page (white content on white). Removed those overrides so
+they use the default background (PageGrey), and moved content onto white
+OutlinedCards / bordered surfaces (WorkoutsScreen progress/week/today/recent,
+BrowseWorkouts rows, WeightCalculator barbell, RecentWorkouts list, EditPlan day
+cards). PersonAvatar's ring width now scales with size (size/22, clamped
+1.2–2.5dp) so small chores avatars get a lighter ring.
+NOTE: CreatePersonalWorkoutScreen had its white-bg override removed too but its
+full redesign into a multi-step wizard (name → exercises → instructions → review,
+dropping "time cap") is still pending.

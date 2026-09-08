@@ -34,6 +34,8 @@ fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
     val base = container.sessionRepository.baseUrlRaw
     val url = person.avatarUrl
     val tint = parsePersonColor(person.color)
+    // Ring scales with the avatar so small icons (chores) get a lighter ring.
+    val ringWidth = (size.value / 22f).dp.coerceIn(1.2.dp, 2.5.dp)
 
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
         Box(
@@ -68,7 +70,7 @@ fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
         }
         // The person's colour is the ring (matches the web avatar), drawn on top
         // so it stays crisp over a photo edge.
-        Box(Modifier.fillMaxSize().border(2.5.dp, tint, CircleShape))
+        Box(Modifier.fillMaxSize().border(ringWidth, tint, CircleShape))
     }
 }
 

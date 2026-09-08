@@ -1,6 +1,7 @@
 package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -91,7 +92,6 @@ fun WorkoutsScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Workouts") },
@@ -114,54 +114,62 @@ fun WorkoutsScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     progress?.takeIf { it.series.isNotEmpty() }?.let { p ->
-                        Text(
-                            "Progress",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        WorkoutChart(p.series, p.defaultId)
-                    }
-
-                    if (week.isNotEmpty()) {
-                        Text(
-                            "This week",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        week.forEach { w ->
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(w.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(14.dp)) {
                                 Text(
-                                    "${w.count}\u00d7" + if (w.detail.isNotBlank()) " \u00b7 ${w.detail}" else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    "Progress",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
                                 )
+                                Spacer(Modifier.height(8.dp))
+                                WorkoutChart(p.series, p.defaultId)
                             }
                         }
                     }
 
-                    Text(
-                        "TODAY",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                    ) {
-                        Text(
-                            ui.planName ?: "No workout planned",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
+                    if (week.isNotEmpty()) {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    "This week",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                week.forEach { w ->
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(w.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                        Text(
+                                            "${w.count}\u00d7" + if (w.detail.isNotBlank()) " \u00b7 ${w.detail}" else "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text(
+                                "TODAY",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                ui.planName ?: "No workout planned",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -191,8 +199,16 @@ fun WorkoutsScreen(
                         ) { onOpenCalculator() }
                     }
 
-                    TextButton(onClick = onOpenRecent, modifier = Modifier.padding(top = 4.dp)) {
-                        Text("Recent workouts  →")
+                    OutlinedCard(
+                        Modifier.fillMaxWidth().clickable { onOpenRecent() },
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Recent workouts", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            Text("\u2192", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }

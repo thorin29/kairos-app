@@ -135,6 +135,7 @@ private fun DayCard(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
             .border(
                 1.dp,
                 if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,

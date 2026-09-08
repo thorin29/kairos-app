@@ -108,7 +108,8 @@ fun WeightCalculatorScreen(onBack: () -> Unit) {
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
                     .padding(vertical = 12.dp),
             ) {
                 Barbell(perSide, bar.type)

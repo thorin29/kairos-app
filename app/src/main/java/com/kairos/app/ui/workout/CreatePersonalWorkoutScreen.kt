@@ -76,7 +76,6 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
     LaunchedEffect(ui.done) { if (ui.done) onBack() }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Create / Edit workout") },

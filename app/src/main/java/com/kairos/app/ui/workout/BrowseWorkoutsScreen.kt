@@ -58,7 +58,6 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
     var shareFor by remember { mutableStateOf<BrowseWorkoutDto?>(null) }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Browse workouts") },
@@ -211,7 +210,8 @@ private fun WorkoutCard(w: BrowseWorkoutDto, onShare: (() -> Unit)? = null) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

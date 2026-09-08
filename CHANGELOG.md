@@ -1,4 +1,11 @@
 # Changelog
+## 0.81.0
+- Chores avatars: the coloured ring is thinner on small avatars.
+- Workouts styling now matches the rest of the app: the main Workouts page, Browse
+  workouts, the weight calculator, recent workouts, and the plan editor use the
+  standard page background with white cards (buttons, graph, today, recent, and
+  each plan day are on white cards).
+
 ## 0.80.0
 - Reading: saving a page now clears the input (the cursor stops blinking and the
   keyboard closes) and the Save button turns lighter and reads "Saved ✓".
