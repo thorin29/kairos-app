@@ -265,3 +265,13 @@ cards). PersonAvatar's ring width now scales with size (size/22, clamped
 NOTE: CreatePersonalWorkoutScreen had its white-bg override removed too but its
 full redesign into a multi-step wizard (name → exercises → instructions → review,
 dropping "time cap") is still pending.
+
+## App: Create/Edit personal workout is a 4-step wizard (0.82.0)
+CreatePersonalWorkoutScreen was rebuilt as a wizard over the same ViewModel:
+step 1 name+type (new/pick-existing, rename, delete), step 2 exercises (pool
+picker, add/edit custom), step 3 instructions (placeholder mirrors the web admin
+hint "example: 100 thrusters…"), step 4 a read-only review (name, type,
+exercises, instructions). Header reads "Create / Edit" over "HIIT/CrossFit".
+Time cap was dropped from the UI — submit sends capSec=null (cap logic stays
+dormant in the VM). The existing view-locked-until-Edit model is preserved: an
+existing workout opens read-only across steps; the top-bar Edit unlocks it.

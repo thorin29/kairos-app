@@ -1,4 +1,10 @@
 # Changelog
+## 0.82.0
+- Create / Edit workout is now a step-by-step wizard (HIIT/CrossFit): 1) name
+  (new or pick one to edit, rename or delete), 2) exercises (add, add/edit custom),
+  3) instructions (with an "example: 100 thrusters…" hint), 4) a review of the
+  whole workout before saving. The time cap was removed.
+
 ## 0.81.0
 - Chores avatars: the coloured ring is thinner on small avatars.
 - Workouts styling now matches the rest of the app: the main Workouts page, Browse
