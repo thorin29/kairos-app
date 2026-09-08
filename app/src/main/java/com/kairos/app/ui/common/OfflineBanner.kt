@@ -25,12 +25,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kairos.app.ui.nav.KairosIcons
 
-/** A slim bar that slides up from the bottom when the device loses connectivity.
+/** A slim bar at the bottom that reports connectivity + offline-change sync:
+ *  offline (with any pending count), or "syncing N changes" once back online.
  *  Screens keep showing their last-synced data behind it. */
 @Composable
-fun OfflineBanner(online: Boolean, modifier: Modifier = Modifier) {
+fun OfflineBanner(online: Boolean, pending: Int, syncing: Boolean, modifier: Modifier = Modifier) {
+    val visible = !online || syncing || pending > 0
+    val changes = if (pending == 1) "1 change" else "$pending changes"
+    val message = when {
+        syncing -> "Syncing $changes\u2026"
+        !online && pending > 0 -> "Offline \u2014 $changes will sync when you reconnect"
+        !online -> "You're offline \u2014 showing saved data"
+        pending > 0 -> "$changes waiting to sync"
+        else -> ""
+    }
+    val color = if (!online) Color(0xFF334155) else Color(0xFF0F5C63)
+    val icon = if (syncing) KairosIcons.Repeat else KairosIcons.Globe
+
     AnimatedVisibility(
-        visible = !online,
+        visible = visible,
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically { it } + fadeOut(),
         modifier = modifier,
@@ -38,15 +51,15 @@ fun OfflineBanner(online: Boolean, modifier: Modifier = Modifier) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF334155))
+                .background(color)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(KairosIcons.Globe, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
             Text(
-                "You're offline — showing saved data",
+                message,
                 color = Color.White,
                 fontWeight = FontWeight.Medium,
                 style = MaterialTheme.typography.bodySmall,

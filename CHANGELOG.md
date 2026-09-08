@@ -1,4 +1,11 @@
 # Changelog
+## 0.100.0
+- Offline support (phase 2): changes you make while offline (ticking things off,
+  adding, editing) are now saved and sent automatically once you're back online,
+  instead of being blocked. The bottom bar shows how many changes are waiting and
+  a "Syncing…" state while they upload; screens refresh to the real result when
+  it's done. The queue survives closing the app.
+
 ## 0.99.0
 - Offline support (phase 1): screens now keep showing their last-synced data when
   you lose connection, with a slim "You're offline" bar at the bottom. Reads fall

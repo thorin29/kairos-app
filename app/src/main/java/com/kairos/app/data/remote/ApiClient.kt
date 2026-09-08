@@ -6,8 +6,13 @@ import okhttp3.Cache
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Response as OkResponse
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
+import kotlinx.coroutines.runBlocking
+import okio.Buffer
+import java.util.UUID
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -33,6 +38,7 @@ object ApiClient {
         baseUrl: String,
         cache: Cache? = null,
         monitor: NetworkMonitor? = null,
+        queue: WriteQueue? = null,
         tokenProvider: () -> String?,
     ): ApiService {
         val logging = HttpLoggingInterceptor().apply {
@@ -46,10 +52,10 @@ object ApiClient {
             // Read-through offline cache: when online, GET responses are stored
             // (server sends no-cache, so the network interceptor makes them
             // storable); when offline, GETs are served from the last stored copy
-            // and writes fail fast with a clear message.
+            // and writes are queued (or fail fast) instead of hanging.
             builder
                 .cache(cache)
-                .addInterceptor(OfflineInterceptor(monitor))
+                .addInterceptor(OfflineInterceptor(monitor, queue))
                 .addNetworkInterceptor(CacheableResponseInterceptor())
         }
         val ok = builder
@@ -103,12 +109,45 @@ private class CacheableResponseInterceptor : Interceptor {
 }
 
 /** Application interceptor: when offline, serve GETs from the disk cache (any
- *  age) and fail writes fast with a clear message instead of a long timeout. */
-private class OfflineInterceptor(private val monitor: NetworkMonitor) : Interceptor {
+ *  age) and capture writes into the [WriteQueue] so they replay on reconnect
+ *  (returning a synthetic success so the action isn't lost or shown as an
+ *  error). Auth calls are never queued — they only make sense online. */
+private class OfflineInterceptor(
+    private val monitor: NetworkMonitor,
+    private val queue: WriteQueue?,
+) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): OkResponse {
         val req = chain.request()
         if (monitor.isOnline()) return chain.proceed(req)
+
         if (req.method != "GET") {
+            val path = req.url.encodedPath
+            val queueable = queue != null && !path.contains("/auth/") && !path.endsWith("/revoke")
+            if (queueable) {
+                val bodyStr = req.body?.let { b ->
+                    val buffer = Buffer()
+                    b.writeTo(buffer)
+                    buffer.readUtf8()
+                }
+                runBlocking {
+                    queue!!.enqueue(
+                        PendingWrite(
+                            id = UUID.randomUUID().toString(),
+                            method = req.method,
+                            url = req.url.toString(),
+                            body = bodyStr,
+                            createdAt = System.currentTimeMillis(),
+                        ),
+                    )
+                }
+                return OkResponse.Builder()
+                    .request(req)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("Queued offline")
+                    .body("{}".toResponseBody("application/json".toMediaType()))
+                    .build()
+            }
             throw IOException("You're offline. Reconnect to make changes.")
         }
         val offline = req.newBuilder()

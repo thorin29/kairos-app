@@ -3,8 +3,11 @@ package com.kairos.app.di
 import android.content.Context
 import coil.ImageLoader
 import com.kairos.app.data.appDataStore
+import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.AuthInterceptor
 import com.kairos.app.data.remote.NetworkMonitor
+import com.kairos.app.data.remote.SyncManager
+import com.kairos.app.data.remote.WriteQueue
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
@@ -37,12 +40,25 @@ class AppContainer(context: Context) {
      *  data when offline. 15 MB is plenty for JSON. */
     private val httpCache = Cache(File(context.applicationContext.cacheDir, "api-cache"), 15L * 1024 * 1024)
 
+    /** Writes made while offline, persisted and replayed on reconnect. */
+    val writeQueue = WriteQueue(dataStore, ApiClient.json)
+
+    /** Replays [writeQueue] when connectivity returns; exposes sync status. */
+    val syncManager = SyncManager(
+        queue = writeQueue,
+        monitor = networkMonitor,
+        cache = httpCache,
+        tokenProvider = { tokenStore.current() },
+        scope = appScope,
+    )
+
     val sessionRepository = SessionRepository(
         settings = settingsStore,
         tokens = tokenStore,
         appScope = appScope,
         httpCache = httpCache,
         networkMonitor = networkMonitor,
+        writeQueue = writeQueue,
     )
 
     /** Coil loader for device-authed avatars: reuses the same bearer token as

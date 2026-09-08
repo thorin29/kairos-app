@@ -372,3 +372,24 @@ signOut / changeServer prevents one user's cache leaking to the next on a shared
 device. OfflineBanner (bottom, slides up) is driven by NetworkMonitor.online in
 AppRoot. Manifest gains ACCESS_NETWORK_STATE. PHASE 2 (later): optimistic write
 queue so changes made offline replay on reconnect.
+
+## App: offline support, phase 2 — write queue + replay (0.100.0)
+Generic persisted request queue at the network layer, so every write is covered
+with no per-endpoint code. When offline, OfflineInterceptor buffers the request
+body and enqueues a PendingWrite (method + full url + body) into WriteQueue (a
+JSON blob in DataStore, survives restart), then returns a synthetic 200 "{}" so
+the action isn't lost or shown as an error (it deserializes to a default DTO;
+the write is enqueued regardless of how the body deserializes). Auth calls
+(/auth/*, *revoke) are never queued. SyncManager watches NetworkMonitor.online and
+on reconnect replays the queue in order via a plain OkHttp client (auth only, no
+cache/offline interceptors) on Dispatchers.IO under a Mutex: 2xx or 4xx removes the
+item (4xx = stale/invalid, dropped rather than retried forever), 5xx/network stops
+the pass to retry later. After a pass it evicts the read cache and bumps
+revision; AppRoot bumps homeRefresh on revision so Home reloads the true state.
+OfflineBanner now shows offline/pending-count/syncing. Added defaults to
+WorkoutAckDto so offline workout writes deserialize cleanly (the other simple ack
+DTOs already had them). LIMITATION: offline writes aren't fully optimistic on
+reload-based screens (a reload reads the stale cache), but the change is captured,
+the pending count reflects it, and it syncs on reconnect. Rich-response writes
+(hatch, trip start, plan preview) still queue but their offline synthetic result
+is empty. Phase 3 (optional): per-screen optimistic state for instant offline UI.

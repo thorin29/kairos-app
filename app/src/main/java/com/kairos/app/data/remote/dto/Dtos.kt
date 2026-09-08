@@ -226,8 +226,8 @@ data class WorkoutDateRequest(
 /** Response of the workout complete/uncomplete/rest endpoints. */
 @Serializable
 data class WorkoutAckDto(
-    val date: String,
-    val status: String,
+    val date: String = "",
+    val status: String = "",
 )
 
 // --- Detailed workout logging (planned workouts) ---

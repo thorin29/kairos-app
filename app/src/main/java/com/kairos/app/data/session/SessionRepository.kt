@@ -47,6 +47,7 @@ class SessionRepository(
     private val appScope: CoroutineScope,
     private val httpCache: okhttp3.Cache? = null,
     private val networkMonitor: com.kairos.app.data.remote.NetworkMonitor? = null,
+    private val writeQueue: com.kairos.app.data.remote.WriteQueue? = null,
 ) {
     private val _state = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = _state.asStateFlow()
@@ -69,7 +70,7 @@ class SessionRepository(
 
     private fun rebuildService(rawBase: String) {
         baseUrlRaw = rawBase
-        service = ApiClient.create(rawBase, httpCache, networkMonitor) { tokens.current() }
+        service = ApiClient.create(rawBase, httpCache, networkMonitor, writeQueue) { tokens.current() }
     }
 
     /** Decide the start destination on launch. */
@@ -108,7 +109,7 @@ class SessionRepository(
     /** Validate a candidate server with the /meta handshake, and adopt it on
      *  success. Throws [ApiException] if it can't be reached or is too new. */
     suspend fun configureServer(rawBase: String) {
-        val candidate = ApiClient.create(rawBase, httpCache, networkMonitor) { tokens.current() }
+        val candidate = ApiClient.create(rawBase, httpCache, networkMonitor, writeQueue) { tokens.current() }
         val meta = apiCall { candidate.meta() }
         if (meta.minClient > CLIENT_BUILD) {
             throw ApiException(
@@ -604,6 +605,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 149
+        const val CLIENT_BUILD = 150
     }
 }

@@ -126,6 +126,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     var confirmSignOut by remember { mutableStateOf(false) }
     val expanded by container.navExpanded.collectAsState()
     val online by container.networkMonitor.online.collectAsState()
+    val pendingWrites by container.syncManager.pendingCount.collectAsState()
+    val syncing by container.syncManager.syncing.collectAsState()
+    val syncRevision by container.syncManager.revision.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
 
     // Bump each time we come back to Home from another destination, so Home can
@@ -145,6 +148,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             wasAwayFromHome = true
         }
     }
+
+    LaunchedEffect(syncRevision) { if (syncRevision > 0) homeRefresh++ }
 
     val openProgress by animateFloatAsState(
         targetValue = if (open) 1f else 0f,
@@ -342,6 +347,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             }
         }
 
-        OfflineBanner(online = online, modifier = Modifier.align(Alignment.BottomCenter))
+        OfflineBanner(online = online, pending = pendingWrites, syncing = syncing, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
