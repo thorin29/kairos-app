@@ -1,4 +1,8 @@
 # Changelog
+## 0.91.0
+- Characters: the Hatch icon is now a plain egg with a single crack across the
+  middle (removed the side lines), and a bit bigger.
+
 ## 0.90.0
 - Characters: the Hatch egg icon is bigger and clearer (matches the reference),
   and the Hatch/Deepen/Gallery button icons are a bit larger overall.

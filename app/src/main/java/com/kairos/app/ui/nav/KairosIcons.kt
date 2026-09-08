@@ -156,17 +156,11 @@ object KairosIcons {
         "M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
     )
 
-    // Hatching egg: cracked egg with radiating "shake" lines either side.
+    // Hatching egg: a bigger egg with a single crack straight across the middle.
     val Egg = stroked(
         "Egg",
-        "M12 3.8c-3.1 0-5.2 4.7-5.2 8.6a5.2 5.2 0 0 0 10.4 0c0-3.9-2.1-8.6-5.2-8.6z",
-        "M8.8 11.6l1.5-1.4 1.2 1.4 1.2-1.4 1.5 1.4",
-        "M4.2 8.8l1.6 1.1",
-        "M3.2 11.4l1.8 0",
-        "M4.2 14l1.6-1.1",
-        "M19.8 8.8l-1.6 1.1",
-        "M20.8 11.4l-1.8 0",
-        "M19.8 14l-1.6-1.1",
+        "M12 2.5c-3.8 0-6.3 5.7-6.3 10.4a6.3 6.3 0 0 0 12.6 0c0-4.7-2.5-10.4-6.3-10.4z",
+        "M5.9 13.2l2.4-1.8 2.4 1.8 2.4-1.8 2.4 1.8",
     )
 
     // Drawn glyphs for common items Unicode has no emoji for.
