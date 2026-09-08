@@ -1,4 +1,8 @@
 # Changelog
+## 0.97.0
+- Tasks: new checkbox-style Tasks icon (clearer vs Chores). Assign-task example
+  text now reads "Wash the car".
+
 ## 0.96.0
 - Tasks: new section plus an "assign a task" button (+) on the Home screen. The
   wizard asks who it's for, the task name, and an optional due date (calendar

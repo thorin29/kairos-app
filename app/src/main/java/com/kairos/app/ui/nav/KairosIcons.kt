@@ -141,10 +141,8 @@ object KairosIcons {
     val Check = stroked("Check", "m4 12.5 5.5 5.5L20 7")
     val Tasks = stroked(
         "Tasks",
-        "M4 6.5l1.6 1.6L8.5 5",
-        "M12 7h8",
-        "M4 15.5l1.6 1.6L8.5 14",
-        "M12 16h8",
+        "M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4z",
+        "m8.5 12 2.5 2.5 4.5-5.5",
     )
     val Plus = stroked("Plus", "M12 5v14", "M5 12h14")
     val Bookmark = stroked("Bookmark", "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z")

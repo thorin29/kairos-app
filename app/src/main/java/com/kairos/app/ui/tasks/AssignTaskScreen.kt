@@ -99,7 +99,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                     if (data.canActFor.size > 1) {
                         RollPicker("For", personName, data.canActFor.map { it.id to it.name }, { personId = it }, !ui.busy, Modifier.fillMaxWidth())
                     }
-                    Labeled("Task") { Field(title, { title = it.take(120) }, "e.g. Take out the trash") }
+                    Labeled("Task") { Field(title, { title = it.take(120) }, "e.g. Wash the car") }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
