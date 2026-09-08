@@ -1,4 +1,10 @@
 # Changelog
+## 0.105.0
+- Offline optimism now covers School: adding work, ticking it off, renaming, and
+  deleting all update instantly and survive navigation and app restarts while
+  offline, then reconcile automatically once you're back online. The page also
+  refreshes itself the moment a change syncs.
+
 ## 0.104.0
 - A task you add offline now also shows immediately on the Home dashboard (under
   Tasks), not just the Tasks page — and it survives navigation and app restarts

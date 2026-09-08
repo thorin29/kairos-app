@@ -471,3 +471,16 @@ self task now shows on Home and the Tasks page, survives nav + app restart, and
 reconciles on sync. Batch 1 (chores/bible/reading/school optimistic) still to do,
 one screen at a time per the established pattern (optimistic mutation + applyPending
 in load + refreshKey = revision).
+
+## App: School optimistic offline (0.105.0) — batch 1, screen 1
+Applied the durable-optimistic pattern to School. SchoolViewModel: optimistic()
+helper (mutate now, write, online? freshData() : keep, revert on error); add ->
+insertItem, complete -> removeItem, delete -> removeItem, rename/applyRenames ->
+renameItem. freshData() = applyPending(loadSchool(term), pendingWrites()). applyPending
+parses school/add (AddSchoolRequest -> insertItem, resolves typeLabel from data.types
+and className/color from data.classOptionsByUser), school/delete (SchoolTaskIdRequest),
+school/rename (SchoolRenameRequest), and tasks/{id}/complete (removeItem — school
+completions ride the shared task endpoint). removeItem/insertItem keep the person's
+pending/overdue counts in sync; temp-id used for optimistic inserts. SchoolScreen gains
+refreshKey = syncManager.revision (wired in AppRoot) so it reloads when a sync lands.
+Batch 1 remaining: reading, bible, chores.

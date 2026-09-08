@@ -60,12 +60,13 @@ private val ACCENT = Color(0xFF0F5C63)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit) {
+fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: SchoolViewModel = viewModel(
         factory = viewModelFactory { initializer { SchoolViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
     var editMode by remember { mutableStateOf(false) }
     val edited = remember { mutableStateMapOf<String, String>() }
