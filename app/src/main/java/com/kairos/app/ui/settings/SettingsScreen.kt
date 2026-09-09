@@ -52,6 +52,7 @@ fun SettingsScreen(
     onOpenProfile: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenUpdate: () -> Unit = {},
+    onOpenReminders: () -> Unit = {},
     updateAvailable: Boolean = false,
 ) {
     val sections = listOf(
@@ -75,6 +76,13 @@ fun SettingsScreen(
             "Reminders, sounds, and vibration settings",
             ready = true,
             onOpen = onOpenNotifications,
+        ),
+        Section(
+            KairosIcons.Calendar,
+            "Default reminders",
+            "Default reminder for each event type",
+            ready = true,
+            onOpen = onOpenReminders,
         ),
         Section(
             KairosIcons.Download,

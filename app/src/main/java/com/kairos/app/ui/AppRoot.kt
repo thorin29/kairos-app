@@ -303,6 +303,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenProfile = { navController.navigate(Route.SettingsProfile) },
                         onOpenNotifications = { navController.navigate(Route.SettingsNotifications) },
                         onOpenUpdate = { navController.navigate(Route.SettingsUpdate) },
+                        onOpenReminders = { navController.navigate(Route.SettingsReminders) },
                         updateAvailable = updateInfo != null,
                     )
                 }
@@ -317,6 +318,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.SettingsUpdate> {
                     com.kairos.app.ui.settings.UpdateScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.SettingsReminders> {
+                    com.kairos.app.ui.settings.DefaultRemindersScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Gallery> {
                     GalleryScreen(onBack = { navController.popBackStack() })

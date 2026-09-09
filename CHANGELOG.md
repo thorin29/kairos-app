@@ -1,4 +1,10 @@
 # Changelog
+## 0.136.0
+- New calendar events now start with a default reminder based on their type: Appointment
+  and Class 30 minutes before, Work shift 15 minutes, Birthday and Other none. Existing
+  events are never changed.
+- New Settings → Default reminders screen to set the default reminder for each event type.
+
 ## 0.135.0
 - Event locations are now tappable: open an event's details and tap its location to launch it
   in your maps app, ready to navigate.

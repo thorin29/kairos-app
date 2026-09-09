@@ -68,6 +68,25 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_MILITARY] = on }
     }
 
+    /** Per-event-type default reminders (minutes; -1 = none) for new events. */
+    val reminderDefaults: Flow<Map<String, Int>> =
+        dataStore.data.map { decodeReminderDefaults(it[KEY_REM_DEFAULTS]) }
+
+    suspend fun setReminderDefault(kind: String, minutes: Int) {
+        dataStore.edit { prefs ->
+            val m = decodeReminderDefaults(prefs[KEY_REM_DEFAULTS]).toMutableMap()
+            m[kind] = minutes
+            prefs[KEY_REM_DEFAULTS] = m.entries.joinToString(",") { "${it.key}=${it.value}" }
+        }
+    }
+
+    private fun decodeReminderDefaults(raw: String?): Map<String, Int> =
+        raw?.split(",")?.mapNotNull { part ->
+            val kv = part.split("=")
+            val v = kv.getOrNull(1)?.toIntOrNull()
+            if (kv.size == 2 && v != null) kv[0] to v else null
+        }?.toMap() ?: emptyMap()
+
     /** The last custom (non-palette) color picked in the profile, per device, so
      *  it can be re-offered as a swatch. */
     val lastCustomColor: Flow<String?> = dataStore.data.map { it[KEY_LAST_COLOR] }
@@ -107,5 +126,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
+        val KEY_REM_DEFAULTS = stringPreferencesKey("reminder_defaults")
     }
 }

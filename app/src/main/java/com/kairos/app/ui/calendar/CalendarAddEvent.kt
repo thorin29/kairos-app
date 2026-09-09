@@ -40,6 +40,8 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,6 +105,17 @@ fun AddEventOverlay(
         )
     }
     var reminders by remember { mutableStateOf(editEvent?.reminders ?: emptyList()) }
+    val reminderDefaults by container.settingsStore.reminderDefaults.collectAsState(initial = null)
+    // Whether the person has hand-edited reminders; if so we never auto-change them.
+    var reminderTouched by remember { mutableStateOf(editing) }
+    // Seed a new event's reminder from the per-type default once settings load.
+    LaunchedEffect(reminderDefaults) {
+        val defs = reminderDefaults
+        if (!editing && !reminderTouched && defs != null) {
+            val d = com.kairos.app.data.settings.ReminderDefaults.effective(defs, kind)
+            reminders = if (d >= 0) listOf(d) else emptyList()
+        }
+    }
     var showCustomReminder by remember { mutableStateOf(false) }
     var showPeople by remember { mutableStateOf(false) }
     val canFamily = data.options.canManageFamily
@@ -298,7 +311,7 @@ fun AddEventOverlay(
                     ) {
                         Icon(KairosIcons.Bell, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                         Text(reminderLabel(m), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                        Box(Modifier.size(28.dp).clickable { reminders = reminders - m }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(28.dp).clickable { reminders = reminders - m; reminderTouched = true }, contentAlignment = Alignment.Center) {
                             Text("\u2715", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -477,7 +490,7 @@ fun AddEventOverlay(
                     val n = amount.toIntOrNull()
                     if (n != null && n > 0) {
                         val m = (n * unit).coerceAtMost(40320)
-                        reminders = (reminders + m).distinct().sorted()
+                        reminders = (reminders + m).distinct().sorted(); reminderTouched = true
                     }
                     showCustomReminder = false
                 }) { Text("Add") }
@@ -507,6 +520,10 @@ fun AddEventOverlay(
                 SelectOptionRow(label, eventTypeId == null && kind == k) {
                     kind = k
                     eventTypeId = null
+                    if (!editing && !reminderTouched) {
+                        val d = com.kairos.app.data.settings.ReminderDefaults.effective(reminderDefaults ?: emptyMap(), k)
+                        reminders = if (d >= 0) listOf(d) else emptyList()
+                    }
                     if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
                     endMin = (startMin + typeDurationMin(null, customTypes)).coerceAtMost(23 * 60 + 59)
                     openSelector = null
@@ -517,8 +534,8 @@ fun AddEventOverlay(
                     kind = "OTHER"
                     eventTypeId = ct.id
                     endMin = (startMin + typeDurationMin(ct.id, customTypes)).coerceAtMost(23 * 60 + 59)
-                    if (!editing && reminders.isEmpty() && ct.defaultReminder != null) {
-                        reminders = listOf(ct.defaultReminder!!)
+                    if (!editing && !reminderTouched) {
+                        reminders = ct.defaultReminder?.let { listOf(it) } ?: emptyList()
                     }
                     openSelector = null
                 }
@@ -532,7 +549,7 @@ fun AddEventOverlay(
         "reminder" -> SelectorOverlay("Add notification", onClose = { openSelector = null }) {
             listOf(0, 10, 15, 30, 60, 1440, 10080).forEach { m ->
                 SelectOptionRow(reminderLabel(m), reminders.contains(m)) {
-                    reminders = (reminders + m).distinct().sorted()
+                    reminders = (reminders + m).distinct().sorted(); reminderTouched = true
                     openSelector = null
                 }
             }
