@@ -4,7 +4,6 @@ import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.DeleteAckDto
 import com.kairos.app.data.remote.dto.DeviceDto
 import com.kairos.app.data.remote.dto.DevicesResponse
-import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.EnrollResponse
 import com.kairos.app.data.remote.dto.JoinRequest
 import com.kairos.app.data.remote.dto.JoinCheckRequest
@@ -80,9 +79,6 @@ interface ApiService {
 
     @POST("auth/login")
     suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
-
-    @POST("auth/enroll")
-    suspend fun enroll(@Body body: EnrollRequest): Response<EnrollResponse>
 
     @POST("auth/join")
     suspend fun join(@Body body: JoinRequest): Response<EnrollResponse>

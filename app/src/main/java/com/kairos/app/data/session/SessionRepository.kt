@@ -8,7 +8,6 @@ import com.kairos.app.data.remote.apiCall
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import com.kairos.app.data.remote.dto.DashboardDto
-import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.LoginRequest
 import com.kairos.app.data.remote.dto.PersonDto
 import kotlinx.serialization.json.Json
@@ -70,7 +69,6 @@ class SessionRepository(
     /** Short-lived login proof from /auth/login, held only between sign-in and
      *  the code step of enrollment. Never persisted. */
     @Volatile
-    private var loginToken: String? = null
 
     init {
         appScope.launch { bootstrap() }
@@ -179,35 +177,6 @@ class SessionRepository(
     }
 
     /** Verify a password and hold the returned proof for the code step. */
-    suspend fun login(identifier: String, password: String): PersonDto? {
-        val svc = requireService()
-        val res = apiCall { svc.login(LoginRequest(identifier.trim(), password)) }
-        loginToken = res.loginToken
-        return res.person
-    }
-
-    /** Redeem an enrollment code for a device token, store it, and go Ready. The
-     *  held login proof (if any) is sent so password accounts pass the gate;
-     *  passwordless children enroll with no proof. */
-    suspend fun enroll(code: String, deviceName: String?) {
-        val svc = requireService()
-        val res = apiCall {
-            svc.enroll(
-                EnrollRequest(
-                    code = code.trim(),
-                    deviceName = deviceName?.trim(),
-                    loginToken = loginToken,
-                ),
-            )
-        }
-        tokens.save(res.token)
-        loginToken = null
-        runCatching { httpCache?.evictAll() } // fresh device: no prior user's cached data
-        clearOfflineWrites() // ...nor a prior user's queued writes
-        settings.clearLockedPerson()
-        _state.value = SessionState.Ready(res.person)
-    }
-
     /** Ask the server to email a password-reset link. Always succeeds quietly —
      *  the server reveals nothing about whether the account exists. Needs the
      *  server configured. */
@@ -236,7 +205,6 @@ class SessionRepository(
             )
         }
         tokens.save(res.token)
-        loginToken = null
         runCatching { httpCache?.evictAll() }
         clearOfflineWrites()
         settings.clearLockedPerson()
@@ -297,7 +265,6 @@ class SessionRepository(
         settings.clearLockedPerson()
         service = null
         baseUrlRaw = null
-        loginToken = null
         _state.value = SessionState.NeedsSetup
     }
 
@@ -752,6 +719,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 196
+        const val CLIENT_BUILD = 197
     }
 }

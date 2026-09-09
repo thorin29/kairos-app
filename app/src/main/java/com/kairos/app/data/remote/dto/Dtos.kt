@@ -30,12 +30,6 @@ data class PersonDto(
     val kind: String,
 )
 
-@Serializable
-data class EnrollRequest(
-    val code: String,
-    val deviceName: String? = null,
-    val loginToken: String? = null,
-)
 
 @Serializable
 data class LoginRequest(

@@ -50,6 +50,7 @@ fun JoinScreen(token: String, onCancel: () -> Unit) {
     var confirm by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var submitting by remember { mutableStateOf(false) }
+    var showForgot by remember { mutableStateOf(false) }
 
     LaunchedEffect(token) {
         loading = true
@@ -155,9 +156,18 @@ fun JoinScreen(token: String, onCancel: () -> Unit) {
                         else if (setup) "Create account" else "Add this phone",
                     )
                 }
+                if (!setup) {
+                    TextButton(onClick = { showForgot = true }) {
+                        Text("Forgot your password?")
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
         }
+    }
+
+    if (showForgot) {
+        ForgotPasswordDialog(onDismiss = { showForgot = false })
     }
 }

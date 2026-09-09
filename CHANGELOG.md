@@ -1,4 +1,10 @@
 # Changelog
+## 0.145.0
+- Removed the retired username/password + enrollment-code setup screens, now replaced by the
+  invitation-code and lock-screen flow.
+- The join screen's "confirm your password" step (adding a phone) now has a "Forgot your
+  password?" link that emails a reset code, so a forgotten password isn't a dead end there.
+
 ## 0.144.0
 - Logging out now locks the phone instead of un-enrolling it: the phone stays yours, and you get
   back in with your username and password — no new code needed. A brand-new phone (or one a
