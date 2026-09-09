@@ -1,4 +1,8 @@
 # Changelog
+## 0.122.0
+- Notifications settings: a "Sound & vibration" link that opens Android's own settings
+  for the reminder channel, where you control sound, vibration, pop-ups, and on/off.
+
 ## 0.121.0
 - Event editor: add reminders to any event — tap "Add notification", pick a time (at
   start, 10/15/30 min, 1 hour, 1 day, 1 week, or a custom amount), and add more than one.

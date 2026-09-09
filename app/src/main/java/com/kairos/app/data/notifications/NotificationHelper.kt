@@ -42,6 +42,24 @@ object Notifications {
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
 
+    /** Open Android's own notification settings for this channel, where the user
+     *  controls sound, vibration, importance, and on/off. */
+    fun openChannelSettings(context: Context) {
+        ensureChannel(context)
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
+            }
+        } else {
+            android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.fromParts("package", context.packageName, null)
+            }
+        }
+        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }
+    }
+
     /** Post a reminder. No-op if the OS permission hasn't been granted. */
     fun post(context: Context, id: Int, title: String, text: String? = null) {
         ensureChannel(context)

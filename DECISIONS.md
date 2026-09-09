@@ -646,3 +646,12 @@ reminders in Create/UpdateEventRequest. New events pre-fill ct.defaultReminder w
 type is picked and reminders is empty. Settings blurbs updated per Marco. NEXT: web event
 form reminder section (mirror), then the firing engine (WorkManager + exact alarms reading
 per-event reminders + birthdays).
+
+## App 0.122.0: notification sound/vibration via Android channel settings
+Per Marco: NO web event editor (reminders are app-only); NO per-type default UI - default
+reminder stays none so nothing auto-notifies (two off-by-default gates: master toggle off +
+no event reminder). Sound/vibration handled the Android way: Notifications.openChannelSettings
+deep-links to ACTION_CHANNEL_NOTIFICATION_SETTINGS (EXTRA_APP_PACKAGE + EXTRA_CHANNEL_ID;
+pre-O falls back to app details). "Sound & vibration" row in NotificationsScreen (when enabled).
+Channel is IMPORTANCE_HIGH (sound+vibration+heads-up); user tunes it there. NEXT: the firing
+engine (WorkManager + exact alarms) reading per-event reminders.
