@@ -88,6 +88,23 @@ data class EnrollResponse(
 )
 
 @Serializable
+data class JoinCheckRequest(val token: String)
+
+@Serializable
+data class JoinCheckResponse(
+    val valid: Boolean = false,
+    val hasPassword: Boolean = false,
+    val name: String = "",
+)
+
+@Serializable
+data class JoinRequest(
+    val token: String,
+    val password: String,
+    val deviceName: String? = null,
+)
+
+@Serializable
 data class TokenResponse(
     val token: String,
     val expiresAt: String,

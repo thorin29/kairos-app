@@ -35,6 +35,10 @@ class AppContainer(context: Context) {
      *  tap → "calendar"); AppRoot consumes and clears it. */
     val pendingRoute = MutableStateFlow<String?>(null)
 
+    /** An invite token from a `kairos://join` deep link (or pasted), consumed by
+     *  the onboarding to show the join / set-password screen. */
+    val pendingJoinToken = MutableStateFlow<String?>(null)
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val dataStore = context.applicationContext.appDataStore

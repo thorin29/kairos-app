@@ -193,6 +193,32 @@ class SessionRepository(
         _state.value = SessionState.Ready(res.person)
     }
 
+    /** Whether a join token is valid, and if the account already has a password. */
+    suspend fun joinCheck(token: String): com.kairos.app.data.remote.dto.JoinCheckResponse {
+        val svc = requireService()
+        return apiCall { svc.joinCheck(com.kairos.app.data.remote.dto.JoinCheckRequest(token.trim())) }
+    }
+
+    /** Redeem a join token: set/confirm the password and enroll this phone in one
+     *  step, then go Ready. The unified onboarding path. */
+    suspend fun join(token: String, password: String, deviceName: String?) {
+        val svc = requireService()
+        val res = apiCall {
+            svc.join(
+                com.kairos.app.data.remote.dto.JoinRequest(
+                    token = token.trim(),
+                    password = password,
+                    deviceName = deviceName?.trim(),
+                ),
+            )
+        }
+        tokens.save(res.token)
+        loginToken = null
+        runCatching { httpCache?.evictAll() }
+        clearOfflineWrites()
+        _state.value = SessionState.Ready(res.person)
+    }
+
     /** Sign out: best-effort server revoke, then wipe the local token. */
     suspend fun signOut() {
         val svc = service
@@ -673,6 +699,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 192
+        const val CLIENT_BUILD = 193
     }
 }

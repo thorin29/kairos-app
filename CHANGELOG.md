@@ -1,4 +1,9 @@
 # Changelog
+## 0.141.0
+- New-account onboarding in the app: tapping an invite (a "kairos://join" link), or pasting it
+  via "Have an invite link?", opens a screen to create your password (new account) or confirm it
+  (returning to add a phone), and enrolls the device in one step. No browser, no Authelia.
+
 ## 0.140.0
 - Turn off your own reminder for an event: open it, tap Edit, and switch off "Remind me about
   this". It affects only your reminder (and the whole series for a repeating event) — everyone

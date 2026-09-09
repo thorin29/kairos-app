@@ -1,5 +1,9 @@
 package com.kairos.app.ui.auth
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +26,8 @@ private enum class AuthStep { SignIn, Code }
 @Composable
 fun AuthFlow() {
     var step by remember { mutableStateOf(AuthStep.SignIn) }
+    var showPaste by remember { mutableStateOf(false) }
+    var pasteText by remember { mutableStateOf("") }
     val container = rememberContainer()
     val scope = rememberCoroutineScope()
 
@@ -32,10 +38,42 @@ fun AuthFlow() {
             onChangeServer = {
                 scope.launch { container.sessionRepository.changeServer() }
             },
+            onHaveInvite = { showPaste = true },
         )
         AuthStep.Code -> EnrollScreen(
             onNeedSignIn = { step = AuthStep.SignIn },
             onBack = { step = AuthStep.SignIn },
+        )
+    }
+
+    if (showPaste) {
+        AlertDialog(
+            onDismissRequest = { showPaste = false },
+            title = { Text("Paste your invite") },
+            text = {
+                OutlinedTextField(
+                    value = pasteText,
+                    onValueChange = { pasteText = it },
+                    label = { Text("Invite link") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val raw = pasteText.trim()
+                    val token = if (raw.contains("token=")) {
+                        raw.substringAfter("token=").substringBefore("&").trim()
+                    } else {
+                        raw
+                    }
+                    showPaste = false
+                    pasteText = ""
+                    if (token.isNotBlank()) container.pendingJoinToken.value = token
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPaste = false }) { Text("Cancel") }
+            },
         )
     }
 }

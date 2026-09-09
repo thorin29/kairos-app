@@ -58,9 +58,17 @@ class MainActivity : ComponentActivity() {
 
     /** A notification tap carries a target screen; hand it to AppRoot. */
     private fun handleIntent(intent: Intent?) {
-        val open = intent?.getStringExtra(
+        val container = (application as KairosApp).container
+        // A notification tap carries a target screen.
+        intent?.getStringExtra(
             com.kairos.app.data.notifications.Notifications.EXTRA_OPEN,
-        ) ?: return
-        (application as KairosApp).container.pendingRoute.value = open
+        )?.let { container.pendingRoute.value = it }
+        // A kairos://join?token=... invite deep link.
+        val data = intent?.data
+        if (data != null && data.scheme == "kairos" && data.host == "join") {
+            data.getQueryParameter("token")?.takeIf { it.isNotBlank() }?.let {
+                container.pendingJoinToken.value = it
+            }
+        }
     }
 }

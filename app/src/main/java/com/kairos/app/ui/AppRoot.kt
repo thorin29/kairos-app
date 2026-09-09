@@ -37,6 +37,7 @@ import androidx.navigation.toRoute
 import com.kairos.app.data.session.SessionState
 import com.kairos.app.di.AppContainer
 import com.kairos.app.ui.auth.AuthFlow
+import com.kairos.app.ui.auth.JoinScreen
 import com.kairos.app.ui.common.LoadingScreen
 import com.kairos.app.ui.common.PlaceholderScreen
 import com.kairos.app.ui.common.rememberContainer
@@ -83,6 +84,7 @@ import kotlinx.coroutines.launch
 fun AppRoot(container: AppContainer) {
     val session = container.sessionRepository
     val state by session.state.collectAsState()
+    val joinToken by container.pendingJoinToken.collectAsState()
 
     // Show the branded splash for at least ~2s on launch, even when the session
     // resolves instantly, so the logo + καιρός is actually seen.
@@ -101,7 +103,14 @@ fun AppRoot(container: AppContainer) {
     when (s) {
         is SessionState.Loading -> LoadingScreen()
         is SessionState.NeedsSetup -> SetupScreen()
-        is SessionState.NeedsEnroll -> AuthFlow()
+        is SessionState.NeedsEnroll -> {
+            val jt = joinToken
+            if (jt != null) {
+                JoinScreen(token = jt, onCancel = { container.pendingJoinToken.value = null })
+            } else {
+                AuthFlow()
+            }
+        }
         is SessionState.NeedsReauth -> ReauthScreen(person = s.person)
         is SessionState.Ready -> AuthenticatedApp(person = s.person)
     }
