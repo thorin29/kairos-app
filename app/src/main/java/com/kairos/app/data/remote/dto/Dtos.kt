@@ -1496,10 +1496,10 @@ data class TaskUserGroupDto(
 )
 
 @Serializable
-data class TaskOpenDto(val id: String = "", val title: String = "", val dueISO: String = "", val overdue: Boolean = false)
+data class TaskOpenDto(val id: String = "", val title: String = "", val dueISO: String = "", val overdue: Boolean = false, val recurring: Boolean = false)
 
 @Serializable
-data class TaskDoneDto(val id: String = "", val title: String = "", val dueISO: String = "")
+data class TaskDoneDto(val id: String = "", val title: String = "", val dueISO: String = "", val recurring: Boolean = false)
 
 @Serializable
 data class AddTaskRequest(val userId: String, val title: String, val dueDate: String? = null)

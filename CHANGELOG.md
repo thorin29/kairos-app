@@ -1,4 +1,9 @@
 # Changelog
+## 0.146.0
+- Assigning a task now defaults to you (the parent/admin) at the top of the "For" list, instead of
+  whichever person the server happened to list first.
+- Recurring tasks show a repeat icon before their name in the task list.
+
 ## 0.145.0
 - Removed the retired username/password + enrollment-code setup screens, now replaced by the
   invitation-code and lock-screen flow.

@@ -82,13 +82,19 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             return@Scaffold
         }
 
-        var personId by remember(data.canActFor) { mutableStateOf(data.canActFor.firstOrNull()?.id ?: data.meId) }
+        // Put the current user (a parent/admin) first and default to them, rather
+        // than whichever person the server happened to list first (often a child).
+        val orderedPeople = remember(data.canActFor, data.meId) {
+            data.canActFor.filter { it.id == data.meId } +
+                data.canActFor.filter { it.id != data.meId }
+        }
+        var personId by remember(orderedPeople) { mutableStateOf(orderedPeople.firstOrNull()?.id ?: data.meId) }
         var title by remember { mutableStateOf("") }
         var hasDue by remember { mutableStateOf(false) }
         var dueDate by remember { mutableStateOf(LocalDate.now().toString()) }
         var showDate by remember { mutableStateOf(false) }
 
-        val personName = data.canActFor.firstOrNull { it.id == personId }?.name ?: ""
+        val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
 
         Column(
@@ -97,8 +103,8 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         ) {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    if (data.canActFor.size > 1) {
-                        RollPicker("For", personName, data.canActFor.map { it.id to it.name }, { personId = it }, !ui.busy, Modifier.fillMaxWidth())
+                    if (orderedPeople.size > 1) {
+                        RollPicker("For", personName, orderedPeople.map { it.id to it.name }, { personId = it }, !ui.busy, Modifier.fillMaxWidth())
                     }
                     Labeled("Task") { Field(title, { title = it.take(120) }, "e.g. Wash the car") }
 

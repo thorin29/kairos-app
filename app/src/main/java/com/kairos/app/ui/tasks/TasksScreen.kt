@@ -159,7 +159,17 @@ private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, onComplete: (
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(t.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (t.recurring) {
+                    Icon(
+                        KairosIcons.Repeat,
+                        contentDescription = "Repeats",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                Text(t.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            }
             Text(
                 "due ${t.dueISO}",
                 style = MaterialTheme.typography.labelSmall,
@@ -185,13 +195,22 @@ private fun DoneRow(t: TaskDoneDto, isOwn: Boolean, busy: Boolean, onUncomplete:
                 Icon(KairosIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
             }
         }
-        Text(
-            t.title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textDecoration = TextDecoration.LineThrough,
-            modifier = Modifier.weight(1f),
-        )
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (t.recurring) {
+                Icon(
+                    KairosIcons.Repeat,
+                    contentDescription = "Repeats",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+            Text(
+                t.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textDecoration = TextDecoration.LineThrough,
+            )
+        }
     }
 }
 
