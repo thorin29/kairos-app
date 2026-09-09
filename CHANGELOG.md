@@ -1,4 +1,9 @@
 # Changelog
+## 0.140.0
+- Turn off your own reminder for an event: open it, tap Edit, and switch off "Remind me about
+  this". It affects only your reminder (and the whole series for a repeating event) — everyone
+  else’s stays on.
+
 ## 0.139.0
 - Groundwork for per-person event reminders: a new event's reminders now go to just you
   (a personal event) or everyone (a family event). Choosing individual recipients on the

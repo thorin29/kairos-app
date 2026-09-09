@@ -847,6 +847,7 @@ data class CalEventDto(
     val ownerId: String? = null,
     val eventTypeId: String? = null,
     val reminders: List<Int> = emptyList(),
+    val reminderUserIds: List<String> = emptyList(),
     val memberIds: List<String> = emptyList(),
     val calendarName: String? = null,
     val recurring: Boolean = false,
@@ -993,6 +994,7 @@ data class UpdateEventRequest(
     val eventTypeId: String? = null,
     val participants: List<String>? = null,
     val reminders: List<Int>? = null,
+    val reminderUserIds: List<String>? = null,
 )
 
 // ---- Money (GET /money, POST /money/entry, reward approvals) ----

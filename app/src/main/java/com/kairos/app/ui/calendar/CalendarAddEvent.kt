@@ -117,6 +117,28 @@ fun AddEventOverlay(
         }
     }
     var showCustomReminder by remember { mutableStateOf(false) }
+    // Whether the reminders include me. New events default on; on an edit it
+    // reflects the current recipient list, so turning it off removes just me.
+    var remindMe by remember {
+        mutableStateOf(
+            if (editing) meId != null && editEvent?.reminderUserIds?.contains(meId) == true
+            else true,
+        )
+    }
+    // The recipients to save: the base list (everyone for a family event, me for
+    // a personal one, or the existing set on an edit), with me added or removed
+    // per the "Remind me" switch. Never touches other people's reminders.
+    fun recipients(): List<String> {
+        if (reminders.isEmpty()) return emptyList()
+        val base = when {
+            editing -> editEvent?.reminderUserIds ?: emptyList()
+            isFamily -> data.options.people.map { it.id }
+            else -> listOfNotNull(meId)
+        }
+        val set = base.toMutableSet()
+        meId?.let { if (remindMe) set.add(it) else set.remove(it) }
+        return set.toList()
+    }
     var showPeople by remember { mutableStateOf(false) }
     val canFamily = data.options.canManageFamily
     val customTypes = data.options.eventTypes
@@ -159,6 +181,7 @@ fun AddEventOverlay(
                 eventTypeId = eventTypeId,
                 participants = participants.toList(),
                 reminders = reminders,
+                reminderUserIds = recipients(),
             ),
         ) { onClose() }
     }
@@ -203,13 +226,7 @@ fun AddEventOverlay(
                                     eventTypeId = eventTypeId,
                                     participants = participants.toList().ifEmpty { null },
                                     reminders = reminders,
-                                    // Who gets the reminders: nobody if none set,
-                                    // everyone for a family event, else just me.
-                                    reminderUserIds = when {
-                                        reminders.isEmpty() -> emptyList()
-                                        isFamily -> data.options.people.map { it.id }
-                                        else -> listOfNotNull(meId)
-                                    },
+                                    reminderUserIds = recipients(),
                                 ),
                             ) { onClose() }
                         }
@@ -310,6 +327,19 @@ fun AddEventOverlay(
                 }
 
                 SectionLine()
+                if (reminders.isNotEmpty()) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Remind me about this",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(checked = remindMe, onCheckedChange = { remindMe = it })
+                    }
+                }
                 reminders.forEach { m ->
                     Row(
                         Modifier.fillMaxWidth().padding(vertical = 10.dp),
