@@ -15,7 +15,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicatorButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kairos.app.data.update.UpdateInstaller
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.theme.KairosThemeState
@@ -43,6 +46,8 @@ fun UpdateScreen(onBack: () -> Unit) {
     val checker = container.updateChecker
     val available by checker.available.collectAsState()
     val checking by checker.checking.collectAsState()
+    val installer = container.updateInstaller
+    val installState by installer.state.collectAsState()
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -65,11 +70,18 @@ fun UpdateScreen(onBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Installed version", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("v${checker.installedName}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                }
+            Column {
+                Text(
+                    "Installed version",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "v${checker.installedName} · ${checker.installedDate}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
 
             val upd = available
@@ -93,13 +105,51 @@ fun UpdateScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-                // The download-and-install action arrives in the next increment;
-                // for now this screen surfaces that an update is ready.
-                Text(
-                    "One-tap install from here is coming shortly. For now, the badge lets you know a new version is ready.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                when (val st = installState) {
+                    is UpdateInstaller.State.Downloading -> {
+                        LinearProgressIndicator(
+                            progress = { st.pct / 100f },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            "Downloading\u2026 ${st.pct}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    UpdateInstaller.State.Installing -> Text(
+                        "Opening the installer\u2026",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    UpdateInstaller.State.NeedsPermission -> {
+                        Text(
+                            "To install updates, allow Kairos to install apps, then tap Download & install again.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(onClick = { installer.openInstallPermission() }) {
+                            Text("Allow installs")
+                        }
+                    }
+                    is UpdateInstaller.State.Error -> {
+                        Text(
+                            st.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Button(onClick = { scope.launch { installer.downloadAndInstall(upd.apkUrl) } }) {
+                            Text("Try again")
+                        }
+                    }
+                    UpdateInstaller.State.Idle -> Button(
+                        onClick = { scope.launch { installer.downloadAndInstall(upd.apkUrl) } },
+                    ) {
+                        Icon(KairosIcons.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Download & install")
+                    }
+                }
             } else {
                 Text(
                     if (checking) "Checking for updates…" else "You're on the latest version.",

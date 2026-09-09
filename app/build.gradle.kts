@@ -13,8 +13,13 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 180
-        versionName = "0.128.0"
+        versionCode = 181
+        versionName = "0.129.0"
+
+        // Baked in at build time so the app can show when this build was made.
+        val buildDate = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US)
+            .format(java.util.Date())
+        buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

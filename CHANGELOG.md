@@ -1,4 +1,11 @@
 # Changelog
+## 0.129.0
+- In-app updates (part 2): the Software update screen can now download and install an
+  update directly. Tap "Download & install", allow Kairos to install apps once, and the
+  system installer takes over. No browser involved; updates install in place.
+- Software update screen: the installed version now shows as plain text (no boxed field
+  that looked editable), in the theme's text color, with the build date next to it.
+
 ## 0.128.0
 - The "update available" badge dot is now light blue.
 

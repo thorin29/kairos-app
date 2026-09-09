@@ -46,6 +46,7 @@ class UpdateChecker {
     /** The installed build, for display next to the available one. */
     val installedName: String get() = BuildConfig.VERSION_NAME
     val installedCode: Int get() = BuildConfig.VERSION_CODE
+    val installedDate: String get() = BuildConfig.BUILD_DATE
 
     suspend fun check() = withContext(Dispatchers.IO) {
         _checking.value = true

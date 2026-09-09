@@ -9,6 +9,7 @@ import com.kairos.app.data.remote.NetworkMonitor
 import com.kairos.app.data.remote.SyncManager
 import com.kairos.app.data.remote.WriteQueue
 import com.kairos.app.data.update.UpdateChecker
+import com.kairos.app.data.update.UpdateInstaller
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
@@ -46,6 +47,9 @@ class AppContainer(context: Context) {
 
     /** Checks GitHub Releases for a newer build (drives the update badge). */
     val updateChecker = UpdateChecker()
+
+    /** Downloads and installs an update APK (in-app, no browser). */
+    val updateInstaller = UpdateInstaller(context.applicationContext)
 
     val sessionRepository = SessionRepository(
         settings = settingsStore,

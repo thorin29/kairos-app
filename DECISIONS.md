@@ -704,3 +704,16 @@ a `User-Agent`); no auth token is sent (and couldn't be — the auth interceptor
 the Kairos server). Download-and-install is Phase 3 (REQUEST_INSTALL_PACKAGES + FileProvider +
 progress + installer intent). Releasing stays deliberate: a GitHub Release is published only by
 a tag or a manual "Release" workflow run, so day-to-day pushes don't ping the household.
+
+## In-app updates — download & install (v0.129.0, Phase 3 of 3)
+`UpdateInstaller` downloads the release APK from GitHub with progress, writes it to
+`cacheDir`, and hands it to the system package installer via a `FileProvider` (authority
+`${applicationId}.updates`, `<cache-path>`). Needs `REQUEST_INSTALL_PACKAGES` plus the
+one-time "install unknown apps" grant: `canRequestPackageInstalls()`; when false we
+deep-link to `Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES`. No browser at any point, and it
+installs **in place** (same signing key). `BuildConfig.BUILD_DATE` (baked in build.gradle.kts
+at build time) is shown next to the installed version, which is now plain text in the theme
+font color rather than a boxed field. The updater is feature-complete across all three phases:
+CI publishes releases (`release.yml`), the app detects them (badge, Phase 2), and now
+downloads + installs them (Phase 3). Still applies: a normal app can't install silently —
+the user taps "Update" on the system installer — and releasing stays a deliberate tag/manual act.
