@@ -92,6 +92,9 @@ interface ApiService {
     @GET("me")
     suspend fun me(): Response<PersonDto>
 
+    @GET("notifications/meta")
+    suspend fun notifMeta(): Response<com.kairos.app.data.remote.dto.NotifMetaDto>
+
     @POST("me/color")
     suspend fun setColor(@Body body: com.kairos.app.data.remote.dto.ColorRequest): Response<com.kairos.app.data.remote.dto.ColorAckDto>
 

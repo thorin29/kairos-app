@@ -1490,3 +1490,9 @@ data class ColorAckDto(val color: String = "")
 
 @Serializable
 data class AvatarAckDto(val avatarPosition: String = "0 0 1")
+
+@Serializable
+data class NotifTypeDto(val id: String = "", val name: String = "", val color: String = "#64748b")
+
+@Serializable
+data class NotifMetaDto(val eventTypes: List<NotifTypeDto> = emptyList())

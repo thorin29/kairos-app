@@ -1,4 +1,11 @@
 # Changelog
+## 0.118.0
+- Settings → Notifications (first part): choose what you're reminded about — a master
+  switch, which events (yours / all / family), birthdays, and each event type, each with
+  its own lead time (at start, 15 min, 1 hour, or 1 day before). All off by default, and
+  a "Send a test notification" button to check it works. Actually firing reminders at event
+  times comes in the next update.
+
 ## 0.117.0
 - Settings → Profile finished: change your photo and frame it (drag to move, pinch to
   zoom) right on the phone, and pick any custom colour — not just the eight presets —

@@ -42,7 +42,7 @@ private data class Section(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfile: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfile: () -> Unit, onOpenNotifications: () -> Unit) {
     val sections = listOf(
         Section(
             KairosIcons.Palette,
@@ -62,7 +62,8 @@ fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfi
             KairosIcons.Bell,
             "Notifications",
             "Reminders for calendar events and birthdays. Off by default.",
-            ready = false,
+            ready = true,
+            onOpen = onOpenNotifications,
         ),
     )
 

@@ -69,6 +69,17 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_LAST_COLOR] = hex }
     }
 
+    /** Per-device calendar notification preferences (JSON). All off by default. */
+    val notifPrefs: Flow<com.kairos.app.data.notifications.NotifPrefs> =
+        dataStore.data.map { com.kairos.app.data.notifications.NotifPrefs.decode(it[KEY_NOTIF]) }
+
+    suspend fun currentNotifPrefs(): com.kairos.app.data.notifications.NotifPrefs =
+        notifPrefs.first()
+
+    suspend fun setNotifPrefs(p: com.kairos.app.data.notifications.NotifPrefs) {
+        dataStore.edit { it[KEY_NOTIF] = com.kairos.app.data.notifications.NotifPrefs.encode(p) }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
@@ -76,5 +87,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_THEME = stringPreferencesKey("theme_scheme")
         val KEY_DARK = booleanPreferencesKey("dark_mode")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
+        val KEY_NOTIF = stringPreferencesKey("notif.prefs")
     }
 }
