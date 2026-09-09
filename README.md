@@ -34,6 +34,21 @@ is no password on the phone. It's stored encrypted with an AES-256-GCM key held
 in the Android Keystore, and sent as `Authorization: Bearer <token>` on every
 request except enrollment.
 
+## What the app does
+
+Mirrors each person's personal view of the household: Home dashboard, Calendar,
+Chores, Bible reading, Reading, School, Workouts, Groceries, Money, and
+Characters. Beyond parity with the web personal view it adds:
+
+- **Offline-first.** Screens render from an on-device cache and work without a
+  signal; writes (completing chores/tasks, logging workouts, marking reading,
+  adding groceries/events, etc.) queue and replay on reconnect.
+- **Settings** (gear by your name): **Appearance** (dark mode + eight color
+  themes + 24-hour clock, per device), **Profile** (photo + framing + your color,
+  which syncs to the web/calendar), and **Notifications**.
+- **Reminders.** Set reminders per calendar event; they fire locally at the
+  chosen lead time (no push service). Off by default.
+
 ## First-launch flow (this build)
 
 1. **Setup** — enter your server address; the app runs a `/meta` handshake.
