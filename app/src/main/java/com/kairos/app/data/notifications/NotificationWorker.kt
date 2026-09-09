@@ -17,6 +17,9 @@ class NotificationWorker(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         runCatching { NotificationScheduler.refresh(applicationContext) }
+        runCatching {
+            (applicationContext as? com.kairos.app.KairosApp)?.container?.updateChecker?.check()
+        }
         return Result.success()
     }
 

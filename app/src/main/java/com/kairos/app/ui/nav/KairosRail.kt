@@ -44,6 +44,10 @@ import com.kairos.app.ui.common.LogoMenuButton
 
 private val OnSidebar = Color.White
 
+/** The "update available" badge dot — a friendly green that reads as "ready",
+ *  legible on any of the sidebar theme colors. */
+private val UpdateDot = Color(0xFF3DDC84)
+
 /**
  * The nav rail, matching the web sidebar in both states. The teal panel starts
  * just below the status bar (a flat top above the logo) and runs to the bottom;
@@ -62,6 +66,8 @@ fun KairosRail(
     onLogoClick: () -> Unit,
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
+    updateAvailable: Boolean = false,
+    onOpenUpdate: () -> Unit = {},
 ) {
     Column(modifier) {
         // Teal starts at the status-bar bottom (right under the top bar) with the
@@ -112,7 +118,30 @@ fun KairosRail(
             HorizontalDivider(color = OnSidebar.copy(alpha = 0.2f))
 
             Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                FooterPerson(person, expanded, onSignOut, onOpenSettings)
+                if (updateAvailable && expanded) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(onClick = onOpenUpdate)
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            KairosIcons.Download, "Update available",
+                            tint = UpdateDot,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Update available",
+                            color = OnSidebar,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+                FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable)
                 if (expanded) {
                     // Collapse control on the left, version pinned far-right.
                     Row(
@@ -217,7 +246,13 @@ private fun RailRow(
 }
 
 @Composable
-private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> Unit, onOpenSettings: () -> Unit) {
+private fun FooterPerson(
+    person: PersonDto,
+    expanded: Boolean,
+    onSignOut: () -> Unit,
+    onOpenSettings: () -> Unit,
+    updateAvailable: Boolean = false,
+) {
     if (expanded) {
         Row(
             Modifier
@@ -237,13 +272,28 @@ private fun FooterPerson(person: PersonDto, expanded: Boolean, onSignOut: () -> 
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = onOpenSettings) {
-                Icon(
-                    KairosIcons.Settings,
-                    contentDescription = "Settings",
-                    tint = OnSidebar.copy(alpha = 0.85f),
-                    modifier = Modifier.size(22.dp),
-                )
+            Box {
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        KairosIcons.Settings,
+                        contentDescription = if (updateAvailable) "Settings (update available)" else "Settings",
+                        tint = OnSidebar.copy(alpha = 0.85f),
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                if (updateAvailable) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 6.dp, end = 6.dp)
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(KairosThemeState.sidebar)
+                            .padding(1.5.dp)
+                            .clip(CircleShape)
+                            .background(UpdateDot),
+                    )
+                }
             }
             IconButton(onClick = onSignOut) {
                 Icon(

@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -38,11 +41,19 @@ private data class Section(
     val blurb: String,
     val ready: Boolean,
     val onOpen: (() -> Unit)? = null,
+    val badge: Boolean = false,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfile: () -> Unit, onOpenNotifications: () -> Unit) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    onOpenAppearance: () -> Unit,
+    onOpenProfile: () -> Unit,
+    onOpenNotifications: () -> Unit,
+    onOpenUpdate: () -> Unit = {},
+    updateAvailable: Boolean = false,
+) {
     val sections = listOf(
         Section(
             KairosIcons.Palette,
@@ -64,6 +75,14 @@ fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfi
             "Reminders, sounds, and vibration settings",
             ready = true,
             onOpen = onOpenNotifications,
+        ),
+        Section(
+            KairosIcons.Download,
+            "Software update",
+            if (updateAvailable) "An update is ready to install" else "Check for app updates",
+            ready = true,
+            onOpen = onOpenUpdate,
+            badge = updateAvailable,
         ),
     )
 
@@ -128,6 +147,14 @@ private fun SectionCard(section: Section) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            if (section.badge) {
+                Box(
+                    Modifier
+                        .size(9.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2FB866)),
                 )
             }
             if (section.ready) {

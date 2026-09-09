@@ -688,3 +688,19 @@ the wrong server/identity, and any 4xx on replay silently discarded the write. F
 - **Cap the queue** at 500 (keep newest) to bound growth during a long outage.
 Note: this does not change that multipart (avatar) uploads are never queued — they still
 require a live connection.
+
+## In-app updates — checker + badge (v0.127.0, Phase 2 of 3)
+The app updates itself from **GitHub Releases**, read **directly** from the public repo
+(`api.github.com/repos/thorin29/kairos-app/releases/latest`) — no server endpoint (the
+web/server is updated separately via Docker) and **no browser** at any point, which matters
+because child accounts block browser apps but not the network. `UpdateChecker` fetches the
+latest release, reads its `latest.json` asset (`{versionCode, versionName, notes}`, published
+by `.github/workflows/release.yml`), and compares `versionCode` to `BuildConfig.VERSION_CODE`.
+It exposes `available: StateFlow<UpdateInfo?>`. Checked on app launch (AppRoot) and in the
+2-hour `NotificationWorker` (via the app-singleton container). When an update exists: a green
+dot badges the settings gear, an "Update available" row appears in the drawer, and Settings →
+Software update shows installed vs. available + notes. Uses a plain OkHttp client (GitHub needs
+a `User-Agent`); no auth token is sent (and couldn't be — the auth interceptor is host-bound to
+the Kairos server). Download-and-install is Phase 3 (REQUEST_INSTALL_PACKAGES + FileProvider +
+progress + installer intent). Releasing stays deliberate: a GitHub Release is published only by
+a tag or a manual "Release" workflow run, so day-to-day pushes don't ping the household.

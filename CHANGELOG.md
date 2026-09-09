@@ -1,4 +1,11 @@
 # Changelog
+## 0.127.0
+- In-app updates (part 1): Kairos now checks GitHub for a newer release on launch
+  (and in the background), with no browser involved. When one is available, a green
+  dot appears on the settings gear and an "Update available" row shows in the menu.
+- New Settings → Software update screen: shows your installed version, what's new in
+  the available version, and a "Check for updates" button. (One-tap install lands next.)
+
 ## 0.126.0
 - Offline queue hardening (from a security review):
   - A queued offline write now stores a server-relative path and is always replayed

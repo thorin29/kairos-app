@@ -8,6 +8,7 @@ import com.kairos.app.data.remote.AuthInterceptor
 import com.kairos.app.data.remote.NetworkMonitor
 import com.kairos.app.data.remote.SyncManager
 import com.kairos.app.data.remote.WriteQueue
+import com.kairos.app.data.update.UpdateChecker
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
@@ -42,6 +43,9 @@ class AppContainer(context: Context) {
 
     /** Writes made while offline, persisted and replayed on reconnect. */
     val writeQueue = WriteQueue(dataStore, ApiClient.json)
+
+    /** Checks GitHub Releases for a newer build (drives the update badge). */
+    val updateChecker = UpdateChecker()
 
     val sessionRepository = SessionRepository(
         settings = settingsStore,

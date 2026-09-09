@@ -27,6 +27,9 @@ sealed interface Route {
     data object SettingsNotifications : Route
 
     @Serializable
+    data object SettingsUpdate : Route
+
+    @Serializable
     data class WorkoutLog(val date: String) : Route
 
     @Serializable

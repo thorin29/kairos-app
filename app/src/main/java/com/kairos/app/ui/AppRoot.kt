@@ -129,7 +129,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val pendingWrites by container.syncManager.pendingCount.collectAsState()
     val syncing by container.syncManager.syncing.collectAsState()
     val syncRevision by container.syncManager.revision.collectAsState()
+    val updateInfo by container.updateChecker.available.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
+    LaunchedEffect(Unit) { container.updateChecker.check() }
 
     // Bump each time we come back to Home from another destination, so Home can
     // reload the day. Reliable under our drawer nav, where ON_RESUME doesn't fire.
@@ -289,6 +291,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenAppearance = { navController.navigate(Route.SettingsAppearance) },
                         onOpenProfile = { navController.navigate(Route.SettingsProfile) },
                         onOpenNotifications = { navController.navigate(Route.SettingsNotifications) },
+                        onOpenUpdate = { navController.navigate(Route.SettingsUpdate) },
+                        updateAvailable = updateInfo != null,
                     )
                 }
                 composable<Route.SettingsAppearance> {
@@ -299,6 +303,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.SettingsNotifications> {
                     com.kairos.app.ui.settings.NotificationsScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.SettingsUpdate> {
+                    com.kairos.app.ui.settings.UpdateScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Gallery> {
                     GalleryScreen(onBack = { navController.popBackStack() })
@@ -362,6 +369,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 onOpenSettings = {
                     open = false
                     navController.navigate(Route.Settings)
+                },
+                updateAvailable = updateInfo != null,
+                onOpenUpdate = {
+                    open = false
+                    navController.navigate(Route.SettingsUpdate)
                 },
             )
             // Subtle darker shade over the status-bar strip for icon readability.
