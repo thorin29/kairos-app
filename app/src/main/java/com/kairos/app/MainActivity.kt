@@ -22,6 +22,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val container = (application as KairosApp).container
         com.kairos.app.data.notifications.Notifications.ensureChannel(this)
+        com.kairos.app.data.notifications.NotificationWorker.enqueuePeriodic(this)
+        com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(this)
         val settings = container.settingsStore
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")

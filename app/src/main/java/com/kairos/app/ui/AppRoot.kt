@@ -159,6 +159,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             homeRefresh++
         }
     }
+    val notifCtx = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(dataRevision) {
+        if (dataRevision > 0) {
+            com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(notifCtx)
+        }
+    }
 
     val openProgress by animateFloatAsState(
         targetValue = if (open) 1f else 0f,

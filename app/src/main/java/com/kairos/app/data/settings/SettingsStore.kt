@@ -87,6 +87,16 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_NOTIF] = com.kairos.app.data.notifications.NotifPrefs.encode(p) }
     }
 
+    /** Request codes of the alarms currently scheduled, so stale ones can be
+     *  cancelled when events change. Stored as a comma-separated list. */
+    suspend fun currentScheduledCodes(): Set<Int> =
+        (dataStore.data.first()[KEY_CODES] ?: "")
+            .split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+
+    suspend fun setScheduledCodes(codes: Set<Int>) {
+        dataStore.edit { it[KEY_CODES] = codes.joinToString(",") }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
@@ -96,5 +106,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_MILITARY = booleanPreferencesKey("military_time")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
+        val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
     }
 }

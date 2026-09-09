@@ -1,4 +1,10 @@
 # Changelog
+## 0.123.0
+- Reminders now fire. With reminders turned on, each event's reminder posts a notification
+  (the event's name) at the right time — at start, or the minutes/hours/days/week before
+  you chose. Recurring events remind on each occurrence; reminders re-schedule after a reboot
+  and when you change an event.
+
 ## 0.122.1
 - Notifications settings: a "Sound & vibration" link that opens Android's own settings
   for the reminder channel, where you control sound, vibration, pop-ups, and on/off.

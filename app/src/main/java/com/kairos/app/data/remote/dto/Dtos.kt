@@ -1500,3 +1500,14 @@ data class NotifTypeDto(val id: String = "", val name: String = "", val color: S
 
 @Serializable
 data class NotifMetaDto(val eventTypes: List<NotifTypeDto> = emptyList())
+
+@Serializable
+data class UpcomingEventDto(
+    val id: String = "",
+    val title: String = "",
+    val startMs: Long = 0,
+    val reminders: List<Int> = emptyList(),
+)
+
+@Serializable
+data class UpcomingDto(val events: List<UpcomingEventDto> = emptyList())

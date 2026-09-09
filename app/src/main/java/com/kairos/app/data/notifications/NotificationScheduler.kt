@@ -1,0 +1,88 @@
+package com.kairos.app.data.notifications
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import com.kairos.app.KairosApp
+
+/**
+ * Reconciles calendar reminders into exact alarms. On each run it fetches the
+ * events with reminders in the next weeks, works out each reminder's fire time
+ * (event start minus its minutes), schedules an exact alarm for the future ones,
+ * and cancels any alarm no longer wanted (event moved, deleted, or reminder
+ * removed). Gated by the master switch and the OS permission, so it's a no-op —
+ * and clears everything — when the person hasn't opted in.
+ */
+object NotificationScheduler {
+
+    suspend fun refresh(context: Context) {
+        val container = (context.applicationContext as? KairosApp)?.container ?: return
+        val am = context.getSystemService(AlarmManager::class.java) ?: return
+        val settings = container.settingsStore
+
+        val prefs = settings.currentNotifPrefs()
+        val previous = settings.currentScheduledCodes()
+
+        if (!prefs.enabled || !Notifications.hasPermission(context)) {
+            previous.forEach { cancel(context, am, it) }
+            settings.setScheduledCodes(emptySet())
+            return
+        }
+
+        val upcoming = runCatching { container.sessionRepository.loadUpcoming() }.getOrNull() ?: return
+        val now = System.currentTimeMillis()
+
+        val desired = HashMap<Int, Pair<Long, String>>()
+        for (e in upcoming.events) {
+            for (r in e.reminders) {
+                val at = e.startMs - r * 60_000L
+                if (at > now + 10_000L) {
+                    desired[("${e.id}|$r").hashCode()] = at to e.title
+                }
+            }
+        }
+
+        desired.forEach { (code, v) -> schedule(context, am, code, v.first, v.second) }
+        (previous - desired.keys).forEach { cancel(context, am, it) }
+        settings.setScheduledCodes(desired.keys)
+    }
+
+    private fun intentFor(context: Context, code: Int, title: String): Intent =
+        Intent(context, AlarmReceiver::class.java).apply {
+            putExtra(EXTRA_NOTIF_ID, code)
+            putExtra(EXTRA_TITLE, title)
+        }
+
+    private fun pending(context: Context, code: Int, title: String, create: Boolean): PendingIntent? {
+        val flags = (if (create) PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_NO_CREATE) or
+            PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title), flags)
+    }
+
+    private fun schedule(context: Context, am: AlarmManager, code: Int, at: Long, title: String) {
+        val pi = pending(context, code, title, create = true) ?: return
+        val canExact =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
+        try {
+            if (canExact) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            }
+        } catch (_: SecurityException) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+        }
+    }
+
+    private fun cancel(context: Context, am: AlarmManager, code: Int) {
+        pending(context, code, "", create = false)?.let {
+            am.cancel(it)
+            it.cancel()
+        }
+    }
+
+    const val EXTRA_NOTIF_ID = "notifId"
+    const val EXTRA_TITLE = "title"
+}
