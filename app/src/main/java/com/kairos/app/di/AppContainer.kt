@@ -31,6 +31,10 @@ class AppContainer(context: Context) {
     /** Application context, for components (e.g. ViewModels) that need one. */
     val appContext: Context = context.applicationContext
 
+    /** A one-shot navigation target set from a launch intent (e.g. a notification
+     *  tap → "calendar"); AppRoot consumes and clears it. */
+    val pendingRoute = MutableStateFlow<String?>(null)
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val dataStore = context.applicationContext.appDataStore

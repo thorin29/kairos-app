@@ -1,4 +1,9 @@
 # Changelog
+## 0.134.0
+- Tapping a calendar reminder notification now opens Kairos straight to the calendar.
+- New events no longer default to a time that's already passed: the start time rounds up to
+  the next 15 minutes (e.g. at 10:10 it defaults to 10:15) instead of the top of the hour.
+
 ## 0.133.0
 - Fixed calendar reminders not firing: creating or editing an event now reschedules its
   reminder alarms immediately, instead of only after the next app launch or the background

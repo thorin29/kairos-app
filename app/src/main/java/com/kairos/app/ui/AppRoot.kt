@@ -130,6 +130,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val syncing by container.syncManager.syncing.collectAsState()
     val syncRevision by container.syncManager.revision.collectAsState()
     val updateInfo by container.updateChecker.available.collectAsState()
+    val pendingRoute by container.pendingRoute.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
@@ -190,6 +191,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         navController.navigate(route) {
             popUpTo(Route.Home)
             launchSingleTop = true
+        }
+    }
+
+    // A notification tap (or other launch intent) can ask to open a section.
+    LaunchedEffect(pendingRoute) {
+        when (pendingRoute) {
+            "calendar" -> {
+                go(Route.Section("calendar"), "calendar")
+                container.pendingRoute.value = null
+            }
         }
     }
 

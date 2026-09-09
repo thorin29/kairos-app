@@ -85,7 +85,10 @@ fun AddEventOverlay(
     var startDateIso by remember { mutableStateOf(initDate) }
     var endDateIso by remember { mutableStateOf(initDate) }
     val defaultStart = remember {
-        (java.time.LocalTime.now().hour * 60).coerceIn(0, 22 * 60)
+        // Round the current time UP to the next 15-minute slot, so a new event
+        // never defaults to a time that's already passed.
+        val now = java.time.LocalTime.now()
+        (((now.hour * 60 + now.minute + 14) / 15) * 15).coerceIn(0, 22 * 60)
     }
     var startMin by remember { mutableStateOf(editEvent?.startMin ?: defaultStart) }
     var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))) }

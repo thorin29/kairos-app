@@ -19,6 +19,10 @@ import com.kairos.app.R
 object Notifications {
     const val CHANNEL_ID = "calendar_reminders"
 
+    /** Launch-intent extra naming the screen to open when a notification is
+     *  tapped (e.g. "calendar"). Consumed by MainActivity → AppRoot. */
+    const val EXTRA_OPEN = "open"
+
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val mgr = context.getSystemService(NotificationManager::class.java)
@@ -64,10 +68,24 @@ object Notifications {
     fun post(context: Context, id: Int, title: String, text: String? = null) {
         ensureChannel(context)
         if (!hasPermission(context)) return
+        val tapIntent = android.content.Intent(context, com.kairos.app.MainActivity::class.java).apply {
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP,
+            )
+            putExtra(EXTRA_OPEN, "calendar")
+        }
+        val tapPi = android.app.PendingIntent.getActivity(
+            context,
+            id,
+            tapIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setAutoCancel(true)
+            .setContentIntent(tapPi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         if (!text.isNullOrBlank()) {
             builder.setContentText(text)

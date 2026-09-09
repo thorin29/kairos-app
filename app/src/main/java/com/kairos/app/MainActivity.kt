@@ -1,5 +1,6 @@
 package com.kairos.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val container = (application as KairosApp).container
+        handleIntent(intent)
         com.kairos.app.data.notifications.Notifications.ensureChannel(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueuePeriodic(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(this)
@@ -46,5 +48,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** A notification tap carries a target screen; hand it to AppRoot. */
+    private fun handleIntent(intent: Intent?) {
+        val open = intent?.getStringExtra(
+            com.kairos.app.data.notifications.Notifications.EXTRA_OPEN,
+        ) ?: return
+        (application as KairosApp).container.pendingRoute.value = open
     }
 }
