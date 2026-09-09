@@ -88,6 +88,9 @@ interface ApiService {
     @GET("me")
     suspend fun me(): Response<PersonDto>
 
+    @POST("me/color")
+    suspend fun setColor(@Body body: com.kairos.app.data.remote.dto.ColorRequest): Response<com.kairos.app.data.remote.dto.ColorAckDto>
+
     @GET("dashboard")
     suspend fun dashboard(@Query("date") date: String? = null): Response<DashboardDto>
 

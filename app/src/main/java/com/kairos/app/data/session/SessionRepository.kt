@@ -106,6 +106,22 @@ class SessionRepository(
         }
     }
 
+    /** Set my colour (ring + calendar + everywhere it's used). Syncs to the web. */
+    suspend fun setMyColor(color: String) {
+        runAuthed { requireService().setColor(com.kairos.app.data.remote.dto.ColorRequest(color)) }
+    }
+
+    /** Re-fetch the enrolled person after a profile change so the drawer + ring
+     *  reflect it. No-op if we're not in the Ready state or offline. */
+    suspend fun refreshPerson() {
+        val svc = service ?: return
+        try {
+            val person = apiCall { svc.me() }
+            if (_state.value is SessionState.Ready) _state.value = SessionState.Ready(person)
+        } catch (_: ApiException) {
+        }
+    }
+
     /** Validate a candidate server with the /meta handshake, and adopt it on
      *  success. Throws [ApiException] if it can't be reached or is too new. */
     suspend fun configureServer(rawBase: String) {
@@ -618,6 +634,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 166
+        const val CLIENT_BUILD = 167
     }
 }

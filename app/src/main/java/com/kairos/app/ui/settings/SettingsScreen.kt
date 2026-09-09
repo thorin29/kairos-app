@@ -42,7 +42,7 @@ private data class Section(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfile: () -> Unit) {
     val sections = listOf(
         Section(
             KairosIcons.Palette,
@@ -54,8 +54,9 @@ fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit) {
         Section(
             KairosIcons.PersonCircle,
             "Profile",
-            "Your photo, how it's framed, and your colour (which follows you onto the web and calendar).",
-            ready = false,
+            "Your colour (which follows you onto the web and calendar). Photo and framing coming soon.",
+            ready = true,
+            onOpen = onOpenProfile,
         ),
         Section(
             KairosIcons.Bell,

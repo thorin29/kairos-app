@@ -1,4 +1,9 @@
 # Changelog
+## 0.116.0
+- Settings → Profile: pick your colour — your avatar ring, your calendar events, and
+  everywhere your colour shows, on the web too. (Changing your photo and how it's framed
+  is coming next.)
+
 ## 0.115.0
 - Settings → Appearance: dark mode, plus a colour theme for the whole app — teal
   (default), olive drab, green, blue, purple, pink, orange, or red. The accent,

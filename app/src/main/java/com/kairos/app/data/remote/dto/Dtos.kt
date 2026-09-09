@@ -1481,3 +1481,9 @@ data class TaskDoneDto(val id: String = "", val title: String = "", val dueISO: 
 
 @Serializable
 data class AddTaskRequest(val userId: String, val title: String, val dueDate: String? = null)
+
+@Serializable
+data class ColorRequest(val color: String)
+
+@Serializable
+data class ColorAckDto(val color: String = "")
