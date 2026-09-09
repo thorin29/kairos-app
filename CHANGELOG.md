@@ -1,4 +1,10 @@
 # Changelog
+## 0.138.0
+- The "Other" event type is now "Medical / Dental", and these events are red by default.
+
+## 0.137.0
+- Tapping an event now shows its type and the reminders currently set on it, before you edit.
+
 ## 0.136.0
 - New calendar events now start with a default reminder based on their type: Appointment
   and Class 30 minutes before, Work shift 15 minutes, Birthday and Other none. Existing

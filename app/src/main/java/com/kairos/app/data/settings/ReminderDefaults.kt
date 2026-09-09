@@ -24,7 +24,7 @@ object ReminderDefaults {
         "CLASS" to "Class",
         "WORK" to "Work shift",
         "BIRTHDAY" to "Birthday",
-        "OTHER" to "Other",
+        "OTHER" to "Medical / Dental",
     )
 
     /** Selectable values on the picker (minutes), plus NONE. */

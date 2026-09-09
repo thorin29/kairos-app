@@ -239,6 +239,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                 canManageFamily = data.options.canManageFamily,
                 ui = ui,
                 vm = vm,
+                customTypes = data.options.eventTypes,
                 onEdit = { editingEvent = ev; selectedEvent = null },
                 onClose = { selectedEvent = null; vm.clearDeleteError() },
             )
@@ -1318,12 +1319,26 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
 // ---- Event detail (full screen) ----
 
 @Composable
+private fun eventTypeName(
+    event: CalEventDto,
+    customTypes: List<com.kairos.app.data.remote.dto.CalEventTypeDto>,
+): String =
+    event.eventTypeId?.let { id -> customTypes.firstOrNull { it.id == id }?.name }
+        ?: when (event.kind) {
+            "CLASS" -> "Class"
+            "WORK" -> "Work shift"
+            "BIRTHDAY" -> "Birthday"
+            "OTHER" -> "Medical / Dental"
+            else -> "Appointment"
+        }
+
 private fun EventDetailScreen(
     event: CalEventDto,
     occurrenceISO: String,
     canManageFamily: Boolean,
     ui: CalendarUiState,
     vm: CalendarViewModel,
+    customTypes: List<com.kairos.app.data.remote.dto.CalEventTypeDto>,
     onEdit: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -1396,6 +1411,34 @@ private fun EventDetailScreen(
                         }
                         event.notes?.takeIf { it.isNotBlank() }?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        // Event type name.
+                        Text(
+                            eventTypeName(event, customTypes),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                        // The reminders currently set on this event.
+                        if (event.reminders.isNotEmpty()) {
+                            event.reminders.sorted().forEach { m ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        KairosIcons.Bell,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(15.dp),
+                                    )
+                                    Text(
+                                        com.kairos.app.data.settings.ReminderDefaults.label(m),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
                         // Per-person attendance for sport events (owner + participants).
                         if (event.attendees.any { it.state.isNotBlank() }) {

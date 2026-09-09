@@ -515,7 +515,7 @@ fun AddEventOverlay(
                 "CLASS" to "Class",
                 "WORK" to "Work shift",
                 "BIRTHDAY" to "Birthday",
-                "OTHER" to "Other",
+                "OTHER" to "Medical / Dental",
             ).forEach { (k, label) ->
                 SelectOptionRow(label, eventTypeId == null && kind == k) {
                     kind = k
@@ -667,7 +667,7 @@ private fun typeLabel(kind: String, eventTypeId: String?, customTypes: List<com.
         "CLASS" -> "Class"
         "WORK" -> "Work shift"
         "BIRTHDAY" -> "Birthday"
-        "OTHER" -> "Other"
+        "OTHER" -> "Medical / Dental"
         else -> "Appointment"
     }
 }
