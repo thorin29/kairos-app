@@ -38,6 +38,7 @@ data class NotifPrefs(
     val types: Map<String, TypePref> = emptyMap(),
     val birthdayEnabled: Boolean = false,
     val birthdayLead: Int = 1440,
+    val tasksEnabled: Boolean = false,
 ) {
     fun typePref(id: String): TypePref = types[id] ?: TypePref()
 

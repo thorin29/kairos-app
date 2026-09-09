@@ -88,7 +88,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    "Reminders",
+                                    "Calendar reminders",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -112,6 +112,44 @@ fun NotificationsScreen(onBack: () -> Unit) {
                                         permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     }
                                     scope.launch { container.settingsStore.setNotifPrefs(prefs.copy(enabled = on)) }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "Task alerts",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    if (prefs.tasksEnabled) "On" else "Off",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (prefs.tasksEnabled) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                )
+                            }
+                            Switch(
+                                checked = prefs.tasksEnabled,
+                                onCheckedChange = { on ->
+                                    if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        !Notifications.hasPermission(context)
+                                    ) {
+                                        permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                    scope.launch { container.settingsStore.setNotifPrefs(prefs.copy(tasksEnabled = on)) }
                                 },
                             )
                         }

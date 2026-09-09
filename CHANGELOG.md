@@ -1,4 +1,8 @@
 # Changelog
+## 0.148.0
+- Settings -> Notifications: "Reminders" is now "Calendar reminders", and there's a new "Task
+  alerts" toggle alongside it. Turning either on prompts for notification permission if needed.
+
 ## 0.147.0
 - Assigning a task now has an "Advanced" toggle that reveals the due date and a "Repeat" option.
   Turn on Repeat to make it recurring — frequency (daily/weekly/monthly), interval, weekdays, and
