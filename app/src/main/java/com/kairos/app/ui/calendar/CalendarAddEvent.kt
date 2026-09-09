@@ -4,6 +4,9 @@ import com.kairos.app.ui.common.TimeFmt
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.background
@@ -88,6 +91,8 @@ fun AddEventOverlay(
             editEvent?.let { e -> e.memberIds.filter { it != e.ownerId }.toSet() } ?: emptySet(),
         )
     }
+    var reminders by remember { mutableStateOf(editEvent?.reminders ?: emptyList()) }
+    var showCustomReminder by remember { mutableStateOf(false) }
     var showPeople by remember { mutableStateOf(false) }
     val canFamily = data.options.canManageFamily
     val customTypes = data.options.eventTypes
@@ -129,6 +134,7 @@ fun AddEventOverlay(
                 kind = kind,
                 eventTypeId = eventTypeId,
                 participants = participants.toList(),
+                reminders = reminders,
             ),
         ) { onClose() }
     }
@@ -172,6 +178,7 @@ fun AddEventOverlay(
                                     kind = kind,
                                     eventTypeId = eventTypeId,
                                     participants = participants.toList().ifEmpty { null },
+                                    reminders = reminders,
                                 ),
                             ) { onClose() }
                         }
@@ -267,6 +274,34 @@ fun AddEventOverlay(
                             inner()
                         },
                     )
+                }
+
+                SectionLine()
+                reminders.forEach { m ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Icon(KairosIcons.Bell, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                        Text(reminderLabel(m), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Box(Modifier.size(28.dp).clickable { reminders = reminders - m }, contentAlignment = Alignment.Center) {
+                            Text("\u2715", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth().clickable { openSelector = "reminder" }.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Icon(
+                        KairosIcons.Bell,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp).then(if (reminders.isEmpty()) Modifier else Modifier.alpha(0f)),
+                    )
+                    Text("Add notification", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                 }
 
                 ui.createError?.let {
@@ -374,6 +409,70 @@ fun AddEventOverlay(
         )
     }
 
+    if (showCustomReminder) {
+        var amount by remember { mutableStateOf("15") }
+        var unit by remember { mutableStateOf(1) }
+        AnimatedDialog(
+            onDismissRequest = { showCustomReminder = false },
+            title = "Custom notification",
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BasicTextField(
+                            value = amount,
+                            onValueChange = { v -> amount = v.filter { it.isDigit() }.take(4) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { inner ->
+                                if (amount.isEmpty()) {
+                                    Text("15", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                inner()
+                            },
+                        )
+                        Text("before the event", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(1 to "Minutes", 60 to "Hours", 1440 to "Days", 10080 to "Weeks").forEach { (mult, label) ->
+                            val sel = unit == mult
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .border(1.dp, if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                                    .background(if (sel) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable { unit = mult }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(label, style = MaterialTheme.typography.labelMedium, color = if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val n = amount.toIntOrNull()
+                    if (n != null && n > 0) {
+                        val m = (n * unit).coerceAtMost(40320)
+                        reminders = (reminders + m).distinct().sorted()
+                    }
+                    showCustomReminder = false
+                }) { Text("Add") }
+            },
+            dismissButton = { TextButton(onClick = { showCustomReminder = false }) { Text("Cancel") } },
+        )
+    }
+
     when (openSelector) {
         "timezone" -> SelectorOverlay("Time zone", onClose = { openSelector = null }) {
             tzOptions.forEach { z ->
@@ -405,6 +504,9 @@ fun AddEventOverlay(
                     kind = "OTHER"
                     eventTypeId = ct.id
                     endMin = (startMin + typeDurationMin(ct.id, customTypes)).coerceAtMost(23 * 60 + 59)
+                    if (!editing && reminders.isEmpty() && ct.defaultReminder != null) {
+                        reminders = listOf(ct.defaultReminder!!)
+                    }
                     openSelector = null
                 }
             }
@@ -412,6 +514,18 @@ fun AddEventOverlay(
         "repeat" -> SelectorOverlay("Repeats", onClose = { openSelector = null }) {
             listOf("NONE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY").forEach { r ->
                 SelectOptionRow(repeatLabel(r), repeat == r) { repeat = r; openSelector = null }
+            }
+        }
+        "reminder" -> SelectorOverlay("Add notification", onClose = { openSelector = null }) {
+            listOf(0, 10, 15, 30, 60, 1440, 10080).forEach { m ->
+                SelectOptionRow(reminderLabel(m), reminders.contains(m)) {
+                    reminders = (reminders + m).distinct().sorted()
+                    openSelector = null
+                }
+            }
+            SelectOptionRow("Custom\u2026", false) {
+                openSelector = null
+                showCustomReminder = true
             }
         }
     }
@@ -525,6 +639,17 @@ private fun typeLabel(kind: String, eventTypeId: String?, customTypes: List<com.
         "BIRTHDAY" -> "Birthday"
         "OTHER" -> "Other"
         else -> "Appointment"
+    }
+}
+
+private fun reminderLabel(minutes: Int): String {
+    if (minutes <= 0) return "At time of event"
+    fun unit(n: Int, one: String) = "$n $one${if (n == 1) "" else "s"} before"
+    return when {
+        minutes % 10080 == 0 -> unit(minutes / 10080, "week")
+        minutes % 1440 == 0 -> unit(minutes / 1440, "day")
+        minutes % 60 == 0 -> unit(minutes / 60, "hour")
+        else -> unit(minutes, "minute")
     }
 }
 

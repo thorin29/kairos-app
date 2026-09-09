@@ -1,4 +1,11 @@
 # Changelog
+## 0.121.0
+- Event editor: add reminders to any event — tap "Add notification", pick a time (at
+  start, 10/15/30 min, 1 hour, 1 day, 1 week, or a custom amount), and add more than one.
+  Each shows a bell and how long before, with an X to remove. New events pre-fill the
+  event type's default reminder.
+- Settings: clearer section descriptions.
+
 ## 0.120.0
 - Settings → Notifications: simplified to a single on/off switch (with a plain On / Off
   status) plus the test button. Reminder times will live on each event instead.

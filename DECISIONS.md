@@ -635,3 +635,14 @@ calendar create/update accept+store+return reminders, CalEventDto.reminders; (3)
 CalendarAddEvent reminder section (Add notification -> picker at-start/10/30m/1h/1d/1w/custom,
 bell+label+X, multiple); (4) web event form reminder section; (5) scheduler reads per-event
 reminders (+ birthdays via prefs).
+
+## App 0.121.0: per-event reminders editor (sub-phase 2)
+CalendarAddEvent (AddEventOverlay): reminders state (List<Int>, loads editEvent.reminders).
+Section after location: each reminder = bell + reminderLabel + X (remove); an "Add
+notification" row (bell hidden via alpha when reminders already listed) opens the "reminder"
+SelectorOverlay (0/10/15/30/60/1440/10080 presets + "Custom..."). Custom -> AnimatedDialog:
+number field + unit chips (min/hr/day/week), coerced <=40320, deduped+sorted. Sent as
+reminders in Create/UpdateEventRequest. New events pre-fill ct.defaultReminder when a custom
+type is picked and reminders is empty. Settings blurbs updated per Marco. NEXT: web event
+form reminder section (mirror), then the firing engine (WorkManager + exact alarms reading
+per-event reminders + birthdays).
