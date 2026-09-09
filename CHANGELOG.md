@@ -1,4 +1,7 @@
 # Changelog
+## 0.130.0
+- Software update screen: the installed version number now uses your theme color.
+
 ## 0.129.0
 - In-app updates (part 2): the Software update screen can now download and install an
   update directly. Tap "Download & install", allow Kairos to install apps once, and the

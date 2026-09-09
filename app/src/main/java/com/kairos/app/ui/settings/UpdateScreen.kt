@@ -79,7 +79,7 @@ fun UpdateScreen(onBack: () -> Unit) {
                     "v${checker.installedName} · ${checker.installedDate}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = KairosThemeState.accent,
                 )
             }
 
