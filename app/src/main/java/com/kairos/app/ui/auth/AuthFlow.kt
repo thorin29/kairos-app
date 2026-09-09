@@ -57,12 +57,12 @@ fun AuthFlow() {
     if (showPaste) {
         AlertDialog(
             onDismissRequest = { showPaste = false },
-            title = { Text("Paste your invite") },
+            title = { Text("Enter your invitation code") },
             text = {
                 OutlinedTextField(
                     value = pasteText,
                     onValueChange = { pasteText = it },
-                    label = { Text("Invite link") },
+                    label = { Text("Invitation code or link") },
                     singleLine = true,
                 )
             },

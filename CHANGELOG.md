@@ -1,4 +1,9 @@
 # Changelog
+## 0.143.0
+- "Have an invitation code?" on the sign-in screen now takes the new short invitation code (or a
+  link): enter it to create your password (new account), confirm it (add a phone), or set a new one
+  (reset), and the phone enrolls in one step.
+
 ## 0.142.0
 - Forgot your password? The sign-in screen now has a "Forgot your password?" option: enter your
   name or email and, if an address is on file, a single-use reset link is emailed to you. Opening

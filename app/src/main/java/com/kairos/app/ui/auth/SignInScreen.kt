@@ -125,7 +125,7 @@ fun SignInScreen(
             onClick = onHaveInvite,
             enabled = !ui.submitting,
         ) {
-            Text("Have an invite link? Paste it")
+            Text("Have an invitation code?")
         }
 
         TextButton(
