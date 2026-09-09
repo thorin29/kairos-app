@@ -66,10 +66,6 @@ class SessionRepository(
 
     private var service: ApiService? = null
 
-    /** Short-lived login proof from /auth/login, held only between sign-in and
-     *  the code step of enrollment. Never persisted. */
-    @Volatile
-
     init {
         appScope.launch { bootstrap() }
     }
