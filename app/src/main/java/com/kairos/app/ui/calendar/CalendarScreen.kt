@@ -1318,7 +1318,6 @@ private fun DefaultViewDialog(current: String, onPick: (String) -> Unit, onDismi
 
 // ---- Event detail (full screen) ----
 
-@Composable
 private fun eventTypeName(
     event: CalEventDto,
     customTypes: List<com.kairos.app.data.remote.dto.CalEventTypeDto>,
@@ -1332,6 +1331,7 @@ private fun eventTypeName(
             else -> "Appointment"
         }
 
+@Composable
 private fun EventDetailScreen(
     event: CalEventDto,
     occurrenceISO: String,
