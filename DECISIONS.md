@@ -667,3 +667,24 @@ connect to change your photo" (+ a generic failure message), no silent fail. App
 sync (syncRevision bump) refreshPerson() so an offline colour change reflects on the drawer
 ring once it syncs. Position-only re-frame is also multipart so also online-only (acceptable -
 photo editing is a deliberate online action).
+
+## Offline write queue: origin- and identity-scoped replay (v0.126.0)
+A security review (ChatGPT, verified against the tree) found two real issues in the
+offline system: a queued write — and the bearer token — could in principle be sent to
+the wrong server/identity, and any 4xx on replay silently discarded the write. Fixes:
+- **Store a server-relative path**, not the absolute URL, in each `PendingWrite`.
+  `SyncManager` resolves it against the *current* base at replay. A legacy absolute URL
+  replays only if its host still matches the current base, else it's dropped.
+- **Host-bind the token.** `AuthInterceptor` takes an `allowedHostProvider` and attaches
+  `Authorization` only when the request host equals the configured server's host — applied
+  to the API client, the sync client, and the Coil image loader. Off-host requests get no
+  token. (`ApiClient.baseHost()` derives the host from the configured base.)
+- **Clear the queue on any identity/server change** via `WriteQueue.clear()`, called from
+  `SessionRepository` on sign-out, re-enroll, server switch, and a dead (401) token, so one
+  person's/server's queued writes never replay under another.
+- **Classify replay responses** rather than "2xx or any 4xx = done": 2xx removes;
+  401/403/408/425/429/5xx/network are retried (queue kept, head-of-line so order holds);
+  other 4xx are dropped but logged and counted (`SyncManager.droppedCount`).
+- **Cap the queue** at 500 (keep newest) to bound growth during a long outage.
+Note: this does not change that multipart (avatar) uploads are never queued — they still
+require a live connection.

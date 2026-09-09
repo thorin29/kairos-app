@@ -43,15 +43,6 @@ class AppContainer(context: Context) {
     /** Writes made while offline, persisted and replayed on reconnect. */
     val writeQueue = WriteQueue(dataStore, ApiClient.json)
 
-    /** Replays [writeQueue] when connectivity returns; exposes sync status. */
-    val syncManager = SyncManager(
-        queue = writeQueue,
-        monitor = networkMonitor,
-        cache = httpCache,
-        tokenProvider = { tokenStore.current() },
-        scope = appScope,
-    )
-
     val sessionRepository = SessionRepository(
         settings = settingsStore,
         tokens = tokenStore,
@@ -61,12 +52,29 @@ class AppContainer(context: Context) {
         writeQueue = writeQueue,
     )
 
+    /** Replays [writeQueue] when connectivity returns; exposes sync status.
+     *  Resolves each queued path against the current base and scopes the token
+     *  to that host, so a replay can never target or authenticate to a stale
+     *  or different server. */
+    val syncManager = SyncManager(
+        queue = writeQueue,
+        monitor = networkMonitor,
+        cache = httpCache,
+        tokenProvider = { tokenStore.current() },
+        baseUrlProvider = { sessionRepository.baseUrlRaw },
+        scope = appScope,
+    )
+
     /** Coil loader for device-authed avatars: reuses the same bearer token as
      *  the API so photos behind /api/v1 load with the right Authorization. */
     val imageLoader: ImageLoader = ImageLoader.Builder(context.applicationContext)
         .okHttpClient(
             OkHttpClient.Builder()
-                .addInterceptor(AuthInterceptor { tokenStore.current() })
+                .addInterceptor(
+                    AuthInterceptor({ tokenStore.current() }) {
+                        ApiClient.baseHost(sessionRepository.baseUrlRaw ?: "")
+                    },
+                )
                 .build(),
         )
         .build()

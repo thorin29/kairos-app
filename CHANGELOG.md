@@ -1,4 +1,18 @@
 # Changelog
+## 0.126.0
+- Offline queue hardening (from a security review):
+  - A queued offline write now stores a server-relative path and is always replayed
+    against the server you're currently signed into — it can never be sent to a stale
+    or different host.
+  - Your device token is only ever attached to requests going to your configured
+    server (API, sync, and avatar image loading), never to any other origin.
+  - The queue is cleared automatically on sign-out, re-enrollment, a server change, or
+    an expired login, so one person's pending writes can never replay under another.
+  - Replaying a write is smarter about failures: temporary problems (auth, timeout,
+    rate-limit, server errors) are retried; only writes the server flatly rejects are
+    dropped, and those are now logged/counted instead of vanishing silently.
+  - The offline queue is capped so a long outage can't grow it without bound.
+
 ## 0.125.0
 - Calendar: switching views (day, 3-day, week, month, agenda) now always returns to today,
   instead of keeping the date you had paged to.

@@ -4,24 +4,34 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 /**
- * Attaches `Authorization: Bearer <token>` to every request when a token is
- * held. The token comes from an in-memory provider (kept current by the session
- * layer) rather than a blocking read of encrypted storage on the network thread.
+ * Attaches `Authorization: Bearer <token>` to a request — but only when the
+ * request is going to the configured server. The token comes from an in-memory
+ * provider (kept current by the session layer) rather than a blocking read of
+ * encrypted storage on the network thread.
  *
- * `/auth/enroll` and `/meta` simply run before any token exists, so no explicit
- * path exemption is needed: when there is no token, no header is added.
+ * The host check ([allowedHostProvider]) means a queued write that somehow
+ * carried a stale absolute URL, or any request to another origin, can never
+ * leak this device's token to a different server. `/auth/enroll` and `/meta`
+ * simply run before any token exists, so no path exemption is needed: with no
+ * token, no header is added. When [allowedHostProvider] returns null (host
+ * unknown) the check is skipped so the app still works.
  */
 class AuthInterceptor(
     private val tokenProvider: () -> String?,
+    private val allowedHostProvider: () -> String? = { null },
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = tokenProvider()
-        val request = if (token.isNullOrBlank()) {
-            chain.request()
-        } else {
+        val allowed = allowedHostProvider()
+        val host = chain.request().url.host
+        val attach = !token.isNullOrBlank() &&
+            (allowed.isNullOrBlank() || host.equals(allowed, ignoreCase = true))
+        val request = if (attach) {
             chain.request().newBuilder()
                 .header("Authorization", "Bearer $token")
                 .build()
+        } else {
+            chain.request()
         }
         return chain.proceed(request)
     }

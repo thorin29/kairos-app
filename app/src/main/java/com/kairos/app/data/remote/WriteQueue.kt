@@ -12,11 +12,17 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 /** One write the app couldn't send because it was offline. Persisted so it
- *  survives an app restart and replays when connectivity returns. */
+ *  survives an app restart and replays when connectivity returns.
+ *
+ *  [url] is a **server-relative path** (e.g. "/api/v1/tasks/add"), never an
+ *  absolute URL: it is resolved against the *current* configured server at
+ *  replay time, so a queued write can never be sent to a stale or different
+ *  host than the one this device is signed into. */
 @Serializable
 data class PendingWrite(
     val id: String,
     val method: String,
+    /** Server-relative path (+ query), resolved against the current base on replay. */
     val url: String,
     val body: String?,
     val createdAt: Long,
@@ -42,7 +48,10 @@ class WriteQueue(
 
     suspend fun enqueue(write: PendingWrite) {
         dataStore.edit { prefs ->
-            prefs[key] = json.encodeToString(listSerializer, decode(prefs[key]) + write)
+            // Cap the queue so a long outage (or a write that keeps failing to
+            // replay) can't grow it without bound; keep the most recent entries.
+            val next = (decode(prefs[key]) + write).takeLast(MAX_QUEUE)
+            prefs[key] = json.encodeToString(listSerializer, next)
         }
     }
 
@@ -52,5 +61,14 @@ class WriteQueue(
         }
     }
 
+    /** Drop every pending write. Called on sign-out, server change, or a dead
+     *  token, so one identity's queued writes can never replay under another. */
+    suspend fun clear() {
+        dataStore.edit { prefs -> prefs.remove(key) }
+    }
+
     suspend fun snapshot(): List<PendingWrite> = items.first()
 }
+
+/** Upper bound on queued writes (normally the queue is empty or near-empty). */
+private const val MAX_QUEUE = 500

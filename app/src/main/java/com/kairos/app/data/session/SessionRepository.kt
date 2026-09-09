@@ -99,6 +99,7 @@ class SessionRepository(
                     _state.value = SessionState.NeedsReauth(null)
                 is ApiError.Unauthenticated -> {
                     tokens.clear()
+                    clearOfflineWrites()
                     _state.value = SessionState.NeedsEnroll
                 }
                 else ->
@@ -159,6 +160,7 @@ class SessionRepository(
         }
         settings.setBaseUrl(rawBase)
         rebuildService(rawBase)
+        clearOfflineWrites() // writes queued against the old server must not replay here
         _state.value = SessionState.NeedsEnroll
     }
 
@@ -187,6 +189,7 @@ class SessionRepository(
         tokens.save(res.token)
         loginToken = null
         runCatching { httpCache?.evictAll() } // fresh device: no prior user's cached data
+        clearOfflineWrites() // ...nor a prior user's queued writes
         _state.value = SessionState.Ready(res.person)
     }
 
@@ -197,6 +200,7 @@ class SessionRepository(
             runCatching { apiCall { svc.revoke() } }
         }
         tokens.clear()
+        clearOfflineWrites()
         runCatching { httpCache?.evictAll() }
         _state.value = SessionState.NeedsEnroll
     }
@@ -209,6 +213,7 @@ class SessionRepository(
             runCatching { apiCall { svc.revoke() } }
         }
         tokens.clear()
+        clearOfflineWrites()
         runCatching { httpCache?.evictAll() }
         settings.clearBaseUrl()
         service = null
@@ -613,6 +618,13 @@ class SessionRepository(
     suspend fun pendingWrites(): List<com.kairos.app.data.remote.PendingWrite> =
         writeQueue?.snapshot() ?: emptyList()
 
+    /** Discard any queued offline writes. Called whenever identity or server
+     *  changes (sign-out, re-enroll, server switch, dead token) so one
+     *  person's/server's pending writes can never replay under another. */
+    private suspend fun clearOfflineWrites() {
+        runCatching { writeQueue?.clear() }
+    }
+
     /** The enrolled person's id, or null — so a screen can tell which queued
      *  writes belong to "me" (e.g. a task added for this device's person). */
     fun currentPersonId(): String? = (_state.value as? SessionState.Ready)?.person?.id
@@ -627,6 +639,7 @@ class SessionRepository(
                     _state.value = SessionState.NeedsReauth(null)
                 is ApiError.Unauthenticated -> {
                     tokens.clear()
+                    clearOfflineWrites()
                     _state.value = SessionState.NeedsEnroll
                 }
                 else -> {}
@@ -652,6 +665,7 @@ class SessionRepository(
         } catch (e: ApiException) {
             if (e.error is ApiError.Unauthenticated) {
                 tokens.clear()
+                clearOfflineWrites()
                 _state.value = SessionState.NeedsEnroll
             }
         }
@@ -659,6 +673,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 177
+        const val CLIENT_BUILD = 178
     }
 }

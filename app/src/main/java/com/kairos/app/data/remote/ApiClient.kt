@@ -4,6 +4,7 @@ import com.kairos.app.data.remote.dto.ApiErrorEnvelope
 import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.Interceptor
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -47,7 +48,7 @@ object ApiClient {
         }
 
         val builder = OkHttpClient.Builder()
-            .addInterceptor(AuthInterceptor(tokenProvider))
+            .addInterceptor(AuthInterceptor(tokenProvider) { baseHost(baseUrl) })
         if (cache != null && monitor != null) {
             // Read-through offline cache: when online, GET responses are stored
             // (server sends no-cache, so the network interceptor makes them
@@ -84,6 +85,12 @@ object ApiClient {
         if (b.endsWith("/api/v1")) b = b.removeSuffix("/api/v1")
         return "$b/api/v1/"
     }
+
+    /** The host of the configured server, used to scope the auth token so it's
+     *  only ever attached to requests going to the server this device is signed
+     *  into (see [AuthInterceptor]). */
+    fun baseHost(rawBase: String): String? =
+        runCatching { normalizeBase(rawBase).toHttpUrlOrNull()?.host }.getOrNull()
 
     /** Resolve a possibly-relative avatar URL (e.g. "/api/avatars/x.png")
      *  against the configured origin. */
@@ -153,7 +160,11 @@ private class OfflineInterceptor(
                         PendingWrite(
                             id = UUID.randomUUID().toString(),
                             method = req.method,
-                            url = req.url.toString(),
+                            // Store the server-relative path only; the replayer
+                            // resolves it against the current base so a queued
+                            // write never targets a stale/other host.
+                            url = req.url.encodedPath +
+                                (req.url.encodedQuery?.let { "?$it" } ?: ""),
                             body = bodyStr,
                             createdAt = System.currentTimeMillis(),
                         ),
