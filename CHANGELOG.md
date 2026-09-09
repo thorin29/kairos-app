@@ -1,4 +1,12 @@
 # Changelog
+## 0.144.0
+- Logging out now locks the phone instead of un-enrolling it: the phone stays yours, and you get
+  back in with your username and password — no new code needed. A brand-new phone (or one a
+  parent revokes in Household admin) still needs an invitation code.
+- Setting up a blank phone is a single "enter your invitation code" screen (create a password,
+  confirm to add a phone, or set a new one for a reset). The old separate sign-in + child-device
+  code setup is gone.
+
 ## 0.143.0
 - "Have an invitation code?" on the sign-in screen now takes the new short invitation code (or a
   link): enter it to create your password (new account), confirm it (add a phone), or set a new one

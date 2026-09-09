@@ -1,6 +1,14 @@
 package com.kairos.app.ui.auth
 
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -8,122 +16,74 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.kairos.app.ui.common.rememberContainer
-import com.kairos.app.ui.enroll.EnrollScreen
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-
-private enum class AuthStep { SignIn, Code }
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.kairos.app.ui.common.rememberContainer
+import kotlinx.coroutines.launch
 
 /**
- * The unauthenticated flow: sign in (username/password) then pair with a code —
- * the layered login+code path. The "child device" link jumps straight to the
- * code with no login, for passwordless kids a parent provisions. Which path was
- * taken is implicit: signing in leaves a login proof in the session that enroll
- * sends; the child path leaves none, and the server enforces the rule.
+ * A blank phone: it has no enrollment yet, so the only way in is an invitation
+ * code (create a password for a new person, confirm it to add a phone, or set a
+ * new one for a reset). Entering it hands off to [JoinScreen]. Signing in with a
+ * username and password happens on the lock screen, once a phone is enrolled.
  */
 @Composable
 fun AuthFlow() {
-    var step by remember { mutableStateOf(AuthStep.SignIn) }
-    var showPaste by remember { mutableStateOf(false) }
-    var pasteText by remember { mutableStateOf("") }
-    var showForgot by remember { mutableStateOf(false) }
-    var forgotText by remember { mutableStateOf("") }
-    var forgotSent by remember { mutableStateOf(false) }
     val container = rememberContainer()
     val scope = rememberCoroutineScope()
+    var code by remember { mutableStateOf("") }
+    var showForgot by remember { mutableStateOf(false) }
 
-    when (step) {
-        AuthStep.SignIn -> SignInScreen(
-            onSignedIn = { step = AuthStep.Code },
-            onUseCode = { step = AuthStep.Code },
-            onChangeServer = {
-                scope.launch { container.sessionRepository.changeServer() }
-            },
-            onHaveInvite = { showPaste = true },
-            onForgot = {
-                forgotText = ""
-                forgotSent = false
-                showForgot = true
-            },
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("Set up this phone", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Enter the invitation code from your household (texted, read aloud, or " +
+                "in your invite email).",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
-        AuthStep.Code -> EnrollScreen(
-            onNeedSignIn = { step = AuthStep.SignIn },
-            onBack = { step = AuthStep.SignIn },
+        Spacer(Modifier.height(20.dp))
+        OutlinedTextField(
+            value = code,
+            onValueChange = { code = it },
+            label = { Text("Invitation code") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
         )
-    }
-
-    if (showPaste) {
-        AlertDialog(
-            onDismissRequest = { showPaste = false },
-            title = { Text("Enter your invitation code") },
-            text = {
-                OutlinedTextField(
-                    value = pasteText,
-                    onValueChange = { pasteText = it },
-                    label = { Text("Invitation code or link") },
-                    singleLine = true,
-                )
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = {
+                val raw = code.trim()
+                val token = if (raw.contains("token=")) {
+                    raw.substringAfter("token=").substringBefore("&").trim()
+                } else {
+                    raw
+                }
+                if (token.isNotBlank()) container.pendingJoinToken.value = token
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    val raw = pasteText.trim()
-                    val token = if (raw.contains("token=")) {
-                        raw.substringAfter("token=").substringBefore("&").trim()
-                    } else {
-                        raw
-                    }
-                    showPaste = false
-                    pasteText = ""
-                    if (token.isNotBlank()) container.pendingJoinToken.value = token
-                }) { Text("Continue") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPaste = false }) { Text("Cancel") }
-            },
-        )
+            enabled = code.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Continue") }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = { showForgot = true }) {
+            Text("Forgot your password?")
+        }
+        TextButton(onClick = {
+            scope.launch { container.sessionRepository.changeServer() }
+        }) { Text("Change server") }
     }
 
     if (showForgot) {
-        AlertDialog(
-            onDismissRequest = { showForgot = false },
-            title = { Text(if (forgotSent) "Check your email" else "Reset your password") },
-            text = {
-                if (forgotSent) {
-                    Text(
-                        "If that account has an email on file, a reset link is on its " +
-                            "way. Open it on this phone to choose a new password.",
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = forgotText,
-                        onValueChange = { forgotText = it },
-                        label = { Text("Your name or email") },
-                        singleLine = true,
-                    )
-                }
-            },
-            confirmButton = {
-                if (forgotSent) {
-                    TextButton(onClick = { showForgot = false }) { Text("Done") }
-                } else {
-                    TextButton(onClick = {
-                        val id = forgotText.trim()
-                        if (id.isNotBlank()) {
-                            scope.launch {
-                                runCatching { container.sessionRepository.requestReset(id) }
-                                forgotSent = true
-                            }
-                        }
-                    }) { Text("Send reset link") }
-                }
-            },
-            dismissButton = {
-                if (!forgotSent) {
-                    TextButton(onClick = { showForgot = false }) { Text("Cancel") }
-                }
-            },
-        )
+        ForgotPasswordDialog(onDismiss = { showForgot = false })
     }
 }

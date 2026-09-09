@@ -11,6 +11,8 @@ import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.LoginRequest
 import com.kairos.app.data.remote.dto.PersonDto
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 import com.kairos.app.data.remote.dto.ReauthRequest
 import com.kairos.app.data.remote.dto.TaskStatusDto
 import com.kairos.app.data.remote.dto.WorkoutAckDto
@@ -33,6 +35,9 @@ sealed interface SessionState {
     data object NeedsEnroll : SessionState
     /** Device still enrolled, but the account password changed — re-enter it. */
     data class NeedsReauth(val person: PersonDto?) : SessionState
+    /** Enrolled but logged out — locked to [person]. Username + password (theirs)
+     *  gets back in; no new code. A blank phone can't reach this state. */
+    data class Locked(val person: PersonDto) : SessionState
     /** Enrolled; [person] came from /me. */
     data class Ready(val person: PersonDto) : SessionState
 }
@@ -51,6 +56,7 @@ class SessionRepository(
     private val networkMonitor: com.kairos.app.data.remote.NetworkMonitor? = null,
     private val writeQueue: com.kairos.app.data.remote.WriteQueue? = null,
 ) {
+    private val json = Json { ignoreUnknownKeys = true }
     private val _state = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = _state.asStateFlow()
 
@@ -87,6 +93,13 @@ class SessionRepository(
         if (token.isNullOrBlank()) {
             _state.value = SessionState.NeedsEnroll
             return
+        }
+        // Logged out on this (still-enrolled) phone: resume to the lock screen.
+        settings.currentLockedPerson()?.let { js ->
+            runCatching { json.decodeFromString<PersonDto>(js) }.getOrNull()?.let {
+                _state.value = SessionState.Locked(it)
+                return
+            }
         }
         // Validate the stored token by fetching the person.
         try {
@@ -161,6 +174,7 @@ class SessionRepository(
         settings.setBaseUrl(rawBase)
         rebuildService(rawBase)
         clearOfflineWrites() // writes queued against the old server must not replay here
+        settings.clearLockedPerson()
         _state.value = SessionState.NeedsEnroll
     }
 
@@ -190,6 +204,7 @@ class SessionRepository(
         loginToken = null
         runCatching { httpCache?.evictAll() } // fresh device: no prior user's cached data
         clearOfflineWrites() // ...nor a prior user's queued writes
+        settings.clearLockedPerson()
         _state.value = SessionState.Ready(res.person)
     }
 
@@ -224,19 +239,48 @@ class SessionRepository(
         loginToken = null
         runCatching { httpCache?.evictAll() }
         clearOfflineWrites()
+        settings.clearLockedPerson()
         _state.value = SessionState.Ready(res.person)
     }
 
     /** Sign out: best-effort server revoke, then wipe the local token. */
+    /** "Log out" = lock, not un-enroll. Keep the device token (the phone stays
+     *  enrolled) and remember who it's locked to, so getting back in needs only
+     *  their username + password — no new code. A parent revoking the device in
+     *  admin is the real removal, which forces a fresh code. */
     suspend fun signOut() {
-        val svc = service
-        if (svc != null) {
-            runCatching { apiCall { svc.revoke() } }
+        val person = (_state.value as? SessionState.Ready)?.person
+        if (person != null) {
+            settings.setLockedPerson(json.encodeToString(person))
+            runCatching { httpCache?.evictAll() } // don't leave rendered data behind the lock
+            _state.value = SessionState.Locked(person)
+        } else {
+            // No known person (unexpected) — fall back to a clean re-enroll.
+            val svc = service
+            if (svc != null) runCatching { apiCall { svc.revoke() } }
+            tokens.clear()
+            clearOfflineWrites()
+            _state.value = SessionState.NeedsEnroll
         }
-        tokens.clear()
-        clearOfflineWrites()
-        runCatching { httpCache?.evictAll() }
-        _state.value = SessionState.NeedsEnroll
+    }
+
+    /** Unlock a logged-out phone with the enrolled person's own username +
+     *  password. Rejects a different account, so the phone stays theirs. */
+    suspend fun unlock(identifier: String, password: String) {
+        val svc = requireService()
+        val res = apiCall { svc.login(LoginRequest(identifier.trim(), password)) }
+        val p = res.person ?: throw ApiException(ApiError.Unknown("Couldn't sign in."))
+        val locked = (_state.value as? SessionState.Locked)?.person
+        if (locked != null && p.id != locked.id) {
+            throw ApiException(
+                ApiError.Forbidden(
+                    "This phone is set up for ${locked.name}. Sign in with that " +
+                        "account, or ask a parent for a new code.",
+                ),
+            )
+        }
+        settings.clearLockedPerson()
+        _state.value = SessionState.Ready(p)
     }
 
     /** Change server entirely: revoke where possible, drop the token, and go
@@ -250,6 +294,7 @@ class SessionRepository(
         clearOfflineWrites()
         runCatching { httpCache?.evictAll() }
         settings.clearBaseUrl()
+        settings.clearLockedPerson()
         service = null
         baseUrlRaw = null
         loginToken = null
@@ -707,6 +752,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 195
+        const val CLIENT_BUILD = 196
     }
 }

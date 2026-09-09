@@ -38,6 +38,7 @@ import com.kairos.app.data.session.SessionState
 import com.kairos.app.di.AppContainer
 import com.kairos.app.ui.auth.AuthFlow
 import com.kairos.app.ui.auth.JoinScreen
+import com.kairos.app.ui.auth.LockScreen
 import com.kairos.app.ui.common.LoadingScreen
 import com.kairos.app.ui.common.PlaceholderScreen
 import com.kairos.app.ui.common.rememberContainer
@@ -111,6 +112,7 @@ fun AppRoot(container: AppContainer) {
                 AuthFlow()
             }
         }
+        is SessionState.Locked -> LockScreen(person = s.person)
         is SessionState.NeedsReauth -> ReauthScreen(person = s.person)
         is SessionState.Ready -> AuthenticatedApp(person = s.person)
     }

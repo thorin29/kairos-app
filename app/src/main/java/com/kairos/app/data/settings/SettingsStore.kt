@@ -28,6 +28,19 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it.remove(KEY_BASE_URL) }
     }
 
+    /** When set, the phone is enrolled but "logged out" — locked to this person
+     *  (stored as PersonDto JSON). Getting back in needs their username +
+     *  password, not a new code. Cleared on unlock, enroll, or server change. */
+    suspend fun currentLockedPerson(): String? = dataStore.data.first()[KEY_LOCKED_PERSON]
+
+    suspend fun setLockedPerson(json: String) {
+        dataStore.edit { it[KEY_LOCKED_PERSON] = json }
+    }
+
+    suspend fun clearLockedPerson() {
+        dataStore.edit { it.remove(KEY_LOCKED_PERSON) }
+    }
+
     /** The calendar view the app opens to. A CalView value, or "last" to use the
      *  most recently used view. */
     val calendarDefaultView: Flow<String> =
@@ -118,6 +131,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
+        val KEY_LOCKED_PERSON = stringPreferencesKey("locked_person_json")
         val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
         val KEY_THEME = stringPreferencesKey("theme_scheme")
