@@ -1,4 +1,10 @@
 # Changelog
+## 0.132.0
+- Text fields (event titles, names, notes, and the like) now auto-capitalize the first
+  letter as you type. Numeric, email, password and address fields are unaffected.
+- Calendar time picker now matches your clock setting: it shows 24-hour when military
+  time is on, instead of always AM/PM.
+
 ## 0.131.0
 - Software update: fixed the install-permission step. After you allow Kairos to install
   apps and return, the screen now re-checks the setting and continues straight to the

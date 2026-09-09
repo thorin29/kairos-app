@@ -47,6 +47,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
+import com.kairos.app.ui.common.SentenceCaps
 
 @Composable
 fun PersonalPlanSection(
@@ -222,6 +223,7 @@ private fun PlanCreator(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
+                keyboardOptions = SentenceCaps,
                 placeholder = { Text("Plan name (optional)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),

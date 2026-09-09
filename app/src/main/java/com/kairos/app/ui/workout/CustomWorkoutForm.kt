@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.common.SentenceCaps
 
 /** The "Log something else" entry point: a button that opens a step-by-step
  *  wizard (type -> details -> log), so the options aren't all crowded at once. */
@@ -198,6 +199,7 @@ private fun ValueStep(ui: CustomUiState, vm: CustomWorkoutViewModel) {
         OutlinedTextField(
             value = ui.notes,
             onValueChange = vm::onNotes,
+            keyboardOptions = SentenceCaps,
             label = { Text("Notes (optional)") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),

@@ -52,6 +52,7 @@ import com.kairos.app.data.remote.dto.CoopChildDto
 import com.kairos.app.data.remote.dto.CoopDto
 import com.kairos.app.data.remote.dto.CoopProposalDto
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.common.SentenceCaps
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,6 +205,7 @@ private fun Field(value: String, onChange: (String) -> Unit, placeholder: String
         BasicTextField(
             value = value,
             onValueChange = onChange,
+            keyboardOptions = SentenceCaps,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

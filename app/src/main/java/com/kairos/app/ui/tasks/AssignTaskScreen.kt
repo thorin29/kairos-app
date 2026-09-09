@@ -52,6 +52,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.kairos.app.ui.common.SentenceCaps
 
 private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
 private val NICE = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
@@ -169,6 +170,7 @@ private fun Field(value: String, onChange: (String) -> Unit, placeholder: String
         BasicTextField(
             value = value,
             onValueChange = onChange,
+            keyboardOptions = SentenceCaps,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

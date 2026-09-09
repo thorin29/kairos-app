@@ -49,6 +49,7 @@ import androidx.navigation.NavBackStackEntry
 import com.kairos.app.data.remote.dto.GroceriesDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.SentenceCaps
 
 
 internal data class PendingAdd(val label: String, val catalogId: String?, val defaultStoreId: String?)
@@ -152,6 +153,7 @@ private fun ItemStep(
             BasicTextField(
                 value = query,
                 onValueChange = { onQuery(it.take(60)) },
+                keyboardOptions = SentenceCaps,
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

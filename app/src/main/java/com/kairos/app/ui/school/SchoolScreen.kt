@@ -56,6 +56,7 @@ import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.SentenceCaps
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -312,6 +313,7 @@ private fun NameField(value: String, onChange: (String) -> Unit) {
         BasicTextField(
             value = value,
             onValueChange = onChange,
+            keyboardOptions = SentenceCaps,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

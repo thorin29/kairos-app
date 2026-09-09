@@ -60,6 +60,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.SentenceCaps
 
 private val STEP_TITLES = listOf("Name", "Exercises", "Instructions", "Review")
 private const val INSTRUCTIONS_HINT =
@@ -320,6 +321,7 @@ private fun InstructionsStep(ui: CreateWorkoutUi, vm: CreatePersonalWorkoutViewM
         OutlinedTextField(
             value = ui.instructions,
             onValueChange = vm::onInstructions,
+            keyboardOptions = SentenceCaps,
             label = { Text("Instructions (optional)") },
             placeholder = { Text(INSTRUCTIONS_HINT) },
             enabled = enabled,
@@ -397,6 +399,7 @@ private fun NameCombo(
         OutlinedTextField(
             value = name,
             onValueChange = onName,
+            keyboardOptions = SentenceCaps,
             label = { Text("Workout name") },
             placeholder = { Text("New workout name") },
             readOnly = !enabled,
@@ -476,6 +479,7 @@ private fun ManageExercisesDialog(
                                 OutlinedTextField(
                                     value = name,
                                     onValueChange = { name = it },
+                                    keyboardOptions = SentenceCaps,
                                     singleLine = true,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -540,6 +544,7 @@ private fun AddCustomExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String)
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
+            keyboardOptions = SentenceCaps,
             label = { Text("Exercise name") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),

@@ -58,6 +58,7 @@ import com.kairos.app.data.remote.dto.PersonalPlanDto
 import com.kairos.app.data.remote.dto.PlanPreviewDto
 import com.kairos.app.ui.nav.KairosIcons
 import kotlin.math.roundToInt
+import com.kairos.app.ui.common.SentenceCaps
 
 private enum class PaceMode { CHAPTERS, FINISH }
 
@@ -173,6 +174,7 @@ private fun BooksStep(picked: MutableList<String>, name: String, onName: (String
 
     OutlinedTextField(
         value = name, onValueChange = onName, label = { Text("Plan name") },
+        keyboardOptions = SentenceCaps,
         singleLine = true, modifier = Modifier.fillMaxWidth(),
     )
 

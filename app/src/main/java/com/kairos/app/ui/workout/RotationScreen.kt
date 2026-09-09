@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.RotationDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.SentenceCaps
 
 private val SHORT_DAY = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
 
@@ -185,6 +186,7 @@ private fun RotationBody(r: RotationDto, busy: Boolean, error: String?, vm: Rota
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
+            keyboardOptions = SentenceCaps,
             label = { Text("Name (e.g. Chest, Legs, Push)") },
             singleLine = true,
             enabled = !rest,

@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.common.SentenceCaps
 
 @Composable
 fun EnrollScreen(
@@ -68,6 +69,7 @@ fun EnrollScreen(
         OutlinedTextField(
             value = ui.deviceName,
             onValueChange = vm::onDeviceNameChange,
+            keyboardOptions = SentenceCaps,
             label = { Text("Device name (optional)") },
             singleLine = true,
             enabled = !ui.enrolling,

@@ -59,6 +59,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.kairos.app.ui.common.SentenceCaps
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,6 +201,7 @@ fun AddEventOverlay(
                 BasicTextField(
                     value = title,
                     onValueChange = { title = it },
+                    keyboardOptions = SentenceCaps,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
@@ -270,6 +272,7 @@ fun AddEventOverlay(
                     BasicTextField(
                         value = location,
                         onValueChange = { location = it },
+                        keyboardOptions = SentenceCaps,
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -620,7 +623,7 @@ private fun SelectOptionRow(label: String, selected: Boolean, onClick: () -> Uni
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberTimePickerState(initialHour = initialMin / 60, initialMinute = initialMin % 60, is24Hour = false)
+    val state = rememberTimePickerState(initialHour = initialMin / 60, initialMinute = initialMin % 60, is24Hour = TimeFmt.military)
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {

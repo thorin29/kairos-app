@@ -73,6 +73,8 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import com.kairos.app.ui.common.SentenceCaps
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 private val MONEY = Color(0xFF15803D)    // money green (deposits, approved)
 private val NEG = Color(0xFFDC2626)      // red-600 (payments, negative balances)
@@ -568,6 +570,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
+            keyboardOptions = SentenceCaps,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -1206,7 +1209,7 @@ private fun FormField(
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.weight(1f),
                 decorationBox = { inner ->
                     if (value.isEmpty()) {
