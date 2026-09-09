@@ -1502,7 +1502,23 @@ data class TaskOpenDto(val id: String = "", val title: String = "", val dueISO: 
 data class TaskDoneDto(val id: String = "", val title: String = "", val dueISO: String = "", val recurring: Boolean = false)
 
 @Serializable
-data class AddTaskRequest(val userId: String, val title: String, val dueDate: String? = null)
+data class RecurRequest(
+    val freq: String = "WEEKLY",
+    val interval: Int = 1,
+    val byday: List<String> = emptyList(),
+    val startDate: String = "",
+    val endMode: String = "NEVER",
+    val maxCount: Int? = null,
+    val until: String = "",
+)
+
+@Serializable
+data class AddTaskRequest(
+    val userId: String,
+    val title: String,
+    val dueDate: String? = null,
+    val recur: RecurRequest? = null,
+)
 
 @Serializable
 data class ColorRequest(val color: String)

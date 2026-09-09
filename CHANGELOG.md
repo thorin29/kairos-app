@@ -1,4 +1,9 @@
 # Changelog
+## 0.147.0
+- Assigning a task now has an "Advanced" toggle that reveals the due date and a "Repeat" option.
+  Turn on Repeat to make it recurring — frequency (daily/weekly/monthly), interval, weekdays, and
+  an end (never / after N times / until a date) — the same options as web admin.
+
 ## 0.146.0
 - Assigning a task now defaults to you (the parent/admin) at the top of the "For" list, instead of
   whichever person the server happened to list first.

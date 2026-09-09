@@ -46,6 +46,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavBackStackEntry
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import java.time.Instant
@@ -94,8 +97,20 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         var dueDate by remember { mutableStateOf(LocalDate.now().toString()) }
         var showDate by remember { mutableStateOf(false) }
 
+        // Advanced (optional): due date + recurrence, mirroring web admin.
+        var advanced by remember { mutableStateOf(false) }
+        var repeats by remember { mutableStateOf(false) }
+        var freq by remember { mutableStateOf("WEEKLY") }
+        var interval by remember { mutableStateOf("1") }
+        var byday by remember { mutableStateOf(setOf(dowCode(LocalDate.now().dayOfWeek))) }
+        var endMode by remember { mutableStateOf("NEVER") }
+        var count by remember { mutableStateOf("10") }
+        var until by remember { mutableStateOf(LocalDate.now().plusMonths(1).toString()) }
+        var showUntil by remember { mutableStateOf(false) }
+
         val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
+        val untilLabel = try { LocalDate.parse(until).format(NICE) } catch (_: Exception) { until }
 
         Column(
             Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -110,24 +125,104 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Due date", style = MaterialTheme.typography.bodyLarge)
-                            Text("Optional \u2014 otherwise it's due today", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Advanced", style = MaterialTheme.typography.bodyLarge)
+                            Text("Due date and repeating", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = hasDue, onCheckedChange = { hasDue = it })
+                        Switch(checked = advanced, onCheckedChange = { advanced = it })
                     }
-                    if (hasDue) {
-                        Box(
-                            Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                                .clickable { showDate = true }.padding(horizontal = 14.dp, vertical = 12.dp),
-                        ) {
-                            Text(dueLabel, style = MaterialTheme.typography.bodyLarge)
+
+                    if (advanced) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Due date", style = MaterialTheme.typography.bodyLarge)
+                                Text("Optional \u2014 otherwise it's due today", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = hasDue, onCheckedChange = { hasDue = it })
+                        }
+                        if (hasDue) {
+                            Box(
+                                Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                                    .clickable { showDate = true }.padding(horizontal = 14.dp, vertical = 12.dp),
+                            ) {
+                                Text(dueLabel, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Repeat", style = MaterialTheme.typography.bodyLarge)
+                                Text("Make this a recurring task", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = repeats, onCheckedChange = { repeats = it })
+                        }
+
+                        if (repeats) {
+                            RollPicker("Frequency", freqLabel(freq), listOf("DAILY" to "Daily", "WEEKLY" to "Weekly", "MONTHLY" to "Monthly"), { freq = it }, !ui.busy, Modifier.fillMaxWidth())
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Every", style = MaterialTheme.typography.bodyLarge)
+                                Box(Modifier.width(64.dp)) {
+                                    Field(interval, { interval = it.filter { c -> c.isDigit() }.take(2) }, "1")
+                                }
+                                Text(freqUnit(freq), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (freq == "WEEKLY") {
+                                Text("On", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    WEEKDAYS.forEach { (code, label) ->
+                                        val on = code in byday
+                                        Box(
+                                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                                                .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                                .clickable { byday = if (on) byday - code else byday + code }
+                                                .padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(label, style = MaterialTheme.typography.labelMedium, color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                            RollPicker("Ends", endLabel(endMode), listOf("NEVER" to "Never", "COUNT" to "After a number of times", "UNTIL" to "On a date"), { endMode = it }, !ui.busy, Modifier.fillMaxWidth())
+                            if (endMode == "COUNT") {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text("After", style = MaterialTheme.typography.bodyLarge)
+                                    Box(Modifier.width(72.dp)) {
+                                        Field(count, { count = it.filter { c -> c.isDigit() }.take(3) }, "10")
+                                    }
+                                    Text("times", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            if (endMode == "UNTIL") {
+                                Box(
+                                    Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                                        .clickable { showUntil = true }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                ) {
+                                    Text(untilLabel, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
                         }
                     }
                 }
             }
 
             Button(
-                onClick = { vm.add(personId, title.trim(), if (hasDue) dueDate else null) { onClose() } },
+                onClick = {
+                    val recur = if (advanced && repeats) {
+                        com.kairos.app.data.remote.dto.RecurRequest(
+                            freq = freq,
+                            interval = interval.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+                            byday = if (freq == "WEEKLY") byday.toList() else emptyList(),
+                            startDate = if (hasDue) dueDate else LocalDate.now().toString(),
+                            endMode = endMode,
+                            maxCount = if (endMode == "COUNT") count.toIntOrNull() else null,
+                            until = if (endMode == "UNTIL") until else "",
+                        )
+                    } else {
+                        null
+                    }
+                    val due = if (advanced && hasDue && !repeats) dueDate else null
+                    vm.add(personId, title.trim(), due, recur) { onClose() }
+                },
                 enabled = !ui.busy && personId.isNotBlank() && title.trim().length >= 2,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Assign") }
@@ -156,8 +251,45 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                 DatePicker(state = state)
             }
         }
+
+        if (showUntil) {
+            val ustate = rememberDatePickerState(
+                initialSelectedDateMillis = try {
+                    LocalDate.parse(until).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+                } catch (_: Exception) {
+                    System.currentTimeMillis()
+                },
+            )
+            DatePickerDialog(
+                onDismissRequest = { showUntil = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        ustate.selectedDateMillis?.let { ms ->
+                            until = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate().format(ISO)
+                        }
+                        showUntil = false
+                    }) { Text("OK") }
+                },
+                dismissButton = { TextButton(onClick = { showUntil = false }) { Text("Cancel") } },
+            ) {
+                DatePicker(state = ustate)
+            }
+        }
     }
 }
+
+private val WEEKDAYS = listOf(
+    "SU" to "Su", "MO" to "Mo", "TU" to "Tu", "WE" to "We", "TH" to "Th", "FR" to "Fr", "SA" to "Sa",
+)
+
+private fun dowCode(d: java.time.DayOfWeek): String =
+    listOf("MO", "TU", "WE", "TH", "FR", "SA", "SU")[d.value - 1]
+
+private fun freqLabel(f: String) = when (f) { "DAILY" -> "Daily"; "MONTHLY" -> "Monthly"; else -> "Weekly" }
+
+private fun freqUnit(f: String) = when (f) { "DAILY" -> "days"; "MONTHLY" -> "months"; else -> "weeks" }
+
+private fun endLabel(e: String) = when (e) { "COUNT" -> "After a number of times"; "UNTIL" -> "On a date"; else -> "Never" }
 
 @Composable
 private fun Labeled(label: String, content: @Composable () -> Unit) {
