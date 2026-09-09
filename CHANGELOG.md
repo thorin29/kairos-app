@@ -1,5 +1,5 @@
 # Changelog
-## 0.122.0
+## 0.122.1
 - Notifications settings: a "Sound & vibration" link that opens Android's own settings
   for the reminder channel, where you control sound, vibration, pop-ups, and on/off.
 

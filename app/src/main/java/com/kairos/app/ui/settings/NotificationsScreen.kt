@@ -121,8 +121,8 @@ fun NotificationsScreen(onBack: () -> Unit) {
                 if (prefs.enabled) {
                     item {
                         OutlinedCard(
-                            Modifier.fillMaxWidth(),
                             onClick = { Notifications.openChannelSettings(context) },
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
                                 Modifier.fillMaxWidth().padding(16.dp),
