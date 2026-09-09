@@ -200,7 +200,11 @@ class CalendarViewModel(
 
     fun setTab(tab: CalTab) {
         if (tab == _ui.value.tab) return
-        _ui.update { it.copy(tab = tab) }
+        // Switching views always returns to today, rather than carrying over the
+        // date the previous view had been paged to.
+        val today = _ui.value.data?.today
+        clearPageCaches()
+        _ui.update { it.copy(tab = tab, date = today, navNonce = it.navNonce + 1) }
         viewModelScope.launch { settings.setCalendarLastView(tab.serverValue) }
         load()
     }

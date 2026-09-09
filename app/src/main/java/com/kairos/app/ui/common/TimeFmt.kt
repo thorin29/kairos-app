@@ -14,7 +14,7 @@ object TimeFmt {
 
     /** "13" / "00" (24h) or "1 PM" / "12 AM" (12h) for the hour axis. */
     fun hour(h: Int): String =
-        if (military) "%02d".format(h)
+        if (military) "%02d:00".format(h)
         else when {
             h == 0 -> "12 AM"
             h < 12 -> "$h AM"

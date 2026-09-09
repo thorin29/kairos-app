@@ -10,7 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
-/** The colour themes a user can pick (stored per device). `swatch` is the light
+/** The color themes a user can pick (stored per device). `swatch` is the light
  *  accent, shown in the picker. */
 enum class ThemeScheme(val label: String, val swatch: Color) {
     TEAL("Teal", Color(0xFF0F5C63)),
@@ -50,7 +50,7 @@ private fun palette(s: ThemeScheme): Palette = when (s) {
 }
 
 /**
- * Brand colours that live outside the Material palette — the accent (read by many
+ * Brand colors that live outside the Material palette — the accent (read by many
  * screens as a plain val) and the sidebar. Snapshot-backed so switching theme
  * re-composes every reader. Written only by [KairosTheme].
  */
@@ -140,7 +140,7 @@ fun KairosTheme(
     content: @Composable () -> Unit,
 ) {
     val p = palette(scheme)
-    // Sync the out-of-palette brand colours after composition so readers update.
+    // Sync the out-of-palette brand colors after composition so readers update.
     SideEffect {
         KairosThemeState.accent = if (darkTheme) p.accentD else p.accentL
         KairosThemeState.sidebar = if (darkTheme) p.sidebarD else p.sidebarL

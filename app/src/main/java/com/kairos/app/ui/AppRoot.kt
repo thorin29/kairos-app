@@ -165,7 +165,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(notifCtx)
         }
     }
-    // After a sync drains the queue (e.g. a colour change made offline), re-fetch
+    // After a sync drains the queue (e.g. a color change made offline), re-fetch
     // the person so the drawer ring and profile reflect it.
     LaunchedEffect(syncRevision) {
         if (syncRevision > 0) container.sessionRepository.refreshPerson()

@@ -71,6 +71,13 @@ fun AddEventOverlay(
     onClose: () -> Unit,
 ) {
     val editing = editEvent != null
+    val container = com.kairos.app.ui.common.rememberContainer()
+    val meId = remember {
+        (container.sessionRepository.state.value as? com.kairos.app.data.session.SessionState.Ready)?.person?.id
+    }
+    // The event's owner shouldn't appear in "share with" (you can't share with
+    // yourself). For a new event that's me; for an edit it's the event's owner.
+    val ownerId = editEvent?.ownerId ?: meId
     var title by remember { mutableStateOf(editEvent?.title ?: "") }
     var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
     val initDate = editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }
@@ -251,7 +258,7 @@ fun AddEventOverlay(
 
                 SectionLine()
                 SelectRow(
-                    KairosIcons.Chores,
+                    KairosIcons.Share,
                     if (participants.isEmpty()) "Add participants"
                     else "${participants.size} " + if (participants.size == 1) "person" else "people",
                     muted = participants.isEmpty(),
@@ -362,7 +369,7 @@ fun AddEventOverlay(
             title = "Share with",
             content = {
                 Column {
-                    data.options.people.forEach { p ->
+                    data.options.people.filter { ownerId == null || it.id != ownerId }.forEach { p ->
                         val checked = p.id in participants
                         Row(
                             Modifier.fillMaxWidth().clickable {

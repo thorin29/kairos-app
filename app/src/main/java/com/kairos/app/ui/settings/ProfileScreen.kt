@@ -393,7 +393,7 @@ private fun SwatchGrid(
                         ) {
                             Icon(
                                 Icons.Filled.Add,
-                                contentDescription = "Custom colour",
+                                contentDescription = "Custom color",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }

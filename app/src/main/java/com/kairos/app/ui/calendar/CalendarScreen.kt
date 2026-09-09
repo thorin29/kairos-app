@@ -1052,10 +1052,10 @@ private fun SettingsPanel(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Icon(KairosIcons.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-                Text("Colours", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text("Colors", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             }
             // System = follow the shared/web settings (no options). Custom = your
-            // own event colours, everyone else's greyed out automatically.
+            // own event colors, everyone else's greyed out automatically.
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant).padding(3.dp),
@@ -1146,7 +1146,7 @@ private val CalPalette = listOf(
     "#475569", "#334155", "#78716c", "#111827",
 )
 
-// Bright, high-contrast colours for the current-time line so it's easy to spot.
+// Bright, high-contrast colors for the current-time line so it's easy to spot.
 // White reads on the dark grid at night; black on the light grid by day.
 private val NowPalette = listOf(
     "#2563eb", "#ef4444", "#f97316", "#10b981", "#06b6d4", "#a855f7",
@@ -1193,7 +1193,7 @@ private fun ColorPickerDialog(slot: ColorSlot, onClose: () -> Unit) {
                     }
                 }
                 HorizontalDivider()
-                // Default option: the fallback colour, chosen when nothing custom is set.
+                // Default option: the fallback color, chosen when nothing custom is set.
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
                         .clickable { selected = null }
@@ -1221,7 +1221,7 @@ private fun ColorPickerDialog(slot: ColorSlot, onClose: () -> Unit) {
     )
 }
 
-/** A colour swatch; when selected it gets a teal ring with a small gap. */
+/** A color swatch; when selected it gets a teal ring with a small gap. */
 @Composable
 private fun Swatch(color: Color, selected: Boolean, onClick: () -> Unit) {
     Box(

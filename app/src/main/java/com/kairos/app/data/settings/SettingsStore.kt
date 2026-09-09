@@ -47,7 +47,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_CAL_LAST_VIEW] = v }
     }
 
-    /** Colour theme, per device (a ThemeScheme name); defaults to TEAL. */
+    /** Color theme, per device (a ThemeScheme name); defaults to TEAL. */
     val themeScheme: Flow<String> = dataStore.data.map { it[KEY_THEME] ?: "TEAL" }
 
     suspend fun setThemeScheme(v: String) {
@@ -68,7 +68,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_MILITARY] = on }
     }
 
-    /** The last custom (non-palette) colour picked in the profile, per device, so
+    /** The last custom (non-palette) color picked in the profile, per device, so
      *  it can be re-offered as a swatch. */
     val lastCustomColor: Flow<String?> = dataStore.data.map { it[KEY_LAST_COLOR] }
 

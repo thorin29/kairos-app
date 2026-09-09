@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * Plate/bar config for the Weight calculator, ported from the web
  * (src/lib/workouts/plates.ts). Diameter/thickness in mm (approx real plates) so
- * the barbell drawing scales realistically. Colours per lb.
+ * the barbell drawing scales realistically. Colors per lb.
  */
 data class Plate(
     val id: String,

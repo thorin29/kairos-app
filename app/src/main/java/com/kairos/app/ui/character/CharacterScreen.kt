@@ -223,7 +223,7 @@ private fun CompanionCard(c: CharCompanionDto) {
     }
 }
 
-/** The web's segmented level bar: 20 little squares, filled ones coloured by
+/** The web's segmented level bar: 20 little squares, filled ones colored by
  *  which domain earned the XP. */
 @Composable
 private fun XpCells(cells: List<String>) {

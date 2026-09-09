@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * The app's top-level sections, mirroring the web sidebar — same order, brand
- * colours, and glyphs. "home" is the real page; the rest are placeholders until
+ * colors, and glyphs. "home" is the real page; the rest are placeholders until
  * their section is built.
  */
 data class AppSection(

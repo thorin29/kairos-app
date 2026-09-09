@@ -132,7 +132,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                 }
                 item {
                     Text(
-                        "Colour theme",
+                        "Color theme",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 4.dp),

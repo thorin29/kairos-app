@@ -61,7 +61,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenAppearance: () -> Unit, onOpenProfi
         Section(
             KairosIcons.Bell,
             "Notifications",
-            "Reminders, turn on or off",
+            "Reminders, sounds, and vibration settings",
             ready = true,
             onOpen = onOpenNotifications,
         ),

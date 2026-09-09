@@ -62,7 +62,7 @@ fun ColorPickerDialog(
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    "Custom colour",
+                    "Custom color",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -128,7 +128,7 @@ fun ColorPickerDialog(
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
-                    TextButton(onClick = { onPick(color, hexOf(color)) }) { Text("Use colour") }
+                    TextButton(onClick = { onPick(color, hexOf(color)) }) { Text("Use color") }
                 }
             }
         }

@@ -25,7 +25,7 @@ import com.kairos.app.data.remote.dto.PersonDto
  * A person's avatar for ordinary content surfaces (chores, school, money …),
  * unlike the sidebar-styled one in KairosRail. Renders the uploaded photo over
  * the device-authed /api/v1/avatars endpoint with the web's position/zoom
- * transform, else the person's emoji icon or initials on a colour-tinted disc.
+ * transform, else the person's emoji icon or initials on a color-tinted disc.
  */
 @Composable
 fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
@@ -68,7 +68,7 @@ fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
                 Initials(label, tint)
             }
         }
-        // The person's colour is the ring (matches the web avatar), drawn on top
+        // The person's color is the ring (matches the web avatar), drawn on top
         // so it stays crisp over a photo edge.
         Box(Modifier.fillMaxSize().border(ringWidth, tint, CircleShape))
     }

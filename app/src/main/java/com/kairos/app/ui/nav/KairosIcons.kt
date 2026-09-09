@@ -52,7 +52,7 @@ private fun filled(name: String, path: String): ImageVector {
 }
 
 /** A filled icon whose path cuts out inner shapes (even-odd) — e.g. a person
- *  silhouette with a check / X / ? punched out. Single colour; Icon() tints it. */
+ *  silhouette with a check / X / ? punched out. Single color; Icon() tints it. */
 private fun filledEvenOdd(name: String, path: String): ImageVector {
     val builder = ImageVector.Builder(
         name = name,

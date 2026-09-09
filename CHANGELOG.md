@@ -1,4 +1,12 @@
 # Changelog
+## 0.125.0
+- Calendar: switching views (day, 3-day, week, month, agenda) now always returns to today,
+  instead of keeping the date you had paged to.
+- Event editor: "Share with" no longer lists the event's owner (you can't share with
+  yourself), and uses the standard share icon.
+- 24-hour clock now reads 01:00 / 13:00 / 23:00 (with minutes) on the calendar axis.
+- Settings: Notifications description updated. Spelling: "colour" is now "color" (American).
+
 ## 0.124.0
 - Offline handling for profile settings: changing your colour offline is queued and syncs
   when you reconnect (and the drawer ring updates then). Changing your photo needs a
