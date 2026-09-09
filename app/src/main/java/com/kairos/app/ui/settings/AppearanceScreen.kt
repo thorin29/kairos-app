@@ -2,6 +2,11 @@ package com.kairos.app.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -103,31 +108,64 @@ fun AppearanceScreen(onBack: () -> Unit) {
                 }
 
                 item {
-                    val military by settings.militaryTime.collectAsState(initial = false)
-                    OutlinedCard(Modifier.fillMaxWidth()) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    "24-hour time",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    "Show the calendar clock as 13:00 instead of 1:00 PM.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = military,
-                                onCheckedChange = { on -> scope.launch { settings.setMilitaryTime(on) } },
+                    val fmt by settings.timeFormat.collectAsState(initial = "SYSTEM")
+                    var showFmt by remember { mutableStateOf(false) }
+                    val fmtLabel = when (fmt) {
+                        "H24" -> "13:00"
+                        "H12" -> "1 PM"
+                        else -> "System time"
+                    }
+                    OutlinedCard(onClick = { showFmt = true }, modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                "Time format",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                fmtLabel,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                    if (showFmt) {
+                        AlertDialog(
+                            onDismissRequest = { showFmt = false },
+                            title = { Text("Time format") },
+                            text = {
+                                Column {
+                                    listOf(
+                                        "SYSTEM" to "System time",
+                                        "H24" to "13:00",
+                                        "H12" to "1 PM",
+                                    ).forEach { (v, label) ->
+                                        Row(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    scope.launch { settings.setTimeFormat(v) }
+                                                    showFmt = false
+                                                }
+                                                .padding(vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            RadioButton(
+                                                selected = fmt == v,
+                                                onClick = {
+                                                    scope.launch { settings.setTimeFormat(v) }
+                                                    showFmt = false
+                                                },
+                                            )
+                                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showFmt = false }) { Text("Done") }
+                            },
+                        )
                     }
                 }
                 item {

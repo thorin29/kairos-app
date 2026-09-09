@@ -77,6 +77,13 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /** 24-hour (military) clock on the calendar, per device; off (12-hour) by default. */
     val militaryTime: Flow<Boolean> = dataStore.data.map { it[KEY_MILITARY] ?: false }
 
+    /** Clock display: "SYSTEM" (follow the device), "H24" (13:00), or "H12" (1 PM). */
+    val timeFormat: Flow<String> = dataStore.data.map { it[KEY_TIME_FMT] ?: "SYSTEM" }
+
+    suspend fun setTimeFormat(v: String) {
+        dataStore.edit { it[KEY_TIME_FMT] = v }
+    }
+
     suspend fun setMilitaryTime(on: Boolean) {
         dataStore.edit { it[KEY_MILITARY] = on }
     }
@@ -137,6 +144,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_THEME = stringPreferencesKey("theme_scheme")
         val KEY_DARK = booleanPreferencesKey("dark_mode")
         val KEY_MILITARY = booleanPreferencesKey("military_time")
+        val KEY_TIME_FMT = stringPreferencesKey("time_format")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")

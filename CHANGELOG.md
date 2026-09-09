@@ -1,4 +1,9 @@
 # Changelog
+## 0.149.0
+- Settings -> Appearance: "24-hour time" is now "Time format" — tap it to pick System time, 13:00,
+  or 1 PM from a pop-up, with the current choice shown beneath the label. "System time" follows the
+  device's own clock setting.
+
 ## 0.148.0
 - Settings -> Notifications: "Reminders" is now "Calendar reminders", and there's a new "Task
   alerts" toggle alongside it. Turning either on prompts for notification permission if needed.

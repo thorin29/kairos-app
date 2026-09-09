@@ -30,8 +30,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
             val dark by settings.darkMode.collectAsState(initial = false)
-            val military by settings.militaryTime.collectAsState(initial = false)
-            LaunchedEffect(military) { com.kairos.app.ui.common.TimeFmt.military = military }
+            val timeFormat by settings.timeFormat.collectAsState(initial = "SYSTEM")
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            LaunchedEffect(timeFormat) {
+                com.kairos.app.ui.common.TimeFmt.military = when (timeFormat) {
+                    "H24" -> true
+                    "H12" -> false
+                    else -> android.text.format.DateFormat.is24HourFormat(ctx)
+                }
+            }
 
             // Status-bar icons: dark on the light theme, light on dark.
             LaunchedEffect(dark) {
