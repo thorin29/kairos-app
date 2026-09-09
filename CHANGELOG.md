@@ -1,4 +1,8 @@
 # Changelog
+## 0.120.0
+- Settings → Notifications: simplified to a single on/off switch (with a plain On / Off
+  status) plus the test button. Reminder times will live on each event instead.
+
 ## 0.119.0
 - Settings → Appearance: a 24-hour (military) time switch — the calendar's hour axis
   and times show as 13:00 instead of 1:00 PM.

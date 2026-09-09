@@ -846,6 +846,7 @@ data class CalEventDto(
     val attendees: List<AttendeeDto> = emptyList(),
     val ownerId: String? = null,
     val eventTypeId: String? = null,
+    val reminders: List<Int> = emptyList(),
     val memberIds: List<String> = emptyList(),
     val calendarName: String? = null,
     val recurring: Boolean = false,
@@ -876,6 +877,7 @@ data class CalEventTypeDto(
     val name: String = "",
     val color: String = "#64748b",
     val defaultMinutes: Int? = null,
+    val defaultReminder: Int? = null,
 )
 
 @Serializable
@@ -958,6 +960,7 @@ data class CreateEventRequest(
     val kind: String? = null,
     val eventTypeId: String? = null,
     val participants: List<String>? = null,
+    val reminders: List<Int>? = null,
 )
 
 @Serializable
@@ -988,6 +991,7 @@ data class UpdateEventRequest(
     val kind: String? = null,
     val eventTypeId: String? = null,
     val participants: List<String>? = null,
+    val reminders: List<Int>? = null,
 )
 
 // ---- Money (GET /money, POST /money/entry, reward approvals) ----
