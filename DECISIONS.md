@@ -655,3 +655,15 @@ deep-links to ACTION_CHANNEL_NOTIFICATION_SETTINGS (EXTRA_APP_PACKAGE + EXTRA_CH
 pre-O falls back to app details). "Sound & vibration" row in NotificationsScreen (when enabled).
 Channel is IMPORTANCE_HIGH (sound+vibration+heads-up); user tunes it there. NEXT: the firing
 engine (WorkManager + exact alarms) reading per-event reminders.
+
+## App 0.124.0: offline handling for settings
+Audit of settings vs offline. Per-device prefs (theme/dark/24h/notif master) live in
+DataStore - inherently offline, no change. Ring colour = JSON POST /me/color, queues offline
++ replays on reconnect (correct). BUG FIXED: avatar upload is multipart (binary) but the
+OfflineInterceptor stored bodies via readUtf8() -> corruption if queued. Now: interceptor
+excludes multipart (req.body.contentType().type == "multipart") from queuing -> those need a
+live connection. ProfileScreen: uploadCrop checks isOnline() first, shows "You're offline -
+connect to change your photo" (+ a generic failure message), no silent fail. AppRoot: after a
+sync (syncRevision bump) refreshPerson() so an offline colour change reflects on the drawer
+ring once it syncs. Position-only re-frame is also multipart so also online-only (acceptable -
+photo editing is a deliberate online action).

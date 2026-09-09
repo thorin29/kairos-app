@@ -1,4 +1,10 @@
 # Changelog
+## 0.124.0
+- Offline handling for profile settings: changing your colour offline is queued and syncs
+  when you reconnect (and the drawer ring updates then). Changing your photo needs a
+  connection — it now says so instead of failing silently. Appearance and the notifications
+  switch are on-device settings, so they already work offline.
+
 ## 0.123.0
 - Reminders now fire. With reminders turned on, each event's reminder posts a notification
   (the event's name) at the right time — at start, or the minutes/hours/days/week before

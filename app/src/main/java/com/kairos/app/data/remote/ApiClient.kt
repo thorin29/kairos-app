@@ -123,7 +123,12 @@ private class OfflineInterceptor(
 
         if (req.method != "GET") {
             val path = req.url.encodedPath
-            val queueable = queue != null && !path.contains("/auth/") && !path.endsWith("/revoke")
+            // Multipart uploads (avatar photo) carry binary bytes that can't be
+            // stored in the text queue without corruption, so they need a live
+            // connection rather than being queued.
+            val isMultipart = req.body?.contentType()?.type == "multipart"
+            val queueable = queue != null && !isMultipart &&
+                !path.contains("/auth/") && !path.endsWith("/revoke")
             if (queueable) {
                 val bodyStr = req.body?.let { b ->
                     val buffer = Buffer()

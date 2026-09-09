@@ -107,6 +107,7 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
     var savingColor by remember { mutableStateOf(false) }
     var savedTick by remember { mutableIntStateOf(0) }
     var busyPhoto by remember { mutableStateOf(false) }
+    var photoMessage by remember { mutableStateOf<String?>(null) }
 
     // Cropper state.
     var cropModel by remember { mutableStateOf<Any?>(null) }
@@ -127,9 +128,15 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
     fun uploadCrop(tx: Float, ty: Float, scale: Float) {
         val newUri = cropNewUri
         cropModel = null
+        if (!container.sessionRepository.isOnline()) {
+            cropNewUri = null
+            photoMessage = "You're offline \u2014 connect to change your photo."
+            return
+        }
         scope.launch {
             busyPhoto = true
-            runCatching {
+            photoMessage = null
+            val ok = runCatching {
                 val bytesAndMime = newUri?.let { uri ->
                     withContext(Dispatchers.IO) {
                         val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
@@ -142,10 +149,11 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
                     mime = bytesAndMime?.second,
                     position = fmtXf(tx, ty, scale),
                 )
-                if (container.sessionRepository.isOnline()) container.sessionRepository.refreshPerson()
-            }
+                container.sessionRepository.refreshPerson()
+            }.isSuccess
             cropNewUri = null
             busyPhoto = false
+            if (!ok) photoMessage = "Couldn't save the photo. Please try again."
         }
     }
 
@@ -207,6 +215,15 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
                                 modifier = Modifier.weight(1f),
                             ) { Text("Adjust framing") }
                         }
+                    }
+                }
+                photoMessage?.let { msg ->
+                    item {
+                        Text(
+                            msg,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
 
