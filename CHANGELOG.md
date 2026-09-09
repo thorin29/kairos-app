@@ -1,4 +1,10 @@
 # Changelog
+## 0.135.0
+- Event locations are now tappable: open an event's details and tap its location to launch it
+  in your maps app, ready to navigate.
+- Reminder notifications for events that have a location now include a "Navigate" action that
+  opens the spot in your maps app. Tapping the notification itself still opens the calendar.
+
 ## 0.134.0
 - Tapping a calendar reminder notification now opens Kairos straight to the calendar.
 - New events no longer default to a time that's already passed: the start time rounds up to

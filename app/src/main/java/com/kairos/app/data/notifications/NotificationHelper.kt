@@ -65,7 +65,7 @@ object Notifications {
     }
 
     /** Post a reminder. No-op if the OS permission hasn't been granted. */
-    fun post(context: Context, id: Int, title: String, text: String? = null) {
+    fun post(context: Context, id: Int, title: String, text: String? = null, location: String? = null) {
         ensureChannel(context)
         if (!hasPermission(context)) return
         val tapIntent = android.content.Intent(context, com.kairos.app.MainActivity::class.java).apply {
@@ -89,6 +89,18 @@ object Notifications {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         if (!text.isNullOrBlank()) {
             builder.setContentText(text)
+        }
+        // If the event has a location, offer a "Navigate" action that opens it
+        // in the phone's maps app. A distinct request code so it doesn't clash
+        // with the tap-to-open-calendar intent above.
+        if (!location.isNullOrBlank()) {
+            val navPi = android.app.PendingIntent.getActivity(
+                context,
+                id.inv(),
+                com.kairos.app.ui.common.Maps.intent(location),
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(R.drawable.ic_notification, "Navigate", navPi)
         }
         NotificationManagerCompat.from(context).notify(id, builder.build())
     }

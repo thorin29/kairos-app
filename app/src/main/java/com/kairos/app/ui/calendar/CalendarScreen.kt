@@ -1375,8 +1375,24 @@ private fun EventDetailScreen(
                         event.recurLabel?.takeIf { it.isNotBlank() }?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        event.location?.takeIf { it.isNotBlank() }?.let {
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        event.location?.takeIf { it.isNotBlank() }?.let { loc ->
+                            val ctx = androidx.compose.ui.platform.LocalContext.current
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { com.kairos.app.ui.common.Maps.open(ctx, loc) }
+                                    .padding(vertical = 2.dp),
+                            ) {
+                                Icon(
+                                    KairosIcons.MapPin,
+                                    contentDescription = "Navigate",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(loc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                         event.notes?.takeIf { it.isNotBlank() }?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium)

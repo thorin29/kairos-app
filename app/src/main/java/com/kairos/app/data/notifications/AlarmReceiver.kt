@@ -10,6 +10,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(NotificationScheduler.EXTRA_TITLE)
             ?.ifBlank { null } ?: "Event reminder"
         val notifId = intent.getIntExtra(NotificationScheduler.EXTRA_NOTIF_ID, title.hashCode())
-        Notifications.post(context, notifId, title, null)
+        val location = intent.getStringExtra(NotificationScheduler.EXTRA_LOCATION)
+        Notifications.post(context, notifId, title, null, location)
     }
 }

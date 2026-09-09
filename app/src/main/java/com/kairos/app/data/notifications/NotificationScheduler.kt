@@ -34,35 +34,39 @@ object NotificationScheduler {
         val upcoming = runCatching { container.sessionRepository.loadUpcoming() }.getOrNull() ?: return
         val now = System.currentTimeMillis()
 
-        val desired = HashMap<Int, Pair<Long, String>>()
+        val desired = HashMap<Int, Alarm>()
         for (e in upcoming.events) {
             for (r in e.reminders) {
                 val at = e.startMs - r * 60_000L
                 if (at > now + 10_000L) {
-                    desired[("${e.id}|$r").hashCode()] = at to e.title
+                    desired[("${e.id}|$r").hashCode()] = Alarm(at, e.title, e.location)
                 }
             }
         }
 
-        desired.forEach { (code, v) -> schedule(context, am, code, v.first, v.second) }
+        desired.forEach { (code, a) -> schedule(context, am, code, a) }
         (previous - desired.keys).forEach { cancel(context, am, it) }
         settings.setScheduledCodes(desired.keys)
     }
 
-    private fun intentFor(context: Context, code: Int, title: String): Intent =
+    private data class Alarm(val at: Long, val title: String, val location: String?)
+
+    private fun intentFor(context: Context, code: Int, title: String, location: String?): Intent =
         Intent(context, AlarmReceiver::class.java).apply {
             putExtra(EXTRA_NOTIF_ID, code)
             putExtra(EXTRA_TITLE, title)
+            if (!location.isNullOrBlank()) putExtra(EXTRA_LOCATION, location)
         }
 
-    private fun pending(context: Context, code: Int, title: String, create: Boolean): PendingIntent? {
+    private fun pending(context: Context, code: Int, title: String, location: String?, create: Boolean): PendingIntent? {
         val flags = (if (create) PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_NO_CREATE) or
             PendingIntent.FLAG_IMMUTABLE
-        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title), flags)
+        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title, location), flags)
     }
 
-    private fun schedule(context: Context, am: AlarmManager, code: Int, at: Long, title: String) {
-        val pi = pending(context, code, title, create = true) ?: return
+    private fun schedule(context: Context, am: AlarmManager, code: Int, a: Alarm) {
+        val pi = pending(context, code, a.title, a.location, create = true) ?: return
+        val at = a.at
         val canExact =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
         try {
@@ -77,7 +81,7 @@ object NotificationScheduler {
     }
 
     private fun cancel(context: Context, am: AlarmManager, code: Int) {
-        pending(context, code, "", create = false)?.let {
+        pending(context, code, "", null, create = false)?.let {
             am.cancel(it)
             it.cancel()
         }
@@ -85,4 +89,5 @@ object NotificationScheduler {
 
     const val EXTRA_NOTIF_ID = "notifId"
     const val EXTRA_TITLE = "title"
+    const val EXTRA_LOCATION = "location"
 }

@@ -1507,6 +1507,7 @@ data class UpcomingEventDto(
     val title: String = "",
     val startMs: Long = 0,
     val reminders: List<Int> = emptyList(),
+    val location: String? = null,
 )
 
 @Serializable
