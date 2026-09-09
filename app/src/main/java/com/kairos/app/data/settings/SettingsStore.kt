@@ -61,6 +61,13 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_DARK] = on }
     }
 
+    /** 24-hour (military) clock on the calendar, per device; off (12-hour) by default. */
+    val militaryTime: Flow<Boolean> = dataStore.data.map { it[KEY_MILITARY] ?: false }
+
+    suspend fun setMilitaryTime(on: Boolean) {
+        dataStore.edit { it[KEY_MILITARY] = on }
+    }
+
     /** The last custom (non-palette) colour picked in the profile, per device, so
      *  it can be re-offered as a swatch. */
     val lastCustomColor: Flow<String?> = dataStore.data.map { it[KEY_LAST_COLOR] }
@@ -86,6 +93,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
         val KEY_THEME = stringPreferencesKey("theme_scheme")
         val KEY_DARK = booleanPreferencesKey("dark_mode")
+        val KEY_MILITARY = booleanPreferencesKey("military_time")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
     }

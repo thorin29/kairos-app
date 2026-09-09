@@ -54,18 +54,8 @@ import com.kairos.app.data.notifications.NotifScope
 import com.kairos.app.data.notifications.Notifications
 import com.kairos.app.data.notifications.TypePref
 import com.kairos.app.data.notifications.leadLabel
-import com.kairos.app.data.remote.dto.NotifTypeDto
 import com.kairos.app.ui.common.rememberContainer
 import kotlinx.coroutines.launch
-
-private fun parseHex(hex: String?): Color {
-    val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)
-    return try {
-        if (s.length == 6) Color(("FF$s").toLong(16)) else Color(0xFF64748B)
-    } catch (_: NumberFormatException) {
-        Color(0xFF64748B)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,17 +65,12 @@ fun NotificationsScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     val prefs by container.settingsStore.notifPrefs.collectAsState(initial = NotifPrefs())
-    var types by remember { mutableStateOf<List<NotifTypeDto>>(emptyList()) }
 
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* posting re-checks; nothing else to do */ }
 
-    LaunchedEffect(Unit) {
-        Notifications.ensureChannel(context)
-        runCatching { container.sessionRepository.loadNotifMeta() }
-            .getOrNull()?.let { types = it.eventTypes }
-    }
+    LaunchedEffect(Unit) { Notifications.ensureChannel(context) }
 
     fun save(p: NotifPrefs) = scope.launch { container.settingsStore.setNotifPrefs(p) }
 
@@ -155,6 +140,14 @@ fun NotificationsScreen(onBack: () -> Unit) {
                         )
                     }
                     item { ScopeSelector(prefs.scope) { save(prefs.copy(scope = it)) } }
+                    item {
+                        Text(
+                            "Set a reminder time on each event when you create or edit it. This just controls whether those reminders show on this device.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
 
                     item {
                         Text(
@@ -174,31 +167,6 @@ fun NotificationsScreen(onBack: () -> Unit) {
                             onToggle = { save(prefs.copy(birthdayEnabled = it)) },
                             onLead = { save(prefs.copy(birthdayLead = it)) },
                         )
-                    }
-
-                    if (types.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Event types",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-                            )
-                        }
-                        types.forEach { t ->
-                            item(key = t.id) {
-                                val tp = prefs.typePref(t.id)
-                                ToggleLeadRow(
-                                    title = t.name,
-                                    subtitle = null,
-                                    dot = parseHex(t.color),
-                                    enabled = tp.enabled,
-                                    lead = tp.lead,
-                                    onToggle = { save(prefs.withType(t.id, tp.copy(enabled = it))) },
-                                    onLead = { save(prefs.withType(t.id, tp.copy(lead = it))) },
-                                )
-                            }
-                        }
                     }
 
                     item {

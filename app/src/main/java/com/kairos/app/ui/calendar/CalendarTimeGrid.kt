@@ -1,5 +1,6 @@
 package com.kairos.app.ui.calendar
 
+import com.kairos.app.ui.common.TimeFmt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -582,12 +583,7 @@ fun ThreeDayGrid(
     }
 }
 
-private fun hourLabel(h: Int): String = when {
-    h == 0 -> "12 AM"
-    h < 12 -> "$h AM"
-    h == 12 -> "12 PM"
-    else -> "${h - 12} PM"
-}
+private fun hourLabel(h: Int): String = TimeFmt.hour(h)
 
 private fun parseGridColor(hex: String?): Color {
     val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)

@@ -618,3 +618,20 @@ observes both, passes to KairosTheme, flips status-bar icon colour. Settings > A
 screen (dark Switch + scheme picker). Known minor: AppSections home tile colour still hardcoded
 teal (section-identity colour system, separate); revisit if it clashes. Next: web themes
 (admin), then profile (needs device endpoints), then notifications.
+
+## App 0.119.0: military time + notifications redesign (per Marco)
+Military time: per-device SettingsStore.militaryTime; TimeFmt snapshot object (ui/common)
+holds `military`, set from MainActivity; the four calendar formatters (hourLabel side axis,
+clock, formatTime, hhmmLabel) delegate to TimeFmt so the hour axis + times flip to 24h and
+re-compose live. Toggle in Appearance. NOTE: event blocks that use the server-provided
+timeLabel still read 12h - a follow-up can reformat from startMin/endMin. Notifications
+REDESIGN (Marco): drop per-type toggles from settings. New model = per-EVENT reminders
+(Proton/Google-style): each event carries its own reminder(s), multiple allowed, with a
+default per event-type at creation. Settings keep only master + scope (MINE/ALL/FAMILY) +
+birthday. EventKind = CLASS/WORK/APPOINTMENT/BIRTHDAY/EXTERNAL/OTHER; EventType.defaultMinutes
+is DURATION not reminder (need a new default-reminder field). PER-EVENT NOTIFICATIONS TODO
+(next, multi-part): (1) schema Event.reminders Int[] + EventType.defaultReminder; (2) device
+calendar create/update accept+store+return reminders, CalEventDto.reminders; (3) app
+CalendarAddEvent reminder section (Add notification -> picker at-start/10/30m/1h/1d/1w/custom,
+bell+label+X, multiple); (4) web event form reminder section; (5) scheduler reads per-event
+reminders (+ birthdays via prefs).

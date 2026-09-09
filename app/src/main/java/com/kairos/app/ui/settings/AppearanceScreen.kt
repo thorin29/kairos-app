@@ -103,6 +103,34 @@ fun AppearanceScreen(onBack: () -> Unit) {
                 }
 
                 item {
+                    val military by settings.militaryTime.collectAsState(initial = false)
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "24-hour time",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    "Show the calendar clock as 13:00 instead of 1:00 PM.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = military,
+                                onCheckedChange = { on -> scope.launch { settings.setMilitaryTime(on) } },
+                            )
+                        }
+                    }
+                }
+                item {
                     Text(
                         "Colour theme",
                         style = MaterialTheme.typography.titleMedium,

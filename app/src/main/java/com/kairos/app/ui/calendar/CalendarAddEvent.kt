@@ -1,5 +1,6 @@
 package com.kairos.app.ui.calendar
 
+import com.kairos.app.ui.common.TimeFmt
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.SolidColor
@@ -540,13 +541,7 @@ private fun typeDurationMin(eventTypeId: String?, types: List<com.kairos.app.dat
 
 private fun hhmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 
-private fun hhmmLabel(min: Int): String {
-    val h = min / 60
-    val m = min % 60
-    val ampm = if (h < 12) "AM" else "PM"
-    val h12 = when { h == 0 -> 12; h > 12 -> h - 12; else -> h }
-    return "%d:%02d %s".format(h12, m, ampm)
-}
+private fun hhmmLabel(min: Int): String = TimeFmt.clock(min)
 
 private val DATE_FMT = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
 private val ISO = DateTimeFormatter.ISO_LOCAL_DATE

@@ -26,6 +26,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
             val dark by settings.darkMode.collectAsState(initial = false)
+            val military by settings.militaryTime.collectAsState(initial = false)
+            LaunchedEffect(military) { com.kairos.app.ui.common.TimeFmt.military = military }
 
             // Status-bar icons: dark on the light theme, light on dark.
             LaunchedEffect(dark) {

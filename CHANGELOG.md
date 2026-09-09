@@ -1,4 +1,11 @@
 # Changelog
+## 0.119.0
+- Settings → Appearance: a 24-hour (military) time switch — the calendar's hour axis
+  and times show as 13:00 instead of 1:00 PM.
+- Notifications settings simplified: a master switch, which events (yours / all / family),
+  and birthdays. Per-event reminder times now live on each event (coming to the event
+  editor next), rather than a per-type list here.
+
 ## 0.118.0
 - Settings → Notifications (first part): choose what you're reminded about — a master
   switch, which events (yours / all / family), birthdays, and each event type, each with

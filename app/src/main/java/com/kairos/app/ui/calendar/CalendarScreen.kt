@@ -1,5 +1,6 @@
 package com.kairos.app.ui.calendar
 
+import com.kairos.app.ui.common.TimeFmt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -1468,13 +1469,7 @@ private fun rangeLabel(startMin: Int, endMin: Int): String {
     return "${clock(startMin)} \u2192 ${clock(endMin)} ($durStr)"
 }
 
-private fun clock(min: Int): String {
-    val h = (min / 60) % 24
-    val m = min % 60
-    val ampm = if (h < 12) "AM" else "PM"
-    val h12 = when { h == 0 -> 12; h > 12 -> h - 12; else -> h }
-    return "%d:%02d %s".format(h12, m, ampm)
-}
+private fun clock(min: Int): String = TimeFmt.clock(min)
 
 // ---- helpers ----
 
@@ -1534,17 +1529,7 @@ private fun localizeEvents(events: List<CalEventDto>, homeTz: String): List<CalE
     }
 }
 
-private fun formatTime(min: Int): String {
-    val h = (min / 60) % 24
-    val m = min % 60
-    val ampm = if (h < 12) "AM" else "PM"
-    val h12 = when {
-        h == 0 -> 12
-        h > 12 -> h - 12
-        else -> h
-    }
-    return "%d:%02d %s".format(h12, m, ampm)
-}
+private fun formatTime(min: Int): String = TimeFmt.clock(min)
 
 private fun parseColor(hex: String?): Color {
     val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)
