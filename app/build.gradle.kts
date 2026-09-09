@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,8 +21,7 @@ android {
         versionName = "0.129.0"
 
         // Baked in at build time so the app can show when this build was made.
-        val buildDate = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US)
-            .format(java.util.Date())
+        val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
