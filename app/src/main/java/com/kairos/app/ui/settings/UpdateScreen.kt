@@ -24,7 +24,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,6 +51,27 @@ fun UpdateScreen(onBack: () -> Unit) {
     val installer = container.updateInstaller
     val installState by installer.state.collectAsState()
     val scope = rememberCoroutineScope()
+
+    // Returning from the "install unknown apps" screen: re-check the grant. If
+    // it's on now, go straight to the download; if not, drop back to the normal
+    // button instead of leaving the user stuck on the prompt.
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        val url = checker.available.value?.apkUrl
+        if (installer.canInstall() && url != null) {
+            scope.launch { installer.downloadAndInstall(url) }
+        } else {
+            installer.reset()
+        }
+    }
+    // A stale prompt/error from a previous visit shouldn't greet a fresh open.
+    LaunchedEffect(Unit) {
+        val st = installer.state.value
+        if (st is UpdateInstaller.State.NeedsPermission || st is UpdateInstaller.State.Error) {
+            installer.reset()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -127,7 +151,7 @@ fun UpdateScreen(onBack: () -> Unit) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Button(onClick = { installer.openInstallPermission() }) {
+                        Button(onClick = { permLauncher.launch(installer.installPermissionIntent()) }) {
                             Text("Allow installs")
                         }
                     }

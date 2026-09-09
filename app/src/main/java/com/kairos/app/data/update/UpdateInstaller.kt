@@ -50,6 +50,14 @@ class UpdateInstaller(private val app: Context) {
         runCatching { app.startActivity(intent) }
     }
 
+    /** The same screen as [openInstallPermission], but as an intent to launch
+     *  via an Activity result so the caller can re-check the grant on return. */
+    fun installPermissionIntent(): Intent =
+        Intent(
+            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+            Uri.parse("package:${app.packageName}"),
+        )
+
     fun reset() {
         _state.value = State.Idle
     }

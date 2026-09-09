@@ -1,4 +1,10 @@
 # Changelog
+## 0.131.0
+- Software update: fixed the install-permission step. After you allow Kairos to install
+  apps and return, the screen now re-checks the setting and continues straight to the
+  download, instead of getting stuck on the "Allow installs" prompt. That prompt now only
+  appears when the permission isn't granted yet.
+
 ## 0.130.0
 - Software update screen: the installed version number now uses your theme color.
 
