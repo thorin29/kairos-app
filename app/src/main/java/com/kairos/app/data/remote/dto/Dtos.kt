@@ -95,7 +95,11 @@ data class JoinCheckResponse(
     val valid: Boolean = false,
     val hasPassword: Boolean = false,
     val name: String = "",
+    val purpose: String = "join",
 )
+
+@Serializable
+data class ForgotRequest(val identifier: String)
 
 @Serializable
 data class JoinRequest(

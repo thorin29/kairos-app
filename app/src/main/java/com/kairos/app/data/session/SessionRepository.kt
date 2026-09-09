@@ -193,6 +193,14 @@ class SessionRepository(
         _state.value = SessionState.Ready(res.person)
     }
 
+    /** Ask the server to email a password-reset link. Always succeeds quietly —
+     *  the server reveals nothing about whether the account exists. Needs the
+     *  server configured. */
+    suspend fun requestReset(identifier: String) {
+        val svc = requireService()
+        apiCall { svc.forgot(com.kairos.app.data.remote.dto.ForgotRequest(identifier.trim())) }
+    }
+
     /** Whether a join token is valid, and if the account already has a password. */
     suspend fun joinCheck(token: String): com.kairos.app.data.remote.dto.JoinCheckResponse {
         val svc = requireService()
@@ -699,6 +707,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 193
+        const val CLIENT_BUILD = 194
     }
 }

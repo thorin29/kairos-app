@@ -84,14 +84,16 @@ fun JoinScreen(token: String, onCancel: () -> Unit) {
             }
 
             else -> {
-                val setup = !c.hasPassword
+                val setup = !c.hasPassword || c.purpose == "reset"
+                val reset = c.purpose == "reset"
                 Text(
                     if (c.name.isNotBlank()) "Hi ${c.name}" else "Welcome",
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    if (setup) "Create a password to finish setting up your account."
+                    if (reset) "Choose a new password for your account."
+                    else if (setup) "Create a password to finish setting up your account."
                     else "Enter your password to add this phone to your account.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

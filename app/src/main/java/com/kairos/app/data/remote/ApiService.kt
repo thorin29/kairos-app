@@ -9,6 +9,7 @@ import com.kairos.app.data.remote.dto.EnrollResponse
 import com.kairos.app.data.remote.dto.JoinRequest
 import com.kairos.app.data.remote.dto.JoinCheckRequest
 import com.kairos.app.data.remote.dto.JoinCheckResponse
+import com.kairos.app.data.remote.dto.ForgotRequest
 import com.kairos.app.data.remote.dto.LoginRequest
 import com.kairos.app.data.remote.dto.LoginResponse
 import com.kairos.app.data.remote.dto.MetaDto
@@ -88,6 +89,9 @@ interface ApiService {
 
     @POST("auth/join/check")
     suspend fun joinCheck(@Body body: JoinCheckRequest): Response<JoinCheckResponse>
+
+    @POST("auth/forgot")
+    suspend fun forgot(@Body body: ForgotRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
     @POST("auth/refresh")
     suspend fun refresh(): Response<TokenResponse>

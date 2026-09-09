@@ -28,6 +28,9 @@ fun AuthFlow() {
     var step by remember { mutableStateOf(AuthStep.SignIn) }
     var showPaste by remember { mutableStateOf(false) }
     var pasteText by remember { mutableStateOf("") }
+    var showForgot by remember { mutableStateOf(false) }
+    var forgotText by remember { mutableStateOf("") }
+    var forgotSent by remember { mutableStateOf(false) }
     val container = rememberContainer()
     val scope = rememberCoroutineScope()
 
@@ -39,6 +42,11 @@ fun AuthFlow() {
                 scope.launch { container.sessionRepository.changeServer() }
             },
             onHaveInvite = { showPaste = true },
+            onForgot = {
+                forgotText = ""
+                forgotSent = false
+                showForgot = true
+            },
         )
         AuthStep.Code -> EnrollScreen(
             onNeedSignIn = { step = AuthStep.SignIn },
@@ -73,6 +81,48 @@ fun AuthFlow() {
             },
             dismissButton = {
                 TextButton(onClick = { showPaste = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (showForgot) {
+        AlertDialog(
+            onDismissRequest = { showForgot = false },
+            title = { Text(if (forgotSent) "Check your email" else "Reset your password") },
+            text = {
+                if (forgotSent) {
+                    Text(
+                        "If that account has an email on file, a reset link is on its " +
+                            "way. Open it on this phone to choose a new password.",
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = forgotText,
+                        onValueChange = { forgotText = it },
+                        label = { Text("Your name or email") },
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                if (forgotSent) {
+                    TextButton(onClick = { showForgot = false }) { Text("Done") }
+                } else {
+                    TextButton(onClick = {
+                        val id = forgotText.trim()
+                        if (id.isNotBlank()) {
+                            scope.launch {
+                                runCatching { container.sessionRepository.requestReset(id) }
+                                forgotSent = true
+                            }
+                        }
+                    }) { Text("Send reset link") }
+                }
+            },
+            dismissButton = {
+                if (!forgotSent) {
+                    TextButton(onClick = { showForgot = false }) { Text("Cancel") }
+                }
             },
         )
     }

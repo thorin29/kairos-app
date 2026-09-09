@@ -33,6 +33,7 @@ fun SignInScreen(
     onUseCode: () -> Unit,
     onChangeServer: () -> Unit,
     onHaveInvite: () -> Unit = {},
+    onForgot: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: SignInViewModel = viewModel(
@@ -113,9 +114,16 @@ fun SignInScreen(
         }
 
         TextButton(
-            onClick = onHaveInvite,
+            onClick = onForgot,
             enabled = !ui.submitting,
             modifier = Modifier.padding(top = 8.dp),
+        ) {
+            Text("Forgot your password?")
+        }
+
+        TextButton(
+            onClick = onHaveInvite,
+            enabled = !ui.submitting,
         ) {
             Text("Have an invite link? Paste it")
         }

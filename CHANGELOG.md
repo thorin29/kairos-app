@@ -1,4 +1,9 @@
 # Changelog
+## 0.142.0
+- Forgot your password? The sign-in screen now has a "Forgot your password?" option: enter your
+  name or email and, if an address is on file, a single-use reset link is emailed to you. Opening
+  it in the app lets you set a new password and enrolls the phone.
+
 ## 0.141.0
 - New-account onboarding in the app: tapping an invite (a "kairos://join" link), or pasting it
   via "Have an invite link?", opens a screen to create your password (new account) or confirm it
