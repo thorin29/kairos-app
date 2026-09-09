@@ -203,6 +203,13 @@ fun AddEventOverlay(
                                     eventTypeId = eventTypeId,
                                     participants = participants.toList().ifEmpty { null },
                                     reminders = reminders,
+                                    // Who gets the reminders: nobody if none set,
+                                    // everyone for a family event, else just me.
+                                    reminderUserIds = when {
+                                        reminders.isEmpty() -> emptyList()
+                                        isFamily -> data.options.people.map { it.id }
+                                        else -> listOfNotNull(meId)
+                                    },
                                 ),
                             ) { onClose() }
                         }

@@ -1,4 +1,9 @@
 # Changelog
+## 0.139.0
+- Groundwork for per-person event reminders: a new event's reminders now go to just you
+  (a personal event) or everyone (a family event). Choosing individual recipients on the
+  web is coming next.
+
 ## 0.138.0
 - The "Other" event type is now "Medical / Dental", and these events are red by default.
 
