@@ -1,4 +1,7 @@
 # Changelog
+## 0.128.0
+- The "update available" badge dot is now light blue.
+
 ## 0.127.0
 - In-app updates (part 1): Kairos now checks GitHub for a newer release on launch
   (and in the background), with no browser involved. When one is available, a green

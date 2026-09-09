@@ -44,9 +44,9 @@ import com.kairos.app.ui.common.LogoMenuButton
 
 private val OnSidebar = Color.White
 
-/** The "update available" badge dot — a friendly green that reads as "ready",
- *  legible on any of the sidebar theme colors. */
-private val UpdateDot = Color(0xFF3DDC84)
+/** The "update available" badge dot — a light blue that reads on any of the
+ *  sidebar theme colors (with its sidebar-colored ring for separation). */
+private val UpdateDot = Color(0xFF4FC3F7)
 
 /**
  * The nav rail, matching the web sidebar in both states. The teal panel starts

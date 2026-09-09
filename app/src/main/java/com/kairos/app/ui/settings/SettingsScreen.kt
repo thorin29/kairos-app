@@ -154,7 +154,7 @@ private fun SectionCard(section: Section) {
                     Modifier
                         .size(9.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF2FB866)),
+                        .background(Color(0xFF4FC3F7)),
                 )
             }
             if (section.ready) {
