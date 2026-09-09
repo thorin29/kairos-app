@@ -1,4 +1,9 @@
 # Changelog
+## 0.133.0
+- Fixed calendar reminders not firing: creating or editing an event now reschedules its
+  reminder alarms immediately, instead of only after the next app launch or the background
+  refresh. (Previously an online event change didn't trigger a reschedule at all.)
+
 ## 0.132.0
 - Text fields (event titles, names, notes, and the like) now auto-capitalize the first
   letter as you type. Numeric, email, password and address fields are unaffected.

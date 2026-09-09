@@ -59,7 +59,16 @@ data class CalendarUiState(
 class CalendarViewModel(
     private val session: SessionRepository,
     private val settings: SettingsStore,
+    private val appContext: android.content.Context,
 ) : ViewModel() {
+
+    /** Re-run the reminder scheduler after any event change, so a new/edited/
+     *  deleted event's alarms are (re)set right away — not only after the next
+     *  app launch or the 2-hour worker. Online event writes don't touch the
+     *  offline sync queue, so this is the trigger that covers them. */
+    private fun rescheduleReminders() {
+        com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(appContext)
+    }
 
     private val _ui = MutableStateFlow(CalendarUiState())
     val ui: StateFlow<CalendarUiState> = _ui.asStateFlow()
@@ -226,6 +235,7 @@ class CalendarViewModel(
         viewModelScope.launch {
             try {
                 session.deleteCalendarEvent(eventId, scope = scope, occurrenceISO = occurrenceISO)
+                rescheduleReminders()
                 _ui.update { it.copy(deleting = false) }
                 onDone()
                 clearPageCaches()
@@ -243,6 +253,7 @@ class CalendarViewModel(
         viewModelScope.launch {
             try {
                 session.createCalendarEvent(req)
+                rescheduleReminders()
                 _ui.update { it.copy(creating = false) }
                 onDone()
                 clearPageCaches()
@@ -261,6 +272,7 @@ class CalendarViewModel(
         viewModelScope.launch {
             try {
                 session.updateCalendarEvent(req)
+                rescheduleReminders()
                 _ui.update { it.copy(creating = false) }
                 onDone()
                 clearPageCaches()

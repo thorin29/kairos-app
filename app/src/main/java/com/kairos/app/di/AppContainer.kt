@@ -28,6 +28,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 class AppContainer(context: Context) {
 
+    /** Application context, for components (e.g. ViewModels) that need one. */
+    val appContext: Context = context.applicationContext
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val dataStore = context.applicationContext.appDataStore

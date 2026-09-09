@@ -91,7 +91,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore) }
+            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore, container.appContext) }
         },
     )
     val ui by vm.ui.collectAsState()
