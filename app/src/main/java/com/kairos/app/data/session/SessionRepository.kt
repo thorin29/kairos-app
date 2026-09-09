@@ -5,6 +5,8 @@ import com.kairos.app.data.remote.ApiError
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.ApiService
 import com.kairos.app.data.remote.apiCall
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.EnrollRequest
 import com.kairos.app.data.remote.dto.LoginRequest
@@ -109,6 +111,23 @@ class SessionRepository(
     /** Set my colour (ring + calendar + everywhere it's used). Syncs to the web. */
     suspend fun setMyColor(color: String) {
         runAuthed { requireService().setColor(com.kairos.app.data.remote.dto.ColorRequest(color)) }
+    }
+
+    /** Upload a new avatar photo and/or re-frame it. Pass null bytes to only
+     *  re-frame the existing photo. Syncs to the web. */
+    suspend fun setAvatar(imageBytes: ByteArray?, mime: String?, position: String) {
+        val posBody = position.toRequestBody("text/plain".toMediaType())
+        val part = if (imageBytes != null && mime != null) {
+            val ext = when (mime) {
+                "image/png" -> "png"; "image/webp" -> "webp"; "image/gif" -> "gif"; else -> "jpg"
+            }
+            okhttp3.MultipartBody.Part.createFormData(
+                "image", "avatar.$ext", imageBytes.toRequestBody(mime.toMediaType()),
+            )
+        } else {
+            null
+        }
+        runAuthed { requireService().setAvatar(part, posBody) }
     }
 
     /** Re-fetch the enrolled person after a profile change so the drawer + ring
@@ -634,6 +653,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 167
+        const val CLIENT_BUILD = 168
     }
 }

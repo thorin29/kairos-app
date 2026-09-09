@@ -1,4 +1,10 @@
 # Changelog
+## 0.117.0
+- Settings → Profile finished: change your photo and frame it (drag to move, pinch to
+  zoom) right on the phone, and pick any custom colour — not just the eight presets —
+  with your last custom colour remembered. Your photo, framing and colour sync to the web
+  and everywhere they show.
+
 ## 0.116.0
 - Settings → Profile: pick your colour — your avatar ring, your calendar events, and
   everywhere your colour shows, on the web too. (Changing your photo and how it's framed

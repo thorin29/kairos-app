@@ -1487,3 +1487,6 @@ data class ColorRequest(val color: String)
 
 @Serializable
 data class ColorAckDto(val color: String = "")
+
+@Serializable
+data class AvatarAckDto(val avatarPosition: String = "0 0 1")

@@ -51,6 +51,10 @@ import com.kairos.app.data.remote.dto.DeleteEventRequest
 import com.kairos.app.data.remote.dto.UpdateEventRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Part
+import retrofit2.http.Multipart
+import okhttp3.RequestBody
+import okhttp3.MultipartBody
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -90,6 +94,13 @@ interface ApiService {
 
     @POST("me/color")
     suspend fun setColor(@Body body: com.kairos.app.data.remote.dto.ColorRequest): Response<com.kairos.app.data.remote.dto.ColorAckDto>
+
+    @Multipart
+    @POST("me/avatar")
+    suspend fun setAvatar(
+        @Part image: MultipartBody.Part?,
+        @Part("position") position: RequestBody,
+    ): Response<com.kairos.app.data.remote.dto.AvatarAckDto>
 
     @GET("dashboard")
     suspend fun dashboard(@Query("date") date: String? = null): Response<DashboardDto>
