@@ -311,13 +311,6 @@ fun AddEventOverlay(
                 LocationField(
                     value = location,
                     onValueChange = { location = it },
-                    defaultCategory = when (kind) {
-                        "APPOINTMENT" -> "Event"
-                        "CLASS" -> "Class"
-                        "WORK" -> "Work shift"
-                        "OTHER" -> "Medical / Dental"
-                        else -> "General"
-                    },
                     repo = container.sessionRepository,
                 )
 

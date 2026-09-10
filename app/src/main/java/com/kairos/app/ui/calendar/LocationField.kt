@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -53,17 +51,14 @@ import kotlinx.coroutines.launch
 fun LocationField(
     value: String,
     onValueChange: (String) -> Unit,
-    defaultCategory: String,
     repo: SessionRepository,
 ) {
     val scope = rememberCoroutineScope()
     var addresses by remember { mutableStateOf<List<SavedAddressDto>>(emptyList()) }
-    var categories by remember { mutableStateOf(listOf("General")) }
     var focused by remember { mutableStateOf(false) }
 
     var showSave by remember { mutableStateOf(false) }
     var saveName by remember { mutableStateOf("") }
-    var saveCategory by remember { mutableStateOf(defaultCategory) }
     var dup by remember { mutableStateOf<AddressDuplicateDto?>(null) }
     var submitting by remember { mutableStateOf(false) }
     var savedNote by remember { mutableStateOf<String?>(null) }
@@ -71,7 +66,6 @@ fun LocationField(
     LaunchedEffect(Unit) {
         runCatching { repo.listSavedAddresses() }.getOrNull()?.let {
             addresses = it.addresses
-            categories = it.categories.ifEmpty { listOf("General") }
         }
     }
 
@@ -80,7 +74,7 @@ fun LocationField(
 
     val q = value.trim().lowercase()
     val matches = if (q.isEmpty()) {
-        addresses.sortedWith(compareBy({ it.category }, { it.name }))
+        addresses.sortedBy { it.name }
     } else {
         addresses
             .filter { it.name.lowercase().contains(q) || it.address.lowercase().contains(q) }
@@ -105,7 +99,7 @@ fun LocationField(
         submitting = true
         scope.launch {
             val res = runCatching {
-                repo.submitAddress(saveName.trim(), value.trim(), saveCategory, force)
+                repo.submitAddress(saveName.trim(), value.trim(), force)
             }.getOrNull()
             submitting = false
             if (res == null) return@launch
@@ -113,7 +107,7 @@ fun LocationField(
                 dup = res.duplicate
                 return@launch
             }
-            addresses = addresses + SavedAddressDto(res.id, saveName.trim(), value.trim(), saveCategory)
+            addresses = addresses + SavedAddressDto(res.id, saveName.trim(), value.trim())
             savedNote = if (res.status == "PENDING") "Sent for approval." else "Saved for next time."
             showSave = false
         }
@@ -208,7 +202,6 @@ fun LocationField(
                                 .fillMaxWidth()
                                 .clickable {
                                     saveName = ""
-                                    saveCategory = defaultCategory
                                     dup = null
                                     showSave = true
                                 }
@@ -238,7 +231,6 @@ fun LocationField(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    CategoryPicker(categories, saveCategory) { saveCategory = it }
                     dup?.let { d ->
                         Text(
                             "Already saved as \"${d.name}\" — ${d.address}.",
@@ -270,39 +262,5 @@ fun LocationField(
                 TextButton(enabled = !submitting, onClick = { showSave = false }) { Text("Cancel") }
             },
         )
-    }
-}
-
-@Composable
-private fun CategoryPicker(
-    options: List<String>,
-    selected: String,
-    onSelect: (String) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    Column {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().clickable { open = true },
-        ) {
-            Text(
-                selected,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            )
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            options.forEach { opt ->
-                DropdownMenuItem(
-                    text = { Text(opt) },
-                    onClick = {
-                        onSelect(opt)
-                        open = false
-                    },
-                )
-            }
-        }
     }
 }

@@ -1,4 +1,8 @@
 # Changelog
+## 0.161.0
+- Simplified the address book to a flat, searchable list — addresses are just a
+  name and address now, no categories. Every address is offered on every event.
+
 ## 0.160.0
 - Fixed address suggestions being hidden behind the keyboard on the event "Where"
   field — they now scroll into view above it as you type.
