@@ -1,4 +1,9 @@
 # Changelog
+## 0.160.0
+- Fixed address suggestions being hidden behind the keyboard on the event "Where"
+  field — they now scroll into view above it as you type.
+- Removed "Birthday" from the address categories.
+
 ## 0.159.0
 - Renamed the "Appointment" event type to "Event" everywhere it shows (the type
   picker, the calendar filter, reminder defaults, the address category). The

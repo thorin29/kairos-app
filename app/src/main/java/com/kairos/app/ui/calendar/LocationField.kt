@@ -1,5 +1,9 @@
 package com.kairos.app.ui.calendar
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +48,7 @@ import kotlinx.coroutines.launch
  * a parent/admin's saves straight away, anyone else's is sent for approval —
  * with a "did you mean?" check first.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LocationField(
     value: String,
@@ -70,6 +75,9 @@ fun LocationField(
         }
     }
 
+    // When suggestions appear, scroll them above the soft keyboard.
+    val bringIntoView = remember { BringIntoViewRequester() }
+
     val q = value.trim().lowercase()
     val matches = if (q.isEmpty()) {
         addresses.sortedWith(compareBy({ it.category }, { it.name }))
@@ -84,6 +92,13 @@ fun LocationField(
     }
     val exact = q.isNotEmpty() && addresses.any { it.address.trim().lowercase() == q }
     val canSave = value.trim().isNotEmpty() && !exact
+
+    LaunchedEffect(focused, matches.size, canSave) {
+        if (focused && (matches.isNotEmpty() || canSave)) {
+            delay(60)
+            runCatching { bringIntoView.bringIntoView() }
+        }
+    }
 
     fun submit(force: Boolean) {
         if (saveName.isBlank()) return
@@ -155,7 +170,10 @@ fun LocationField(
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(start = 36.dp, bottom = 6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 36.dp, bottom = 6.dp)
+                    .bringIntoViewRequester(bringIntoView),
             ) {
                 Column(Modifier.fillMaxWidth()) {
                     matches.take(6).forEach { a ->

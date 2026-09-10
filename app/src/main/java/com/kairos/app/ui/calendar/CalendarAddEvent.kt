@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -235,7 +236,7 @@ fun AddEventOverlay(
             }
 
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 BasicTextField(
@@ -314,7 +315,6 @@ fun AddEventOverlay(
                         "APPOINTMENT" -> "Event"
                         "CLASS" -> "Class"
                         "WORK" -> "Work shift"
-                        "BIRTHDAY" -> "Birthday"
                         "OTHER" -> "Medical / Dental"
                         else -> "General"
                     },
