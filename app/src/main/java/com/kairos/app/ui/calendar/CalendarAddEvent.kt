@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -160,6 +162,36 @@ fun AddEventOverlay(
     var showEnd by remember { mutableStateOf(false) }
     var openSelector by remember { mutableStateOf<String?>(null) }
     var showScope by remember { mutableStateOf(false) }
+    var showDiscard by remember { mutableStateOf(false) }
+
+    // Note: reminders are excluded — they auto-populate from the per-type default
+    // on a new event after settings load, which would otherwise read as "dirty".
+    fun formSig() = listOf(
+        title, allDay, startDateIso, endDateIso, startMin, endMin, location,
+        repeat, isFamily, kind, eventTypeId, participants.toList(),
+    ).toString()
+    val initialSig = remember { formSig() }
+    val dirty = formSig() != initialSig
+
+    fun attemptClose() { if (dirty) showDiscard = true else onClose() }
+
+    BackHandler { attemptClose() }
+
+    if (showDiscard) {
+        AlertDialog(
+            onDismissRequest = { showDiscard = false },
+            title = { Text("Discard changes?") },
+            text = { Text("Your changes to this event will be lost.") },
+            confirmButton = {
+                TextButton(onClick = { showDiscard = false; onClose() }) {
+                    Text("Discard", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscard = false }) { Text("Keep editing") }
+            },
+        )
+    }
 
     fun submit(scope: String?) {
         val start = if (allDay) null else hhmm(startMin)
@@ -206,7 +238,7 @@ fun AddEventOverlay(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(40.dp).clickable { attemptClose() }, contentAlignment = Alignment.Center) {
                     Text("\u2715", style = MaterialTheme.typography.titleMedium)
                 }
                 Text(if (editing) "Edit event" else "New event", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))

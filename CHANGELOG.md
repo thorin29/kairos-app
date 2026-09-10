@@ -1,4 +1,9 @@
 # Changelog
+## 0.167.0
+- Closing a calendar event you're adding or editing (via X or Back) now asks
+  "Discard changes?" if there are unsaved changes, so you can't lose them by
+  accident.
+
 ## 0.166.0
 - Reworked the event location field. Tapping "Where" now opens a full-screen
   address search: the box sits at the top and matching saved addresses fill the
