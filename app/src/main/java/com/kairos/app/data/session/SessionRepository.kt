@@ -134,9 +134,10 @@ class SessionRepository(
     suspend fun submitAddress(
         name: String,
         address: String,
+        navByName: Boolean,
         force: Boolean,
     ): com.kairos.app.data.remote.dto.SubmitAddressResponse =
-        runAuthed { requireService().submitAddress(com.kairos.app.data.remote.dto.SubmitAddressRequest(name, address, force)) }
+        runAuthed { requireService().submitAddress(com.kairos.app.data.remote.dto.SubmitAddressRequest(name, address, navByName, force)) }
 
     suspend fun loadUpcoming(): com.kairos.app.data.remote.dto.UpcomingDto =
         runAuthed { requireService().upcoming() }
@@ -778,6 +779,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 215
+        const val CLIENT_BUILD = 216
     }
 }

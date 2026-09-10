@@ -21,4 +21,16 @@ object AddressBook {
         val key = norm(location)
         return addresses.firstOrNull { norm(it.address) == key }?.name
     }
+
+    /**
+     * The query to hand a maps app for [location]: "name, address" when the
+     * matched place is flagged navByName (a business — a better pin in Google
+     * Maps / Here WeGo), otherwise the address alone (best for a residence).
+     */
+    fun navQueryFor(location: String, addresses: List<SavedAddressDto>): String {
+        if (location.isBlank()) return location
+        val key = norm(location)
+        val match = addresses.firstOrNull { norm(it.address) == key }
+        return if (match != null && match.navByName) "${match.name}, $location" else location
+    }
 }

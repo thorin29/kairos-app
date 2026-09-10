@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,6 +60,7 @@ fun LocationField(
 
     var showSave by remember { mutableStateOf(false) }
     var saveName by remember { mutableStateOf("") }
+    var saveNavByName by remember { mutableStateOf(true) }
     var dup by remember { mutableStateOf<AddressDuplicateDto?>(null) }
     var submitting by remember { mutableStateOf(false) }
     var savedNote by remember { mutableStateOf<String?>(null) }
@@ -99,7 +101,7 @@ fun LocationField(
         submitting = true
         scope.launch {
             val res = runCatching {
-                repo.submitAddress(saveName.trim(), value.trim(), force)
+                repo.submitAddress(saveName.trim(), value.trim(), saveNavByName, force)
             }.getOrNull()
             submitting = false
             if (res == null) return@launch
@@ -107,7 +109,7 @@ fun LocationField(
                 dup = res.duplicate
                 return@launch
             }
-            addresses = addresses + SavedAddressDto(res.id, saveName.trim(), value.trim())
+            addresses = addresses + SavedAddressDto(res.id, saveName.trim(), value.trim(), saveNavByName)
             savedNote = if (res.status == "PENDING") "Sent for approval." else "Saved for next time."
             showSave = false
         }
@@ -202,6 +204,7 @@ fun LocationField(
                                 .fillMaxWidth()
                                 .clickable {
                                     saveName = ""
+                                    saveNavByName = true
                                     dup = null
                                     showSave = true
                                 }
@@ -231,6 +234,18 @@ fun LocationField(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Switch(checked = saveNavByName, onCheckedChange = { saveNavByName = it })
+                        Text(
+                            "Open in maps by name (a business). Turn off for a home.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     dup?.let { d ->
                         Text(
                             "Already saved as \"${d.name}\" — ${d.address}.",

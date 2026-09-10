@@ -1582,6 +1582,7 @@ data class SavedAddressDto(
     val id: String = "",
     val name: String = "",
     val address: String = "",
+    val navByName: Boolean = true,
 )
 
 @Serializable
@@ -1593,6 +1594,7 @@ data class AddressesResponse(
 data class SubmitAddressRequest(
     val name: String,
     val address: String,
+    val navByName: Boolean = true,
     val force: Boolean = false,
 )
 

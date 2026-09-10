@@ -1398,7 +1398,7 @@ private fun EventDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .clickable { com.kairos.app.ui.common.Maps.open(ctx, loc) }
+                                    .clickable { com.kairos.app.ui.common.Maps.open(ctx, com.kairos.app.ui.common.AddressBook.navQueryFor(loc, ui.savedAddresses)) }
                                     .padding(vertical = 2.dp),
                             ) {
                                 Icon(

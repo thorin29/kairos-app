@@ -1,4 +1,10 @@
 # Changelog
+## 0.164.0
+- When you open an event's location in maps, a matched place flagged "open by
+  name" now sends its name plus address to the nav app (a better pin in Google
+  Maps / Here WeGo); homes still navigate to the address alone. Saving a new
+  address from an event has a matching toggle (on by default).
+
 ## 0.163.0
 - Event cards now show a saved place's friendly name above its address (e.g.
   "Iceplex" over the street address) when the event's location matches your
