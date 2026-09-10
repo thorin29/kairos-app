@@ -20,7 +20,7 @@ object ReminderDefaults {
 
     /** Built-in kinds shown on the settings screen, in order. */
     val KINDS: List<Pair<String, String>> = listOf(
-        "APPOINTMENT" to "Appointment",
+        "APPOINTMENT" to "Event",
         "CLASS" to "Class",
         "WORK" to "Work shift",
         "BIRTHDAY" to "Birthday",

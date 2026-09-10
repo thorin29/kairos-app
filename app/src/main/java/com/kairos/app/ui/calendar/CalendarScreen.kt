@@ -1077,7 +1077,7 @@ private fun SettingsPanel(
                         { vm.savePrefs(nowColor = it) }, { vm.savePrefs(nowColor = null) },
                         palette = NowPalette)
                 }
-                listOf("APPOINTMENT" to "Appointments", "CLASS" to "Class", "WORK" to "Work", "BIRTHDAY" to "Birthdays").forEach { (k, lbl) ->
+                listOf("APPOINTMENT" to "Events", "CLASS" to "Class", "WORK" to "Work", "BIRTHDAY" to "Birthdays").forEach { (k, lbl) ->
                     ColorField(lbl, cp.kindColors[k], opt.meColor) {
                         picker = ColorSlot(lbl, cp.kindColors[k], opt.meColor,
                             { vm.savePrefs(kindColors = cp.kindColors + (k to it)) },
@@ -1328,7 +1328,7 @@ private fun eventTypeName(
             "WORK" -> "Work shift"
             "BIRTHDAY" -> "Birthday"
             "OTHER" -> "Medical / Dental"
-            else -> "Appointment"
+            else -> "Event"
         }
 
 @Composable

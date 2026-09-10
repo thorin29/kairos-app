@@ -1,4 +1,9 @@
 # Changelog
+## 0.159.0
+- Renamed the "Appointment" event type to "Event" everywhere it shows (the type
+  picker, the calendar filter, reminder defaults, the address category). The
+  underlying type is unchanged, so existing events are unaffected.
+
 ## 0.158.0
 - The event "Where" field is now a saved-address picker: tap to browse the
   address book, type to filter by name or address, tap to fill in the full

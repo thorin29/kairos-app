@@ -311,7 +311,7 @@ fun AddEventOverlay(
                     value = location,
                     onValueChange = { location = it },
                     defaultCategory = when (kind) {
-                        "APPOINTMENT" -> "Appointment"
+                        "APPOINTMENT" -> "Event"
                         "CLASS" -> "Class"
                         "WORK" -> "Work shift"
                         "BIRTHDAY" -> "Birthday"
@@ -543,7 +543,7 @@ fun AddEventOverlay(
         }
         "type" -> SelectorOverlay("Type", onClose = { openSelector = null }) {
             listOf(
-                "APPOINTMENT" to "Appointment",
+                "APPOINTMENT" to "Event",
                 "CLASS" to "Class",
                 "WORK" to "Work shift",
                 "BIRTHDAY" to "Birthday",
@@ -700,7 +700,7 @@ private fun typeLabel(kind: String, eventTypeId: String?, customTypes: List<com.
         "WORK" -> "Work shift"
         "BIRTHDAY" -> "Birthday"
         "OTHER" -> "Medical / Dental"
-        else -> "Appointment"
+        else -> "Event"
     }
 }
 
