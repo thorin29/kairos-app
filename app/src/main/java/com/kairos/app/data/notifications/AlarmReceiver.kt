@@ -7,10 +7,11 @@ import android.content.Intent
 /** Fires when a reminder alarm goes off: posts the event's name as a notification. */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val route = intent.getStringExtra(NotificationScheduler.EXTRA_ROUTE) ?: "calendar"
         val title = intent.getStringExtra(NotificationScheduler.EXTRA_TITLE)
-            ?.ifBlank { null } ?: "Event reminder"
+            ?.ifBlank { null } ?: if (route == "tasks") "Task reminder" else "Event reminder"
         val notifId = intent.getIntExtra(NotificationScheduler.EXTRA_NOTIF_ID, title.hashCode())
         val location = intent.getStringExtra(NotificationScheduler.EXTRA_LOCATION)
-        Notifications.post(context, notifId, title, null, location)
+        Notifications.post(context, notifId, title, null, location, route)
     }
 }

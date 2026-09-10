@@ -573,8 +573,9 @@ class SessionRepository(
         title: String,
         dueDate: String?,
         recur: com.kairos.app.data.remote.dto.RecurRequest? = null,
+        notifyMinutes: Int? = null,
     ) {
-        runAuthed { requireService().addTask(com.kairos.app.data.remote.dto.AddTaskRequest(userId, title, dueDate, recur)) }
+        runAuthed { requireService().addTask(com.kairos.app.data.remote.dto.AddTaskRequest(userId, title, dueDate, recur, notifyMinutes)) }
     }
 
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
@@ -720,6 +721,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 202
+        const val CLIENT_BUILD = 203
     }
 }

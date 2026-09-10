@@ -1510,6 +1510,7 @@ data class RecurRequest(
     val endMode: String = "NEVER",
     val maxCount: Int? = null,
     val until: String = "",
+    val notifyMinutes: Int? = null,
 )
 
 @Serializable
@@ -1518,6 +1519,7 @@ data class AddTaskRequest(
     val title: String,
     val dueDate: String? = null,
     val recur: RecurRequest? = null,
+    val notifyMinutes: Int? = null,
 )
 
 @Serializable
@@ -1545,4 +1547,15 @@ data class UpcomingEventDto(
 )
 
 @Serializable
-data class UpcomingDto(val events: List<UpcomingEventDto> = emptyList())
+data class UpcomingTaskDto(
+    val id: String = "",
+    val title: String = "",
+    val dueISO: String = "",
+    val minute: Int = 0,
+)
+
+@Serializable
+data class UpcomingDto(
+    val events: List<UpcomingEventDto> = emptyList(),
+    val tasks: List<UpcomingTaskDto> = emptyList(),
+)

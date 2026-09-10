@@ -116,7 +116,7 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
         return data.copy(groups = groups)
     }
 
-    fun add(userId: String, title: String, dueDate: String?, recur: com.kairos.app.data.remote.dto.RecurRequest? = null, onDone: () -> Unit) {
+    fun add(userId: String, title: String, dueDate: String?, recur: com.kairos.app.data.remote.dto.RecurRequest? = null, notifyMinutes: Int? = null, onDone: () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data
         val optimistic = before?.let { insertTask(it, userId, title, dueDate) }
@@ -124,7 +124,7 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
         onDone() // close the wizard right away; the task already shows on the list
         viewModelScope.launch {
             try {
-                session.addTask(userId, title, dueDate, recur)
+                session.addTask(userId, title, dueDate, recur, notifyMinutes)
                 if (session.isOnline()) {
                     _ui.update { it.copy(busy = false, data = freshData()) }
                 } else {

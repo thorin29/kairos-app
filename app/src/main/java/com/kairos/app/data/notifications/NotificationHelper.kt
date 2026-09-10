@@ -65,7 +65,7 @@ object Notifications {
     }
 
     /** Post a reminder. No-op if the OS permission hasn't been granted. */
-    fun post(context: Context, id: Int, title: String, text: String? = null, location: String? = null) {
+    fun post(context: Context, id: Int, title: String, text: String? = null, location: String? = null, route: String = "calendar") {
         ensureChannel(context)
         if (!hasPermission(context)) return
         val tapIntent = android.content.Intent(context, com.kairos.app.MainActivity::class.java).apply {
@@ -73,7 +73,7 @@ object Notifications {
                 android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP,
             )
-            putExtra(EXTRA_OPEN, "calendar")
+            putExtra(EXTRA_OPEN, route)
         }
         val tapPi = android.app.PendingIntent.getActivity(
             context,

@@ -25,7 +25,7 @@ object NotificationScheduler {
         val prefs = settings.currentNotifPrefs()
         val previous = settings.currentScheduledCodes()
 
-        if (!prefs.enabled || !Notifications.hasPermission(context)) {
+        if ((!prefs.enabled && !prefs.tasksEnabled) || !Notifications.hasPermission(context)) {
             previous.forEach { cancel(context, am, it) }
             settings.setScheduledCodes(emptySet())
             return
@@ -35,11 +35,28 @@ object NotificationScheduler {
         val now = System.currentTimeMillis()
 
         val desired = HashMap<Int, Alarm>()
-        for (e in upcoming.events) {
-            for (r in e.reminders) {
-                val at = e.startMs - r * 60_000L
+        if (prefs.enabled) {
+            for (e in upcoming.events) {
+                for (r in e.reminders) {
+                    val at = e.startMs - r * 60_000L
+                    if (at > now + 10_000L) {
+                        desired[("${e.id}|$r").hashCode()] = Alarm(at, e.title, e.location, "calendar")
+                    }
+                }
+            }
+        }
+        if (prefs.tasksEnabled) {
+            for (t in upcoming.tasks) {
+                val at = try {
+                    java.time.LocalDate.parse(t.dueISO)
+                        .atTime(t.minute / 60, t.minute % 60)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toInstant().toEpochMilli()
+                } catch (_: Exception) {
+                    continue
+                }
                 if (at > now + 10_000L) {
-                    desired[("${e.id}|$r").hashCode()] = Alarm(at, e.title, e.location)
+                    desired[("task|${t.id}").hashCode()] = Alarm(at, t.title, null, "tasks")
                 }
             }
         }
@@ -49,23 +66,24 @@ object NotificationScheduler {
         settings.setScheduledCodes(desired.keys)
     }
 
-    private data class Alarm(val at: Long, val title: String, val location: String?)
+    private data class Alarm(val at: Long, val title: String, val location: String?, val route: String = "calendar")
 
-    private fun intentFor(context: Context, code: Int, title: String, location: String?): Intent =
+    private fun intentFor(context: Context, code: Int, title: String, location: String?, route: String): Intent =
         Intent(context, AlarmReceiver::class.java).apply {
             putExtra(EXTRA_NOTIF_ID, code)
             putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_ROUTE, route)
             if (!location.isNullOrBlank()) putExtra(EXTRA_LOCATION, location)
         }
 
-    private fun pending(context: Context, code: Int, title: String, location: String?, create: Boolean): PendingIntent? {
+    private fun pending(context: Context, code: Int, title: String, location: String?, route: String, create: Boolean): PendingIntent? {
         val flags = (if (create) PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_NO_CREATE) or
             PendingIntent.FLAG_IMMUTABLE
-        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title, location), flags)
+        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title, location, route), flags)
     }
 
     private fun schedule(context: Context, am: AlarmManager, code: Int, a: Alarm) {
-        val pi = pending(context, code, a.title, a.location, create = true) ?: return
+        val pi = pending(context, code, a.title, a.location, a.route, create = true) ?: return
         val at = a.at
         val canExact =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
@@ -81,7 +99,7 @@ object NotificationScheduler {
     }
 
     private fun cancel(context: Context, am: AlarmManager, code: Int) {
-        pending(context, code, "", null, create = false)?.let {
+        pending(context, code, "", null, "calendar", create = false)?.let {
             am.cancel(it)
             it.cancel()
         }
@@ -90,4 +108,5 @@ object NotificationScheduler {
     const val EXTRA_NOTIF_ID = "notifId"
     const val EXTRA_TITLE = "title"
     const val EXTRA_LOCATION = "location"
+    const val EXTRA_ROUTE = "route"
 }

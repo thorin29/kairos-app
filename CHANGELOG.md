@@ -1,4 +1,10 @@
 # Changelog
+## 0.151.0
+- Task alerts: under Advanced, "Remind me" adds a notification time (a clock that follows your Time
+  format setting). One-off tasks alert on the due date; recurring tasks alert at that time on each
+  occurrence. Alerts fire through the same scheduler as calendar reminders, respect the Task alerts
+  toggle, and tapping one opens Tasks.
+
 ## 0.150.0
 - Turning on Repeat for a task now clears the due date — a repeating task schedules itself, and its
   end comes from how long it repeats — with a one-time note explaining why.

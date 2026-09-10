@@ -52,6 +52,9 @@ import androidx.compose.foundation.background
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.launch
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.Surface
+import com.kairos.app.ui.common.TimeFmt
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import java.time.Instant
@@ -67,6 +70,7 @@ private val NICE = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
 @Composable
 fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
     val container = rememberContainer()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
     val vm: TasksViewModel = viewModel(
         viewModelStoreOwner = owner,
@@ -113,6 +117,9 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         var until by remember { mutableStateOf(LocalDate.now().plusMonths(1).toString()) }
         var showUntil by remember { mutableStateOf(false) }
         var showRecurNotice by remember { mutableStateOf(false) }
+        var notify by remember { mutableStateOf(false) }
+        var notifyMin by remember { mutableStateOf(9 * 60) }
+        var showNotifyTime by remember { mutableStateOf(false) }
 
         val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
@@ -218,12 +225,35 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                                 }
                             }
                         }
+
+                        if (repeats || hasDue) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Remind me", style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        if (repeats) "Alert at this time on each date" else "Alert on the due date",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Switch(checked = notify, onCheckedChange = { notify = it })
+                            }
+                            if (notify) {
+                                Box(
+                                    Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                                        .clickable { showNotifyTime = true }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                ) {
+                                    Text(TimeFmt.clock(notifyMin), style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             Button(
                 onClick = {
+                    val wantNotify = advanced && notify && (repeats || hasDue)
                     val recur = if (advanced && repeats) {
                         com.kairos.app.data.remote.dto.RecurRequest(
                             freq = freq,
@@ -233,12 +263,19 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                             endMode = endMode,
                             maxCount = if (endMode == "COUNT") count.toIntOrNull() else null,
                             until = if (endMode == "UNTIL") until else "",
+                            notifyMinutes = if (wantNotify) notifyMin else null,
                         )
                     } else {
                         null
                     }
                     val due = if (advanced && hasDue && !repeats) dueDate else null
-                    vm.add(personId, title.trim(), due, recur) { onClose() }
+                    val oneOffNotify = if (wantNotify && !repeats) notifyMin else null
+                    vm.add(personId, title.trim(), due, recur, oneOffNotify) {
+                        if (wantNotify) {
+                            com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(context)
+                        }
+                        onClose()
+                    }
                 },
                 enabled = !ui.busy && personId.isNotBlank() && title.trim().length >= 2,
                 modifier = Modifier.fillMaxWidth(),
@@ -267,6 +304,14 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             ) {
                 DatePicker(state = state)
             }
+        }
+
+        if (showNotifyTime) {
+            TaskTimePickerDialog(
+                initialMin = notifyMin,
+                onConfirm = { notifyMin = it; showNotifyTime = false },
+                onDismiss = { showNotifyTime = false },
+            )
         }
 
         if (showRecurNotice) {
@@ -299,6 +344,27 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                 dismissButton = { TextButton(onClick = { showUntil = false }) { Text("Cancel") } },
             ) {
                 DatePicker(state = ustate)
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskTimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
+    val state = androidx.compose.material3.rememberTimePickerState(
+        initialHour = initialMin / 60,
+        initialMinute = initialMin % 60,
+        is24Hour = TimeFmt.military,
+    )
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                androidx.compose.material3.TimePicker(state = state)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text("OK") }
+                }
             }
         }
     }
