@@ -600,6 +600,31 @@ class SessionRepository(
         runAuthed { requireService().addTask(com.kairos.app.data.remote.dto.AddTaskRequest(userId, title, dueDate, recur, notifyMinutes)) }
     }
 
+    suspend fun loadTaskEdit(id: String): com.kairos.app.data.remote.dto.TaskEditDataDto =
+        runAuthed { requireService().taskEditData(id) }
+
+    suspend fun updateTask(
+        id: String,
+        userId: String,
+        title: String,
+        dueDate: String?,
+        recur: com.kairos.app.data.remote.dto.RecurRequest? = null,
+        notifyMinutes: Int? = null,
+    ) {
+        runAuthed {
+            requireService().updateTask(
+                id,
+                com.kairos.app.data.remote.dto.AddTaskRequest(userId, title, dueDate, recur, notifyMinutes),
+            )
+        }
+        _tasksChanged.tryEmit(Unit)
+    }
+
+    suspend fun deleteTask(id: String) {
+        runAuthed { requireService().deleteTask(id) }
+        _tasksChanged.tryEmit(Unit)
+    }
+
     suspend fun deleteCalendarEvent(eventId: String, scope: String?, occurrenceISO: String?) {
         runAuthed {
             requireService().deleteEvent(
@@ -743,6 +768,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 206
+        const val CLIENT_BUILD = 207
     }
 }

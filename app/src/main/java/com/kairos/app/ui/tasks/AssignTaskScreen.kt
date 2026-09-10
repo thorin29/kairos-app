@@ -59,6 +59,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.LaunchedEffect
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import java.time.Instant
@@ -72,7 +73,7 @@ private val NICE = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
+fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null, onClose: () -> Unit) {
     val container = rememberContainer()
     val context = androidx.compose.ui.platform.LocalContext.current
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
@@ -89,7 +90,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Assign a task") },
+                title = { Text(if (editTaskId != null) "Edit task" else "Assign a task") },
                 navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
             )
         },
@@ -105,7 +106,8 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             data.canActFor.filter { it.id == data.meId } +
                 data.canActFor.filter { it.id != data.meId }
         }
-        var personId by remember(orderedPeople) { mutableStateOf(orderedPeople.firstOrNull()?.id ?: data.meId) }
+        var selectedPerson by remember { mutableStateOf<String?>(null) }
+        val personId = selectedPerson ?: orderedPeople.firstOrNull()?.id ?: data.meId
         var title by remember { mutableStateOf("") }
         var hasDue by remember { mutableStateOf(false) }
         var dueDate by remember { mutableStateOf(LocalDate.now().toString()) }
@@ -125,6 +127,30 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         var notify by remember { mutableStateOf(false) }
         var notifyMin by remember { mutableStateOf(9 * 60) }
         var showNotifyTime by remember { mutableStateOf(false) }
+        var showDeleteConfirm by remember { mutableStateOf(false) }
+
+        // Edit mode: load the task's form and pre-fill everything once.
+        var prefilled by remember { mutableStateOf(false) }
+        LaunchedEffect(editTaskId) {
+            if (editTaskId == null || prefilled) return@LaunchedEffect
+            val e = runCatching { container.sessionRepository.loadTaskEdit(editTaskId) }.getOrNull()
+                ?: return@LaunchedEffect
+            selectedPerson = e.userId
+            title = e.title
+            advanced = e.recurring || e.dueDate != null || e.notifyMinutes != null
+            hasDue = !e.recurring && e.dueDate != null
+            if (e.dueDate != null) dueDate = e.dueDate
+            repeats = e.recurring
+            freq = e.freq
+            interval = e.interval.toString()
+            if (e.byday.isNotEmpty()) byday = e.byday.toSet()
+            endMode = e.endMode
+            if (e.maxCount != null) count = e.maxCount.toString()
+            if (e.until.isNotBlank()) until = e.until
+            notify = e.notifyMinutes != null
+            if (e.notifyMinutes != null) notifyMin = e.notifyMinutes
+            prefilled = true
+        }
 
         val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
@@ -144,7 +170,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     if (orderedPeople.size > 1) {
-                        RollPicker("For", personName, orderedPeople.map { it.id to it.name }, { personId = it }, !ui.busy, Modifier.fillMaxWidth())
+                        RollPicker("For", personName, orderedPeople.map { it.id to it.name }, { selectedPerson = it }, !ui.busy, Modifier.fillMaxWidth())
                     }
                     Labeled("Task") { Field(title, { title = it.take(120) }, "e.g. Wash the car") }
 
@@ -282,16 +308,36 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                     }
                     val due = if (advanced && hasDue && !repeats) dueDate else null
                     val oneOffNotify = if (wantNotify && !repeats) notifyMin else null
-                    vm.add(personId, title.trim(), due, recur, oneOffNotify) {
-                        if (wantNotify) {
+                    if (editTaskId != null) {
+                        scope.launch {
+                            runCatching {
+                                container.sessionRepository.updateTask(
+                                    editTaskId, personId, title.trim(), due, recur, oneOffNotify,
+                                )
+                            }
                             com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(context)
+                            onClose()
                         }
-                        onClose()
+                    } else {
+                        vm.add(personId, title.trim(), due, recur, oneOffNotify) {
+                            if (wantNotify) {
+                                com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(context)
+                            }
+                            onClose()
+                        }
                     }
                 },
                 enabled = !ui.busy && personId.isNotBlank() && title.trim().length >= 2,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Assign") }
+            ) { Text(if (editTaskId != null) "Save" else "Assign") }
+
+            if (editTaskId != null) {
+                TextButton(
+                    onClick = { showDeleteConfirm = true },
+                    enabled = !ui.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Delete task", color = MaterialTheme.colorScheme.error) }
+            }
         }
 
         if (showDate) {
@@ -323,6 +369,32 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                 initialMin = notifyMin,
                 onConfirm = { notifyMin = it; showNotifyTime = false },
                 onDismiss = { showNotifyTime = false },
+            )
+        }
+
+        if (showDeleteConfirm && editTaskId != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Delete this task?") },
+                text = {
+                    Text(
+                        if (repeats) "This removes the whole repeating series."
+                        else "This removes the task.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteConfirm = false
+                        scope.launch {
+                            runCatching { container.sessionRepository.deleteTask(editTaskId) }
+                            com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(context)
+                            onClose()
+                        }
+                    }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                },
             )
         }
 

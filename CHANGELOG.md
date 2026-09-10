@@ -1,4 +1,10 @@
 # Changelog
+## 0.155.0
+- Edit tasks: a pencil icon in the Tasks top bar toggles edit mode; tapping a task opens it in the
+  assign screen pre-filled, where you can change anything (including converting to/from recurring)
+  and Save, or Delete (deleting a recurring task removes the whole series). Parents/admins can edit
+  any task; others only their own. A recurring task edits as one series, not the generated copies.
+
 ## 0.154.0
 - Completing a task from its alert now auto-refreshes an open Home/Tasks screen, so the checkbox
   ticks itself a moment later instead of needing a manual refresh.

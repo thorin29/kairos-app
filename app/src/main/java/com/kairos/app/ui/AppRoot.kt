@@ -264,6 +264,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         TasksScreen(
                             onOpenDrawer = { open = true },
                             onOpenAssign = { navController.navigate(Route.AssignTask) },
+                            onEditTask = { id -> navController.navigate(Route.EditTask(id)) },
                             refreshKey = dataRevision,
                         )
                     } else if (key == "school") {
@@ -356,6 +357,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 composable<Route.AssignTask> {
                     AssignTaskScreen(
                         parentEntry = navController.previousBackStackEntry,
+                        onClose = { homeRefresh++; navController.popBackStack() },
+                    )
+                }
+                composable<Route.EditTask> { entry ->
+                    AssignTaskScreen(
+                        parentEntry = navController.previousBackStackEntry,
+                        editTaskId = entry.toRoute<Route.EditTask>().taskId,
                         onClose = { homeRefresh++; navController.popBackStack() },
                     )
                 }

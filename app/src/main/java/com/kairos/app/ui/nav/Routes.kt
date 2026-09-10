@@ -66,6 +66,9 @@ sealed interface Route {
     data object AssignTask : Route
 
     @Serializable
+    data class EditTask(val taskId: String) : Route
+
+    @Serializable
     data object Rotation : Route
 
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry

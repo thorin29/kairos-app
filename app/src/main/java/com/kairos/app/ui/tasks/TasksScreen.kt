@@ -44,17 +44,22 @@ import com.kairos.app.data.remote.dto.TaskOpenDto
 import com.kairos.app.data.remote.dto.TasksListDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, refreshKey: Int = 0) {
+fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: (String) -> Unit = {}, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: TasksViewModel = viewModel(
         factory = viewModelFactory { initializer { TasksViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    var editMode by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
@@ -66,6 +71,14 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, refreshKey: 
                 actions = {
                     TextButton(onClick = { vm.toggleCompleted() }) {
                         Text(if (ui.showCompleted) "Hide done" else "Show done")
+                    }
+                    IconButton(onClick = { editMode = !editMode }) {
+                        Icon(
+                            KairosIcons.Pencil,
+                            if (editMode) "Done editing" else "Edit tasks",
+                            tint = if (editMode) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                     IconButton(onClick = onOpenAssign) {
                         Icon(KairosIcons.Plus, "Assign a task", modifier = Modifier.size(22.dp))
@@ -117,7 +130,7 @@ private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewMode
             val isOwn = g.userId == data.meId
             val visibleDone = if (ui.showCompleted) g.done else emptyList()
             if (g.open.isEmpty() && visibleDone.isEmpty()) return@forEach
-            GroupCard(g, isOwn, visibleDone, ui.busy, { vm.complete(it) }, { vm.uncomplete(it) })
+            GroupCard(g, isOwn, visibleDone, ui.busy, editMode, data.isParent || isOwn, onEditTask, { vm.complete(it) }, { vm.uncomplete(it) })
         }
     }
 }
@@ -128,6 +141,9 @@ private fun GroupCard(
     isOwn: Boolean,
     doneShown: List<TaskDoneDto>,
     busy: Boolean,
+    editMode: Boolean,
+    canEdit: Boolean,
+    onEdit: (String) -> Unit,
     onComplete: (String) -> Unit,
     onUncomplete: (String) -> Unit,
 ) {
@@ -142,16 +158,27 @@ private fun GroupCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            g.open.forEach { t -> OpenRow(t, isOwn, busy, onComplete) }
-            doneShown.forEach { t -> DoneRow(t, isOwn, busy, onUncomplete) }
+            g.open.forEach { t -> OpenRow(t, isOwn, busy, editMode && canEdit, onEdit, onComplete) }
+            doneShown.forEach { t -> DoneRow(t, isOwn, busy, editMode && canEdit, onEdit, onUncomplete) }
         }
     }
 }
 
 @Composable
-private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, onComplete: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (isOwn) {
+private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, editMode: Boolean, onEdit: (String) -> Unit, onComplete: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().then(if (editMode) Modifier.clickable { onEdit(t.id) } else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (editMode) {
+            Icon(
+                KairosIcons.Pencil,
+                contentDescription = "Edit",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        } else if (isOwn) {
             Box(
                 Modifier.size(22.dp).clip(RoundedCornerShape(999.dp))
                     .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
@@ -180,9 +207,20 @@ private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, onComplete: (
 }
 
 @Composable
-private fun DoneRow(t: TaskDoneDto, isOwn: Boolean, busy: Boolean, onUncomplete: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (isOwn) {
+private fun DoneRow(t: TaskDoneDto, isOwn: Boolean, busy: Boolean, editMode: Boolean, onEdit: (String) -> Unit, onUncomplete: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().then(if (editMode) Modifier.clickable { onEdit(t.id) } else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (editMode) {
+            Icon(
+                KairosIcons.Pencil,
+                contentDescription = "Edit",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        } else if (isOwn) {
             Box(
                 Modifier.size(22.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xFF10B981))
                     .clickable(enabled = !busy) { onUncomplete(t.id) },

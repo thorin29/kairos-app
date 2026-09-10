@@ -80,6 +80,15 @@ interface ApiService {
     @POST("auth/login")
     suspend fun login(@Body body: LoginRequest): Response<LoginResponse>
 
+    @GET("tasks/{id}/edit-data")
+    suspend fun taskEditData(@Path("id") id: String): Response<com.kairos.app.data.remote.dto.TaskEditDataDto>
+
+    @POST("tasks/{id}/update")
+    suspend fun updateTask(@Path("id") id: String, @Body body: com.kairos.app.data.remote.dto.AddTaskRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
+    @POST("tasks/{id}/delete")
+    suspend fun deleteTask(@Path("id") id: String): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @POST("auth/join")
     suspend fun join(@Body body: JoinRequest): Response<EnrollResponse>
 

@@ -1523,6 +1523,23 @@ data class AddTaskRequest(
 )
 
 @Serializable
+data class TaskEditDataDto(
+    val taskId: String = "",
+    val userId: String = "",
+    val title: String = "",
+    val recurring: Boolean = false,
+    val dueDate: String? = null,
+    val notifyMinutes: Int? = null,
+    val freq: String = "WEEKLY",
+    val interval: Int = 1,
+    val byday: List<String> = emptyList(),
+    val startDate: String = "",
+    val endMode: String = "NEVER",
+    val maxCount: Int? = null,
+    val until: String = "",
+)
+
+@Serializable
 data class ColorRequest(val color: String)
 
 @Serializable
