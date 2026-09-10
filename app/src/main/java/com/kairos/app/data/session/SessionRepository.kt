@@ -129,7 +129,7 @@ class SessionRepository(
         runAuthed { requireService().notifMeta() }
 
     suspend fun listSavedAddresses(): com.kairos.app.data.remote.dto.AddressesResponse =
-        apiCall { svc.addresses() }
+        runAuthed { requireService().addresses() }
 
     suspend fun submitAddress(
         name: String,
@@ -137,7 +137,7 @@ class SessionRepository(
         category: String,
         force: Boolean,
     ): com.kairos.app.data.remote.dto.SubmitAddressResponse =
-        apiCall { svc.submitAddress(com.kairos.app.data.remote.dto.SubmitAddressRequest(name, address, category, force)) }
+        runAuthed { requireService().submitAddress(com.kairos.app.data.remote.dto.SubmitAddressRequest(name, address, category, force)) }
 
     suspend fun loadUpcoming(): com.kairos.app.data.remote.dto.UpcomingDto =
         runAuthed { requireService().upcoming() }
