@@ -49,6 +49,9 @@ import androidx.navigation.NavBackStackEntry
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.AlertDialog
+import kotlinx.coroutines.launch
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import java.time.Instant
@@ -70,6 +73,8 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         factory = viewModelFactory { initializer { TasksViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    val scope = rememberCoroutineScope()
+    val seenRecurNoDue by container.settingsStore.seenRecurNoDue.collectAsState(initial = false)
     val data = ui.data
 
     Scaffold(
@@ -107,6 +112,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         var count by remember { mutableStateOf("10") }
         var until by remember { mutableStateOf(LocalDate.now().plusMonths(1).toString()) }
         var showUntil by remember { mutableStateOf(false) }
+        var showRecurNotice by remember { mutableStateOf(false) }
 
         val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
@@ -132,6 +138,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                     }
 
                     if (advanced) {
+                        if (!repeats) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text("Due date", style = MaterialTheme.typography.bodyLarge)
@@ -147,13 +154,23 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                                 Text(dueLabel, style = MaterialTheme.typography.bodyLarge)
                             }
                         }
+                        }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text("Repeat", style = MaterialTheme.typography.bodyLarge)
                                 Text("Make this a recurring task", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Switch(checked = repeats, onCheckedChange = { repeats = it })
+                            Switch(checked = repeats, onCheckedChange = { on ->
+                                repeats = on
+                                if (on) {
+                                    hasDue = false
+                                    if (!seenRecurNoDue) {
+                                        showRecurNotice = true
+                                        scope.launch { container.settingsStore.setSeenRecurNoDue() }
+                                    }
+                                }
+                            })
                         }
 
                         if (repeats) {
@@ -250,6 +267,15 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             ) {
                 DatePicker(state = state)
             }
+        }
+
+        if (showRecurNotice) {
+            AlertDialog(
+                onDismissRequest = { showRecurNotice = false },
+                title = { Text("No due dates for recurrent tasks") },
+                text = { Text("A repeating task schedules itself, so it doesn't use a due date. The end date comes from how long it repeats for.") },
+                confirmButton = { TextButton(onClick = { showRecurNotice = false }) { Text("Got it") } },
+            )
         }
 
         if (showUntil) {

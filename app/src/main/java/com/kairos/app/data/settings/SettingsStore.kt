@@ -84,6 +84,13 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_TIME_FMT] = v }
     }
 
+    /** Whether the one-time "no due dates for recurring tasks" notice was shown. */
+    val seenRecurNoDue: Flow<Boolean> = dataStore.data.map { it[KEY_SEEN_RECUR_NODUE] ?: false }
+
+    suspend fun setSeenRecurNoDue() {
+        dataStore.edit { it[KEY_SEEN_RECUR_NODUE] = true }
+    }
+
     suspend fun setMilitaryTime(on: Boolean) {
         dataStore.edit { it[KEY_MILITARY] = on }
     }
@@ -145,6 +152,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_DARK = booleanPreferencesKey("dark_mode")
         val KEY_MILITARY = booleanPreferencesKey("military_time")
         val KEY_TIME_FMT = stringPreferencesKey("time_format")
+        val KEY_SEEN_RECUR_NODUE = booleanPreferencesKey("seen_recur_nodue")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")

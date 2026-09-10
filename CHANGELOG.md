@@ -1,4 +1,8 @@
 # Changelog
+## 0.150.0
+- Turning on Repeat for a task now clears the due date — a repeating task schedules itself, and its
+  end comes from how long it repeats — with a one-time note explaining why.
+
 ## 0.149.0
 - Settings -> Appearance: "24-hour time" is now "Time format" — tap it to pick System time, 13:00,
   or 1 PM from a pop-up, with the current choice shown beneath the label. "System time" follows the
