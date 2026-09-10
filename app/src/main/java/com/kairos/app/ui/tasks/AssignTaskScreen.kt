@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Surface
 import com.kairos.app.ui.common.TimeFmt
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
@@ -130,7 +131,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         Column(
             Modifier.padding(inner).fillMaxSize()
                 .pointerInput(Unit) {
-                    androidx.compose.foundation.gestures.detectTapGestures { focusManager.clearFocus() }
+                    detectTapGestures { focusManager.clearFocus() }
                 }
                 .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
