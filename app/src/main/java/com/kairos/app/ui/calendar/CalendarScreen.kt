@@ -1392,6 +1392,7 @@ private fun EventDetailScreen(
                         }
                         event.location?.takeIf { it.isNotBlank() }?.let { loc ->
                             val ctx = androidx.compose.ui.platform.LocalContext.current
+                            val savedName = com.kairos.app.ui.common.AddressBook.nameFor(loc, ui.savedAddresses)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1406,7 +1407,14 @@ private fun EventDetailScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp),
                                 )
-                                Text(loc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                                if (savedName != null) {
+                                    Column {
+                                        Text(savedName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                                        Text(loc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                } else {
+                                    Text(loc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                                }
                             }
                         }
                         event.notes?.takeIf { it.isNotBlank() }?.let {

@@ -1,4 +1,9 @@
 # Changelog
+## 0.163.0
+- Event cards now show a saved place's friendly name above its address (e.g.
+  "Iceplex" over the street address) when the event's location matches your
+  address book — the address stays for navigation.
+
 ## 0.162.0
 - Actually fixed address suggestions hiding behind the keyboard. The form is
   drawn edge-to-edge, so the scroll area now reserves the keyboard's space

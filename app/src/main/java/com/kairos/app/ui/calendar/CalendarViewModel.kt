@@ -49,6 +49,9 @@ data class CalendarUiState(
     /** Bumped on an external date jump (Today / dropdown) so the pagers animate
      *  to it; the pager's own settle does NOT bump it, avoiding a cancel loop. */
     val navNonce: Int = 0,
+    /** Approved saved addresses, for showing a place's friendly name on the
+     *  event card. Fetched once; empty until then. */
+    val savedAddresses: List<com.kairos.app.data.remote.dto.SavedAddressDto> = emptyList(),
 )
 
 /**
@@ -166,6 +169,13 @@ class CalendarViewModel(
     private fun load() {
         val s = _ui.value
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
+        if (_ui.value.savedAddresses.isEmpty()) {
+            viewModelScope.launch {
+                runCatching { session.listSavedAddresses() }.getOrNull()?.let { r ->
+                    _ui.update { it.copy(savedAddresses = r.addresses) }
+                }
+            }
+        }
         viewModelScope.launch {
             try {
                 val data = loadCal(s.tab.serverValue, s.date)
