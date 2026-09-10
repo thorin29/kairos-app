@@ -98,14 +98,14 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: 
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> TasksContent(data, ui, vm)
+                else -> TasksContent(data, ui, vm, editMode, onEditTask)
             }
         }
     }
 }
 
 @Composable
-private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewModel) {
+private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewModel, editMode: Boolean, onEditTask: (String) -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
