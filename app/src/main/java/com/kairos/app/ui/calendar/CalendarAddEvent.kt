@@ -96,6 +96,7 @@ fun AddEventOverlay(
     var startMin by remember { mutableStateOf(editEvent?.startMin ?: defaultStart) }
     var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))) }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
+    var addressSearchOpen by remember { mutableStateOf(false) }
     var repeat by remember { mutableStateOf("NONE") }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
     var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
@@ -188,6 +189,17 @@ fun AddEventOverlay(
     }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        if (addressSearchOpen) {
+            AddressSearchScreen(
+                initial = location,
+                repo = container.sessionRepository,
+                onDismiss = { addressSearchOpen = false },
+                onPick = {
+                    location = it
+                    addressSearchOpen = false
+                },
+            )
+        } else {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // Top bar
             Row(
@@ -310,8 +322,7 @@ fun AddEventOverlay(
                 SectionLine()
                 LocationField(
                     value = location,
-                    onValueChange = { location = it },
-                    repo = container.sessionRepository,
+                    onOpenSearch = { addressSearchOpen = true },
                 )
 
                 SectionLine()
@@ -359,6 +370,7 @@ fun AddEventOverlay(
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
+        }
         }
     }
 

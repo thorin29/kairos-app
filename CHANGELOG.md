@@ -1,4 +1,11 @@
 # Changelog
+## 0.166.0
+- Reworked the event location field. Tapping "Where" now opens a full-screen
+  address search: the box sits at the top and matching saved addresses fill the
+  space above the keyboard as a scrollable list, so results can never hide
+  behind the keyboard (replacing the drop-up). Also set the activity to
+  adjustResize so the keyboard insets are delivered correctly under edge-to-edge.
+
 ## 0.165.0
 - Restored the app-wide "tap outside a field to close the keyboard" behaviour
   (its files never actually reached the deployed build in 0.157.0).
