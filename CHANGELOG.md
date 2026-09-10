@@ -1,4 +1,9 @@
 # Changelog
+## 0.156.0
+- "Show complete" moved out of the top bar into the task list as a caret toggle whose words state
+  the action: "Show complete" (caret right) flips to "Hide complete" (caret down).
+- Parents/admins get a "Show only mine / Show everyone" toggle to hide other people's tasks.
+
 ## 0.155.0
 - Edit tasks: a pencil icon in the Tasks top bar toggles edit mode; tapping a task opens it in the
   assign screen pre-filled, where you can change anything (including converting to/from recurring)

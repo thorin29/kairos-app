@@ -48,6 +48,9 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.ui.graphics.Color
 
@@ -60,6 +63,7 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: 
     )
     val ui by vm.ui.collectAsState()
     var editMode by remember { mutableStateOf(false) }
+    var onlyMine by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
@@ -69,9 +73,6 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: 
                 title = { Text("Tasks") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
                 actions = {
-                    TextButton(onClick = { vm.toggleCompleted() }) {
-                        Text(if (ui.showCompleted) "Hide done" else "Show done")
-                    }
                     IconButton(onClick = { editMode = !editMode }) {
                         Icon(
                             KairosIcons.Pencil,
@@ -98,14 +99,14 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: 
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> TasksContent(data, ui, vm, editMode, onEditTask)
+                else -> TasksContent(data, ui, vm, editMode, onEditTask, onlyMine) { onlyMine = !onlyMine }
             }
         }
     }
 }
 
 @Composable
-private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewModel, editMode: Boolean, onEditTask: (String) -> Unit) {
+private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewModel, editMode: Boolean, onEditTask: (String) -> Unit, onlyMine: Boolean, onToggleOnlyMine: () -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -114,7 +115,37 @@ private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewMode
             Text(msg, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF047857), modifier = Modifier.fillMaxWidth())
         }
 
-        val anything = data.groups.any { it.open.isNotEmpty() || (ui.showCompleted && it.done.isNotEmpty()) }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.clickable { vm.toggleCompleted() },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Icon(
+                    if (ui.showCompleted) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    if (ui.showCompleted) "Hide complete" else "Show complete",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (data.isParent) {
+                Text(
+                    if (onlyMine) "Show everyone" else "Show only mine",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { onToggleOnlyMine() },
+                )
+            }
+        }
+
+        val groups = if (onlyMine) data.groups.filter { it.userId == data.meId } else data.groups
+        val anything = groups.any { it.open.isNotEmpty() || (ui.showCompleted && it.done.isNotEmpty()) }
         if (!anything) {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Text(
@@ -126,7 +157,7 @@ private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewMode
             }
         }
 
-        data.groups.forEach { g ->
+        groups.forEach { g ->
             val isOwn = g.userId == data.meId
             val visibleDone = if (ui.showCompleted) g.done else emptyList()
             if (g.open.isEmpty() && visibleDone.isEmpty()) return@forEach
