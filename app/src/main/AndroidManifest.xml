@@ -53,6 +53,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".data.notifications.CompleteTaskReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".data.notifications.BootReceiver"
             android:exported="true">
             <intent-filter>

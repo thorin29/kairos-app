@@ -280,6 +280,17 @@ class SessionRepository(
     suspend fun completeTask(id: String): TaskStatusDto =
         runAuthed { requireService().completeTask(id) }
 
+    /** Complete a task from a notification action, which may run in a freshly
+     *  woken process where the service/token aren't primed yet. Rebuilds and
+     *  loads what it needs, then completes. Returns true on success. */
+    suspend fun completeTaskFromNotification(id: String): Boolean {
+        val base = settings.currentBaseUrl() ?: return false
+        if (service == null) rebuildService(base)
+        if (tokens.current() == null) tokens.load()
+        val svc = service ?: return false
+        return runCatching { apiCall { svc.completeTask(id) } }.isSuccess
+    }
+
     suspend fun uncompleteTask(id: String): TaskStatusDto =
         runAuthed { requireService().uncompleteTask(id) }
 
@@ -721,6 +732,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 203
+        const val CLIENT_BUILD = 204
     }
 }

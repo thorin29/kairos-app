@@ -12,6 +12,7 @@ class AlarmReceiver : BroadcastReceiver() {
             ?.ifBlank { null } ?: if (route == "tasks") "Task reminder" else "Event reminder"
         val notifId = intent.getIntExtra(NotificationScheduler.EXTRA_NOTIF_ID, title.hashCode())
         val location = intent.getStringExtra(NotificationScheduler.EXTRA_LOCATION)
-        Notifications.post(context, notifId, title, null, location, route)
+        val taskId = intent.getStringExtra(NotificationScheduler.EXTRA_TASK_ID)
+        Notifications.post(context, notifId, title, null, location, route, taskId)
     }
 }

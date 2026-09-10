@@ -1,4 +1,9 @@
 # Changelog
+## 0.152.0
+- Task alerts now have Open and Complete actions. Open takes you to the home dashboard where the
+  task lives; Complete checks it off in the background and dismisses the alert (recurring tasks
+  return on their next date). Tapping the alert opens the dashboard too.
+
 ## 0.151.0
 - Task alerts: under Advanced, "Remind me" adds a notification time (a clock that follows your Time
   format setting). One-off tasks alert on the due date; recurring tasks alert at that time on each

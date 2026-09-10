@@ -56,7 +56,7 @@ object NotificationScheduler {
                     continue
                 }
                 if (at > now + 10_000L) {
-                    desired[("task|${t.id}").hashCode()] = Alarm(at, t.title, null, "tasks")
+                    desired[("task|${t.id}").hashCode()] = Alarm(at, t.title, null, "home", t.id)
                 }
             }
         }
@@ -66,24 +66,25 @@ object NotificationScheduler {
         settings.setScheduledCodes(desired.keys)
     }
 
-    private data class Alarm(val at: Long, val title: String, val location: String?, val route: String = "calendar")
+    private data class Alarm(val at: Long, val title: String, val location: String?, val route: String = "calendar", val taskId: String? = null)
 
-    private fun intentFor(context: Context, code: Int, title: String, location: String?, route: String): Intent =
+    private fun intentFor(context: Context, code: Int, title: String, location: String?, route: String, taskId: String?): Intent =
         Intent(context, AlarmReceiver::class.java).apply {
             putExtra(EXTRA_NOTIF_ID, code)
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_ROUTE, route)
             if (!location.isNullOrBlank()) putExtra(EXTRA_LOCATION, location)
+            if (!taskId.isNullOrBlank()) putExtra(EXTRA_TASK_ID, taskId)
         }
 
-    private fun pending(context: Context, code: Int, title: String, location: String?, route: String, create: Boolean): PendingIntent? {
+    private fun pending(context: Context, code: Int, title: String, location: String?, route: String, taskId: String?, create: Boolean): PendingIntent? {
         val flags = (if (create) PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_NO_CREATE) or
             PendingIntent.FLAG_IMMUTABLE
-        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title, location, route), flags)
+        return PendingIntent.getBroadcast(context, code, intentFor(context, code, title, location, route, taskId), flags)
     }
 
     private fun schedule(context: Context, am: AlarmManager, code: Int, a: Alarm) {
-        val pi = pending(context, code, a.title, a.location, a.route, create = true) ?: return
+        val pi = pending(context, code, a.title, a.location, a.route, a.taskId, create = true) ?: return
         val at = a.at
         val canExact =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
@@ -99,7 +100,7 @@ object NotificationScheduler {
     }
 
     private fun cancel(context: Context, am: AlarmManager, code: Int) {
-        pending(context, code, "", null, "calendar", create = false)?.let {
+        pending(context, code, "", null, "calendar", null, create = false)?.let {
             am.cancel(it)
             it.cancel()
         }
@@ -109,4 +110,5 @@ object NotificationScheduler {
     const val EXTRA_TITLE = "title"
     const val EXTRA_LOCATION = "location"
     const val EXTRA_ROUTE = "route"
+    const val EXTRA_TASK_ID = "taskId"
 }

@@ -216,6 +216,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 go(Route.Section("tasks"), "tasks")
                 container.pendingRoute.value = null
             }
+            "home" -> {
+                go(Route.Home, "home")
+                container.pendingRoute.value = null
+            }
         }
     }
 

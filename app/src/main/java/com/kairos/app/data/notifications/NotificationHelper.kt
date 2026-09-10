@@ -65,7 +65,7 @@ object Notifications {
     }
 
     /** Post a reminder. No-op if the OS permission hasn't been granted. */
-    fun post(context: Context, id: Int, title: String, text: String? = null, location: String? = null, route: String = "calendar") {
+    fun post(context: Context, id: Int, title: String, text: String? = null, location: String? = null, route: String = "calendar", taskId: String? = null) {
         ensureChannel(context)
         if (!hasPermission(context)) return
         val tapIntent = android.content.Intent(context, com.kairos.app.MainActivity::class.java).apply {
@@ -101,6 +101,28 @@ object Notifications {
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
             )
             builder.addAction(R.drawable.ic_notification, "Navigate", navPi)
+        }
+        // A task alert offers Open (to the home dashboard) and Complete (checks it
+        // off in the background, dismissing the alert). Recurring tasks return next time.
+        if (!taskId.isNullOrBlank()) {
+            val openPi = android.app.PendingIntent.getActivity(
+                context,
+                ("open$id").hashCode(),
+                tapIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(R.drawable.ic_notification, "Open", openPi)
+            val doneIntent = android.content.Intent(context, CompleteTaskReceiver::class.java).apply {
+                putExtra(CompleteTaskReceiver.EXTRA_TASK_ID, taskId)
+                putExtra(CompleteTaskReceiver.EXTRA_NOTIF_ID, id)
+            }
+            val donePi = android.app.PendingIntent.getBroadcast(
+                context,
+                ("done$id").hashCode(),
+                doneIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(R.drawable.ic_notification, "Complete", donePi)
         }
         NotificationManagerCompat.from(context).notify(id, builder.build())
     }
