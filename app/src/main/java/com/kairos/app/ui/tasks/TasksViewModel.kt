@@ -2,6 +2,7 @@ package com.kairos.app.ui.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.collect
 import com.kairos.app.data.remote.dto.TaskDoneDto
 import com.kairos.app.data.remote.dto.TaskOpenDto
 import com.kairos.app.data.remote.ApiClient
@@ -29,7 +30,10 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
     private val _ui = MutableStateFlow(TasksUiState())
     val ui: StateFlow<TasksUiState> = _ui.asStateFlow()
 
-    init { load() }
+    init {
+        load()
+        viewModelScope.launch { session.tasksChanged.collect { load() } }
+    }
 
     fun load() {
         _ui.update { it.copy(loading = true, error = null) }

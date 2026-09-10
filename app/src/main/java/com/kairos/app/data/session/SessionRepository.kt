@@ -23,6 +23,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 /** Top-level app state derived from stored config + token validity. */
@@ -58,6 +61,12 @@ class SessionRepository(
     private val json = Json { ignoreUnknownKeys = true }
     private val _state = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = _state.asStateFlow()
+
+    /** Fires when a task changes outside the on-screen flow (e.g. completed from a
+     *  notification), so an open Home/Tasks screen can refresh instead of showing
+     *  a stale checkbox until a manual reload. */
+    private val _tasksChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val tasksChanged: SharedFlow<Unit> = _tasksChanged.asSharedFlow()
 
     /** Raw configured origin (no /api/v1), for resolving avatar URLs later. */
     @Volatile
@@ -288,7 +297,9 @@ class SessionRepository(
         if (service == null) rebuildService(base)
         if (tokens.current() == null) tokens.load()
         val svc = service ?: return false
-        return runCatching { apiCall { svc.completeTask(id) } }.isSuccess
+        val ok = runCatching { apiCall { svc.completeTask(id) } }.isSuccess
+        if (ok) _tasksChanged.tryEmit(Unit)
+        return ok
     }
 
     suspend fun uncompleteTask(id: String): TaskStatusDto =
@@ -732,6 +743,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 205
+        const val CLIENT_BUILD = 206
     }
 }

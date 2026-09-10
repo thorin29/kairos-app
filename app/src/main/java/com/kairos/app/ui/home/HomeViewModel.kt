@@ -2,6 +2,7 @@ package com.kairos.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.collect
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.dto.AddSchoolRequest
@@ -43,6 +44,10 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
 
     private val _ui = MutableStateFlow(HomeUiState())
     val ui: StateFlow<HomeUiState> = _ui.asStateFlow()
+
+    init {
+        viewModelScope.launch { session.tasksChanged.collect { refresh() } }
+    }
 
     fun load() {
         _ui.update { it.copy(loading = it.dashboard == null, loadError = null) }

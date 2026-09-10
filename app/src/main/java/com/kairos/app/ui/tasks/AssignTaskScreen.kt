@@ -55,7 +55,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Surface
 import com.kairos.app.ui.common.TimeFmt
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
@@ -131,7 +133,10 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         Column(
             Modifier.padding(inner).fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures { focusManager.clearFocus() }
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        focusManager.clearFocus()
+                    }
                 }
                 .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -146,7 +151,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Advanced", style = MaterialTheme.typography.bodyLarge)
-                            Text("Due date and repeating", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Due date, recurrence, and reminders", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = advanced, onCheckedChange = { advanced = it })
                     }

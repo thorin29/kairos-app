@@ -1,4 +1,11 @@
 # Changelog
+## 0.154.0
+- Completing a task from its alert now auto-refreshes an open Home/Tasks screen, so the checkbox
+  ticks itself a moment later instead of needing a manual refresh.
+- The keyboard now closes when you touch anything outside the task name field (a toggle, picker,
+  etc.), not just empty space.
+- Advanced sub-text now reads "Due date, recurrence, and reminders".
+
 ## 0.153.0
 - Fixed the task alert "Complete" action not completing the task: completion now runs through a
   background worker that waits for a network and retries, instead of a fragile in-receiver call.
