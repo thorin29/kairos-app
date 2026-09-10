@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.kairos.app.ui.common.dismissKeyboardOnTapOutside
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -46,9 +47,12 @@ class MainActivity : ComponentActivity() {
                     .isAppearanceLightStatusBars = !dark
             }
 
+            val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
             KairosTheme(scheme = ThemeScheme.fromKey(schemeKey), darkTheme = dark) {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .dismissKeyboardOnTapOutside(focusManager),
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     AppRoot(container = container)

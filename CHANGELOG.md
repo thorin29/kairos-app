@@ -1,4 +1,11 @@
 # Changelog
+## 0.165.0
+- Restored the app-wide "tap outside a field to close the keyboard" behaviour
+  (its files never actually reached the deployed build in 0.157.0).
+- The event location suggestions now open ABOVE the field instead of below it,
+  so the keyboard can't cover them — the earlier scroll-into-view approach
+  wasn't reliable against the edge-to-edge keyboard.
+
 ## 0.164.0
 - When you open an event's location in maps, a matched place flagged "open by
   name" now sends its name plus address to the nav app (a better pin in Google

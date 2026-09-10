@@ -116,6 +116,58 @@ fun LocationField(
     }
 
     Column(Modifier.fillMaxWidth()) {
+        if (focused && (matches.isNotEmpty() || canSave)) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 36.dp, bottom = 6.dp),
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    matches.take(6).forEach { a ->
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onValueChange(a.address)
+                                    focused = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                a.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                a.address,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                    if (canSave) {
+                        Text(
+                            "＋ Save \"${value.trim()}\" for next time",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    saveName = ""
+                                    saveNavByName = true
+                                    dup = null
+                                    showSave = true
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+            }
+        }
+
         Row(
             Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -161,60 +213,7 @@ fun LocationField(
                 modifier = Modifier.padding(start = 36.dp, bottom = 4.dp),
             )
         }
-
-        if (focused && (matches.isNotEmpty() || canSave)) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 36.dp, bottom = 6.dp)
-                    .bringIntoViewRequester(bringIntoView),
-            ) {
-                Column(Modifier.fillMaxWidth()) {
-                    matches.take(6).forEach { a ->
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onValueChange(a.address)
-                                    focused = false
-                                }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                a.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                a.address,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
-                    }
-                    if (canSave) {
-                        Text(
-                            "＋ Save \"${value.trim()}\" for next time",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    saveName = ""
-                                    saveNavByName = true
-                                    dup = null
-                                    showSave = true
-                                }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                        )
-                    }
-                }
             }
-        }
-    }
 
     if (showSave) {
         AlertDialog(
