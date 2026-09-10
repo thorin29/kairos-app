@@ -1,4 +1,10 @@
 # Changelog
+## 0.153.0
+- Fixed the task alert "Complete" action not completing the task: completion now runs through a
+  background worker that waits for a network and retries, instead of a fragile in-receiver call.
+- Updated the recurring-task notice wording.
+- Tapping outside the task name field now clears focus and closes the keyboard.
+
 ## 0.152.0
 - Task alerts now have Open and Complete actions. Open takes you to the home dashboard where the
   task lives; Complete checks it off in the background and dismisses the alert (recurring tasks

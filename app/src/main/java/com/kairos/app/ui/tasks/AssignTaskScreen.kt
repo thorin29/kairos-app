@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Surface
 import com.kairos.app.ui.common.TimeFmt
+import androidx.compose.ui.input.pointer.pointerInput
 import com.kairos.app.ui.common.RollPicker
 import com.kairos.app.ui.common.rememberContainer
 import java.time.Instant
@@ -71,6 +72,7 @@ private val NICE = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
 fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
     val container = rememberContainer()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
     val vm: TasksViewModel = viewModel(
         viewModelStoreOwner = owner,
@@ -126,7 +128,11 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         val untilLabel = try { LocalDate.parse(until).format(NICE) } catch (_: Exception) { until }
 
         Column(
-            Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.padding(inner).fillMaxSize()
+                .pointerInput(Unit) {
+                    androidx.compose.foundation.gestures.detectTapGestures { focusManager.clearFocus() }
+                }
+                .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             OutlinedCard(Modifier.fillMaxWidth()) {
@@ -318,7 +324,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
             AlertDialog(
                 onDismissRequest = { showRecurNotice = false },
                 title = { Text("No due dates for recurrent tasks") },
-                text = { Text("A repeating task schedules itself, so it doesn't use a due date. The end date comes from how long it repeats for.") },
+                text = { Text("Recurrent tasks do not use due dates, the end date is determined through recurrence settings.") },
                 confirmButton = { TextButton(onClick = { showRecurNotice = false }) { Text("Got it") } },
             )
         }
