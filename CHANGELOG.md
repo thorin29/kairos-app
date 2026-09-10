@@ -1,4 +1,10 @@
 # Changelog
+## 0.162.0
+- Actually fixed address suggestions hiding behind the keyboard. The form is
+  drawn edge-to-edge, so the scroll area now reserves the keyboard's space
+  (imePadding was applied in the wrong order before) — suggestions scroll fully
+  into view above the keyboard.
+
 ## 0.161.0
 - Simplified the address book to a flat, searchable list — addresses are just a
   name and address now, no categories. Every address is offered on every event.
