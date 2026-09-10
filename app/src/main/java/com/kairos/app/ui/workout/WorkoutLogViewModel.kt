@@ -52,6 +52,7 @@ class WorkoutLogViewModel(
     val ui: StateFlow<WorkoutLogUiState> = _ui.asStateFlow()
 
     private var date: String? = initialDate
+    private var requestedDate: String? = initialDate
     private var plannedWorkoutId: String? = null
 
     init {
@@ -83,10 +84,18 @@ class WorkoutLogViewModel(
         }
     }
 
+    /** Switch the day being logged (from the date picker) and reload its plan. */
+    fun setDate(iso: String) {
+        if (iso == date) return
+        requestedDate = iso
+        date = iso
+        load()
+    }
+
     /** Load today's plan and re-apply any queued complete/rest/log so a workout
      *  marked offline still reads as done (loggable = false) until it syncs. */
     private suspend fun freshPlan(): WorkoutPlanDto =
-        applyPending(session.loadWorkout(initialDate), session.pendingWrites())
+        applyPending(session.loadWorkout(requestedDate), session.pendingWrites())
 
     private fun <T> parse(body: String?, ser: kotlinx.serialization.KSerializer<T>): T? =
         body?.let { runCatching { ApiClient.json.decodeFromString(ser, it) }.getOrNull() }

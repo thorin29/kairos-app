@@ -38,7 +38,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.kairos.app.ui.common.rememberContainer
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /**
  * The Log workout page. Mirrors the web (src/app/person/[id]/workout-launcher +
@@ -56,6 +70,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
         },
     )
     val ui by vm.ui.collectAsState()
+    var showDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
 
@@ -88,12 +103,19 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    ui.date?.let {
-                        Text(
-                            "Logging for ${longDate(it)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    ui.date?.let { d ->
+                        OutlinedButton(
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Logging for ${longDate(d)}")
+                        }
                     }
 
                     if (!ui.loggable || ui.inputs.isEmpty()) {
@@ -152,7 +174,47 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
             }
         }
     }
+
+    val picking = ui.date
+    if (showDatePicker && picking != null) {
+        WorkoutDatePickerOverlay(
+            dateIso = picking,
+            onPick = { vm.setDate(it); showDatePicker = false },
+            onDismiss = { showDatePicker = false },
+        )
+    }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutDatePickerOverlay(
+    dateIso: String,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = isoToUtcMillis(dateIso))
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                state.selectedDateMillis?.let { onPick(utcMillisToIso(it)) }
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) { DatePicker(state = state) }
+}
+
+private fun isoToUtcMillis(iso: String): Long =
+    try {
+        LocalDate.parse(iso, DateTimeFormatter.ISO_DATE)
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    } catch (_: Exception) {
+        Instant.now().toEpochMilli()
+    }
+
+private fun utcMillisToIso(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+        .format(DateTimeFormatter.ISO_DATE)
 
 @Composable
 private fun MovementRow(m: MovementInput, vm: WorkoutLogViewModel) {
