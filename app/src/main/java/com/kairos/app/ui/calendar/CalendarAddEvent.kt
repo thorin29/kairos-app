@@ -307,24 +307,19 @@ fun AddEventOverlay(
                 ) { showPeople = true }
 
                 SectionLine()
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Icon(KairosIcons.Home, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-                    BasicTextField(
-                        value = location,
-                        onValueChange = { location = it },
-                        keyboardOptions = SentenceCaps,
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.weight(1f),
-                        decorationBox = { inner ->
-                            if (location.isEmpty()) {
-                                Text("Add location", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            inner()
-                        },
-                    )
-                }
+                LocationField(
+                    value = location,
+                    onValueChange = { location = it },
+                    defaultCategory = when (kind) {
+                        "APPOINTMENT" -> "Appointment"
+                        "CLASS" -> "Class"
+                        "WORK" -> "Work shift"
+                        "BIRTHDAY" -> "Birthday"
+                        "OTHER" -> "Medical / Dental"
+                        else -> "General"
+                    },
+                    repo = container.sessionRepository,
+                )
 
                 SectionLine()
                 if (reminders.isNotEmpty()) {

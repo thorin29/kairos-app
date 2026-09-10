@@ -1,4 +1,15 @@
 # Changelog
+## 0.158.0
+- The event "Where" field is now a saved-address picker: tap to browse the
+  address book, type to filter by name or address, tap to fill in the full
+  address. A brand-new address offers "Save for next time" — a parent/admin's
+  saves straight away, anyone else's is sent for admin approval — with a
+  duplicate check.
+
+## 0.157.0
+- The soft keyboard now closes on any tap outside a text field across the whole
+  app (previously only the task creation screen), via one top-level handler.
+
 ## 0.156.0
 - "Show complete" moved out of the top bar into the task list as a caret toggle whose words state
   the action: "Show complete" (caret right) flips to "Hide complete" (caret down).

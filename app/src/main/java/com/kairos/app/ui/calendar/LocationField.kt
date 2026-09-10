@@ -1,0 +1,290 @@
+package com.kairos.app.ui.calendar
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.unit.dp
+import com.kairos.app.data.remote.dto.AddressDuplicateDto
+import com.kairos.app.data.remote.dto.SavedAddressDto
+import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.ui.common.SentenceCaps
+import com.kairos.app.ui.nav.KairosIcons
+import kotlinx.coroutines.launch
+
+/**
+ * The event "Where" field, backed by the saved-address book. Tapping in shows
+ * the list (grouped-ish by relevance); typing filters on name and address. A
+ * brand-new address offers "Save for next time", which submits to the server —
+ * a parent/admin's saves straight away, anyone else's is sent for approval —
+ * with a "did you mean?" check first.
+ */
+@Composable
+fun LocationField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    defaultCategory: String,
+    repo: SessionRepository,
+) {
+    val scope = rememberCoroutineScope()
+    var addresses by remember { mutableStateOf<List<SavedAddressDto>>(emptyList()) }
+    var categories by remember { mutableStateOf(listOf("General")) }
+    var focused by remember { mutableStateOf(false) }
+
+    var showSave by remember { mutableStateOf(false) }
+    var saveName by remember { mutableStateOf("") }
+    var saveCategory by remember { mutableStateOf(defaultCategory) }
+    var dup by remember { mutableStateOf<AddressDuplicateDto?>(null) }
+    var submitting by remember { mutableStateOf(false) }
+    var savedNote by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        runCatching { repo.listSavedAddresses() }.getOrNull()?.let {
+            addresses = it.addresses
+            categories = it.categories.ifEmpty { listOf("General") }
+        }
+    }
+
+    val q = value.trim().lowercase()
+    val matches = if (q.isEmpty()) {
+        addresses.sortedWith(compareBy({ it.category }, { it.name }))
+    } else {
+        addresses
+            .filter { it.name.lowercase().contains(q) || it.address.lowercase().contains(q) }
+            .sortedWith(
+                compareByDescending<SavedAddressDto> {
+                    it.name.lowercase().startsWith(q) || it.address.lowercase().startsWith(q)
+                }.thenBy { it.name },
+            )
+    }
+    val exact = q.isNotEmpty() && addresses.any { it.address.trim().lowercase() == q }
+    val canSave = value.trim().isNotEmpty() && !exact
+
+    fun submit(force: Boolean) {
+        if (saveName.isBlank()) return
+        submitting = true
+        scope.launch {
+            val res = runCatching {
+                repo.submitAddress(saveName.trim(), value.trim(), saveCategory, force)
+            }.getOrNull()
+            submitting = false
+            if (res == null) return@launch
+            if (!res.ok && res.duplicate != null) {
+                dup = res.duplicate
+                return@launch
+            }
+            addresses = addresses + SavedAddressDto(res.id, saveName.trim(), value.trim(), saveCategory)
+            savedNote = if (res.status == "PENDING") "Sent for approval." else "Saved for next time."
+            showSave = false
+        }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Icon(
+                KairosIcons.Home,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+            BasicTextField(
+                value = value,
+                onValueChange = {
+                    onValueChange(it)
+                    savedNote = null
+                },
+                keyboardOptions = SentenceCaps,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { focused = it.isFocused },
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(
+                            "Add location",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    inner()
+                },
+            )
+        }
+
+        savedNote?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 36.dp, bottom = 4.dp),
+            )
+        }
+
+        if (focused && (matches.isNotEmpty() || canSave)) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 36.dp, bottom = 6.dp),
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    matches.take(6).forEach { a ->
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onValueChange(a.address)
+                                    focused = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                a.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                a.address,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                    if (canSave) {
+                        Text(
+                            "＋ Save \"${value.trim()}\" for next time",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    saveName = ""
+                                    saveCategory = defaultCategory
+                                    dup = null
+                                    showSave = true
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showSave) {
+        AlertDialog(
+            onDismissRequest = { if (!submitting) showSave = false },
+            title = { Text("Save address") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        value.trim(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = saveName,
+                        onValueChange = { saveName = it },
+                        label = { Text("Short name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    CategoryPicker(categories, saveCategory) { saveCategory = it }
+                    dup?.let { d ->
+                        Text(
+                            "Already saved as \"${d.name}\" — ${d.address}.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                if (dup != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = {
+                            onValueChange(dup!!.address)
+                            showSave = false
+                        }) { Text("Use that") }
+                        TextButton(enabled = !submitting, onClick = { submit(true) }) {
+                            Text("Save anyway")
+                        }
+                    }
+                } else {
+                    TextButton(
+                        enabled = !submitting && saveName.isNotBlank(),
+                        onClick = { submit(false) },
+                    ) { Text("Save") }
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !submitting, onClick = { showSave = false }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun CategoryPicker(
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Column {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().clickable { open = true },
+        ) {
+            Text(
+                selected,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = { Text(opt) },
+                    onClick = {
+                        onSelect(opt)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
+}

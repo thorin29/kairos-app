@@ -1576,3 +1576,40 @@ data class UpcomingDto(
     val events: List<UpcomingEventDto> = emptyList(),
     val tasks: List<UpcomingTaskDto> = emptyList(),
 )
+
+@Serializable
+data class SavedAddressDto(
+    val id: String = "",
+    val name: String = "",
+    val address: String = "",
+    val category: String = "General",
+)
+
+@Serializable
+data class AddressesResponse(
+    val addresses: List<SavedAddressDto> = emptyList(),
+    val categories: List<String> = emptyList(),
+)
+
+@Serializable
+data class SubmitAddressRequest(
+    val name: String,
+    val address: String,
+    val category: String,
+    val force: Boolean = false,
+)
+
+@Serializable
+data class AddressDuplicateDto(
+    val id: String = "",
+    val name: String = "",
+    val address: String = "",
+)
+
+@Serializable
+data class SubmitAddressResponse(
+    val ok: Boolean = false,
+    val id: String = "",
+    val status: String = "",
+    val duplicate: AddressDuplicateDto? = null,
+)

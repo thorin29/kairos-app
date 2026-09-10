@@ -1,5 +1,8 @@
 package com.kairos.app.data.remote
 
+import com.kairos.app.data.remote.dto.AddressesResponse
+import com.kairos.app.data.remote.dto.SubmitAddressRequest
+import com.kairos.app.data.remote.dto.SubmitAddressResponse
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.DeleteAckDto
 import com.kairos.app.data.remote.dto.DeviceDto
@@ -76,6 +79,12 @@ interface ApiService {
 
     @GET("meta")
     suspend fun meta(): Response<MetaDto>
+
+    @GET("addresses")
+    suspend fun addresses(): Response<AddressesResponse>
+
+    @POST("addresses")
+    suspend fun submitAddress(@Body body: SubmitAddressRequest): Response<SubmitAddressResponse>
 
     @POST("auth/login")
     suspend fun login(@Body body: LoginRequest): Response<LoginResponse>

@@ -128,6 +128,17 @@ class SessionRepository(
     suspend fun loadNotifMeta(): com.kairos.app.data.remote.dto.NotifMetaDto =
         runAuthed { requireService().notifMeta() }
 
+    suspend fun listSavedAddresses(): com.kairos.app.data.remote.dto.AddressesResponse =
+        apiCall { svc.addresses() }
+
+    suspend fun submitAddress(
+        name: String,
+        address: String,
+        category: String,
+        force: Boolean,
+    ): com.kairos.app.data.remote.dto.SubmitAddressResponse =
+        apiCall { svc.submitAddress(com.kairos.app.data.remote.dto.SubmitAddressRequest(name, address, category, force)) }
+
     suspend fun loadUpcoming(): com.kairos.app.data.remote.dto.UpcomingDto =
         runAuthed { requireService().upcoming() }
 
@@ -768,6 +779,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 208
+        const val CLIENT_BUILD = 210
     }
 }
