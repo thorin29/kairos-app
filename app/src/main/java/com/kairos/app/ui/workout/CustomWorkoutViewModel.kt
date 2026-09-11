@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.CustomLogRequest
+import com.kairos.app.data.remote.dto.WorkoutConflictDto
 import com.kairos.app.data.remote.dto.HiitLogOptionDto
 import com.kairos.app.data.remote.dto.LogCategoryDto
 import com.kairos.app.data.remote.dto.MetricOptionDto
@@ -36,6 +37,7 @@ data class CustomUiState(
     val saving: Boolean = false,
     val error: String? = null,
     val done: Boolean = false,
+    val conflict: WorkoutConflictDto? = null,
 ) {
     val category: LogCategoryDto? get() = categories.firstOrNull { it.key == categoryKey }
     val metric: MetricOptionDto? get() = category?.metrics?.firstOrNull { it.key == metricKey }
@@ -141,7 +143,7 @@ class CustomWorkoutViewModel(
 
     val atFirstStep: Boolean get() = _ui.value.step == WizardStep.TYPE
 
-    fun submit() {
+    fun submit(replace: Boolean = false) {
         val s = _ui.value
         val v = s.value.trim().toDoubleOrNull()
         if (v == null || v <= 0) {
@@ -159,6 +161,7 @@ class CustomWorkoutViewModel(
                     CustomLogRequest(
                         date = date, hiitWorkoutId = w.id, metric = w.resultMetric,
                         value = v, unit = w.resultUnit, notes = s.notes.trim().ifBlank { null },
+                        replace = replace, detectConflict = true,
                     )
                 } else {
                     val cat = s.category ?: return@launch
@@ -176,13 +179,26 @@ class CustomWorkoutViewModel(
                         unit = metric.unit,
                         load = if (cat.load) s.load.trim().toDoubleOrNull() else null,
                         notes = s.notes.trim().ifBlank { null },
+                        replace = replace, detectConflict = true,
                     )
                 }
-                session.logCustom(req)
-                _ui.update { it.copy(saving = false, done = true) }
+                val ack = session.logCustom(req)
+                if (ack.status == "conflict" && ack.conflict != null) {
+                    _ui.update { it.copy(saving = false, conflict = ack.conflict) }
+                } else {
+                    _ui.update { it.copy(saving = false, done = true) }
+                }
             } catch (e: ApiException) {
                 _ui.update { it.copy(saving = false, error = e.error.message) }
             }
         }
     }
+
+    /** User chose "Update" on the already-logged prompt: overwrite it. */
+    fun confirmReplace() {
+        _ui.update { it.copy(conflict = null) }
+        submit(replace = true)
+    }
+
+    fun dismissConflict() = _ui.update { it.copy(conflict = null) }
 }

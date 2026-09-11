@@ -425,10 +425,14 @@ class SessionRepository(
         date: String,
         plannedWorkoutId: String,
         entries: List<com.kairos.app.data.remote.dto.PlannedEntryDto>,
+        replace: Boolean = false,
+        detectConflict: Boolean = false,
     ): WorkoutAckDto =
         runAuthed {
             requireService().logWorkout(
-                com.kairos.app.data.remote.dto.WorkoutLogRequest(date, plannedWorkoutId, entries),
+                com.kairos.app.data.remote.dto.WorkoutLogRequest(
+                    date, plannedWorkoutId, entries, replace, detectConflict,
+                ),
             )
         }
 
@@ -779,6 +783,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 220
+        const val CLIENT_BUILD = 221
     }
 }

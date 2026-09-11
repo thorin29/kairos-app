@@ -243,6 +243,13 @@ data class WorkoutDateRequest(
 data class WorkoutAckDto(
     val date: String = "",
     val status: String = "",
+    val conflict: WorkoutConflictDto? = null,
+)
+
+@Serializable
+data class WorkoutConflictDto(
+    val name: String,
+    val summary: String,
 )
 
 // --- Detailed workout logging (planned workouts) ---
@@ -270,6 +277,8 @@ data class WorkoutLogRequest(
     val date: String,
     val plannedWorkoutId: String,
     val entries: List<PlannedEntryDto>,
+    val replace: Boolean = false,
+    val detectConflict: Boolean = false,
 )
 
 @Serializable
@@ -604,6 +613,8 @@ data class CustomLogRequest(
     val unit: String = "",
     val load: Double? = null,
     val notes: String? = null,
+    val replace: Boolean = false,
+    val detectConflict: Boolean = false,
 )
 
 @Serializable

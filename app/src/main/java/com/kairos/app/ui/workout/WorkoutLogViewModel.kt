@@ -6,6 +6,7 @@ import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.PendingWrite
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
+import com.kairos.app.data.remote.dto.WorkoutConflictDto
 import com.kairos.app.data.remote.dto.WorkoutLogRequest
 import com.kairos.app.data.remote.dto.WorkoutPlanDto
 import com.kairos.app.data.remote.dto.PlannedEntryDto
@@ -35,6 +36,7 @@ data class WorkoutLogUiState(
     val saving: Boolean = false,
     val actionError: String? = null,
     val done: Boolean = false,
+    val conflict: WorkoutConflictDto? = null,
     val savedTick: Int = 0,
 )
 
@@ -123,7 +125,7 @@ class WorkoutLogViewModel(
         }
     }
 
-    fun save() {
+    fun save(replace: Boolean = false) {
         val d = date ?: return
         val planId = plannedWorkoutId ?: return
         _ui.update { it.copy(saving = true, actionError = null) }
@@ -134,13 +136,29 @@ class WorkoutLogViewModel(
                         PlannedEntryDto(m.poolExerciseId, m.metric, v, m.unit)
                     }
                 }
-                session.logWorkout(d, planId, entries)
-                _ui.update { it.copy(saving = false, done = true, savedTick = it.savedTick + 1) }
+                val ack = session.logWorkout(
+                    d, planId, entries, replace = replace, detectConflict = true,
+                )
+                if (ack.status == "conflict" && ack.conflict != null) {
+                    _ui.update { it.copy(saving = false, conflict = ack.conflict) }
+                } else {
+                    _ui.update {
+                        it.copy(saving = false, done = true, savedTick = it.savedTick + 1)
+                    }
+                }
             } catch (e: ApiException) {
                 _ui.update { it.copy(saving = false, actionError = e.error.message) }
             }
         }
     }
+
+    /** "Update" on the already-logged prompt: overwrite the existing entry. */
+    fun confirmReplace() {
+        _ui.update { it.copy(conflict = null) }
+        save(replace = true)
+    }
+
+    fun dismissConflict() = _ui.update { it.copy(conflict = null) }
 
     fun markDone() = quick { session.workoutComplete(it) }
     fun restDay() = quick { session.workoutRest(it) }

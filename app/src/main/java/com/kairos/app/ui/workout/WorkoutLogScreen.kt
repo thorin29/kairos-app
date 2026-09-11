@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -143,7 +144,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                                 HorizontalDivider()
                                 ui.inputs.forEach { m -> MovementRow(m, vm) }
                                 Button(
-                                    onClick = vm::save,
+                                    onClick = { vm.save() },
                                     enabled = !ui.saving,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -181,6 +182,25 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
             dateIso = picking,
             onPick = { vm.setDate(it); showDatePicker = false },
             onDismiss = { showDatePicker = false },
+        )
+    }
+
+    ui.conflict?.let { c ->
+        AlertDialog(
+            onDismissRequest = { vm.dismissConflict() },
+            title = { Text("Already logged") },
+            text = {
+                Text(
+                    "You already logged ${c.name} today: ${c.summary}. " +
+                        "Update it with the new value, or cancel?",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.confirmReplace() }) { Text("Update") }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.dismissConflict() }) { Text("Cancel") }
+            },
         )
     }
 }

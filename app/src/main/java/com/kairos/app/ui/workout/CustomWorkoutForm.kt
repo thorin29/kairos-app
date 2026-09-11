@@ -27,7 +27,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,6 +128,25 @@ private fun LogSomethingWizard(date: String, onLogged: () -> Unit, onDismiss: ()
                 }
             }
         }
+    }
+
+    ui.conflict?.let { c ->
+        AlertDialog(
+            onDismissRequest = { vm.dismissConflict() },
+            title = { Text("Already logged") },
+            text = {
+                Text(
+                    "You already logged ${c.name} today: ${c.summary}. " +
+                        "Update it with the new value, or cancel?",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.confirmReplace() }) { Text("Update") }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.dismissConflict() }) { Text("Cancel") }
+            },
+        )
     }
 }
 
