@@ -18,11 +18,10 @@ data class ClassFormUiState(
     val canMakeClass: Boolean = true,
     val isAdmin: Boolean = false,
     val meName: String? = null,
-    val subjectNames: List<String> = emptyList(),
+    val subjects: List<String> = emptyList(),
     val classTypes: List<Pair<String, String>> = emptyList(),
     val terms: List<Pair<String, String>> = emptyList(),
     val students: List<Pair<String, String>> = emptyList(),
-    // field values
     val subject: String = "",
     val studentId: String = "",
     val byday: Set<String> = emptySet(),
@@ -34,16 +33,28 @@ data class ClassFormUiState(
     val termId: String = "",
     val color: String = "",
     val sharedWith: Set<String> = emptySet(),
-    val bells: Set<String> = emptySet(),
     val reminders: Set<Int> = emptySet(),
+    val location: String = "",
     val promptHomework: Boolean = true,
     val saving: Boolean = false,
     val error: String? = null,
     val done: Boolean = false,
 )
 
+/** Values carried over when an ordinary event is converted into a class. */
+data class ClassPrefill(
+    val subject: String = "",
+    val startMin: Int = -1,
+    val endMin: Int = -1,
+    val day: String? = null,
+    val location: String = "",
+    val sharedWith: List<String> = emptyList(),
+)
+
 class CalendarAddClassViewModel(
     private val session: SessionRepository,
+    private val replaceEventId: String?,
+    private val prefill: ClassPrefill,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(ClassFormUiState())
     val ui: StateFlow<ClassFormUiState> = _ui.asStateFlow()
@@ -61,11 +72,18 @@ class CalendarAddClassViewModel(
                         canMakeClass = d.canMakeClass,
                         isAdmin = d.isAdmin,
                         meName = d.meName,
-                        subjectNames = d.subjects.map { s -> s.name },
+                        subjects = d.subjects.map { s -> s.name },
                         classTypes = d.classTypes.map { t -> t.id to t.name },
                         terms = d.terms.map { t -> t.id to t.name },
                         students = d.students.map { s -> s.id to s.name },
                         studentId = if (d.isAdmin) d.students.firstOrNull()?.id ?: "" else "",
+                        subject = if (it.subject.isEmpty()) prefill.subject else it.subject,
+                        startMin = if (prefill.startMin >= 0) prefill.startMin else it.startMin,
+                        endMin = if (prefill.endMin >= 0) prefill.endMin else it.endMin,
+                        byday = if (it.byday.isEmpty() && prefill.day != null) setOf(prefill.day) else it.byday,
+                        location = if (it.location.isEmpty()) prefill.location else it.location,
+                        sharedWith = if (it.sharedWith.isEmpty() && prefill.sharedWith.isNotEmpty())
+                            prefill.sharedWith.toSet() else it.sharedWith,
                     )
                 }
             } catch (e: ApiException) {
@@ -76,9 +94,7 @@ class CalendarAddClassViewModel(
 
     fun setSubject(v: String) = _ui.update { it.copy(subject = v, error = null) }
     fun setStudent(id: String) = _ui.update { it.copy(studentId = id) }
-    fun toggleDay(d: String) = _ui.update {
-        val n = it.byday.toMutableSet(); if (!n.add(d)) n.remove(d); it.copy(byday = n)
-    }
+    fun setDays(days: Set<String>) = _ui.update { it.copy(byday = days) }
     fun setStart(m: Int) = _ui.update {
         it.copy(startMin = m, endMin = if (it.endMin <= m) (m + 60).coerceAtMost(23 * 60 + 59) else it.endMin)
     }
@@ -88,18 +104,13 @@ class CalendarAddClassViewModel(
     fun setClassType(id: String) = _ui.update { it.copy(classTypeId = id) }
     fun setTerm(id: String) = _ui.update { it.copy(termId = id) }
     fun setColor(hex: String) = _ui.update { it.copy(color = hex) }
+    fun setLocation(v: String) = _ui.update { it.copy(location = v) }
     fun setHomework(b: Boolean) = _ui.update { it.copy(promptHomework = b) }
     fun toggleShared(id: String) = _ui.update {
-        val n = it.sharedWith.toMutableSet()
-        if (!n.add(id)) n.remove(id)
-        it.copy(sharedWith = n, bells = it.bells.filter { b -> b in n }.toSet())
+        val n = it.sharedWith.toMutableSet(); if (!n.add(id)) n.remove(id); it.copy(sharedWith = n)
     }
-    fun toggleBell(id: String) = _ui.update {
-        val n = it.bells.toMutableSet(); if (!n.add(id)) n.remove(id); it.copy(bells = n)
-    }
-    fun toggleReminder(m: Int) = _ui.update {
-        val n = it.reminders.toMutableSet(); if (!n.add(m)) n.remove(m); it.copy(reminders = n)
-    }
+    fun addReminder(m: Int) = _ui.update { it.copy(reminders = it.reminders + m) }
+    fun removeReminder(m: Int) = _ui.update { it.copy(reminders = it.reminders - m) }
 
     fun save() {
         val s = _ui.value
@@ -113,6 +124,7 @@ class CalendarAddClassViewModel(
                 val hasMeeting = s.byday.isNotEmpty()
                 session.createClass(
                     CreateClassRequest(
+                        replaceEventId = replaceEventId,
                         newSubject = s.subject.trim(),
                         userId = if (s.isAdmin) s.studentId.ifBlank { null } else null,
                         classTypeId = s.classTypeId.ifBlank { null },
@@ -124,7 +136,7 @@ class CalendarAddClassViewModel(
                         sharedWith = s.sharedWith.joinToString(",").ifBlank { null },
                         meetingStartDate = s.runsFrom.ifBlank { null },
                         meetingEndDate = s.runsUntil.ifBlank { null },
-                        location = null,
+                        location = s.location.trim().ifBlank { null },
                         promptHomework = s.promptHomework,
                         reminders = s.reminders.toList(),
                         reminderBell = s.sharedWith.toList(),

@@ -259,7 +259,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         CalendarScreen(
                             onOpenDrawer = { open = true },
                             refreshKey = dataRevision,
-                            onAddClass = { navController.navigate(Route.AddClass) },
+                            onAddClass = { rid, subj, sm, em, day, loc, sw ->
+                                navController.navigate(Route.AddClass(rid, subj, sm, em, day, loc, sw))
+                            },
                         )
                     } else if (key == "money") {
                         MoneyScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
@@ -384,8 +386,20 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onDone = { navController.popBackStack() },
                     )
                 }
-                composable<Route.AddClass> {
-                    CalendarAddClassScreen(onDone = { navController.popBackStack() })
+                composable<Route.AddClass> { entry ->
+                    val r = entry.toRoute<Route.AddClass>()
+                    CalendarAddClassScreen(
+                        replaceEventId = r.replaceEventId,
+                        prefill = com.kairos.app.ui.calendar.ClassPrefill(
+                            subject = r.subject,
+                            startMin = r.startMin,
+                            endMin = r.endMin,
+                            day = r.day,
+                            location = r.location,
+                            sharedWith = r.sharedWith.split(",").filter { it.isNotBlank() },
+                        ),
+                        onDone = { navController.popBackStack() },
+                    )
                 }
             }
         }

@@ -1640,6 +1640,7 @@ data class ClassFormDto(
 
 @Serializable
 data class CreateClassRequest(
+    val replaceEventId: String? = null,
     val newSubject: String? = null,
     val userId: String? = null,
     val classTypeId: String? = null,

@@ -75,7 +75,7 @@ fun AddEventOverlay(
     editEvent: com.kairos.app.data.remote.dto.CalEventDto? = null,
     editOccurrenceISO: String? = null,
     onClose: () -> Unit,
-    onAddClass: () -> Unit = {},
+    onAddClass: (String?, String, Int, Int, String?, String, String) -> Unit = { _, _, _, _, _, _, _ -> },
 ) {
     val editing = editEvent != null
     val container = com.kairos.app.ui.common.rememberContainer()
@@ -456,15 +456,23 @@ fun AddEventOverlay(
     if (showClassPrompt) {
         AlertDialog(
             onDismissRequest = { showClassPrompt = false },
-            title = { Text("Add a class") },
+            title = { Text("Make it a class") },
             text = {
-                Text(
-                    "Classes are their own thing \u2014 pick a subject and the days " +
-                        "it meets, and it'll show on the calendar and the School page.",
-                )
+                Text("This calendar block isn\u2019t a real class yet. Fill in the details and it becomes one.")
             },
             confirmButton = {
-                TextButton(onClick = { showClassPrompt = false; onAddClass() }) { Text("Continue") }
+                TextButton(onClick = {
+                    showClassPrompt = false
+                    onAddClass(
+                        editEvent?.id,
+                        title,
+                        startMin,
+                        endMin,
+                        weekdayToken(startDateIso),
+                        location,
+                        participants.joinToString(","),
+                    )
+                }) { Text("Continue") }
             },
             dismissButton = {
                 TextButton(onClick = { showClassPrompt = false }) { Text("Cancel") }
@@ -608,11 +616,16 @@ fun AddEventOverlay(
                 "OTHER" to "Medical / Dental",
             ).forEach { (k, label) ->
                 SelectOptionRow(label, eventTypeId == null && kind == k) {
-                    if (k == "CLASS" && !editing) {
-                        // A class is its own thing (subject, meeting days, School page),
-                        // so switching to it opens the dedicated class form.
+                    if (k == "CLASS") {
                         openSelector = null
-                        showClassPrompt = true
+                        if (editing) {
+                            // Converting an existing block: warn every time, then
+                            // carry its details into the class form.
+                            showClassPrompt = true
+                        } else {
+                            // New class: straight to the class form.
+                            onAddClass(null, "", -1, -1, null, "", "")
+                        }
                         return@SelectOptionRow
                     }
                     val wasBirthday = kind == "BIRTHDAY"
@@ -652,7 +665,7 @@ fun AddEventOverlay(
             }
         }
         "reminder" -> SelectorOverlay("Add notification", onClose = { openSelector = null }) {
-            listOf(0, 10, 15, 30, 60, 1440, 10080).forEach { m ->
+            listOf(0, 10, 15, 30, 60, 10080).forEach { m ->
                 SelectOptionRow(reminderLabel(m), reminders.contains(m)) {
                     reminders = (reminders + m).distinct().sorted(); reminderTouched = true
                     openSelector = null
@@ -798,6 +811,18 @@ private fun repeatLabel(v: String): String = when (v) {
 
 private fun typeDurationMin(eventTypeId: String?, types: List<com.kairos.app.data.remote.dto.CalEventTypeDto>): Int =
     eventTypeId?.let { id -> types.firstOrNull { it.id == id }?.defaultMinutes }?.takeIf { it > 0 } ?: 60
+
+private fun weekdayToken(iso: String): String? = try {
+    when (java.time.LocalDate.parse(iso).dayOfWeek) {
+        java.time.DayOfWeek.MONDAY -> "MO"
+        java.time.DayOfWeek.TUESDAY -> "TU"
+        java.time.DayOfWeek.WEDNESDAY -> "WE"
+        java.time.DayOfWeek.THURSDAY -> "TH"
+        java.time.DayOfWeek.FRIDAY -> "FR"
+        java.time.DayOfWeek.SATURDAY -> "SA"
+        java.time.DayOfWeek.SUNDAY -> "SU"
+    }
+} catch (_: Exception) { null }
 
 private fun hhmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 

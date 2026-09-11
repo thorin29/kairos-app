@@ -33,7 +33,15 @@ sealed interface Route {
     data object SettingsReminders : Route
 
     @Serializable
-    data object AddClass : Route
+    data class AddClass(
+        val replaceEventId: String? = null,
+        val subject: String = "",
+        val startMin: Int = -1,
+        val endMin: Int = -1,
+        val day: String? = null,
+        val location: String = "",
+        val sharedWith: String = "",
+    ) : Route
 
     @Serializable
     data class WorkoutLog(val date: String) : Route

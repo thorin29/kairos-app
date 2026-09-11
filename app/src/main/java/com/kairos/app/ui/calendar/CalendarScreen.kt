@@ -87,7 +87,11 @@ private val WEEKDAYS = listOf("S", "M", "T", "W", "T", "F", "S")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0, onAddClass: () -> Unit = {}) {
+fun CalendarScreen(
+    onOpenDrawer: () -> Unit,
+    refreshKey: Int = 0,
+    onAddClass: (String?, String, Int, Int, String?, String, String) -> Unit = { _, _, _, _, _, _, _ -> },
+) {
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
@@ -214,7 +218,13 @@ fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0, onAddClass: ()
     }
 
     if (showAdd && data != null) {
-        AddEventOverlay(vm, data, ui, onClose = { showAdd = false; vm.clearCreateError() }, onAddClass = { showAdd = false; onAddClass() })
+        AddEventOverlay(
+            vm, data, ui,
+            onClose = { showAdd = false; vm.clearCreateError() },
+            onAddClass = { rid, subj, sm, em, day, loc, sw ->
+                showAdd = false; onAddClass(rid, subj, sm, em, day, loc, sw)
+            },
+        )
     }
 
     if (editingEvent != null && data != null) {
@@ -224,6 +234,9 @@ fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0, onAddClass: ()
             editEvent = editingEvent,
             editOccurrenceISO = occ,
             onClose = { editingEvent = null; vm.clearCreateError() },
+            onAddClass = { rid, subj, sm, em, day, loc, sw ->
+                editingEvent = null; onAddClass(rid, subj, sm, em, day, loc, sw)
+            },
         )
     }
 
