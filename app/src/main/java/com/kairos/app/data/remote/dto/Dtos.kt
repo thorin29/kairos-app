@@ -39,7 +39,9 @@ data class LoginRequest(
 
 @Serializable
 data class LoginResponse(
-    val loginToken: String,
+    // Legacy proof field. The app never reads it; kept optional so the server can
+    // stop sending it without breaking this client's response parsing.
+    val loginToken: String? = null,
     val person: PersonDto? = null,
 )
 
