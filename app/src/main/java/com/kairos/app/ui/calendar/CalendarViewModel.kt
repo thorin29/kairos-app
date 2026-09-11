@@ -209,6 +209,20 @@ class CalendarViewModel(
     /** Public retry for the error state. */
     fun reload() = load()
 
+    /** Set the current phone's reminders on a subscribed (feed) event, then
+     *  reschedule local notifications and reload so the change shows. */
+    fun setSubscribedReminders(eventId: String, reminders: List<Int>) {
+        viewModelScope.launch {
+            try {
+                session.setSubscribedReminders(eventId, reminders)
+                rescheduleReminders()
+                clearPageCaches()
+                load()
+            } catch (_: ApiException) {
+            }
+        }
+    }
+
     /** Drop the pager pre-fetch caches (after a mutation) so stale event data
      *  isn't shown; navigation alone keeps them for smooth paging. */
     private fun clearPageCaches() {

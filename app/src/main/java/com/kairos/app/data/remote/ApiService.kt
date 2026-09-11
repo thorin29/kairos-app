@@ -292,6 +292,11 @@ interface ApiService {
     @POST("calendar/prefs")
     suspend fun saveCalendarPrefs(@Body body: CalendarPrefsRequest): Response<TaskStatusDto>
 
+    @POST("calendar/subscribed-reminders")
+    suspend fun subscribedReminders(
+        @Body body: com.kairos.app.data.remote.dto.SubscribedRemindersRequest,
+    ): Response<TaskStatusDto>
+
     @POST("calendar/event")
     suspend fun createEvent(@Body body: CreateEventRequest): Response<TaskStatusDto>
 

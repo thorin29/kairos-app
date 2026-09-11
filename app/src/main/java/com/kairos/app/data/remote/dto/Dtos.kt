@@ -957,6 +957,12 @@ data class CalendarDto(
 )
 
 @Serializable
+data class SubscribedRemindersRequest(
+    val eventId: String,
+    val reminders: List<Int>,
+)
+
+@Serializable
 data class CalendarPrefsRequest(
     val shownPeople: List<String>? = null,
     val shownSubs: List<String>? = null,

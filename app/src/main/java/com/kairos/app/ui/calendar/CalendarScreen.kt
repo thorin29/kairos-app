@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.windowInsetsTopHeight
@@ -1440,8 +1441,68 @@ private fun EventDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp),
                         )
-                        // The reminders currently set on this event.
-                        if (event.reminders.isNotEmpty()) {
+                        // Reminders. On a subscribed (feed) event you set your own
+                        // by tapping the presets; on your own events they show
+                        // read-only (edit them from the event form).
+                        if (event.external && stored) {
+                            var mine by remember(event.eventId) {
+                                mutableStateOf(event.reminders.sorted())
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(top = 2.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        KairosIcons.Bell,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(15.dp),
+                                    )
+                                    Text(
+                                        "Your reminders",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    com.kairos.app.data.settings.ReminderDefaults.PRESETS
+                                        .filter { it != com.kairos.app.data.settings.ReminderDefaults.NONE }
+                                        .forEach { m ->
+                                            val on = mine.contains(m)
+                                            Box(
+                                                Modifier
+                                                    .clip(RoundedCornerShape(999.dp))
+                                                    .background(
+                                                        if (on) MaterialTheme.colorScheme.primary
+                                                        else MaterialTheme.colorScheme.surfaceVariant
+                                                    )
+                                                    .clickable {
+                                                        mine =
+                                                            if (on) mine - m
+                                                            else (mine + m).sorted()
+                                                        vm.setSubscribedReminders(event.eventId, mine)
+                                                    }
+                                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                            ) {
+                                                Text(
+                                                    com.kairos.app.data.settings.ReminderDefaults.label(m),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color =
+                                                        if (on) MaterialTheme.colorScheme.onPrimary
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                }
+                            }
+                        } else if (event.reminders.isNotEmpty()) {
                             event.reminders.sorted().forEach { m ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
