@@ -67,6 +67,7 @@ fun KairosRail(
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
     updateAvailable: Boolean = false,
+    approvalsBadge: Boolean = false,
     onOpenUpdate: () -> Unit = {},
 ) {
     Column(modifier) {
@@ -141,7 +142,7 @@ fun KairosRail(
                         )
                     }
                 }
-                FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable)
+                FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable, approvalsBadge)
                 if (expanded) {
                     // Collapse control on the left, version pinned far-right.
                     Row(
@@ -252,6 +253,7 @@ private fun FooterPerson(
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
     updateAvailable: Boolean = false,
+    approvalsBadge: Boolean = false,
 ) {
     if (expanded) {
         Row(
@@ -276,12 +278,12 @@ private fun FooterPerson(
                 IconButton(onClick = onOpenSettings) {
                     Icon(
                         KairosIcons.Settings,
-                        contentDescription = if (updateAvailable) "Settings (update available)" else "Settings",
+                        contentDescription = if (updateAvailable || approvalsBadge) "Settings (needs attention)" else "Settings",
                         tint = OnSidebar.copy(alpha = 0.85f),
                         modifier = Modifier.size(22.dp),
                     )
                 }
-                if (updateAvailable) {
+                if (updateAvailable || approvalsBadge) {
                     Box(
                         Modifier
                             .align(Alignment.TopEnd)

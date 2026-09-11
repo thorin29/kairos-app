@@ -53,9 +53,11 @@ fun SettingsScreen(
     onOpenNotifications: () -> Unit,
     onOpenUpdate: () -> Unit = {},
     onOpenReminders: () -> Unit = {},
+    onOpenApprovals: (() -> Unit)? = null,
+    approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
 ) {
-    val sections = listOf(
+    val sections = listOfNotNull(
         Section(
             KairosIcons.Palette,
             "Appearance",
@@ -84,6 +86,17 @@ fun SettingsScreen(
             ready = true,
             onOpen = onOpenReminders,
         ),
+        onOpenApprovals?.let {
+            Section(
+                KairosIcons.Book,
+                "Class approvals",
+                if (approvalsCount > 0) "$approvalsCount waiting for review"
+                else "Review family-added subjects & semesters",
+                ready = true,
+                onOpen = it,
+                badge = approvalsCount > 0,
+            )
+        },
         Section(
             KairosIcons.Download,
             "Software update",

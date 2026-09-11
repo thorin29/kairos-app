@@ -173,6 +173,14 @@ interface ApiService {
         @Body body: com.kairos.app.data.remote.dto.CreateClassRequest,
     ): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
+    @GET("school/approvals")
+    suspend fun schoolApprovals(): Response<com.kairos.app.data.remote.dto.SchoolApprovalsDto>
+
+    @POST("school/approvals")
+    suspend fun schoolApproval(
+        @Body body: com.kairos.app.data.remote.dto.ApprovalActionRequest,
+    ): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @GET("workouts/week")
     suspend fun workoutWeek(): Response<WeekResponse>
 

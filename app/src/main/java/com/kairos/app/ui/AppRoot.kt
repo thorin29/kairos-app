@@ -146,6 +146,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     var selectedKey by remember { mutableStateOf("home") }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
+    val isAdmin = person.role == "ADMIN"
+    var approvalsCount by remember { mutableStateOf(0) }
+    LaunchedEffect(isAdmin, selectedKey) {
+        if (isAdmin) {
+            runCatching { container.sessionRepository.loadSchoolApprovals() }
+                .getOrNull()
+                ?.let { approvalsCount = it.subjects.size + it.terms.size }
+        }
+    }
+
     // Bump each time we come back to Home from another destination, so Home can
     // reload the day. Reliable under our drawer nav, where ON_RESUME doesn't fire.
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -331,7 +341,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenNotifications = { navController.navigate(Route.SettingsNotifications) },
                         onOpenUpdate = { navController.navigate(Route.SettingsUpdate) },
                         onOpenReminders = { navController.navigate(Route.SettingsReminders) },
+                        onOpenApprovals = if (isAdmin) {
+                            { navController.navigate(Route.SchoolApprovals) }
+                        } else null,
+                        approvalsCount = approvalsCount,
                         updateAvailable = updateInfo != null,
+                    )
+                }
+                composable<Route.SchoolApprovals> {
+                    com.kairos.app.ui.school.SchoolApprovalsScreen(
+                        onBack = { navController.popBackStack() },
                     )
                 }
                 composable<Route.SettingsAppearance> {
@@ -435,6 +454,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     navController.navigate(Route.Settings)
                 },
                 updateAvailable = updateInfo != null,
+                approvalsBadge = approvalsCount > 0,
                 onOpenUpdate = {
                     open = false
                     navController.navigate(Route.SettingsUpdate)

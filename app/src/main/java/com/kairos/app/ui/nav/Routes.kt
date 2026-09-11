@@ -18,6 +18,9 @@ sealed interface Route {
     data object Settings : Route
 
     @Serializable
+    data object SchoolApprovals : Route
+
+    @Serializable
     data object SettingsAppearance : Route
 
     @Serializable

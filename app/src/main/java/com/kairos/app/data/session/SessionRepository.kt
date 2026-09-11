@@ -149,6 +149,13 @@ class SessionRepository(
         runAuthed { requireService().createClass(body) }
     }
 
+    suspend fun loadSchoolApprovals(): com.kairos.app.data.remote.dto.SchoolApprovalsDto =
+        runAuthed { requireService().schoolApprovals() }
+
+    suspend fun submitSchoolApproval(body: com.kairos.app.data.remote.dto.ApprovalActionRequest) {
+        runAuthed { requireService().schoolApproval(body) }
+    }
+
     /** Set my color (ring + calendar + everywhere it's used). Syncs to the web. */
     suspend fun setMyColor(color: String) {
         runAuthed { requireService().setColor(com.kairos.app.data.remote.dto.ColorRequest(color)) }
@@ -790,6 +797,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 225
+        const val CLIENT_BUILD = 226
     }
 }
