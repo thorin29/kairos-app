@@ -87,7 +87,7 @@ private val WEEKDAYS = listOf("S", "M", "T", "W", "T", "F", "S")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
+fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0, onAddClass: () -> Unit = {}) {
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
@@ -214,7 +214,7 @@ fun CalendarScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     }
 
     if (showAdd && data != null) {
-        AddEventOverlay(vm, data, ui, onClose = { showAdd = false; vm.clearCreateError() })
+        AddEventOverlay(vm, data, ui, onClose = { showAdd = false; vm.clearCreateError() }, onAddClass = { showAdd = false; onAddClass() })
     }
 
     if (editingEvent != null && data != null) {

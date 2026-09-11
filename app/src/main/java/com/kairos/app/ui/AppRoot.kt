@@ -67,6 +67,7 @@ import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
+import com.kairos.app.ui.calendar.CalendarAddClassScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.CreatePersonalWorkoutScreen
 import com.kairos.app.ui.workout.EditPlanScreen
@@ -255,7 +256,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else if (key == "chores") {
                         ChoresScreen(onOpenDrawer = { open = true })
                     } else if (key == "calendar") {
-                        CalendarScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
+                        CalendarScreen(
+                            onOpenDrawer = { open = true },
+                            refreshKey = dataRevision,
+                            onAddClass = { navController.navigate(Route.AddClass) },
+                        )
                     } else if (key == "money") {
                         MoneyScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
                     } else if (key == "reading") {
@@ -378,6 +383,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
                     )
+                }
+                composable<Route.AddClass> {
+                    CalendarAddClassScreen(onDone = { navController.popBackStack() })
                 }
             }
         }

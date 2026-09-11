@@ -1623,3 +1623,38 @@ data class SubmitAddressResponse(
     val status: String = "",
     val duplicate: AddressDuplicateDto? = null,
 )
+
+// --- Class creation (mirrors the web's class form) ---
+
+@Serializable
+data class ClassOptionDto(val id: String, val name: String)
+
+@Serializable
+data class ClassFormDto(
+    val canMakeClass: Boolean = false,
+    val isAdmin: Boolean = false,
+    val meName: String? = null,
+    val subjects: List<ClassOptionDto> = emptyList(),
+    val classTypes: List<ClassOptionDto> = emptyList(),
+    val terms: List<ClassOptionDto> = emptyList(),
+    val students: List<ClassOptionDto> = emptyList(),
+)
+
+@Serializable
+data class CreateClassRequest(
+    val newSubject: String? = null,
+    val userId: String? = null,
+    val classTypeId: String? = null,
+    val termId: String? = null,
+    val color: String? = null,
+    val start: String? = null,
+    val end: String? = null,
+    val byday: String? = null,
+    val sharedWith: String? = null,
+    val meetingStartDate: String? = null,
+    val meetingEndDate: String? = null,
+    val location: String? = null,
+    val promptHomework: Boolean = true,
+    val reminders: List<Int> = emptyList(),
+    val reminderBell: List<String> = emptyList(),
+)

@@ -75,6 +75,7 @@ fun AddEventOverlay(
     editEvent: com.kairos.app.data.remote.dto.CalEventDto? = null,
     editOccurrenceISO: String? = null,
     onClose: () -> Unit,
+    onAddClass: () -> Unit = {},
 ) {
     val editing = editEvent != null
     val container = com.kairos.app.ui.common.rememberContainer()
@@ -163,6 +164,7 @@ fun AddEventOverlay(
     var openSelector by remember { mutableStateOf<String?>(null) }
     var showScope by remember { mutableStateOf(false) }
     var showDiscard by remember { mutableStateOf(false) }
+    var showClassPrompt by remember { mutableStateOf(false) }
 
     // Note: reminders are excluded — they auto-populate from the per-type default
     // on a new event after settings load, which would otherwise read as "dirty".
@@ -451,6 +453,25 @@ fun AddEventOverlay(
         TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
     }
 
+    if (showClassPrompt) {
+        AlertDialog(
+            onDismissRequest = { showClassPrompt = false },
+            title = { Text("Add a class") },
+            text = {
+                Text(
+                    "Classes are their own thing \u2014 pick a subject and the days " +
+                        "it meets, and it'll show on the calendar and the School page.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showClassPrompt = false; onAddClass() }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClassPrompt = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     if (showPeople) {
         AnimatedDialog(
             onDismissRequest = { showPeople = false },
@@ -587,6 +608,13 @@ fun AddEventOverlay(
                 "OTHER" to "Medical / Dental",
             ).forEach { (k, label) ->
                 SelectOptionRow(label, eventTypeId == null && kind == k) {
+                    if (k == "CLASS" && !editing) {
+                        // A class is its own thing (subject, meeting days, School page),
+                        // so switching to it opens the dedicated class form.
+                        openSelector = null
+                        showClassPrompt = true
+                        return@SelectOptionRow
+                    }
                     val wasBirthday = kind == "BIRTHDAY"
                     kind = k
                     eventTypeId = null

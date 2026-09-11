@@ -165,6 +165,14 @@ interface ApiService {
     @GET("workouts/pool")
     suspend fun workoutPool(): Response<WorkoutPoolDto>
 
+    @GET("classes/form")
+    suspend fun classForm(): Response<com.kairos.app.data.remote.dto.ClassFormDto>
+
+    @POST("classes")
+    suspend fun createClass(
+        @Body body: com.kairos.app.data.remote.dto.CreateClassRequest,
+    ): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @GET("workouts/week")
     suspend fun workoutWeek(): Response<WeekResponse>
 
