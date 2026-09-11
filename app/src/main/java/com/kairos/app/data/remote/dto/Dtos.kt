@@ -1626,8 +1626,6 @@ data class SubmitAddressResponse(
 
 // --- Class creation (mirrors the web's class form) ---
 
-@Serializable
-data class ClassOptionDto(val id: String, val name: String)
 
 @Serializable
 data class ClassFormDto(
