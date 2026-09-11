@@ -257,7 +257,7 @@ object KairosIcons {
     // so each field reads by shape, not just label.
     val Puzzle = stroked(
         "Puzzle",
-        "M5 8h2.3a2 2 0 1 1 3.4 0H14a1 1 0 0 1 1 1v2.3a2 2 0 1 1 0 3.4V19a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8z",
+        "M4 7h3a1 1 0 0 0 1 -1v-1a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 0 1 1h1a2 2 0 0 1 0 4h-1a1 1 0 0 0 -1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-1a2 2 0 0 0 -4 0v1a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h1a2 2 0 0 0 0 -4h-1a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z",
     )
     val Category = stroked(
         "Category",
@@ -267,11 +267,11 @@ object KairosIcons {
     )
     val DateRange = stroked(
         "DateRange",
-        "M5 7v10",
-        "M19 7v10",
-        "M5 12h14",
-        "M8 9l-3 3 3 3",
-        "M16 9l3 3-3 3",
+        "M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z",
+        "M8 4v4",
+        "M16 4v4",
+        "M4 10h16",
+        "M7 14h10v2H7z",
     )
     val Clock = stroked(
         "Clock",

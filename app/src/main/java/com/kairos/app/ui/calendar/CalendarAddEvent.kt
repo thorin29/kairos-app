@@ -456,7 +456,7 @@ fun AddEventOverlay(
     if (showClassPrompt) {
         AlertDialog(
             onDismissRequest = { showClassPrompt = false },
-            title = { Text("Make it a class") },
+            title = { Text("Convert to a class event") },
             text = {
                 Text("This calendar event is not a class, fill in the additional fields and it will be converted.")
             },

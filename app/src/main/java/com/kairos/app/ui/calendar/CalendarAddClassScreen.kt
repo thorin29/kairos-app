@@ -156,9 +156,9 @@ fun CalendarAddClassScreen(
                         SectionLine()
                         SelectRow(KairosIcons.Clock, "Ends " + timeLabel(ui.endMin)) { showEnd = true }
                         SectionLine()
-                        SelectRow(KairosIcons.Calendar, "Runs from " + (ui.runsFrom.ifBlank { "any" }), muted = ui.runsFrom.isBlank()) { showFrom = true }
+                        SelectRow(KairosIcons.Calendar, if (ui.runsFrom.isBlank()) "Runs from" else "Runs from " + ui.runsFrom, muted = ui.runsFrom.isBlank()) { showFrom = true }
                         SectionLine()
-                        SelectRow(KairosIcons.Calendar, "Runs until " + (ui.runsUntil.ifBlank { "any" }), muted = ui.runsUntil.isBlank()) { showUntil = true }
+                        SelectRow(KairosIcons.Calendar, if (ui.runsUntil.isBlank()) "Runs until" else "Runs until " + ui.runsUntil, muted = ui.runsUntil.isBlank()) { showUntil = true }
                     }
                     SectionLine()
                     SelectRow(KairosIcons.Category, optName(ui.classTypes, ui.classTypeId, "Class type"), muted = ui.classTypeId.isBlank()) { selector = "classType" }
