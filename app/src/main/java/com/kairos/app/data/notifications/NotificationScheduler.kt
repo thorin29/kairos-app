@@ -61,6 +61,30 @@ object NotificationScheduler {
             }
         }
 
+        // Missed-notification catch-up: an event reminder whose time slipped by
+        // while we weren't running (phone off or asleep) but whose event is
+        // still ahead \u2014 post it now, once. Codes AlarmReceiver already
+        // delivered are skipped; delivered codes are pruned to events still in
+        // the window so the set can't grow without bound.
+        val delivered = settings.currentDeliveredCodes()
+        val firedNow = HashSet<Int>()
+        val relevant = HashSet<Int>(desired.keys)
+        if (prefs.enabled) {
+            for (e in upcoming.events) {
+                if (e.startMs <= now) continue
+                for (r in e.reminders) {
+                    val at = e.startMs - r * 60_000L
+                    val code = ("${e.id}|$r").hashCode()
+                    relevant.add(code)
+                    if (at <= now + 10_000L && code !in delivered) {
+                        Notifications.post(context, code, e.title, null, e.location, "calendar")
+                        firedNow.add(code)
+                    }
+                }
+            }
+        }
+        settings.setDeliveredCodes((delivered + firedNow).intersect(relevant))
+
         desired.forEach { (code, a) -> schedule(context, am, code, a) }
         (previous - desired.keys).forEach { cancel(context, am, it) }
         settings.setScheduledCodes(desired.keys)

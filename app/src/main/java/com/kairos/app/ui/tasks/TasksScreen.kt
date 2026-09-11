@@ -229,7 +229,7 @@ private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, editMode: Boo
                 Text(t.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             }
             Text(
-                "due ${t.dueISO}",
+                if (t.recurring && t.repeat.isNotBlank()) t.repeat else "due ${t.dueISO}",
                 style = MaterialTheme.typography.labelSmall,
                 color = if (t.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )

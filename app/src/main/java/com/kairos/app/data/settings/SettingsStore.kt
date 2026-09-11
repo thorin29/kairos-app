@@ -143,6 +143,24 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_CODES] = codes.joinToString(",") }
     }
 
+    /** Codes already delivered (alarm fired, or caught up after a missed one),
+     *  so missed-notification catch-up never posts the same reminder twice. */
+    suspend fun currentDeliveredCodes(): Set<Int> =
+        (dataStore.data.first()[KEY_DELIVERED] ?: "")
+            .split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+
+    suspend fun setDeliveredCodes(codes: Set<Int>) {
+        dataStore.edit { it[KEY_DELIVERED] = codes.joinToString(",") }
+    }
+
+    suspend fun addDeliveredCode(code: Int) {
+        dataStore.edit { p ->
+            val cur = (p[KEY_DELIVERED] ?: "")
+                .split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+            p[KEY_DELIVERED] = (cur + code).joinToString(",")
+        }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_LOCKED_PERSON = stringPreferencesKey("locked_person_json")
@@ -156,6 +174,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
+        val KEY_DELIVERED = stringPreferencesKey("notif.deliveredCodes")
         val KEY_REM_DEFAULTS = stringPreferencesKey("reminder_defaults")
     }
 }

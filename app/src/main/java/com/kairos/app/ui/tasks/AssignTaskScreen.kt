@@ -118,11 +118,13 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
         var repeats by remember { mutableStateOf(false) }
         var freq by remember { mutableStateOf("WEEKLY") }
         var interval by remember { mutableStateOf("1") }
-        var byday by remember { mutableStateOf(setOf(dowCode(LocalDate.now().dayOfWeek))) }
+        var byday by remember { mutableStateOf(emptySet<String>()) }
         var endMode by remember { mutableStateOf("NEVER") }
         var count by remember { mutableStateOf("10") }
         var until by remember { mutableStateOf(LocalDate.now().plusMonths(1).toString()) }
         var showUntil by remember { mutableStateOf(false) }
+        var monthStart by remember { mutableStateOf(LocalDate.now().toString()) }
+        var showStart by remember { mutableStateOf(false) }
         var showRecurNotice by remember { mutableStateOf(false) }
         var notify by remember { mutableStateOf(false) }
         var notifyMin by remember { mutableStateOf(9 * 60) }
@@ -147,6 +149,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
             endMode = e.endMode
             if (e.maxCount != null) count = e.maxCount.toString()
             if (e.until.isNotBlank()) until = e.until
+            if (e.startDate.isNotBlank()) monthStart = e.startDate
             notify = e.notifyMinutes != null
             if (e.notifyMinutes != null) notifyMin = e.notifyMinutes
             prefilled = true
@@ -155,6 +158,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
         val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
         val untilLabel = try { LocalDate.parse(until).format(NICE) } catch (_: Exception) { until }
+        val startLabel = try { LocalDate.parse(monthStart).format(NICE) } catch (_: Exception) { monthStart }
 
         Column(
             Modifier.padding(inner).fillMaxSize()
@@ -227,6 +231,15 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
                                 }
                                 Text(freqUnit(freq), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            if (freq == "MONTHLY") {
+                                Text("Starts", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Box(
+                                    Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                                        .clickable { showStart = true }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                ) {
+                                    Text(startLabel, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
                             if (freq == "WEEKLY") {
                                 Text("On", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -297,7 +310,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
                             freq = freq,
                             interval = interval.toIntOrNull()?.coerceAtLeast(1) ?: 1,
                             byday = if (freq == "WEEKLY") byday.toList() else emptyList(),
-                            startDate = if (hasDue) dueDate else LocalDate.now().toString(),
+                            startDate = if (freq == "MONTHLY") monthStart else LocalDate.now().toString(),
                             endMode = endMode,
                             maxCount = if (endMode == "COUNT") count.toIntOrNull() else null,
                             until = if (endMode == "UNTIL") until else "",
@@ -407,6 +420,29 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
             )
         }
 
+        if (showStart) {
+            val sstate = rememberDatePickerState(
+                initialSelectedDateMillis = try {
+                    LocalDate.parse(monthStart).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+                } catch (_: Exception) {
+                    System.currentTimeMillis()
+                },
+            )
+            DatePickerDialog(
+                onDismissRequest = { showStart = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        sstate.selectedDateMillis?.let { ms ->
+                            monthStart = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate().format(ISO)
+                        }
+                        showStart = false
+                    }) { Text("OK") }
+                },
+                dismissButton = { TextButton(onClick = { showStart = false }) { Text("Cancel") } },
+            ) {
+                DatePicker(state = sstate)
+            }
+        }
         if (showUntil) {
             val ustate = rememberDatePickerState(
                 initialSelectedDateMillis = try {
