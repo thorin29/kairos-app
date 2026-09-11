@@ -252,4 +252,30 @@ object KairosIcons {
             "M12 13.7c-1.1 0-2 .7-2.2 1.6l1.2.3c.1-.5.5-.7 1-.7.5 0 .9.3.9.7 0 .4-.3.6-.7.9-.6.4-.9.8-.9 1.5h1.2c0-.4.1-.5.6-.9.5-.4.9-.8.9-1.6 0-1-.9-1.8-2-1.8z" +
             "M11.4 18.5h1.2v1.2h-1.2z",
     )
+
+    // Class-form field glyphs. Drawn on the same 24px grid; distinct silhouettes
+    // so each field reads by shape, not just label.
+    val Puzzle = stroked(
+        "Puzzle",
+        "M5 8h2.3a2 2 0 1 1 3.4 0H14a1 1 0 0 1 1 1v2.3a2 2 0 1 1 0 3.4V19a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8z",
+    )
+    val Category = stroked(
+        "Category",
+        "M7 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
+        "M17 4.5l3 5.5h-6z",
+        "M12 14l3.5 3.5L12 21l-3.5-3.5z",
+    )
+    val DateRange = stroked(
+        "DateRange",
+        "M5 7v10",
+        "M19 7v10",
+        "M5 12h14",
+        "M8 9l-3 3 3 3",
+        "M16 9l3 3-3 3",
+    )
+    val Clock = stroked(
+        "Clock",
+        "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z",
+        "M12 8v4l3 2",
+    )
 }

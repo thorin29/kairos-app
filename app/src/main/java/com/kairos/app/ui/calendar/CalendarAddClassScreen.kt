@@ -143,27 +143,27 @@ fun CalendarAddClassScreen(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 ) {
                     Spacer(Modifier.size(8.dp))
-                    SelectRow(KairosIcons.Book, ui.subject.ifBlank { "Subject" }, muted = ui.subject.isBlank()) { selector = "subject" }
+                    SelectRow(KairosIcons.Puzzle, ui.subject.ifBlank { "Subject" }, muted = ui.subject.isBlank()) { selector = "subject" }
                     if (ui.isAdmin) {
                         SectionLine()
-                        SelectRow(KairosIcons.Calendar, studentName(ui), muted = ui.studentId.isBlank()) { selector = "student" }
+                        SelectRow(KairosIcons.PersonCircle, studentName(ui), muted = ui.studentId.isBlank()) { selector = "student" }
                     }
                     SectionLine()
-                    SelectRow(KairosIcons.Calendar, daysLabel(ui.byday), muted = ui.byday.isEmpty()) { selector = "days" }
+                    SelectRow(KairosIcons.Repeat, daysLabel(ui.byday), muted = ui.byday.isEmpty()) { selector = "days" }
                     if (ui.byday.isNotEmpty()) {
                         SectionLine()
-                        SelectRow(KairosIcons.Bell, "Starts " + timeLabel(ui.startMin)) { showStart = true }
+                        SelectRow(KairosIcons.Clock, "Starts " + timeLabel(ui.startMin)) { showStart = true }
                         SectionLine()
-                        SelectRow(KairosIcons.Bell, "Ends " + timeLabel(ui.endMin)) { showEnd = true }
+                        SelectRow(KairosIcons.Clock, "Ends " + timeLabel(ui.endMin)) { showEnd = true }
                         SectionLine()
                         SelectRow(KairosIcons.Calendar, "Runs from " + (ui.runsFrom.ifBlank { "any" }), muted = ui.runsFrom.isBlank()) { showFrom = true }
                         SectionLine()
                         SelectRow(KairosIcons.Calendar, "Runs until " + (ui.runsUntil.ifBlank { "any" }), muted = ui.runsUntil.isBlank()) { showUntil = true }
                     }
                     SectionLine()
-                    SelectRow(KairosIcons.Book, optName(ui.classTypes, ui.classTypeId, "Class type"), muted = ui.classTypeId.isBlank()) { selector = "classType" }
+                    SelectRow(KairosIcons.Category, optName(ui.classTypes, ui.classTypeId, "Class type"), muted = ui.classTypeId.isBlank()) { selector = "classType" }
                     SectionLine()
-                    SelectRow(KairosIcons.Book, semesterLabel(ui), muted = ui.termId.isBlank() && ui.newTermName.isBlank()) { selector = "term" }
+                    SelectRow(KairosIcons.DateRange, semesterLabel(ui), muted = ui.termId.isBlank() && ui.newTermName.isBlank()) { selector = "term" }
                     SectionLine()
                     Row(
                         Modifier.fillMaxWidth().clickable { selector = "color" }.padding(vertical = 12.dp),
@@ -218,14 +218,6 @@ fun CalendarAddClassScreen(
 
                     if (ui.error != null) {
                         Text(ui.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Spacer(Modifier.size(8.dp))
-                    Button(onClick = attemptSave, enabled = !ui.saving, modifier = Modifier.fillMaxWidth()) {
-                        if (ui.saving) {
-                            CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Text(if (replaceEventId != null) "Save class" else "Add class")
                     }
                     Spacer(Modifier.size(16.dp))
                 }
