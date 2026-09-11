@@ -17,11 +17,13 @@ data class ClassFormUiState(
     val loadError: String? = null,
     val canMakeClass: Boolean = true,
     val isAdmin: Boolean = false,
+    val meId: String = "",
     val meName: String? = null,
     val subjects: List<String> = emptyList(),
     val classTypes: List<Pair<String, String>> = emptyList(),
     val terms: List<Pair<String, String>> = emptyList(),
     val students: List<Pair<String, String>> = emptyList(),
+    val studentColors: Map<String, String> = emptyMap(),
     val subject: String = "",
     val studentId: String = "",
     val byday: Set<String> = emptySet(),
@@ -31,6 +33,9 @@ data class ClassFormUiState(
     val runsUntil: String = "",
     val classTypeId: String = "",
     val termId: String = "",
+    val newTermName: String = "",
+    val newTermStart: String = "",
+    val newTermEnd: String = "",
     val color: String = "",
     val sharedWith: Set<String> = emptySet(),
     val reminders: Set<Int> = emptySet(),
@@ -75,8 +80,13 @@ class CalendarAddClassViewModel(
                         subjects = d.subjects.map { s -> s.name },
                         classTypes = d.classTypes.map { t -> t.id to t.name },
                         terms = d.terms.map { t -> t.id to t.name },
+                        meId = d.meId,
                         students = d.students.map { s -> s.id to s.name },
-                        studentId = if (d.isAdmin) d.students.firstOrNull()?.id ?: "" else "",
+                        studentColors = d.students.filter { s -> s.color != null }.associate { s -> s.id to s.color!! },
+                        studentId = if (d.isAdmin) {
+                            d.students.firstOrNull { s -> s.id == d.meId }?.id
+                                ?: d.students.firstOrNull()?.id ?: ""
+                        } else "",
                         subject = if (it.subject.isEmpty()) prefill.subject else it.subject,
                         startMin = if (prefill.startMin >= 0) prefill.startMin else it.startMin,
                         endMin = if (prefill.endMin >= 0) prefill.endMin else it.endMin,
@@ -102,7 +112,10 @@ class CalendarAddClassViewModel(
     fun setRunsFrom(v: String) = _ui.update { it.copy(runsFrom = v) }
     fun setRunsUntil(v: String) = _ui.update { it.copy(runsUntil = v) }
     fun setClassType(id: String) = _ui.update { it.copy(classTypeId = id) }
-    fun setTerm(id: String) = _ui.update { it.copy(termId = id) }
+    fun setTerm(id: String) = _ui.update { it.copy(termId = id, newTermName = "", newTermStart = "", newTermEnd = "") }
+    fun setNewTerm(name: String, start: String, end: String) = _ui.update {
+        it.copy(newTermName = name, newTermStart = start, newTermEnd = end, termId = "")
+    }
     fun setColor(hex: String) = _ui.update { it.copy(color = hex) }
     fun setLocation(v: String) = _ui.update { it.copy(location = v) }
     fun setHomework(b: Boolean) = _ui.update { it.copy(promptHomework = b) }
@@ -139,7 +152,10 @@ class CalendarAddClassViewModel(
                         location = s.location.trim().ifBlank { null },
                         promptHomework = s.promptHomework,
                         reminders = s.reminders.toList(),
-                        reminderBell = s.sharedWith.toList(),
+                        reminderBell = emptyList(),
+                        newTermName = s.newTermName.ifBlank { null },
+                        newTermStart = s.newTermStart.ifBlank { null },
+                        newTermEnd = s.newTermEnd.ifBlank { null },
                     ),
                 )
                 _ui.update { it.copy(saving = false, done = true) }

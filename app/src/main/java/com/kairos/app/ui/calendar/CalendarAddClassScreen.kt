@@ -94,15 +94,32 @@ fun CalendarAddClassScreen(
     var showUntil by remember { mutableStateOf(false) }
     var showAddSubject by remember { mutableStateOf(false) }
     var showCustomReminder by remember { mutableStateOf(false) }
+    var showAddSemester by remember { mutableStateOf(false) }
+    var addressSearchOpen by remember { mutableStateOf(false) }
+    var showMissing by remember { mutableStateOf<List<String>?>(null) }
+    val attemptSave: () -> Unit = {
+        val miss = buildList {
+            if (ui.subject.isBlank()) add("Subject")
+            if (ui.isAdmin && ui.studentId.isBlank()) add("Student")
+            if (ui.byday.isEmpty()) add("Meets on")
+            if (ui.classTypeId.isBlank()) add("Class type")
+            if (ui.termId.isBlank() && ui.newTermName.isBlank()) add("Semester")
+        }
+        if (miss.isEmpty()) vm.save() else showMissing = miss
+    }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text(if (replaceEventId != null) "Make a class" else "Add class") },
+                title = { Text(if (replaceEventId != null) "Convert to a class event" else "Add class") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    TextButton(onClick = attemptSave, enabled = !ui.saving) { Text("Save") }
                 },
             )
         },
@@ -129,7 +146,7 @@ fun CalendarAddClassScreen(
                     SelectRow(KairosIcons.Book, ui.subject.ifBlank { "Subject" }, muted = ui.subject.isBlank()) { selector = "subject" }
                     if (ui.isAdmin) {
                         SectionLine()
-                        SelectRow(KairosIcons.Share, studentName(ui), muted = ui.studentId.isBlank()) { selector = "student" }
+                        SelectRow(KairosIcons.Calendar, studentName(ui), muted = ui.studentId.isBlank()) { selector = "student" }
                     }
                     SectionLine()
                     SelectRow(KairosIcons.Calendar, daysLabel(ui.byday), muted = ui.byday.isEmpty()) { selector = "days" }
@@ -146,14 +163,14 @@ fun CalendarAddClassScreen(
                     SectionLine()
                     SelectRow(KairosIcons.Book, optName(ui.classTypes, ui.classTypeId, "Class type"), muted = ui.classTypeId.isBlank()) { selector = "classType" }
                     SectionLine()
-                    SelectRow(KairosIcons.Book, optName(ui.terms, ui.termId, "Semester"), muted = ui.termId.isBlank()) { selector = "term" }
+                    SelectRow(KairosIcons.Book, semesterLabel(ui), muted = ui.termId.isBlank() && ui.newTermName.isBlank()) { selector = "term" }
                     SectionLine()
                     Row(
                         Modifier.fillMaxWidth().clickable { selector = "color" }.padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Surface(shape = CircleShape, color = swatch(ui.color), modifier = Modifier.size(22.dp)) {}
+                        Surface(shape = CircleShape, color = swatch(ui.color.ifBlank { ui.studentColors[ui.studentId] ?: "" }), modifier = Modifier.size(22.dp)) {}
                         Text(colorName(ui.color), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                         Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                     }
@@ -164,7 +181,18 @@ fun CalendarAddClassScreen(
                         muted = ui.sharedWith.isEmpty(),
                     ) { selector = "shared" }
 
-                    // Reminders
+                    // Location (same combo box as other calendar events)
+                    SectionLine()
+                    LocationField(value = ui.location, onOpenSearch = { addressSearchOpen = true })
+
+                    // Homework
+                    SectionLine()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Ask about homework after class", Modifier.weight(1f))
+                        Switch(checked = ui.promptHomework, onCheckedChange = vm::setHomework)
+                    }
+
+                    // Reminders (below location + homework)
                     SectionLine()
                     ui.reminders.sorted().forEach { m ->
                         Row(
@@ -188,27 +216,11 @@ fun CalendarAddClassScreen(
                         Text("Add notification", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                     }
 
-                    // Location
-                    SectionLine()
-                    OutlinedTextField(
-                        value = ui.location,
-                        onValueChange = vm::setLocation,
-                        singleLine = true,
-                        placeholder = { Text("Add location") },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    )
-
-                    SectionLine()
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Ask about homework after class", Modifier.weight(1f))
-                        Switch(checked = ui.promptHomework, onCheckedChange = vm::setHomework)
-                    }
-
                     if (ui.error != null) {
                         Text(ui.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
                     Spacer(Modifier.size(8.dp))
-                    Button(onClick = vm::save, enabled = !ui.saving, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = attemptSave, enabled = !ui.saving, modifier = Modifier.fillMaxWidth()) {
                         if (ui.saving) {
                             CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
@@ -259,7 +271,12 @@ fun CalendarAddClassScreen(
             }
         }
         "term" -> SelectorOverlay("Semester", onClose = { selector = null }) {
-            SelectOptionRow("Repeats with no end date", ui.termId.isBlank()) { vm.setTerm(""); selector = null }
+            Row(
+                Modifier.fillMaxWidth().clickable { selector = null; showAddSemester = true }.padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("+ Add a new semester", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            }
             ui.terms.forEach { (id, name) ->
                 SelectOptionRow(name, ui.termId == id) { vm.setTerm(id); selector = null }
             }
@@ -302,6 +319,28 @@ fun CalendarAddClassScreen(
     if (showUntil) ClassDatePicker(ui.runsUntil, { vm.setRunsUntil(it); showUntil = false }, { showUntil = false })
     if (showAddSubject) AddSubjectDialog({ vm.setSubject(it); showAddSubject = false }, { showAddSubject = false })
     if (showCustomReminder) CustomReminderDialog({ vm.addReminder(it); showCustomReminder = false }, { showCustomReminder = false })
+    if (showAddSemester) AddSemesterDialog(
+        onAdd = { n, st, en -> vm.setNewTerm(n, st, en); showAddSemester = false },
+        onDismiss = { showAddSemester = false },
+    )
+    if (addressSearchOpen) AddressSearchScreen(
+        initial = ui.location,
+        repo = container.sessionRepository,
+        onDismiss = { addressSearchOpen = false },
+        onPick = { vm.setLocation(it); addressSearchOpen = false },
+    )
+    showMissing?.let { miss ->
+        AnimatedDialog(
+            onDismissRequest = { showMissing = null },
+            title = "Missing required fields",
+            confirmButton = { TextButton(onClick = { showMissing = null }) { Text("OK") } },
+        ) {
+            Column {
+                Text("Please fill these in to save the class:", style = MaterialTheme.typography.bodyMedium)
+                miss.forEach { f -> Text("\u2022 $f", style = MaterialTheme.typography.bodyLarge) }
+            }
+        }
+    }
 }
 
 private fun studentName(ui: ClassFormUiState): String =
@@ -309,6 +348,10 @@ private fun studentName(ui: ClassFormUiState): String =
 
 private fun optName(opts: List<Pair<String, String>>, id: String, empty: String): String =
     opts.firstOrNull { it.first == id }?.second ?: empty
+
+private fun semesterLabel(ui: ClassFormUiState): String =
+    if (ui.newTermName.isNotBlank()) "New: ${ui.newTermName}"
+    else optName(ui.terms, ui.termId, "Semester")
 
 private fun daysLabel(days: Set<String>): String =
     if (days.isEmpty()) "Meets on" else DAYS.filter { it.first in days }.joinToString(", ") { it.second.take(3) }
@@ -414,6 +457,41 @@ private fun AddSubjectDialog(onAdd: (String) -> Unit, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+@Composable
+private fun AddSemesterDialog(onAdd: (String, String, String) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var start by remember { mutableStateOf("") }
+    var end by remember { mutableStateOf("") }
+    var pickStart by remember { mutableStateOf(false) }
+    var pickEnd by remember { mutableStateOf(false) }
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = "New semester",
+        confirmButton = {
+            TextButton(onClick = {
+                if (name.trim().length >= 2 && start.isNotBlank() && end.isNotBlank()) {
+                    onAdd(name.trim(), start, end)
+                }
+            }) { Text("Add") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) {
+        Column {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                placeholder = { Text("Fall 2025\u2026") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SelectRow(KairosIcons.Calendar, start.ifBlank { "Start date" }, muted = start.isBlank()) { pickStart = true }
+            SelectRow(KairosIcons.Calendar, end.ifBlank { "End date" }, muted = end.isBlank()) { pickEnd = true }
+        }
+    }
+    if (pickStart) ClassDatePicker(start, { start = it; pickStart = false }, { pickStart = false })
+    if (pickEnd) ClassDatePicker(end, { end = it; pickEnd = false }, { pickEnd = false })
 }
 
 @Composable

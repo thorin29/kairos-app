@@ -1631,6 +1631,7 @@ data class SubmitAddressResponse(
 data class ClassFormDto(
     val canMakeClass: Boolean = false,
     val isAdmin: Boolean = false,
+    val meId: String = "",
     val meName: String? = null,
     val subjects: List<ClassOptionDto> = emptyList(),
     val classTypes: List<ClassOptionDto> = emptyList(),
@@ -1642,6 +1643,9 @@ data class ClassFormDto(
 data class CreateClassRequest(
     val replaceEventId: String? = null,
     val newSubject: String? = null,
+    val newTermName: String? = null,
+    val newTermStart: String? = null,
+    val newTermEnd: String? = null,
     val userId: String? = null,
     val classTypeId: String? = null,
     val termId: String? = null,

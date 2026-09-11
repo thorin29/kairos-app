@@ -458,7 +458,7 @@ fun AddEventOverlay(
             onDismissRequest = { showClassPrompt = false },
             title = { Text("Make it a class") },
             text = {
-                Text("This calendar block isn\u2019t a real class yet. Fill in the details and it becomes one.")
+                Text("This calendar event is not a class, fill in the additional fields and it will be converted.")
             },
             confirmButton = {
                 TextButton(onClick = {
