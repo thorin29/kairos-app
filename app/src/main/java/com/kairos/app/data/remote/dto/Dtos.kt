@@ -963,6 +963,12 @@ data class SubscribedRemindersRequest(
 )
 
 @Serializable
+data class SubscribedLocationRequest(
+    val eventId: String,
+    val location: String,
+)
+
+@Serializable
 data class CalendarPrefsRequest(
     val shownPeople: List<String>? = null,
     val shownSubs: List<String>? = null,

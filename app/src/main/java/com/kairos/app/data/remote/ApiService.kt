@@ -297,6 +297,11 @@ interface ApiService {
         @Body body: com.kairos.app.data.remote.dto.SubscribedRemindersRequest,
     ): Response<TaskStatusDto>
 
+    @POST("calendar/subscribed-location")
+    suspend fun subscribedLocation(
+        @Body body: com.kairos.app.data.remote.dto.SubscribedLocationRequest,
+    ): Response<TaskStatusDto>
+
     @POST("calendar/event")
     suspend fun createEvent(@Body body: CreateEventRequest): Response<TaskStatusDto>
 

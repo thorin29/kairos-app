@@ -496,6 +496,14 @@ class SessionRepository(
         }
     }
 
+    suspend fun setSubscribedLocation(eventId: String, location: String) {
+        runAuthed {
+            requireService().subscribedLocation(
+                com.kairos.app.data.remote.dto.SubscribedLocationRequest(eventId, location),
+            )
+        }
+    }
+
     suspend fun createCalendarEvent(
         body: com.kairos.app.data.remote.dto.CreateEventRequest,
     ) {
@@ -825,6 +833,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 234
+        const val CLIENT_BUILD = 235
     }
 }

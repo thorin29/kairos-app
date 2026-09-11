@@ -48,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
@@ -1500,6 +1501,45 @@ private fun EventDetailScreen(
                                                 )
                                             }
                                         }
+                                }
+                            }
+
+                            // Location override: a manual address for this feed event (feeds sometimes
+                            // carry none). Shared across the feed, and used for the shown location and
+                            // the reminder's Navigate action.
+                            var loc by remember(event.eventId) { mutableStateOf(event.location ?: "") }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(top = 8.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        KairosIcons.MapPin,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(15.dp),
+                                    )
+                                    Text(
+                                        "Location",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                OutlinedTextField(
+                                    value = loc,
+                                    onValueChange = { loc = it },
+                                    placeholder = { Text("Add an address") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                if (loc.trim() != (event.location ?: "").trim()) {
+                                    TextButton(
+                                        onClick = { vm.setSubscribedLocation(event.eventId, loc.trim()) },
+                                        modifier = Modifier.align(Alignment.End),
+                                    ) { Text("Save location") }
                                 }
                             }
                         } else if (event.reminders.isNotEmpty()) {
