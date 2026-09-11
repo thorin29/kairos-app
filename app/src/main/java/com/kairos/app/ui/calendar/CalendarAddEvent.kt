@@ -587,21 +587,29 @@ fun AddEventOverlay(
                 "OTHER" to "Medical / Dental",
             ).forEach { (k, label) ->
                 SelectOptionRow(label, eventTypeId == null && kind == k) {
+                    val wasBirthday = kind == "BIRTHDAY"
                     kind = k
                     eventTypeId = null
                     if (!editing && !reminderTouched) {
                         val d = com.kairos.app.data.settings.ReminderDefaults.effective(reminderDefaults ?: emptyMap(), k)
                         reminders = if (d >= 0) listOf(d) else emptyList()
                     }
-                    if (k == "BIRTHDAY") { allDay = true; repeat = "YEARLY" }
+                    if (k == "BIRTHDAY") {
+                        allDay = true; repeat = "YEARLY"
+                    } else if (wasBirthday) {
+                        // Leaving birthday: undo the all-day + yearly it forced on.
+                        allDay = false; repeat = "NONE"
+                    }
                     endMin = (startMin + typeDurationMin(null, customTypes)).coerceAtMost(23 * 60 + 59)
                     openSelector = null
                 }
             }
             customTypes.forEach { ct ->
                 SelectOptionRow(ct.name, eventTypeId == ct.id) {
+                    val wasBirthday = kind == "BIRTHDAY"
                     kind = "OTHER"
                     eventTypeId = ct.id
+                    if (wasBirthday) { allDay = false; repeat = "NONE" }
                     endMin = (startMin + typeDurationMin(ct.id, customTypes)).coerceAtMost(23 * 60 + 59)
                     if (!editing && !reminderTouched) {
                         reminders = ct.defaultReminder?.let { listOf(it) } ?: emptyList()
