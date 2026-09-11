@@ -91,7 +91,9 @@ fun KairosRail(
                     .padding(start = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                LogoMenuButton(onClick = onLogoClick)
+                // The dot is shown on the profile (collapsed) or the update row
+                // (expanded) once the menu is open, so suppress it on the logo here.
+                LogoMenuButton(onClick = onLogoClick, updateAvailable = false)
                 if (expanded) {
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -308,7 +310,20 @@ private fun FooterPerson(
         }
     } else {
         Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
-            Avatar(person)
+            Box(contentAlignment = Alignment.TopEnd) {
+                Avatar(person)
+                if (updateAvailable) {
+                    Box(
+                        Modifier
+                            .size(11.dp)
+                            .clip(CircleShape)
+                            .background(KairosThemeState.sidebar)
+                            .padding(1.5.dp)
+                            .clip(CircleShape)
+                            .background(UpdateDot),
+                    )
+                }
+            }
         }
     }
 }
