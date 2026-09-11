@@ -3,6 +3,27 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Notifications: missed-notification catch-up + white silhouette small icon
+
+Local notifications (not FCM). A persisted delivered-codes set lives in
+SettingsStore; `AlarmReceiver` records each fire, and `NotificationScheduler`
+posts a missed **event** reminder once if the event is still ahead and its code
+wasn't delivered. DND is left to the OS (posts silently rather than being
+overridden). The notification small icon must be a **white-on-transparent
+silhouette PNG** across all density buckets (mdpi–xxxhdpi) — a full-color PNG
+won't render; the icon is now the Kairos badge and the old bell vector
+`drawable/ic_notification.xml` was deleted.
+
+## Session: a transient startup failure never forces re-enroll
+
+`bootstrap()` retries `me()` ~3× on a transient failure, then resumes from a
+**cached person** (Ready) or drops to NeedsReauth — never NeedsEnroll. The
+device token is fine on a transient failure; only a real 401 clears it. The
+person is cached on each success (`KEY_CACHED_PERSON`, distinct from the
+lock-screen person). Never send the user to "set up this phone" on a startup
+blip. Pre-enrollment/auth screens (Setup / Enroll / Join / Lock / Reauth) sit on
+the white `surface` color, not the grey page background.
+
 ## Mirror the web from source — don't build subsets
 The web components ARE the spec. Before building a screen, read the full web
 page/component and replicate its sections, labels, and styling. Building a
