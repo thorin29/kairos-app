@@ -1,5 +1,6 @@
 package com.kairos.app.data.remote
 
+import com.kairos.app.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -29,6 +30,9 @@ class AuthInterceptor(
         val request = if (attach) {
             chain.request().newBuilder()
                 .header("Authorization", "Bearer $token")
+                // Report this phone's app version so the web Family page can list it.
+                .header("X-Client-Build", BuildConfig.VERSION_CODE.toString())
+                .header("X-Client-Version", BuildConfig.VERSION_NAME)
                 .build()
         } else {
             chain.request()
