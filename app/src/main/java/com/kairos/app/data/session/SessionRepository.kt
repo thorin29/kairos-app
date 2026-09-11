@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 /** Top-level app state derived from stored config + token validity. */
 sealed interface SessionState {
@@ -104,25 +105,44 @@ class SessionRepository(
                 return
             }
         }
-        // Validate the stored token by fetching the person.
-        try {
-            val person = apiCall { service!!.me() }
-            _state.value = SessionState.Ready(person)
-        } catch (e: ApiException) {
-            when (e.error) {
-                is ApiError.ReauthRequired ->
-                    // Device still enrolled; the password changed. Keep the token.
-                    _state.value = SessionState.NeedsReauth(null)
-                is ApiError.Unauthenticated -> {
-                    tokens.clear()
-                    clearOfflineWrites()
-                    _state.value = SessionState.NeedsEnroll
+        // Validate the stored token by fetching the person. A real auth failure
+        // clears the token; a transient failure (server restarting, no network)
+        // must NOT look like a lost enrollment, so retry a few times and then
+        // resume from the last known person instead of showing "set up this
+        // phone".
+        repeat(3) { attempt ->
+            try {
+                val person = apiCall { service!!.me() }
+                settings.setCachedPerson(json.encodeToString(person))
+                _state.value = SessionState.Ready(person)
+                return
+            } catch (e: ApiException) {
+                when (e.error) {
+                    is ApiError.ReauthRequired -> {
+                        // Device still enrolled; the password changed. Keep the token.
+                        _state.value = SessionState.NeedsReauth(null)
+                        return
+                    }
+                    is ApiError.Unauthenticated -> {
+                        // The token really is dead server-side \u2014 re-enroll.
+                        tokens.clear()
+                        clearOfflineWrites()
+                        _state.value = SessionState.NeedsEnroll
+                        return
+                    }
+                    else -> if (attempt < 2) delay(800)
                 }
-                else ->
-                    // Transient network/server issue on a known-good token.
-                    _state.value = SessionState.NeedsEnroll
             }
         }
+        // Transient failure persisted, but the token is intact and the device is
+        // still enrolled. Resume the last known person (data revalidates on the
+        // next call); if we never cached one, ask for the password rather than
+        // forcing a whole re-enrollment.
+        val cached = settings.currentCachedPerson()
+            ?.let { runCatching { json.decodeFromString<PersonDto>(it) }.getOrNull() }
+        _state.value =
+            if (cached != null) SessionState.Ready(cached)
+            else SessionState.NeedsReauth(null)
     }
 
     suspend fun loadNotifMeta(): com.kairos.app.data.remote.dto.NotifMetaDto =
@@ -805,6 +825,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 232
+        const val CLIENT_BUILD = 233
     }
 }

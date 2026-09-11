@@ -33,6 +33,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      *  password, not a new code. Cleared on unlock, enroll, or server change. */
     suspend fun currentLockedPerson(): String? = dataStore.data.first()[KEY_LOCKED_PERSON]
 
+    /** Last person successfully loaded, kept so a transient startup failure can
+     *  resume the session instead of forcing a re-enroll. Not the lock state —
+     *  this never sends the app to the lock screen on its own. */
+    suspend fun currentCachedPerson(): String? = dataStore.data.first()[KEY_CACHED_PERSON]
+    suspend fun setCachedPerson(json: String) {
+        dataStore.edit { it[KEY_CACHED_PERSON] = json }
+    }
+
     suspend fun setLockedPerson(json: String) {
         dataStore.edit { it[KEY_LOCKED_PERSON] = json }
     }
@@ -164,6 +172,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_LOCKED_PERSON = stringPreferencesKey("locked_person_json")
+        val KEY_CACHED_PERSON = stringPreferencesKey("cached_person_json")
         val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
         val KEY_THEME = stringPreferencesKey("theme_scheme")
