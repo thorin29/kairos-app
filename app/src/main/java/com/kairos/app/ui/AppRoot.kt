@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -104,8 +106,8 @@ fun AppRoot(container: AppContainer) {
 
     when (s) {
         is SessionState.Loading -> LoadingScreen()
-        is SessionState.NeedsSetup -> SetupScreen()
-        is SessionState.NeedsEnroll -> {
+        is SessionState.NeedsSetup -> AuthSurface { SetupScreen() }
+        is SessionState.NeedsEnroll -> AuthSurface {
             val jt = joinToken
             if (jt != null) {
                 JoinScreen(token = jt, onCancel = { container.pendingJoinToken.value = null })
@@ -113,9 +115,18 @@ fun AppRoot(container: AppContainer) {
                 AuthFlow()
             }
         }
-        is SessionState.Locked -> LockScreen(person = s.person)
-        is SessionState.NeedsReauth -> ReauthScreen(person = s.person)
+        is SessionState.Locked -> AuthSurface { LockScreen(person = s.person) }
+        is SessionState.NeedsReauth -> AuthSurface { ReauthScreen(person = s.person) }
         is SessionState.Ready -> AuthenticatedApp(person = s.person)
+    }
+}
+
+/** Pre-enrollment screens are main screens, not background-behind-cards views,
+ *  so they sit on the white surface color like the app's other full screens. */
+@Composable
+private fun AuthSurface(content: @Composable () -> Unit) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        content()
     }
 }
 
