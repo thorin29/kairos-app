@@ -223,18 +223,6 @@ class CalendarViewModel(
         }
     }
 
-    /** Set (or clear) a subscribed feed event's location override, then reload. */
-    fun setSubscribedLocation(eventId: String, location: String) {
-        viewModelScope.launch {
-            try {
-                session.setSubscribedLocation(eventId, location)
-                clearPageCaches()
-                load()
-            } catch (_: ApiException) {
-            }
-        }
-    }
-
     /** Drop the pager pre-fetch caches (after a mutation) so stale event data
      *  isn't shown; navigation alone keeps them for smooth paging. */
     private fun clearPageCaches() {
