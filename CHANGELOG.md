@@ -1,5 +1,5 @@
 # Changelog
-## 0.188.0
+## 0.189.0
 - Calendar events that have a background image now show it on the event details screen.
 - Fixed the small "update available" dot on the menu logo being clipped at the top.
 

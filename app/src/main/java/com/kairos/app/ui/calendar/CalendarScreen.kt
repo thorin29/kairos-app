@@ -1379,7 +1379,7 @@ private fun EventDetailScreen(
                 // Art present: a 16:9 banner with the controls overlaid on it (mirrors web).
                 Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
                     SubcomposeAsyncImage(
-                        model = ApiClient.resolveUrl(bgBase, "/event-bg/$bgKey.jpg"),
+                        model = ApiClient.resolveUrl(bgBase, "/api/v1/event-bg?key=$bgKey"),
                         imageLoader = detailContainer.imageLoader,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
