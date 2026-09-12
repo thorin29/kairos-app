@@ -1,6 +1,7 @@
 # Changelog
-## 0.189.0
-- Calendar events that have a background image now show it on the event details screen.
+## 0.190.0
+- Calendar events with a background picture now show it on the event details screen; events without one show the plain header (no empty grey banner).
+- Fixed the edit and delete buttons touching on the event details screen.
 - Fixed the small "update available" dot on the menu logo being clipped at the top.
 
 ## 0.167.0

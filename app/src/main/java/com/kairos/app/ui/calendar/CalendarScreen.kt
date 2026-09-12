@@ -67,7 +67,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.aspectRatio
-import coil.compose.SubcomposeAsyncImage
+import androidx.compose.foundation.Image
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.kairos.app.data.remote.ApiClient
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1375,17 +1377,25 @@ private fun EventDetailScreen(
             val detailContainer = rememberContainer()
             val bgBase = detailContainer.sessionRepository.baseUrlRaw
             val bgKey = event.bgKey
-            if (bgKey != null && bgBase != null) {
-                // Art present: a 16:9 banner with the controls overlaid on it (mirrors web).
+            val bgModel = if (bgKey != null && bgBase != null) {
+                ApiClient.resolveUrl(bgBase, "/api/v1/event-bg?key=$bgKey")
+            } else {
+                null
+            }
+            val bgPainter = rememberAsyncImagePainter(
+                model = bgModel,
+                imageLoader = detailContainer.imageLoader,
+            )
+            // Only show the banner once the art actually loads. Events whose image
+            // hasn't been created yet (or fails to load) fall back to the plain
+            // header, so there is never an empty grey box.
+            if (bgPainter.state is AsyncImagePainter.State.Success) {
                 Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
-                    SubcomposeAsyncImage(
-                        model = ApiClient.resolveUrl(bgBase, "/api/v1/event-bg?key=$bgKey"),
-                        imageLoader = detailContainer.imageLoader,
+                    Image(
+                        painter = bgPainter,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
-                        loading = {},
-                        error = {},
                     )
                     Box(
                         Modifier.fillMaxSize().background(
@@ -1396,6 +1406,7 @@ private fun EventDetailScreen(
                     )
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)).clickable { onClose() }, contentAlignment = Alignment.Center) {
@@ -1417,6 +1428,7 @@ private fun EventDetailScreen(
             } else {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.size(44.dp).clip(CircleShape).clickable { onClose() }, contentAlignment = Alignment.Center) {
