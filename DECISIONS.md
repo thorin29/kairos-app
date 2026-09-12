@@ -3,6 +3,20 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Release notes come from CHANGELOG.md — update it EVERY release
+
+The in-app "Software update" screen's "What's new" is NOT hand-entered. The
+release CI (`.github/workflows/release.yml`) takes the TOP `## ` section of
+`CHANGELOG.md`, writes it into the release's `latest.json` `notes`, and the app
+reads that. So **every release must add a new top `## <version>` entry to
+`CHANGELOG.md`** describing the user-facing change — if you only bump the
+version and forget the changelog, the update notes silently go stale (they were
+frozen at 0.167 for ~20 releases because bumps happened without changelog
+entries). App release checklist is now: bump versionCode + versionName
+(build.gradle.kts) + CLIENT_BUILD (SessionRepository.kt) **and** add a top entry
+to CHANGELOG.md. Only the newest entry is shown, so on a multi-version jump the
+top entry should summarize what the user actually sees.
+
 ## Notifications: missed-notification catch-up + white silhouette small icon
 
 Local notifications (not FCM). A persisted delivered-codes set lives in

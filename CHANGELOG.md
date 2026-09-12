@@ -1,4 +1,8 @@
 # Changelog
+## 0.188.0
+- Calendar events that have a background image now show it on the event details screen.
+- Fixed the small "update available" dot on the menu logo being clipped at the top.
+
 ## 0.167.0
 - Closing a calendar event you're adding or editing (via X or Back) now asks
   "Discard changes?" if there are unsaved changes, so you can't lose them by
