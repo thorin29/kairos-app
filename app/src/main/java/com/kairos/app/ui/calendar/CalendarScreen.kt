@@ -64,6 +64,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.aspectRatio
+import coil.compose.SubcomposeAsyncImage
+import com.kairos.app.data.remote.ApiClient
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -1342,6 +1347,7 @@ private fun eventTypeName(
             "WORK" -> "Work shift"
             "BIRTHDAY" -> "Birthday"
             "OTHER" -> "Medical / Dental"
+            "PAUSE" -> "Vacation / Break"
             else -> "Event"
         }
 
@@ -1366,26 +1372,70 @@ private fun EventDetailScreen(
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.size(44.dp).clip(CircleShape).clickable { onClose() }, contentAlignment = Alignment.Center) {
-                    Text("\u2715", style = MaterialTheme.typography.titleMedium)
-                }
-                Spacer(Modifier.weight(1f))
-                if (editable) {
-                    Box(Modifier.size(44.dp).clip(CircleShape).clickable { onEdit() }, contentAlignment = Alignment.Center) {
-                        Icon(KairosIcons.Pencil, contentDescription = "Edit")
+            val detailContainer = rememberContainer()
+            val bgBase = detailContainer.sessionRepository.baseUrlRaw
+            val bgKey = event.bgKey
+            if (bgKey != null && bgBase != null) {
+                // Art present: a 16:9 banner with the controls overlaid on it (mirrors web).
+                Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
+                    SubcomposeAsyncImage(
+                        model = ApiClient.resolveUrl(bgBase, "/event-bg/$bgKey.jpg"),
+                        imageLoader = detailContainer.imageLoader,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {},
+                        error = {},
+                    )
+                    Box(
+                        Modifier.fillMaxSize().background(
+                            Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.32f)),
+                            ),
+                        ),
+                    )
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)).clickable { onClose() }, contentAlignment = Alignment.Center) {
+                            Text("\u2715", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (editable) {
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)).clickable { onEdit() }, contentAlignment = Alignment.Center) {
+                                Icon(KairosIcons.Pencil, contentDescription = "Edit", tint = Color.White)
+                            }
+                        }
+                        if (deletable) {
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)).clickable { confirmDelete = true }, contentAlignment = Alignment.Center) {
+                                Icon(KairosIcons.Trash, contentDescription = "Delete", tint = Color.White)
+                            }
+                        }
                     }
                 }
-                if (deletable) {
-                    Box(
-                        Modifier.size(44.dp).clip(CircleShape)
-                            .clickable { confirmDelete = true },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurface)
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(44.dp).clip(CircleShape).clickable { onClose() }, contentAlignment = Alignment.Center) {
+                        Text("\u2715", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    if (editable) {
+                        Box(Modifier.size(44.dp).clip(CircleShape).clickable { onEdit() }, contentAlignment = Alignment.Center) {
+                            Icon(KairosIcons.Pencil, contentDescription = "Edit")
+                        }
+                    }
+                    if (deletable) {
+                        Box(
+                            Modifier.size(44.dp).clip(CircleShape)
+                                .clickable { confirmDelete = true },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
             }

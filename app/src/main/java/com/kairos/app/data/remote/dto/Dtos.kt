@@ -867,6 +867,7 @@ data class CalEventDto(
     val isFamily: Boolean = false,
     val shade: Boolean = false,
     val kind: String = "",
+    val bgKey: String? = null,
     val ownerName: String = "",
     val whoLabel: String = "",
     val notes: String? = null,
