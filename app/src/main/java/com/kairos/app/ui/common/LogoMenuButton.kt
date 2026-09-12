@@ -3,6 +3,7 @@ package com.kairos.app.ui.common
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -55,6 +56,7 @@ fun LogoMenuButton(
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
+                        .offset(x = (-2).dp, y = 2.dp)
                         .size(10.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surface)
