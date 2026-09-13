@@ -273,12 +273,20 @@ class SessionRepository(
             runCatching { httpCache?.evictAll() } // don't leave rendered data behind the lock
             _state.value = SessionState.Locked(person)
         } else {
-            // No known person (unexpected) — fall back to a clean re-enroll.
-            val svc = service
-            if (svc != null) runCatching { apiCall { svc.revoke() } }
-            tokens.clear()
-            clearOfflineWrites()
-            _state.value = SessionState.NeedsEnroll
+            // No known person to lock to (unexpected state). NEVER revoke the
+            // device or clear the token here — logout must only ever LOCK, so a
+            // UI/state race can't turn "log out" into "unenroll this phone".
+            // Resume from a cached person if we have one; otherwise drop to the
+            // password/unlock screen with the enrollment fully intact.
+            val cached = settings.currentCachedPerson()
+                ?.let { runCatching { json.decodeFromString<PersonDto>(it) }.getOrNull() }
+            runCatching { httpCache?.evictAll() }
+            if (cached != null) {
+                settings.setLockedPerson(json.encodeToString(cached))
+                _state.value = SessionState.Locked(cached)
+            } else {
+                _state.value = SessionState.NeedsReauth(null)
+            }
         }
     }
 
@@ -828,6 +836,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 243
+        const val CLIENT_BUILD = 244
     }
 }

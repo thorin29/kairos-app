@@ -227,7 +227,13 @@ fun <T> Response<T>.bodyOrThrow(): T {
             "conflict" -> ApiError.Conflict(message)
             "server" -> ApiError.Server(message)
             else -> when (code()) {
-                401 -> ApiError.Unauthenticated
+                // A 401 that is NOT a Kairos { error: { code: "unauthenticated" } }
+                // envelope is almost always the gateway (Authelia / Traefik /
+                // Cloudflare), not a dead device token. Treat it as a recoverable
+                // server/proxy error so a transient proxy 401 can never wipe this
+                // phone's enrollment. Only the genuine Kairos "unauthenticated"
+                // code (handled above) clears the token.
+                401 -> ApiError.Server(message)
                 in 500..599 -> ApiError.Server(message)
                 else -> ApiError.Unknown(message)
             }

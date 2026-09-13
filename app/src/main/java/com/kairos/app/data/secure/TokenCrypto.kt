@@ -40,20 +40,30 @@ object TokenCrypto {
     /** Returns null if the blob can't be decrypted (e.g. the key was cleared by
      *  the OS after a lock-screen change) rather than crashing — the caller
      *  treats that as "no valid token" and re-enrolls. */
-    fun decrypt(blob: String): String? = runCatching {
-        val bytes = Base64.decode(blob, Base64.NO_WRAP)
-        val ivLen = bytes[0].toInt()
-        val iv = bytes.copyOfRange(1, 1 + ivLen)
-        val ct = bytes.copyOfRange(1 + ivLen, bytes.size)
+    fun decrypt(blob: String): String? {
+        // Use the EXISTING key only — never generate one during decryption.
+        // Minting a fresh key here would silently orphan a still-valid token and
+        // make an enrolled phone look like it was never set up.
+        val key = existingKey() ?: return null
+        return runCatching {
+            val bytes = Base64.decode(blob, Base64.NO_WRAP)
+            val ivLen = bytes[0].toInt()
+            val iv = bytes.copyOfRange(1, 1 + ivLen)
+            val ct = bytes.copyOfRange(1 + ivLen, bytes.size)
 
-        val cipher = Cipher.getInstance(TRANSFORM)
-        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(GCM_TAG_BITS, iv))
-        String(cipher.doFinal(ct), Charsets.UTF_8)
-    }.getOrNull()
+            val cipher = Cipher.getInstance(TRANSFORM)
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
+            String(cipher.doFinal(ct), Charsets.UTF_8)
+        }.getOrNull()
+    }
+
+    private fun existingKey(): SecretKey? {
+        val ks = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+        return (ks.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.secretKey
+    }
 
     private fun getOrCreateKey(): SecretKey {
-        val ks = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        (ks.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        existingKey()?.let { return it }
 
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE)
         val spec = KeyGenParameterSpec.Builder(

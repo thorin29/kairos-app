@@ -3,6 +3,32 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Only a genuine Kairos "unauthenticated" (or explicit removal) may clear enrollment
+
+Three separate paths could silently turn a still-enrolled phone into
+NeedsEnroll ("Set up this phone"), forcing a fresh invitation code — brutal
+in a household, and especially likely behind Authelia/Traefik/Cloudflare:
+
+1. **ApiClient mapped ANY 401 to Unauthenticated.** A 401 without a Kairos
+   `{ error: { code: "unauthenticated" } }` envelope (i.e. a generic gateway 401
+   from Authelia / Traefik / Cloudflare) was treated as a dead device token, and
+   `runAuthed`/`bootstrap` then cleared the token. A single transient proxy 401
+   unenrolled the phone. **Fix:** only the genuine Kairos envelope code
+   "unauthenticated" maps to `ApiError.Unauthenticated`; a bare/proxy 401 is a
+   recoverable `Server` error and never clears the token.
+2. **TokenCrypto.decrypt() called getOrCreateKey().** If the Keystore key was
+   missing it minted a NEW key mid-decrypt, orphaning a still-valid token and
+   making the phone look never-enrolled. **Fix:** decrypt uses `existingKey()`
+   only and never generates a key.
+3. **signOut() revoked + cleared when state wasn't Ready.** A UI/state race
+   could turn "log out" into "unenroll". **Fix:** logout only ever LOCKs (or
+   drops to the password screen); it never revokes or clears. Device removal is a
+   separate explicit action.
+
+Rule going forward: the ONLY things that may clear the device token are (a) a
+genuine Kairos "unauthenticated" envelope — the server truly deauthorized the
+device — and (b) an explicit "remove this device". Nothing else, ever.
+
 ## Release notes come from CHANGELOG.md — update it EVERY release
 
 The in-app "Software update" screen's "What's new" is NOT hand-entered. The

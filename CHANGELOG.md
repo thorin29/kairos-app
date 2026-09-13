@@ -1,4 +1,7 @@
 # Changelog
+## 0.192.0
+- Fixed the app sometimes showing “Set up this phone” and asking for an invitation code even though the phone was still enrolled. A brief network or gateway hiccup could make the app wrongly conclude it had been signed out; it now keeps your enrollment through those. Logging out only locks the phone — it never removes it.
+
 ## 0.191.0
 - New Game time screen: each person’s time played today, this week, and this month, their top games, and their Xbox gamerscore / Game Pass / Microsoft balance.
 
