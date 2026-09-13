@@ -1705,3 +1705,31 @@ data class CreateClassRequest(
     val reminders: List<Int> = emptyList(),
     val reminderBell: List<String> = emptyList(),
 )
+
+@Serializable
+data class GameTimeResponseDto(
+    val people: List<GamePersonDto> = emptyList(),
+)
+
+@Serializable
+data class GamePersonDto(
+    val userId: String = "",
+    val name: String = "",
+    val color: String = "#888888",
+    val avatarPath: String? = null,
+    val avatarPosition: String = "center",
+    val today: Int = 0,
+    val week: Int = 0,
+    val month: Int = 0,
+    val games: List<GameTitleDto> = emptyList(),
+    val gamerscore: Int? = null,
+    val gamerpic: String? = null,
+    val hasGamePass: Boolean? = null,
+    val msBalance: String? = null,
+)
+
+@Serializable
+data class GameTitleDto(
+    val game: String = "",
+    val minutes: Int = 0,
+)

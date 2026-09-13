@@ -1,4 +1,7 @@
 # Changelog
+## 0.191.0
+- New Game time screen: each person’s time played today, this week, and this month, their top games, and their Xbox gamerscore / Game Pass / Microsoft balance.
+
 ## 0.190.0
 - Calendar events with a background picture now show it on the event details screen; events without one show the plain header (no empty grey banner).
 - Fixed the edit and delete buttons touching on the event details screen.

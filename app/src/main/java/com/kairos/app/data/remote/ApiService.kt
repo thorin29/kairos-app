@@ -262,6 +262,9 @@ interface ApiService {
     @GET("reading")
     suspend fun reading(): Response<ReadingDto>
 
+    @GET("game-time")
+    suspend fun gameTime(): Response<com.kairos.app.data.remote.dto.GameTimeResponseDto>
+
     @POST("reading/plan")
     suspend fun createReadingPlan(@Body body: PersonalPlanRequest): Response<TaskStatusDto>
 
