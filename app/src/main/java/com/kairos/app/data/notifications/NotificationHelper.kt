@@ -126,4 +126,50 @@ object Notifications {
         }
         NotificationManagerCompat.from(context).notify(id, builder.build())
     }
+
+    const val UPDATE_CHANNEL_ID = "app_updates"
+    private const val UPDATE_NOTIF_ID = 990424
+
+    fun ensureUpdateChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mgr = context.getSystemService(NotificationManager::class.java)
+            if (mgr.getNotificationChannel(UPDATE_CHANNEL_ID) == null) {
+                val ch = NotificationChannel(
+                    UPDATE_CHANNEL_ID,
+                    "App updates",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply {
+                    description = "Lets you know when a new app version is ready to install."
+                }
+                mgr.createNotificationChannel(ch)
+            }
+        }
+    }
+
+    /** Posts (or refreshes) the single "update available" notification. Tapping it
+     *  opens the in-app update screen; the OS also shows the dot on the app icon. */
+    fun postUpdate(context: Context, versionName: String) {
+        ensureUpdateChannel(context)
+        if (!hasPermission(context)) return
+        val tapIntent = android.content.Intent(context, com.kairos.app.MainActivity::class.java).apply {
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP,
+            )
+            putExtra(EXTRA_OPEN, "update")
+        }
+        val tapPi = android.app.PendingIntent.getActivity(
+            context,
+            UPDATE_NOTIF_ID,
+            tapIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder = NotificationCompat.Builder(context, UPDATE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Update available")
+            .setContentText("Version $versionName is ready to install.")
+            .setAutoCancel(true)
+            .setContentIntent(tapPi)
+        NotificationManagerCompat.from(context).notify(UPDATE_NOTIF_ID, builder.build())
+    }
 }

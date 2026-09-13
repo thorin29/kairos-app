@@ -243,6 +243,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 go(Route.Home, "home")
                 container.pendingRoute.value = null
             }
+            "update" -> {
+                navController.navigate(Route.SettingsUpdate)
+                container.pendingRoute.value = null
+            }
         }
     }
 

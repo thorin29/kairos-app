@@ -1,4 +1,8 @@
 # Changelog
+## 0.193.0
+- You now get a notification (and the dot on the app icon) when an app update is available, so you can update from your own phone — no need to ask anyone for a code. Tapping it opens the update screen.
+- Tap your profile photo to open Settings (the separate gear button is gone). The update dot now shows on your profile.
+
 ## 0.192.0
 - Fixed the app sometimes showing “Set up this phone” and asking for an invitation code even though the phone was still enrolled. A brief network or gateway hiccup could make the app wrongly conclude it had been signed out; it now keeps your enrollment through those. Logging out only locks the phone — it never removes it.
 

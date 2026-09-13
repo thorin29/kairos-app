@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -169,6 +170,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    suspend fun lastUpdateNotified(): Int = dataStore.data.first()[KEY_LAST_UPDATE_NOTIFIED] ?: 0
+
+    suspend fun setLastUpdateNotified(code: Int) {
+        dataStore.edit { it[KEY_LAST_UPDATE_NOTIFIED] = code }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_LOCKED_PERSON = stringPreferencesKey("locked_person_json")
@@ -181,6 +188,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_TIME_FMT = stringPreferencesKey("time_format")
         val KEY_SEEN_RECUR_NODUE = booleanPreferencesKey("seen_recur_nodue")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
+        val KEY_LAST_UPDATE_NOTIFIED = intPreferencesKey("last_update_notified_code")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
         val KEY_DELIVERED = stringPreferencesKey("notif.deliveredCodes")

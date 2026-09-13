@@ -265,39 +265,37 @@ private fun FooterPerson(
                 .padding(start = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Avatar(person)
-            Spacer(Modifier.width(12.dp))
-            Text(
-                person.name,
-                color = OnSidebar,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Box {
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        KairosIcons.Settings,
-                        contentDescription = if (updateAvailable || approvalsBadge) "Settings (needs attention)" else "Settings",
-                        tint = OnSidebar.copy(alpha = 0.85f),
-                        modifier = Modifier.size(22.dp),
-                    )
+            Row(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onOpenSettings() }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(contentAlignment = Alignment.TopEnd) {
+                    Avatar(person)
+                    if (updateAvailable || approvalsBadge) {
+                        Box(
+                            Modifier
+                                .size(11.dp)
+                                .clip(CircleShape)
+                                .background(KairosThemeState.sidebar)
+                                .padding(1.5.dp)
+                                .clip(CircleShape)
+                                .background(UpdateDot),
+                        )
+                    }
                 }
-                if (updateAvailable || approvalsBadge) {
-                    Box(
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 6.dp, end = 6.dp)
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(KairosThemeState.sidebar)
-                            .padding(1.5.dp)
-                            .clip(CircleShape)
-                            .background(UpdateDot),
-                    )
-                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    person.name,
+                    color = OnSidebar,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             IconButton(onClick = onSignOut) {
                 Icon(
@@ -310,9 +308,12 @@ private fun FooterPerson(
         }
     } else {
         Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
-            Box(contentAlignment = Alignment.TopEnd) {
+            Box(
+                Modifier.clip(CircleShape).clickable { onOpenSettings() },
+                contentAlignment = Alignment.TopEnd,
+            ) {
                 Avatar(person)
-                if (updateAvailable) {
+                if (updateAvailable || approvalsBadge) {
                     Box(
                         Modifier
                             .size(11.dp)

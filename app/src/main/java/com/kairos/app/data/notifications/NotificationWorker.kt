@@ -18,7 +18,17 @@ class NotificationWorker(
     override suspend fun doWork(): Result {
         runCatching { NotificationScheduler.refresh(applicationContext) }
         runCatching {
-            (applicationContext as? com.kairos.app.KairosApp)?.container?.updateChecker?.check()
+            val container = (applicationContext as? com.kairos.app.KairosApp)?.container
+            val checker = container?.updateChecker
+            checker?.check()
+            val avail = checker?.available?.value
+            val settings = container?.settingsStore
+            // Notify once per new version (icon dot + tray), never re-nagging the
+            // same one every couple of hours.
+            if (avail != null && settings != null && avail.versionCode > settings.lastUpdateNotified()) {
+                Notifications.postUpdate(applicationContext, avail.versionName)
+                settings.setLastUpdateNotified(avail.versionCode)
+            }
         }
         return Result.success()
     }
