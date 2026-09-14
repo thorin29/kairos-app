@@ -96,6 +96,7 @@ fun AddressSearchScreen(
 
     var showSave by remember { mutableStateOf(false) }
     var saveName by remember { mutableStateOf("") }
+    var saveAddress by remember { mutableStateOf("") }
     var saveNavByName by remember { mutableStateOf(true) }
     var dup by remember { mutableStateOf<AddressDuplicateDto?>(null) }
     var submitting by remember { mutableStateOf(false) }
@@ -121,12 +122,14 @@ fun AddressSearchScreen(
     val exact = q.isNotEmpty() && addresses.any { it.address.trim().lowercase() == q }
     val canSave = query.trim().isNotEmpty() && !exact
 
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+
     fun submit(force: Boolean) {
-        if (saveName.isBlank()) return
+        if (saveName.isBlank() || saveAddress.isBlank()) return
         submitting = true
         scope.launch {
             val res = runCatching {
-                repo.submitAddress(saveName.trim(), query.trim(), saveNavByName, force)
+                repo.submitAddress(saveName.trim(), saveAddress.trim(), saveNavByName, force)
             }.getOrNull()
             submitting = false
             if (res == null) return@launch
@@ -134,8 +137,16 @@ fun AddressSearchScreen(
                 dup = res.duplicate
                 return@launch
             }
+            // Non-admins' saves go to the approval queue; let them know.
+            if (res.status.equals("PENDING", ignoreCase = true)) {
+                android.widget.Toast.makeText(
+                    ctx,
+                    "Sent to an admin for approval.",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
             showSave = false
-            onPick(query.trim())
+            onPick(saveAddress.trim())
         }
     }
 
@@ -206,6 +217,7 @@ fun AddressSearchScreen(
                             modifier = Modifier.fillMaxWidth()
                                 .clickable {
                                     saveName = ""
+                                    saveAddress = query.trim()
                                     saveNavByName = true
                                     dup = null
                                     showSave = true
@@ -224,16 +236,19 @@ fun AddressSearchScreen(
             title = { Text("Save address") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        query.trim(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     OutlinedTextField(
                         value = saveName,
                         onValueChange = { saveName = it },
-                        label = { Text("Short name") },
+                        label = { Text("Friendly name") },
+                        placeholder = { Text("e.g. Iceplex") },
                         singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = saveAddress,
+                        onValueChange = { saveAddress = it },
+                        label = { Text("Full address") },
+                        singleLine = false,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Row(
@@ -267,7 +282,7 @@ fun AddressSearchScreen(
                     }
                 } else {
                     TextButton(
-                        enabled = !submitting && saveName.isNotBlank(),
+                        enabled = !submitting && saveName.isNotBlank() && saveAddress.isNotBlank(),
                         onClick = { submit(false) },
                     ) { Text("Save") }
                 }

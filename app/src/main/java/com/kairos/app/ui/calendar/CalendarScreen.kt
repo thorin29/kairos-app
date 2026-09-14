@@ -1382,8 +1382,17 @@ private fun EventDetailScreen(
             } else {
                 null
             }
+            // Give the request an explicit size so Coil loads it immediately
+            // instead of waiting to be drawn — the success-gating below would
+            // otherwise deadlock on a cold cache (never drawn -> never sized ->
+            // never loads -> never shown), which is why images vanished after a
+            // reinstall cleared Coil's cache.
+            val bgCtx = androidx.compose.ui.platform.LocalContext.current
             val bgPainter = rememberAsyncImagePainter(
-                model = bgModel,
+                model = coil.request.ImageRequest.Builder(bgCtx)
+                    .data(bgModel)
+                    .size(coil.size.Size.ORIGINAL)
+                    .build(),
                 imageLoader = detailContainer.imageLoader,
             )
             // Only show the banner once the art actually loads. Events whose image

@@ -1,4 +1,8 @@
 # Changelog
+## 0.194.0
+- Fixed event pictures (birthdays, holidays, and other events) not appearing on the event details screen after an app update. They load reliably now, and events without a picture still show no banner.
+- The “Save … for next time” address popup now shows both a Friendly name and the Full address, so it’s clear exactly what’s being saved. For non-admins, saved addresses go to an admin for approval.
+
 ## 0.193.0
 - You now get a notification (and the dot on the app icon) when an app update is available, so you can update from your own phone — no need to ask anyone for a code. Tapping it opens the update screen.
 - Tap your profile photo to open Settings (the separate gear button is gone). The update dot now shows on your profile.
