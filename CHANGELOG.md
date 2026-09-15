@@ -1,4 +1,9 @@
 # Changelog
+## 0.200.0
+- The Game time detail view now has a white background and the gamerscore “G” badge is properly centered.
+- Swiping back (or the back button) now closes an open calendar event, add/edit sheet, or game detail — returning to the previous screen instead of jumping to Home.
+- (Also includes “Recover this phone” self-service re-enrollment from the previous build.)
+
 ## 0.199.0
 - Added “Recover this phone” to the setup screen: enter your username and password, get a one-time code emailed to you, and set the phone back up yourself — no admin or home PC needed.
 

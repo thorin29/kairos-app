@@ -1,5 +1,6 @@
 package com.kairos.app.ui.games
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,8 +67,10 @@ fun GamesScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
     var selected by remember { mutableStateOf<GamePersonDto?>(null) }
+    BackHandler(enabled = selected != null) { selected = null }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Game time") },
@@ -228,7 +233,14 @@ private fun StatusRow(p: GamePersonDto) {
                     Modifier.size(16.dp).clip(CircleShape).background(XboxGreen),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("G", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "G",
+                        color = Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
+                    )
                 }
                 Text(
                     "%,d".format(it),

@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -114,6 +115,15 @@ fun CalendarScreen(
     var showAdd by remember { mutableStateOf(false) }
     var selectedEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
     var editingEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
+    // System back / swipe-back should close an open overlay, not fall through to
+    // the nav stack (which would jump to Home).
+    BackHandler(enabled = selectedEvent != null || editingEvent != null || showAdd) {
+        when {
+            selectedEvent != null -> { selectedEvent = null; vm.clearDeleteError() }
+            editingEvent != null -> { editingEvent = null; vm.clearCreateError() }
+            showAdd -> { showAdd = false; vm.clearCreateError() }
+        }
+    }
     val data = ui.data
 
     Box(Modifier.fillMaxSize()) {
