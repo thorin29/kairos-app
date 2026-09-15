@@ -503,6 +503,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     TextButton(onClick = {
                         confirmSignOut = false
                         open = false
+                        com.kairos.app.ui.calendar.CalendarSnapshot.clear()
                         scope.launch { container.sessionRepository.signOut() }
                     }) { Text("Sign out") }
                 },

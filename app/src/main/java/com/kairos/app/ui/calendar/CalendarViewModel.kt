@@ -59,6 +59,15 @@ data class CalendarUiState(
  * The view the calendar opens to is a device preference ("last" = most recent, or
  * a pinned view); the current view is remembered as the last-used one.
  */
+/** Last-shown calendar data, held across navigation so returning to Calendar
+ *  renders instantly instead of a spinner. Keyed by view so it never paints the
+ *  wrong tab; refreshed in the background on each open; cleared on sign-out. */
+object CalendarSnapshot {
+    var data: CalendarDto? = null
+    var tab: CalTab? = null
+    fun clear() { data = null; tab = null }
+}
+
 class CalendarViewModel(
     private val session: SessionRepository,
     private val settings: SettingsStore,
@@ -161,7 +170,16 @@ class CalendarViewModel(
         viewModelScope.launch {
             val def = settings.currentCalendarDefaultView()
             val start = if (def == "last") settings.currentCalendarLastView() else def
-            _ui.update { it.copy(tab = CalTab.fromServer(start), defaultView = def) }
+            val startTab = CalTab.fromServer(start)
+            val cached = if (CalendarSnapshot.tab == startTab) CalendarSnapshot.data else null
+            _ui.update {
+                it.copy(
+                    tab = startTab,
+                    defaultView = def,
+                    data = cached ?: it.data,
+                    date = cached?.date ?: it.date,
+                )
+            }
             load()
         }
     }
@@ -180,6 +198,8 @@ class CalendarViewModel(
             try {
                 val data = loadCal(s.tab.serverValue, s.date)
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
+                CalendarSnapshot.data = data
+                CalendarSnapshot.tab = s.tab
                 if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
                 if (s.tab == CalTab.AGENDA) _pages.update { it + (data.date to data) }
                 if (s.tab == CalTab.THREE_DAY) {

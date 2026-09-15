@@ -1,4 +1,7 @@
 # Changelog
+## 0.206.0
+- Returning to the Calendar now shows its last view instantly (kept in memory across navigation) and refreshes in the background, instead of a spinner. Navigation itself is unchanged.
+
 ## 0.205.0
 - Fixed navigation being stuck on the first-visited page (the 0.204 state-preservation change was incompatible with the shared section route). Cache fallback and the refresh line are unchanged.
 
