@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -56,10 +58,9 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /**
- * The Log workout page. Mirrors the web (src/app/person/[id]/workout-launcher +
- * workout-card TodayPlan): a "Today's plan" card with a "today's max" input per
- * movement and a Log button. The "Log a different workout" section (the custom
- * ad-hoc form) is the next increment.
+ * The Log workout page. Shows every planned workout for the day (Core, Arms) as
+ * its own card with a value per movement and a Log button, a per-movement Skip
+ * (do part, skip the rest), and an Expire action to close a missed workout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +73,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
     )
     val ui by vm.ui.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
+    var confirmExpire by remember { mutableStateOf(false) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
 
@@ -119,7 +121,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                         }
                     }
 
-                    if (!ui.loggable || ui.inputs.isEmpty()) {
+                    if (!ui.loggable || ui.blocks.isEmpty()) {
                         Text(
                             "No scheduled workouts today.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -131,30 +133,18 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        OutlinedCard(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                ui.planName?.let {
-                                    Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                }
-                                Text(
-                                    ui.inputs.joinToString(" · ") { it.name },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                HorizontalDivider()
-                                ui.inputs.forEach { m -> MovementRow(m, vm) }
-                                Button(
-                                    onClick = { vm.save() },
-                                    enabled = !ui.saving,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    if (ui.saving) {
-                                        CircularProgressIndicator(Modifier.width(18.dp), strokeWidth = 2.dp)
-                                        Spacer(Modifier.width(8.dp))
-                                    }
-                                    Text("Log ${logNoun(ui.inputs)}")
-                                }
+                        ui.blocks.forEach { block -> WorkoutBlockCard(block, vm) }
+
+                        OutlinedButton(
+                            onClick = { confirmExpire = true },
+                            enabled = !ui.expiring,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (ui.expiring) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
                             }
+                            Text("Expire this workout")
                         }
                     }
 
@@ -185,6 +175,20 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
         )
     }
 
+    if (confirmExpire) {
+        AlertDialog(
+            onDismissRequest = { confirmExpire = false },
+            title = { Text("Expire this workout?") },
+            text = { Text("It will stop showing as due and won't count. Use this for a missed workout you're not going to make up.") },
+            confirmButton = {
+                TextButton(onClick = { confirmExpire = false; vm.expire() }) { Text("Expire") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmExpire = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     ui.conflict?.let { c ->
         AlertDialog(
             onDismissRequest = { vm.dismissConflict() },
@@ -202,6 +206,48 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                 TextButton(onClick = { vm.dismissConflict() }) { Text("Cancel") }
             },
         )
+    }
+}
+
+@Composable
+private fun WorkoutBlockCard(block: WorkoutBlock, vm: WorkoutLogViewModel) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    block.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                if (block.logged) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Logged",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            Text(
+                block.inputs.joinToString(" · ") { it.name },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HorizontalDivider()
+            block.inputs.forEach { m -> MovementRow(block.plannedWorkoutId, m, vm) }
+            Button(
+                onClick = { vm.saveBlock(block.plannedWorkoutId) },
+                enabled = !block.saving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (block.saving) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (block.logged) "Update ${logNoun(block.inputs)}" else "Log ${logNoun(block.inputs)}")
+            }
+        }
     }
 }
 
@@ -237,29 +283,50 @@ private fun utcMillisToIso(millis: Long): String =
         .format(DateTimeFormatter.ISO_DATE)
 
 @Composable
-private fun MovementRow(m: MovementInput, vm: WorkoutLogViewModel) {
+private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel) {
     val maxHint = m.metric == "WEIGHT"
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(m.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            if (maxHint) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    "today's max",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    m.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
                 )
+                if (maxHint && !m.skipped) {
+                    Text(
+                        "today's max",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            TextButton(onClick = { vm.toggleSkip(planId, m.poolExerciseId) }) {
+                Text(if (m.skipped) "Undo" else "Skip")
             }
         }
-        OutlinedTextField(
-            value = m.value,
-            onValueChange = { vm.onValue(m.poolExerciseId, it) },
-            placeholder = { Text(if (maxHint) "today's max" else "0") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.width(128.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!m.skipped) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = m.value,
+                    onValueChange = { vm.onValue(planId, m.poolExerciseId, it) },
+                    placeholder = { Text(if (maxHint) "today's max" else "0") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.width(160.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            Text(
+                "Skipped",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

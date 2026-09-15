@@ -1,4 +1,9 @@
 # Changelog
+## 0.202.0
+- Log workout now shows every planned workout for the day (e.g. Core and Arms), each with its own Log button.
+- Skip a single exercise (do part of a workout, skip the rest) with a per-movement Skip toggle.
+- Expire a missed workout to close it so it stops showing as due.
+
 ## 0.201.0
 - Added a sorbet icon for grocery items like Island Way Sorbet.
 

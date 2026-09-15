@@ -156,6 +156,9 @@ interface ApiService {
     @POST("workouts/rest")
     suspend fun workoutRest(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
 
+    @POST("workouts/expire")
+    suspend fun workoutExpire(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
+
     @GET("workouts")
     suspend fun workoutPlan(@Query("date") date: String? = null): Response<WorkoutPlanDto>
 

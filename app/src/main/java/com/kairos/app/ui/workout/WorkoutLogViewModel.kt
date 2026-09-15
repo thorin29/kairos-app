@@ -9,6 +9,7 @@ import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import com.kairos.app.data.remote.dto.WorkoutConflictDto
 import com.kairos.app.data.remote.dto.WorkoutLogRequest
 import com.kairos.app.data.remote.dto.WorkoutPlanDto
+import com.kairos.app.data.remote.dto.WorkoutBlockDto
 import com.kairos.app.data.remote.dto.PlannedEntryDto
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,33 +18,46 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** One editable movement row: a single value typed by the movement's metric. */
+/** One editable movement row: a value typed by the movement's metric, plus a
+ *  skipped flag (the user is doing part of the workout and skipping this one). */
 data class MovementInput(
     val poolExerciseId: String,
     val name: String,
     val metric: String,
     val unit: String,
     val value: String,
+    val skipped: Boolean = false,
+)
+
+/** One planned workout for the day (e.g. Core, Arms). A day can have several. */
+data class WorkoutBlock(
+    val plannedWorkoutId: String,
+    val name: String,
+    val inputs: List<MovementInput>,
+    val saving: Boolean = false,
+    val logged: Boolean = false,
 )
 
 data class WorkoutLogUiState(
     val loading: Boolean = true,
     val loggable: Boolean = false,
-    val planName: String? = null,
     val date: String? = null,
-    val inputs: List<MovementInput> = emptyList(),
-    val loadError: String? = null,
+    val planName: String? = null,
     val saving: Boolean = false,
+    val blocks: List<WorkoutBlock> = emptyList(),
+    val loadError: String? = null,
     val actionError: String? = null,
     val done: Boolean = false,
     val conflict: WorkoutConflictDto? = null,
+    val conflictPlanId: String? = null,
     val savedTick: Int = 0,
+    val expiring: Boolean = false,
 )
 
 /**
- * Logging state for a planned workout (e.g. "Legs") — one value per movement.
- * [initialDate] null means "today"; the server resolves it and returns the
- * concrete date used for writes.
+ * Logging state for a day's planned workouts — every planned block (Core, Arms)
+ * with one value per movement. [initialDate] null means "today"; the server
+ * resolves it and returns the concrete date used for writes.
  */
 class WorkoutLogViewModel(
     private val session: SessionRepository,
@@ -55,30 +69,42 @@ class WorkoutLogViewModel(
 
     private var date: String? = initialDate
     private var requestedDate: String? = initialDate
-    private var plannedWorkoutId: String? = null
 
     init {
         load()
     }
 
     fun load() {
-        _ui.update { it.copy(loading = it.inputs.isEmpty(), loadError = null) }
+        _ui.update { it.copy(loading = it.blocks.isEmpty(), loadError = null) }
         viewModelScope.launch {
             try {
                 val plan = freshPlan()
                 date = plan.date
-                plannedWorkoutId = plan.plannedWorkoutId
-                val inputs = plan.exercises.map { e ->
-                    MovementInput(
-                        poolExerciseId = e.poolExerciseId,
-                        name = e.name,
-                        metric = e.metric,
-                        unit = e.unit,
-                        value = e.value?.let { fmt(it) } ?: "",
+                val src: List<WorkoutBlockDto> = when {
+                    plan.workouts.isNotEmpty() -> plan.workouts
+                    plan.plannedWorkoutId != null -> listOf(
+                        WorkoutBlockDto(plan.plannedWorkoutId, plan.name ?: "Workout", plan.exercises),
+                    )
+                    else -> emptyList()
+                }
+                val blocks = src.map { b ->
+                    WorkoutBlock(
+                        plannedWorkoutId = b.plannedWorkoutId,
+                        name = b.name,
+                        inputs = b.exercises.map { e ->
+                            MovementInput(
+                                poolExerciseId = e.poolExerciseId,
+                                name = e.name,
+                                metric = e.metric,
+                                unit = e.unit,
+                                value = e.value?.let { fmt(it) } ?: "",
+                            )
+                        },
                     )
                 }
+                val planName = if (blocks.isEmpty()) null else blocks.joinToString(" \u00b7 ") { it.name }
                 _ui.update {
-                    it.copy(loading = false, loggable = plan.loggable, planName = plan.name, date = plan.date, inputs = inputs)
+                    it.copy(loading = false, loggable = plan.loggable, date = plan.date, blocks = blocks, planName = planName)
                 }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
@@ -94,8 +120,6 @@ class WorkoutLogViewModel(
         load()
     }
 
-    /** Load today's plan and re-apply any queued complete/rest/log so a workout
-     *  marked offline still reads as done (loggable = false) until it syncs. */
     private suspend fun freshPlan(): WorkoutPlanDto =
         applyPending(session.loadWorkout(requestedDate), session.pendingWrites())
 
@@ -107,7 +131,7 @@ class WorkoutLogViewModel(
         for (w in pending) {
             val path = w.url.substringAfter("/api/v1/", "")
             val d = when (path) {
-                "workouts/complete", "workouts/uncomplete", "workouts/rest" ->
+                "workouts/complete", "workouts/uncomplete", "workouts/rest", "workouts/expire" ->
                     parse(w.body, WorkoutDateRequest.serializer())?.date
                 "workouts/log" -> parse(w.body, WorkoutLogRequest.serializer())?.date
                 else -> null
@@ -119,60 +143,100 @@ class WorkoutLogViewModel(
         return plan.copy(loggable = loggable)
     }
 
-    fun onValue(id: String, v: String) {
+    fun onValue(planId: String, exId: String, v: String) {
         _ui.update { s ->
-            s.copy(inputs = s.inputs.map { if (it.poolExerciseId == id) it.copy(value = v) else it }, actionError = null)
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.plannedWorkoutId != planId) b
+                    else b.copy(inputs = b.inputs.map { if (it.poolExerciseId == exId) it.copy(value = v) else it })
+                },
+                actionError = null,
+            )
         }
     }
 
-    fun save(replace: Boolean = false) {
+    /** Toggle "skip" for one movement — greys it and excludes it from the log. */
+    fun toggleSkip(planId: String, exId: String) {
+        _ui.update { s ->
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.plannedWorkoutId != planId) b
+                    else b.copy(inputs = b.inputs.map {
+                        if (it.poolExerciseId == exId) it.copy(skipped = !it.skipped, value = if (!it.skipped) "" else it.value) else it
+                    })
+                },
+            )
+        }
+    }
+
+    /** Log one block's entered (non-skipped) movements. Other blocks stay open. */
+    fun saveBlock(planId: String, replace: Boolean = false) {
         val d = date ?: return
-        val planId = plannedWorkoutId ?: return
-        _ui.update { it.copy(saving = true, actionError = null) }
+        val block = _ui.value.blocks.find { it.plannedWorkoutId == planId } ?: return
+        _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = true) else it }, actionError = null) }
         viewModelScope.launch {
             try {
-                val entries = _ui.value.inputs.mapNotNull { m ->
+                val entries = block.inputs.filter { !it.skipped }.mapNotNull { m ->
                     m.value.trim().toDoubleOrNull()?.let { v ->
                         PlannedEntryDto(m.poolExerciseId, m.metric, v, m.unit)
                     }
                 }
-                val ack = session.logWorkout(
-                    d, planId, entries, replace = replace, detectConflict = true,
-                )
+                val ack = session.logWorkout(d, planId, entries, replace = replace, detectConflict = true)
                 if (ack.status == "conflict" && ack.conflict != null) {
-                    _ui.update { it.copy(saving = false, conflict = ack.conflict) }
+                    _ui.update { s ->
+                        s.copy(
+                            blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = false) else it },
+                            conflict = ack.conflict, conflictPlanId = planId,
+                        )
+                    }
                 } else {
-                    _ui.update {
-                        it.copy(saving = false, done = true, savedTick = it.savedTick + 1)
+                    _ui.update { s ->
+                        s.copy(
+                            blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = false, logged = true) else it },
+                            savedTick = s.savedTick + 1,
+                        )
                     }
                 }
             } catch (e: ApiException) {
-                _ui.update { it.copy(saving = false, actionError = e.error.message) }
+                _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = false) else it }, actionError = e.error.message) }
             }
         }
     }
 
     /** "Update" on the already-logged prompt: overwrite the existing entry. */
     fun confirmReplace() {
-        _ui.update { it.copy(conflict = null) }
-        save(replace = true)
+        val planId = _ui.value.conflictPlanId ?: return
+        _ui.update { it.copy(conflict = null, conflictPlanId = null) }
+        saveBlock(planId, replace = true)
     }
 
-    fun dismissConflict() = _ui.update { it.copy(conflict = null) }
+    fun dismissConflict() = _ui.update { it.copy(conflict = null, conflictPlanId = null) }
 
-    fun markDone() = quick { session.workoutComplete(it) }
-    fun restDay() = quick { session.workoutRest(it) }
-
-    private fun quick(block: suspend (String) -> Unit) {
+    /** Mark the day a rest day (SKIPPED). Used from the workouts overview. */
+    fun restDay() {
         val d = date ?: return
         _ui.update { it.copy(saving = true, actionError = null) }
         viewModelScope.launch {
             try {
-                block(d)
+                session.workoutRest(d)
                 _ui.update { it.copy(saving = false, done = true, savedTick = it.savedTick + 1) }
                 load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(saving = false, actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Close a missed/overdue workout for the day so it stops showing. */
+    fun expire() {
+        val d = date ?: return
+        _ui.update { it.copy(expiring = true, actionError = null) }
+        viewModelScope.launch {
+            try {
+                session.workoutExpire(d)
+                _ui.update { it.copy(expiring = false, done = true, savedTick = it.savedTick + 1) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(expiring = false, actionError = e.error.message) }
             }
         }
     }

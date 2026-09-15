@@ -257,9 +257,19 @@ data class WorkoutConflictDto(
 // --- Detailed workout logging (planned workouts) ---
 
 @Serializable
+data class WorkoutBlockDto(
+    val plannedWorkoutId: String,
+    val name: String,
+    val exercises: List<PlannedMovementDto> = emptyList(),
+)
+
+@Serializable
 data class WorkoutPlanDto(
     val date: String,
     val loggable: Boolean = false,
+    // All of the day's planned workouts (Core, Arms, ...). Legacy single fields
+    // below remain for older payloads.
+    val workouts: List<WorkoutBlockDto> = emptyList(),
     val plannedWorkoutId: String? = null,
     val name: String? = null,
     val exercises: List<PlannedMovementDto> = emptyList(),
