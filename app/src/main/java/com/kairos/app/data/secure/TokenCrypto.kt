@@ -62,6 +62,10 @@ object TokenCrypto {
         return (ks.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.secretKey
     }
 
+    /** True if the Keystore holds our key. Diagnostics only — distinguishes a
+     *  missing key from corrupt ciphertext when a decrypt fails. */
+    fun aliasExists(): Boolean = existingKey() != null
+
     private fun getOrCreateKey(): SecretKey {
         existingKey()?.let { return it }
 

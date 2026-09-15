@@ -29,6 +29,10 @@ class TokenStore(private val dataStore: DataStore<Preferences>) {
         return cached
     }
 
+    /** Whether an encrypted token blob is stored, regardless of whether it can be
+     *  decrypted — lets startup tell "never enrolled" from "can't decrypt". */
+    suspend fun blobExists(): Boolean = dataStore.data.first()[KEY_TOKEN] != null
+
     suspend fun save(token: String) {
         val blob = TokenCrypto.encrypt(token)
         dataStore.edit { it[KEY_TOKEN] = blob }

@@ -13,6 +13,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,10 @@ fun AuthFlow() {
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
     var showForgot by remember { mutableStateOf(false) }
+    var diag by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        diag = runCatching { container.settingsStore.enrollLossReason() }.getOrNull()
+    }
 
     Column(
         Modifier.fillMaxSize().padding(24.dp),
@@ -81,6 +86,16 @@ fun AuthFlow() {
         TextButton(onClick = {
             scope.launch { container.sessionRepository.changeServer() }
         }) { Text("Change server") }
+
+        diag?.let {
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Last sign-out reason (for troubleshooting):\n$it",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 
     if (showForgot) {

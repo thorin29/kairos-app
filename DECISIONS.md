@@ -797,3 +797,27 @@ the user taps "Update" on the system installer — and releasing stays a deliber
   but Android Doze and OEM battery-killers defer/kill background periodic work
   when the app is closed, so it effectively fires on next open. Guaranteed prompt
   delivery would require FCM push (server-sent on release) — not built.
+
+## Enrollment-loss diagnostics (0.198)
+
+Third recurrence of "phone forced to re-enroll while the web shows the device
+Active". The 0.192 fixes (generic-401, no-new-key-on-decrypt, safe logout) are
+all present and verified. Ruled out this round: **backup** (`allowBackup=false`,
+no restore-mismatch) and **key auth-binding** (`setUserAuthenticationRequired(false)`,
+so a lock-screen change can't invalidate the key and it's readable at boot) — so
+a transient decrypt-failure is unlikely; the live suspects are a genuine
+server `unauthenticated` clearing the token, or a hard Keystore key loss.
+
+Rather than guess a fourth fix, we **instrumented** it: `noteEnrollLoss(reason)`
+persists a safe reason (never the token) at every mysterious loss point —
+`decrypt_failed@boot` (with keyAlias present?) vs `no_token@boot`,
+`server_unauthenticated@boot|api|refreshMe` — plus app version + timestamp,
+shown on the setup screen as "Last sign-out reason". `TokenStore.blobExists()` +
+`TokenCrypto.aliasExists()` distinguish never-enrolled from can't-decrypt.
+
+Next (agreed, not yet built): **self-service recovery** — username/password +
+emailed one-time code to re-enroll from the phone, no admin PC (the real fix for
+the "locked out while away from home" failure mode). Longer term: a device
+keypair in Keystore so API tokens can be reissued by proving device possession,
+removing re-enrollment entirely. Until then, when it recurs, READ the setup
+screen's "Last sign-out reason" to learn the actual cause.

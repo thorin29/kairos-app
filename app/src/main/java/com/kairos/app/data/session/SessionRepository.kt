@@ -86,6 +86,16 @@ class SessionRepository(
     }
 
     /** Decide the start destination on launch. */
+    /** Persist why an enrolled phone lost its session, so the next occurrence is
+     *  diagnosable instead of a mystery. Safe metadata only — never the token. */
+    private suspend fun noteEnrollLoss(reason: String) {
+        runCatching {
+            settings.setEnrollLossReason(
+                "$reason · v${com.kairos.app.BuildConfig.VERSION_NAME} · ${java.util.Date()}",
+            )
+        }
+    }
+
     suspend fun bootstrap() {
         val url = settings.currentBaseUrl()
         if (url.isNullOrBlank()) {
@@ -93,8 +103,13 @@ class SessionRepository(
             return
         }
         rebuildService(url)
+        val hadBlob = tokens.blobExists()
         val token = tokens.load()
         if (token.isNullOrBlank()) {
+            noteEnrollLoss(
+                if (hadBlob) "decrypt_failed@boot keyAlias=${TokenCrypto.aliasExists()}"
+                else "no_token@boot",
+            )
             _state.value = SessionState.NeedsEnroll
             return
         }
@@ -125,6 +140,7 @@ class SessionRepository(
                     }
                     is ApiError.Unauthenticated -> {
                         // The token really is dead server-side \u2014 re-enroll.
+                        noteEnrollLoss("server_unauthenticated@boot")
                         tokens.clear()
                         clearOfflineWrites()
                         _state.value = SessionState.NeedsEnroll
@@ -801,6 +817,7 @@ class SessionRepository(
                     // Keep the device token; the app shows a password prompt.
                     _state.value = SessionState.NeedsReauth(null)
                 is ApiError.Unauthenticated -> {
+                    noteEnrollLoss("server_unauthenticated@api")
                     tokens.clear()
                     clearOfflineWrites()
                     _state.value = SessionState.NeedsEnroll
@@ -827,6 +844,7 @@ class SessionRepository(
             _state.value = SessionState.Ready(person)
         } catch (e: ApiException) {
             if (e.error is ApiError.Unauthenticated) {
+                noteEnrollLoss("server_unauthenticated@refreshMe")
                 tokens.clear()
                 clearOfflineWrites()
                 _state.value = SessionState.NeedsEnroll
@@ -836,6 +854,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 249
+        const val CLIENT_BUILD = 250
     }
 }

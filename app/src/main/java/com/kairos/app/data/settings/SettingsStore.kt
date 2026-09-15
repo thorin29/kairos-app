@@ -176,6 +176,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_LAST_UPDATE_NOTIFIED] = code }
     }
 
+    suspend fun enrollLossReason(): String? = dataStore.data.first()[KEY_ENROLL_LOSS]
+
+    suspend fun setEnrollLossReason(v: String) {
+        dataStore.edit { it[KEY_ENROLL_LOSS] = v }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_LOCKED_PERSON = stringPreferencesKey("locked_person_json")
@@ -189,6 +195,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_SEEN_RECUR_NODUE = booleanPreferencesKey("seen_recur_nodue")
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_LAST_UPDATE_NOTIFIED = intPreferencesKey("last_update_notified_code")
+        val KEY_ENROLL_LOSS = stringPreferencesKey("enroll_loss_reason")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
         val KEY_DELIVERED = stringPreferencesKey("notif.deliveredCodes")
