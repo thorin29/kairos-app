@@ -12,6 +12,10 @@ import okhttp3.Response as OkResponse
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import okio.Buffer
 import java.util.UUID
 import retrofit2.Response
@@ -101,6 +105,15 @@ object ApiClient {
     }
 }
 
+/** In-flight background GET refreshes, so the UI can show a thin progress line
+ *  while data is being refreshed behind already-visible content. */
+object RefreshTracker {
+    private val _active = MutableStateFlow(0)
+    val active: StateFlow<Int> = _active.asStateFlow()
+    fun begin() { _active.update { it + 1 } }
+    fun end() { _active.update { (it - 1).coerceAtLeast(0) } }
+}
+
 /** Network interceptor (online path only): make GET responses storable in the
  *  disk cache even though the server marks them no-cache. A tiny max-age keeps
  *  data effectively live online while giving offline a copy to fall back on. */
@@ -126,7 +139,28 @@ private class OfflineInterceptor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): OkResponse {
         val req = chain.request()
-        if (monitor.isOnline()) return chain.proceed(req)
+        if (monitor.isOnline()) {
+            if (req.method != "GET") return chain.proceed(req)
+            // Online GET: hit the network, but count it so the UI can show a thin
+            // refresh line, and if the server is actually unreachable/slow (Wi-Fi
+            // up but Kairos down) fall back to the cached copy instead of failing.
+            RefreshTracker.begin()
+            try {
+                return chain.proceed(req)
+            } catch (e: IOException) {
+                val cached = req.newBuilder()
+                    .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")
+                    .build()
+                val res = chain.proceed(cached)
+                if (res.code == 504) {
+                    res.close()
+                    throw e
+                }
+                return res
+            } finally {
+                RefreshTracker.end()
+            }
+        }
 
         if (req.method != "GET") {
             val path = req.url.encodedPath

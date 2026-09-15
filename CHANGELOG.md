@@ -1,4 +1,9 @@
 # Changelog
+## 0.204.0
+- Navigation is instant: returning to a section shows its last data immediately instead of a spinner (its state is preserved).
+- Screens fall back to cached data when the server is unreachable, even if the phone reports it's online.
+- A thin progress line at the top shows when data is refreshing in the background.
+
 ## 0.203.0
 - Sport attendance prompts now stick around until answered \u2014 a practice nobody confirmed keeps its Yes/No prompt (with the day shown) instead of disappearing after that day.
 

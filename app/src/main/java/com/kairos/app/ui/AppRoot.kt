@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -155,6 +156,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val syncRevision by container.syncManager.revision.collectAsState()
     val updateInfo by container.updateChecker.available.collectAsState()
     val pendingRoute by container.pendingRoute.collectAsState()
+    val refreshing by com.kairos.app.data.remote.RefreshTracker.active.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
@@ -223,8 +225,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         selectedKey = key
         open = false
         navController.navigate(route) {
-            popUpTo(Route.Home)
+            // Preserve each section's state (and its ViewModel + in-memory data)
+            // when leaving, and restore it on return — so coming back to a
+            // section shows its last data instantly instead of rebuilding from a
+            // spinner.
+            popUpTo(Route.Home) { saveState = true }
             launchSingleTop = true
+            restoreState = true
         }
     }
 
@@ -504,6 +511,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             ) {
                 Text("You'll need your password and a device code to sign in again on this phone.")
             }
+        }
+
+        if (refreshing > 0) {
+            LinearProgressIndicator(
+                Modifier.fillMaxWidth().align(Alignment.TopCenter),
+            )
         }
 
         OfflineBanner(online = online, pending = pendingWrites, syncing = syncing, modifier = Modifier.align(Alignment.BottomCenter))
