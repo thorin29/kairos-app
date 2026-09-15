@@ -122,7 +122,13 @@ private fun PersonCard(p: GamePersonDto, onClick: () -> Unit) {
             ) {
                 AvatarCircle(p, 40.dp)
                 Column(Modifier.weight(1f)) {
-                    Text(p.name, style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(p.name, style = MaterialTheme.typography.titleMedium)
+                        PlatformIcons(p.platforms)
+                    }
                     StatusRow(p)
                 }
             }
@@ -153,7 +159,13 @@ private fun PersonDetail(p: GamePersonDto, onBack: (() -> Unit)?) {
         ) {
             AvatarCircle(p, 48.dp)
             Column(Modifier.weight(1f)) {
-                Text(p.name, style = MaterialTheme.typography.titleLarge)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(p.name, style = MaterialTheme.typography.titleLarge)
+                    PlatformIcons(p.platforms)
+                }
                 StatusRow(p)
             }
         }
@@ -181,6 +193,22 @@ private fun AvatarCircle(p: GamePersonDto, diameter: Dp) {
         contentAlignment = Alignment.Center,
     ) {
         Text(initials(p.name), color = Color.White, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun PlatformIcons(platforms: List<String>) {
+    if (platforms.isEmpty()) return
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (platforms.contains("xbox")) {
+            Icon(KairosIcons.Xbox, "Xbox", tint = XboxGreen, modifier = Modifier.size(15.dp))
+        }
+        if (platforms.contains("steam")) {
+            Icon(KairosIcons.Steam, "Steam", tint = Color(0xFF1B2838), modifier = Modifier.size(15.dp))
+        }
     }
 }
 

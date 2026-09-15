@@ -1,4 +1,7 @@
 # Changelog
+## 0.196.0
+- Game time on the phone now shows a small Xbox or Steam icon by each person, matching the web — based on which system they actually play on.
+
 ## 0.195.0
 - Game time on the phone now matches the web: parents can tap any person’s card to open a detailed view with their stats, a Sunday–Saturday bar chart of the week, and their games. A child sees their own detailed view as the main screen. Gamerscore shows as a green “G” badge and the wallet balance with a wallet icon.
 

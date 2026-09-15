@@ -1726,6 +1726,7 @@ data class GamePersonDto(
     val gamerpic: String? = null,
     val hasGamePass: Boolean? = null,
     val msBalance: String? = null,
+    val platforms: List<String> = emptyList(),
     val weekDaily: List<WeekDayDto> = emptyList(),
 )
 
