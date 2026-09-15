@@ -38,6 +38,7 @@ fun AuthFlow() {
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
     var showForgot by remember { mutableStateOf(false) }
+    var showRecover by remember { mutableStateOf(false) }
     var diag by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         diag = runCatching { container.settingsStore.enrollLossReason() }.getOrNull()
@@ -83,6 +84,9 @@ fun AuthFlow() {
         TextButton(onClick = { showForgot = true }) {
             Text("Forgot your password?")
         }
+        TextButton(onClick = { showRecover = true }) {
+            Text("Recover this phone")
+        }
         TextButton(onClick = {
             scope.launch { container.sessionRepository.changeServer() }
         }) { Text("Change server") }
@@ -100,5 +104,8 @@ fun AuthFlow() {
 
     if (showForgot) {
         ForgotPasswordDialog(onDismiss = { showForgot = false })
+    }
+    if (showRecover) {
+        RecoverDialog(onDismiss = { showRecover = false })
     }
 }

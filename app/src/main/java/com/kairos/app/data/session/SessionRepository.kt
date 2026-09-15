@@ -107,7 +107,7 @@ class SessionRepository(
         val token = tokens.load()
         if (token.isNullOrBlank()) {
             noteEnrollLoss(
-                if (hadBlob) "decrypt_failed@boot keyAlias=${TokenCrypto.aliasExists()}"
+                if (hadBlob) "decrypt_failed@boot keyAlias=${com.kairos.app.data.secure.TokenCrypto.aliasExists()}"
                 else "no_token@boot",
             )
             _state.value = SessionState.NeedsEnroll
@@ -259,6 +259,17 @@ class SessionRepository(
 
     /** Redeem a join token: set/confirm the password and enroll this phone in one
      *  step, then go Ready. The unified onboarding path. */
+    /** Self-service recovery: verify the account's own password server-side; on
+     *  success the server emails a one-time join code, which the phone then
+     *  redeems via [join]. Needs both the password and the account's email. */
+    suspend fun startRecovery(identifier: String, password: String) {
+        apiCall {
+            requireService().recover(
+                com.kairos.app.data.remote.dto.LoginRequest(identifier.trim(), password),
+            )
+        }
+    }
+
     suspend fun join(token: String, password: String, deviceName: String?) {
         val svc = requireService()
         val res = apiCall {
@@ -854,6 +865,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 250
+        const val CLIENT_BUILD = 251
     }
 }

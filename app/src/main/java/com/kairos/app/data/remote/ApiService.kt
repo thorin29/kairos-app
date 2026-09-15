@@ -107,6 +107,9 @@ interface ApiService {
     @POST("auth/forgot")
     suspend fun forgot(@Body body: ForgotRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
+    @POST("auth/recover")
+    suspend fun recover(@Body body: LoginRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @POST("auth/refresh")
     suspend fun refresh(): Response<TokenResponse>
 

@@ -821,3 +821,19 @@ the "locked out while away from home" failure mode). Longer term: a device
 keypair in Keystore so API tokens can be reissued by proving device possession,
 removing re-enrollment entirely. Until then, when it recurs, READ the setup
 screen's "Last sign-out reason" to learn the actual cause.
+
+## Decision: device-keypair auth (#6) is deferred (Sep 2026)
+
+Considered rebuilding device auth around a non-exportable Android-Keystore device
+keypair with short-lived, reissuable API tokens (proof-of-possession) so a broken
+token self-heals without re-enrollment. **Decision: do not build it now.**
+
+Rationale: for a single household on trusted phones, the pain is "getting locked
+out is annoying," and that's solved by (a) 0.198 diagnostics (find the real
+cause) and (b) 0.199/web-0.369 self-service recovery (username+password+emailed
+code, no admin/PC). Rebuilding the most security-critical path for marginal gain
+is not worth the risk. Revisit ONLY if: the diagnostics reveal a systemic
+token-loss cause that only reissue-via-keypair fixes, OR Kairos becomes a real
+multi-user product (then it's part of a broader hardening — multi-tenant
+isolation, onboarding, short-lived tokens — not a standalone change). Until then
+the existing revocable device tokens + recovery are sufficient.

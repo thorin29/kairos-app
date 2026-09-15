@@ -1,4 +1,7 @@
 # Changelog
+## 0.199.0
+- Added “Recover this phone” to the setup screen: enter your username and password, get a one-time code emailed to you, and set the phone back up yourself — no admin or home PC needed.
+
 ## 0.198.0
 - Added diagnostics for the occasional “set up this phone” re-enrollment issue: the setup screen now shows the exact reason the phone was signed out (e.g. a server auth rejection vs. a token that couldn’t be decrypted), so the cause can finally be identified instead of guessed at.
 
