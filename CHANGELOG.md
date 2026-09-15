@@ -1,4 +1,7 @@
 # Changelog
+## 0.208.0
+- Switching calendar views (agenda/day/week/3-day/month) no longer spins each time \u2014 a view you've already opened stays cached and shows instantly, refreshing in the background. (Caches still clear after an edit so nothing goes stale.)
+
 ## 0.207.0
 - Calendar return is now fully instant: the visible page (not just the frame) is seeded from the snapshot, so the brief page spinner is gone too.
 

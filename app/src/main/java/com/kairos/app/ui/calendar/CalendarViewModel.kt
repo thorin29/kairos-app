@@ -259,10 +259,11 @@ class CalendarViewModel(
 
     fun setTab(tab: CalTab) {
         if (tab == _ui.value.tab) return
-        // Switching views always returns to today, rather than carrying over the
-        // date the previous view had been paged to.
+        // Switching views returns to today but KEEPS the pager caches, so a view
+        // you've already opened this session shows instantly instead of spinning.
+        // (Caches are only dropped after an edit — see clearPageCaches' intent —
+        // and load() below still refreshes the shown page in the background.)
         val today = _ui.value.data?.today
-        clearPageCaches()
         _ui.update { it.copy(tab = tab, date = today, navNonce = it.navNonce + 1) }
         viewModelScope.launch { settings.setCalendarLastView(tab.serverValue) }
         load()
