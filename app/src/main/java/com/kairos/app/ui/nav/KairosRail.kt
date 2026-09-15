@@ -308,11 +308,11 @@ private fun FooterPerson(
         }
     } else {
         Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
-            Box(
-                Modifier.clip(CircleShape).clickable { onOpenSettings() },
-                contentAlignment = Alignment.TopEnd,
-            ) {
-                Avatar(person)
+            // Dot is a sibling OUTSIDE the circular clip so it isn't cropped at the corner.
+            Box(contentAlignment = Alignment.TopEnd) {
+                Box(Modifier.clip(CircleShape).clickable { onOpenSettings() }) {
+                    Avatar(person)
+                }
                 if (updateAvailable || approvalsBadge) {
                     Box(
                         Modifier

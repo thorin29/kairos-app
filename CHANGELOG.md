@@ -1,4 +1,7 @@
 # Changelog
+## 0.197.0
+- Fixed the blue “update available” dot being slightly clipped on your profile picture in the collapsed side menu.
+
 ## 0.196.0
 - Game time on the phone now shows a small Xbox or Steam icon by each person, matching the web — based on which system they actually play on.
 

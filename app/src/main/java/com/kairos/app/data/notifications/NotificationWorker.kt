@@ -2,8 +2,10 @@ package com.kairos.app.data.notifications
 
 import android.content.Context
 import androidx.work.CoroutineWorker
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -39,7 +41,11 @@ class NotificationWorker(
         /** A safety-net periodic refresh (WorkManager's minimum granularity is
          *  coarse; exact alarms do the actual firing). */
         fun enqueuePeriodic(context: Context) {
-            val req = PeriodicWorkRequestBuilder<NotificationWorker>(2, TimeUnit.HOURS).build()
+            val req = PeriodicWorkRequestBuilder<NotificationWorker>(2, TimeUnit.HOURS)
+                .setConstraints(
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
+                )
+                .build()
             WorkManager.getInstance(context)
                 .enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, req)
         }

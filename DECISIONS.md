@@ -778,3 +778,22 @@ font color rather than a boxed field. The updater is feature-complete across all
 CI publishes releases (`release.yml`), the app detects them (badge, Phase 2), and now
 downloads + installs them (Phase 3). Still applies: a normal app can't install silently —
 the user taps "Update" on the system installer — and releasing stays a deliberate tag/manual act.
+
+## Game time screen (Sep 2026)
+
+- **Reads `GET /api/v1/game-time`** (device-authed), which returns per-person
+  rows scoped by the enrolled person (parent → household, child → self). The
+  screen shows the household list when >1 person and taps open a detail; a single
+  person (a child) lands straight on the detail as their main view.
+- **All the data is server-resolved.** The Steam-primary merge, totals, weekly
+  daily breakdown, status, and platforms all arrive computed — the app only
+  renders. `weekDaily` powers the Sun–Sat bar chart (drawn with plain Compose
+  bars, no chart lib).
+- **Icons:** gamerscore = green "G" badge, balance = wallet icon, platform =
+  Xbox/Steam logos (a `filled` KairosIcons helper for solid-fill brand marks vs
+  the usual stroked icons). Xbox green is `#107C10`.
+- **Update notification is best-effort.** The periodic `WorkManager` check posts
+  an "update available" notification (which also gives the launcher-icon dot),
+  but Android Doze and OEM battery-killers defer/kill background periodic work
+  when the app is closed, so it effectively fires on next open. Guaranteed prompt
+  delivery would require FCM push (server-sent on release) — not built.
