@@ -180,6 +180,7 @@ class CalendarViewModel(
                     date = cached?.date ?: it.date,
                 )
             }
+            if (cached != null) cachePages(startTab, cached)
             load()
         }
     }
@@ -200,28 +201,33 @@ class CalendarViewModel(
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
                 CalendarSnapshot.data = data
                 CalendarSnapshot.tab = s.tab
-                if (s.tab == CalTab.DAY) _pages.update { it + (data.date to data) }
-                if (s.tab == CalTab.AGENDA) _pages.update { it + (data.date to data) }
-                if (s.tab == CalTab.THREE_DAY) {
-                    data.rangeDays.forEach { day ->
-                        _pages.update { it + (day to data.copy(date = day, rangeDays = listOf(day))) }
-                    }
-                }
-                if (s.tab == CalTab.WEEK) {
-                    val ws = runCatching {
-                        val d = java.time.LocalDate.parse(data.date)
-                        d.minusDays((d.dayOfWeek.value % 7).toLong()).toString()
-                    }.getOrNull() ?: data.date
-                    _weekPages.update { it + (ws to data) }
-                }
-                if (s.tab == CalTab.MONTH) {
-                    val key = runCatching {
-                        java.time.LocalDate.parse(data.date).withDayOfMonth(1).toString()
-                    }.getOrNull() ?: data.date
-                    _monthPages.update { it + (key to data) }
-                }
+                cachePages(s.tab, data)
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
+            }
+        }
+    }
+
+    /** Seed the pager caches for a tab's data so the visible page renders without
+     *  its own spinner — used by load() and when restoring the snapshot. */
+    private fun cachePages(tab: CalTab, data: CalendarDto) {
+        when (tab) {
+            CalTab.DAY, CalTab.AGENDA -> _pages.update { it + (data.date to data) }
+            CalTab.THREE_DAY -> data.rangeDays.forEach { day ->
+                _pages.update { it + (day to data.copy(date = day, rangeDays = listOf(day))) }
+            }
+            CalTab.WEEK -> {
+                val ws = runCatching {
+                    val d = java.time.LocalDate.parse(data.date)
+                    d.minusDays((d.dayOfWeek.value % 7).toLong()).toString()
+                }.getOrNull() ?: data.date
+                _weekPages.update { it + (ws to data) }
+            }
+            CalTab.MONTH -> {
+                val key = runCatching {
+                    java.time.LocalDate.parse(data.date).withDayOfMonth(1).toString()
+                }.getOrNull() ?: data.date
+                _monthPages.update { it + (key to data) }
             }
         }
     }

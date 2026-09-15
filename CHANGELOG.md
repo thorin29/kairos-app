@@ -1,4 +1,7 @@
 # Changelog
+## 0.207.0
+- Calendar return is now fully instant: the visible page (not just the frame) is seeded from the snapshot, so the brief page spinner is gone too.
+
 ## 0.206.0
 - Returning to the Calendar now shows its last view instantly (kept in memory across navigation) and refreshes in the background, instead of a spinner. Navigation itself is unchanged.
 
