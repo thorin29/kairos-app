@@ -1,4 +1,7 @@
 # Changelog
+## 0.203.0
+- Sport attendance prompts now stick around until answered \u2014 a practice nobody confirmed keeps its Yes/No prompt (with the day shown) instead of disappearing after that day.
+
 ## 0.202.0
 - Log workout now shows every planned workout for the day (e.g. Core and Arms), each with its own Log button.
 - Skip a single exercise (do part of a workout, skip the rest) with a per-movement Skip toggle.

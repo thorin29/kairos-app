@@ -142,6 +142,7 @@ data class DashboardMoneyDto(
 data class SportPromptDto(
     val eventId: String = "",
     val title: String = "",
+    val dateISO: String = "",
 )
 
 @Serializable

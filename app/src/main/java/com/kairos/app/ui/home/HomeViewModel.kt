@@ -258,11 +258,13 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         )
 
     /** Answer a "Did you do X?" sport prompt (yes/no), then reload. */
-    fun answerSport(eventId: String, done: Boolean) {
-        val key = "sport-$eventId"
+    fun answerSport(eventId: String, dateISO: String, done: Boolean) {
+        val key = "sport-$eventId-$dateISO"
         if (_ui.value.busyIds.contains(key)) return
         _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
-        val date = _ui.value.dashboard?.date
+        // Answer for the occurrence the prompt is about (may be a carried-over
+        // earlier day), falling back to the dashboard day.
+        val date = if (dateISO.isNotBlank()) dateISO else _ui.value.dashboard?.date
         viewModelScope.launch {
             try {
                 if (done) session.sportConfirm(eventId, date) else session.sportDecline(eventId, date)

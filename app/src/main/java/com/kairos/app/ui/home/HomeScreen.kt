@@ -196,7 +196,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 item(key = "sport-prompts") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         d.sportPrompts.forEach { p ->
-                            SportPromptCard(p, ui.busyIds.contains("sport-${p.eventId}"), vm)
+                            SportPromptCard(p, d.date, ui.busyIds.contains("sport-${p.eventId}-${p.dateISO}"), vm)
                         }
                     }
                 }
@@ -327,26 +327,36 @@ private fun DetailLine(label: String, value: String) {
 }
 
 @Composable
+private fun sportDayLabel(iso: String): String = try {
+    java.time.LocalDate.parse(iso)
+        .dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
+} catch (e: Exception) { "" }
+
 private fun SportPromptCard(
     prompt: com.kairos.app.data.remote.dto.SportPromptDto,
+    today: String,
     busy: Boolean,
     vm: HomeViewModel,
 ) {
+    val extra =
+        if (today.isNotBlank() && prompt.dateISO.isNotBlank() && prompt.dateISO != today)
+            sportDayLabel(prompt.dateISO)
+        else ""
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                "Did you do ${prompt.title}?",
+                "Did you do ${prompt.title}?" + if (extra.isNotBlank()) " \u00b7 $extra" else "",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { vm.answerSport(prompt.eventId, true) },
+                    onClick = { vm.answerSport(prompt.eventId, prompt.dateISO, true) },
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
                 ) { Text("Yes") }
                 OutlinedButton(
-                    onClick = { vm.answerSport(prompt.eventId, false) },
+                    onClick = { vm.answerSport(prompt.eventId, prompt.dateISO, false) },
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
                 ) { Text("No") }
