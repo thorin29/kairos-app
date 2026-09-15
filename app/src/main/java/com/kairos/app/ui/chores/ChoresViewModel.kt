@@ -34,11 +34,13 @@ class ChoresViewModel(
     }
 
     fun load() {
+        if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.chores?.let { c -> _ui.update { it.copy(data = c) } }
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
             try {
                 val data = session.loadChores()
                 _ui.update { it.copy(loading = false, data = data) }
+                com.kairos.app.ui.common.ScreenSnapshots.chores = data
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
             }

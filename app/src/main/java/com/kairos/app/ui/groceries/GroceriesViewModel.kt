@@ -45,10 +45,13 @@ class GroceriesViewModel(
     init { load() }
 
     fun load() {
+        if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.groceries?.let { c -> _ui.update { it.copy(data = c) } }
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(loading = false, data = freshData()) }
+                val data = freshData()
+                _ui.update { it.copy(loading = false, data = data) }
+                com.kairos.app.ui.common.ScreenSnapshots.groceries = data
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, loadError = e.error.message) }
             }

@@ -36,10 +36,13 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
     }
 
     fun load() {
-        _ui.update { it.copy(loading = true, error = null) }
+        if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.tasks?.let { c -> _ui.update { it.copy(data = c) } }
+        _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(loading = false, data = freshData()) }
+                val data = freshData()
+                _ui.update { it.copy(loading = false, data = data) }
+                com.kairos.app.ui.common.ScreenSnapshots.tasks = data
             } catch (e: Exception) {
                 _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load tasks.") }
             }

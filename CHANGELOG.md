@@ -1,4 +1,7 @@
 # Changelog
+## 0.209.0
+- Instant return extended to Chores, Tasks, Groceries, Reading, School and Bible: each shows its last data immediately and refreshes in the background, instead of a spinner. (Tasks and School also no longer spin when they already have data.) Money is unchanged for now.
+
 ## 0.208.0
 - Switching calendar views (agenda/day/week/3-day/month) no longer spins each time \u2014 a view you've already opened stays cached and shows instantly, refreshing in the background. (Caches still clear after an edit so nothing goes stale.)
 

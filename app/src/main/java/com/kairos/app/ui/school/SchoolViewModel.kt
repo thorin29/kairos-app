@@ -34,11 +34,13 @@ class SchoolViewModel(private val session: SessionRepository) : ViewModel() {
     init { load() }
 
     fun load() {
-        _ui.update { it.copy(loading = true, error = null) }
+        if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.school?.let { c -> _ui.update { it.copy(data = c) } }
+        _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
             try {
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data, term = it.term ?: data.selectedTermId) }
+                com.kairos.app.ui.common.ScreenSnapshots.school = data
             } catch (e: Exception) {
                 _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load school.") }
             }
