@@ -16,6 +16,7 @@ private val GLYPH_DRAWABLES: Map<String, Int> = mapOf(
     "ic:papertowel" to R.drawable.grocery_papertowel,
     "ic:waterbottle" to R.drawable.grocery_waterbottle,
     "ic:protein" to R.drawable.grocery_protein,
+    "ic:sorbet" to R.drawable.grocery_sorbet,
 )
 
 /**

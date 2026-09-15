@@ -1,4 +1,7 @@
 # Changelog
+## 0.201.0
+- Added a sorbet icon for grocery items like Island Way Sorbet.
+
 ## 0.200.0
 - The Game time detail view now has a white background and the gamerscore “G” badge is properly centered.
 - Swiping back (or the back button) now closes an open calendar event, add/edit sheet, or game detail — returning to the previous screen instead of jumping to Home.
