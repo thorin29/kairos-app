@@ -1726,6 +1726,13 @@ data class GamePersonDto(
     val gamerpic: String? = null,
     val hasGamePass: Boolean? = null,
     val msBalance: String? = null,
+    val weekDaily: List<WeekDayDto> = emptyList(),
+)
+
+@Serializable
+data class WeekDayDto(
+    val label: String = "",
+    val minutes: Int = 0,
 )
 
 @Serializable

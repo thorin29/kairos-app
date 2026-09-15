@@ -1,4 +1,7 @@
 # Changelog
+## 0.195.0
+- Game time on the phone now matches the web: parents can tap any person’s card to open a detailed view with their stats, a Sunday–Saturday bar chart of the week, and their games. A child sees their own detailed view as the main screen. Gamerscore shows as a green “G” badge and the wallet balance with a wallet icon.
+
 ## 0.194.0
 - Fixed event pictures (birthdays, holidays, and other events) not appearing on the event details screen after an app update. They load reliably now, and events without a picture still show no banner.
 - The “Save … for next time” address popup now shows both a Friendly name and the Full address, so it’s clear exactly what’s being saved. For non-admins, saved addresses go to an admin for approval.
