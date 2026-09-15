@@ -225,13 +225,14 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         selectedKey = key
         open = false
         navController.navigate(route) {
-            // Preserve each section's state (and its ViewModel + in-memory data)
-            // when leaving, and restore it on return — so coming back to a
-            // section shows its last data instantly instead of rebuilding from a
-            // spinner.
-            popUpTo(Route.Home) { saveState = true }
+            // NOTE: do NOT add saveState/restoreState here. Every sidebar section
+            // shares one Route.Section destination (differing only by argument),
+            // so restoreState keys off that single destination and brings back the
+            // first-visited section instead of the tapped one — which breaks
+            // navigation entirely. Instant-return needs per-section destinations
+            // or persistent ViewModel scopes first (tracked under offline-first).
+            popUpTo(Route.Home)
             launchSingleTop = true
-            restoreState = true
         }
     }
 

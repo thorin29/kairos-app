@@ -1,4 +1,7 @@
 # Changelog
+## 0.205.0
+- Fixed navigation being stuck on the first-visited page (the 0.204 state-preservation change was incompatible with the shared section route). Cache fallback and the refresh line are unchanged.
+
 ## 0.204.0
 - Navigation is instant: returning to a section shows its last data immediately instead of a spinner (its state is preserved).
 - Screens fall back to cached data when the server is unreachable, even if the phone reports it's online.
