@@ -326,12 +326,12 @@ private fun DetailLine(label: String, value: String) {
     }
 }
 
-@Composable
 private fun sportDayLabel(iso: String): String = try {
     java.time.LocalDate.parse(iso)
         .dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
 } catch (e: Exception) { "" }
 
+@Composable
 private fun SportPromptCard(
     prompt: com.kairos.app.data.remote.dto.SportPromptDto,
     today: String,
