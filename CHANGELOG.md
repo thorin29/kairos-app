@@ -1,4 +1,6 @@
 # Changelog
+## 0.210.0
+- Home screen: overdue ("carried over") work now sits under its own category — oldest first, above that day's items — instead of one lumped list. Each grouping header now shows its side-menu icon and brand color.
 ## 0.209.0
 - Instant return extended to Chores, Tasks, Groceries, Reading, School and Bible: each shows its last data immediately and refreshes in the background, instead of a spinner. (Tasks and School also no longer spin when they already have data.) Money is unchanged for now.
 

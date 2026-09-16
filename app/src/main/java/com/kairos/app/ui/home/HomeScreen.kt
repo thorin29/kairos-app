@@ -66,6 +66,7 @@ import com.kairos.app.ui.common.AttendanceIcon
 import com.kairos.app.ui.common.AttendeesColumn
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.nav.sectionFor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -202,29 +203,27 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 }
             }
 
-            if (d.overdue.isNotEmpty()) {
-                item(key = "overdue") {
-                    SectionBlock("Overdue") {
-                        d.overdue.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
-                    }
-                }
-            }
+            // Overdue ("carried over") work now sits under its own category —
+            // oldest first, above today's items — instead of one lumped list.
+            run {
+                val catOrder = LinkedHashSet<String>()
+                d.groups.forEach { catOrder.add(it.category) }
+                d.overdue.forEach { catOrder.add(it.category) }
+                if (d.personalReading != null) catOrder.add("BIBLE")
 
-            d.groups.forEach { group ->
-                item(key = "g-${group.category}") {
-                    SectionBlock(group.label) {
-                        group.items.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
-                        if (group.category == "BIBLE" && d.personalReading != null) {
-                            PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                catOrder.forEach { cat ->
+                    val group = d.groups.firstOrNull { it.category == cat }
+                    val overdueItems = d.overdue.filter { it.category == cat }.sortedBy { it.dueDate }
+                    val todayItems = group?.items ?: emptyList()
+                    val label = group?.label ?: labelForCategory(cat)
+                    item(key = "cat-$cat") {
+                        SectionBlock(label, cat) {
+                            overdueItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
+                            todayItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
+                            if (cat == "BIBLE" && d.personalReading != null) {
+                                PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                            }
                         }
-                    }
-                }
-            }
-
-            if (d.personalReading != null && d.groups.none { it.category == "BIBLE" }) {
-                item(key = "bible-personal") {
-                    SectionBlock("Bible reading") {
-                        PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
                     }
                 }
             }
@@ -429,9 +428,9 @@ private fun MoneyReminder(m: com.kairos.app.data.remote.dto.DashboardMoneyDto, o
 /** A titled section: a small uppercase header above a card holding the rows,
  *  matching the web home so sections read as distinct blocks. */
 @Composable
-private fun SectionBlock(header: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun SectionBlock(header: String, category: String? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Column {
-        SectionHeader(header)
+        SectionHeader(header, category)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), content = content)
         }
@@ -508,14 +507,51 @@ private fun CategoryBars(bars: List<CategoryBarDto>) {
     }
 }
 
+/** Maps a task category to the matching side-menu section (icon + brand color). */
+private fun sectionKeyForCategory(category: String): String = when (category) {
+    "BIBLE" -> "bible"
+    "CHORE" -> "chores"
+    "SCHOOL" -> "school"
+    "EXERCISE" -> "workouts"
+    "WORK" -> "tasks"
+    "APPOINTMENT" -> "calendar"
+    else -> "tasks"
+}
+
+/** Fallback label for a category that only has overdue (carried-over) items and
+ *  so has no group row from the server. */
+private fun labelForCategory(category: String): String = when (category) {
+    "BIBLE" -> "Bible reading"
+    "CHORE" -> "Chores"
+    "SCHOOL" -> "School"
+    "EXERCISE" -> "Workouts"
+    "WORK" -> "Tasks"
+    "APPOINTMENT" -> "Appointments"
+    else -> "Other"
+}
+
 @Composable
-private fun SectionHeader(label: String) {
-    Text(
-        label,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
+private fun SectionHeader(label: String, category: String? = null) {
+    val section = category?.let { sectionFor(sectionKeyForCategory(it)) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
-    )
+    ) {
+        if (section != null) {
+            Icon(
+                section.icon,
+                contentDescription = null,
+                tint = section.color,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Text(
+            label,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
 }
 
 @Composable
