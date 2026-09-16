@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,29 +32,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateMap
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import com.kairos.app.ui.theme.KairosThemeState
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.kairos.app.data.remote.dto.SchoolAheadDto
+import com.kairos.app.data.remote.dto.SchoolAheadItemDto
+import com.kairos.app.data.remote.dto.SchoolCardProgressDto
 import com.kairos.app.data.remote.dto.SchoolDto
 import com.kairos.app.data.remote.dto.SchoolItemDto
 import com.kairos.app.data.remote.dto.SchoolPersonDto
 import com.kairos.app.data.remote.dto.SchoolProgressDto
-import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
-import com.kairos.app.ui.common.SentenceCaps
 
+private val Emerald = Color(0xFF059669)
+private val Amber = Color(0xFFD97706)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,30 +65,7 @@ fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: In
     val ui by vm.ui.collectAsState()
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
-    var editMode by remember { mutableStateOf(false) }
-    val edited = remember { mutableStateMapOf<String, String>() }
-    var deleting by remember { mutableStateOf<SchoolItemDto?>(null) }
-
     val data = ui.data
-    val myItems = data?.people?.firstOrNull { it.id == data.meId }?.items ?: emptyList()
-    val canEdit = myItems.isNotEmpty()
-    if (!canEdit && editMode) editMode = false
-
-    fun enterEdit() {
-        edited.clear()
-        myItems.forEach { edited[it.id] = it.title }
-        editMode = true
-    }
-    fun saveEdits() {
-        val changes = myItems
-            .mapNotNull { it2 ->
-                val n = edited[it2.id]?.trim()
-                if (n != null && n.length >= 2 && n != it2.title) it2.id to n else null
-            }
-            .toMap()
-        if (changes.isNotEmpty()) vm.applyRenames(changes)
-        editMode = false
-    }
 
     Scaffold(
         topBar = {
@@ -100,17 +73,8 @@ fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: In
                 title = { Text("School") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
                 actions = {
-                    if (editMode) {
-                        TextButton(onClick = { saveEdits() }) { Text("Done") }
-                    } else {
-                        if (canEdit) {
-                            IconButton(onClick = { enterEdit() }) {
-                                Icon(KairosIcons.Pencil, "Edit my work", modifier = Modifier.size(20.dp))
-                            }
-                        }
-                        IconButton(onClick = onOpenAdd) {
-                            Icon(KairosIcons.Plus, "Add school work", modifier = Modifier.size(22.dp))
-                        }
+                    IconButton(onClick = onOpenAdd) {
+                        Icon(KairosIcons.Plus, "Add school work", modifier = Modifier.size(22.dp))
                     }
                 },
             )
@@ -126,23 +90,8 @@ fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: In
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> SchoolContent(data, ui, vm, editMode, edited, onDeleteRequest = { deleting = it })
+                else -> SchoolContent(data, ui.busy, ui.message) { vm.complete(it) }
             }
-        }
-    }
-
-    deleting?.let { item ->
-        AnimatedDialog(
-            onDismissRequest = { deleting = null },
-            title = "Delete item?",
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
-            confirmButton = {
-                TextButton(enabled = !ui.busy, onClick = { vm.delete(item.id); deleting = null }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-        ) {
-            Text("Remove \u201c${item.title}\u201d?", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -150,201 +99,242 @@ fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: In
 @Composable
 private fun SchoolContent(
     data: SchoolDto,
-    ui: SchoolUiState,
-    vm: SchoolViewModel,
-    editMode: Boolean,
-    edited: SnapshotStateMap<String, String>,
-    onDeleteRequest: (SchoolItemDto) -> Unit,
+    busy: Boolean,
+    message: String?,
+    onComplete: (String) -> Unit,
 ) {
+    val myPerson = data.people.firstOrNull { it.id == data.meId }
+    val others = data.people.filter { it.id != data.meId }
+    val progressById = remember(data.progress) { data.progress.associateBy { it.id } }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        ui.message?.let { msg ->
-            Text(msg, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF047857), modifier = Modifier.fillMaxWidth())
+        message?.let { msg ->
+            Text(msg, style = MaterialTheme.typography.bodyMedium, color = Emerald, modifier = Modifier.fillMaxWidth())
         }
 
-        val withWork = data.people.filter { it.items.isNotEmpty() || it.classes.isNotEmpty() }
-        if (withWork.isEmpty()) {
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Text(
-                    "Nothing due right now. Add work with the + button.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
-        }
-        withWork.forEach { p ->
-            val isOwn = p.id == data.meId
-            PersonSchoolCard(p, isOwn, editMode && isOwn, edited, ui.busy, { vm.complete(it) }, onDeleteRequest)
-        }
-
-        Text("Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        val activeTerm = ui.term ?: data.selectedTermId
-        TermPills(data, activeTerm) { vm.setTerm(it) }
-        if (data.progress.isEmpty()) {
-            Text("No completed or due work in this range yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        data.progress.forEach { pr -> ProgressCard(pr) }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TermPills(data: SchoolDto, active: String?, onSelect: (String?) -> Unit) {
-    if (data.terms.isEmpty()) return
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        data.terms.forEach { t -> Pill(t.name, active == t.id) { onSelect(t.id) } }
-        Pill("All time", active == null) { onSelect("all") }
-    }
-}
-
-@Composable
-private fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelLarge,
-        color = if (selected) KairosThemeState.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.clip(RoundedCornerShape(999.dp))
-            .border(1.dp, if (selected) KairosThemeState.accent else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    )
-}
-
-@Composable
-private fun PersonSchoolCard(
-    p: SchoolPersonDto,
-    isOwn: Boolean,
-    editMode: Boolean,
-    edited: SnapshotStateMap<String, String>,
-    busy: Boolean,
-    onComplete: (String) -> Unit,
-    onDeleteRequest: (SchoolItemDto) -> Unit,
-) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(12.dp).clip(RoundedCornerShape(999.dp)).background(parseColor(p.color)))
-                Text(p.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text(
-                    if (p.pending == 0) "all caught up" else "${p.pending} open" + if (p.overdue > 0) " \u00b7 ${p.overdue} late" else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (p.overdue > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            if (p.classes.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    p.classes.forEach { c ->
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.size(9.dp).clip(RoundedCornerShape(999.dp)).background(parseColor(c.color)))
-                            Text(c.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                            if (!c.meeting.isNullOrBlank()) {
-                                Text(c.meeting, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (p.items.isNotEmpty()) {
-                val groups = remember(p.items) { p.items.groupBy { it.className ?: "Other work" } }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    groups.forEach { (name, items) ->
-                        Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        items.forEach { it2 ->
-                            ItemRow(it2, isOwn, editMode, edited, busy, onComplete, onDeleteRequest)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ItemRow(
-    item: SchoolItemDto,
-    isOwn: Boolean,
-    editMode: Boolean,
-    edited: SnapshotStateMap<String, String>,
-    busy: Boolean,
-    onComplete: (String) -> Unit,
-    onDeleteRequest: (SchoolItemDto) -> Unit,
-) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Own work outside edit mode: tap the circle to mark it done.
-        if (isOwn && !editMode) {
-            Box(
-                Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
-                    .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                    .clickable(enabled = !busy) { onComplete(item.id) },
-            )
-        }
-        Column(Modifier.weight(1f)) {
-            if (isOwn && editMode) {
-                NameField(edited[item.id] ?: item.title) { edited[item.id] = it.take(120) }
+        if (others.isEmpty()) {
+            // Personal view (a child, or a parent looking only at themselves): the
+            // full overlay layout, always expanded.
+            if (myPerson == null || !hasSchool(myPerson)) {
+                EmptyNote("Nothing due right now.")
             } else {
-                Text(item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                SchoolPersonCard(myPerson, data.today, progressById[myPerson.id], startExpanded = true, collapsible = false, busy = busy, onComplete = onComplete)
             }
-            Text(
-                "${item.typeLabel} \u00b7 due ${item.dueISO}",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (isOwn && editMode) {
-            Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onDeleteRequest(item) }.padding(6.dp)) {
-                Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+        } else {
+            // Parent view: every child summarized on its own card. A parent with
+            // school work of their own sits at the top.
+            val ownFirst = if (myPerson != null && hasSchool(myPerson)) listOf(myPerson) else emptyList()
+            val ordered = ownFirst + others
+            if (ordered.none { hasSchool(it) }) {
+                EmptyNote("No school work yet.")
+            }
+            ordered.forEach { p ->
+                SchoolPersonCard(p, data.today, progressById[p.id], startExpanded = false, collapsible = true, busy = busy, onComplete = onComplete)
             }
         }
     }
 }
 
+private fun hasSchool(p: SchoolPersonDto): Boolean =
+    p.items.isNotEmpty() || p.classes.isNotEmpty() ||
+        (p.card?.progress?.isNotEmpty() == true) || (p.card?.getAhead?.isNotEmpty() == true)
+
 @Composable
-private fun NameField(value: String, onChange: (String) -> Unit) {
-    Box(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-    ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            keyboardOptions = SentenceCaps,
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth(),
+private fun EmptyNote(text: String) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp),
         )
     }
 }
 
 @Composable
-private fun ProgressCard(pr: SchoolProgressDto) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun SchoolPersonCard(
+    p: SchoolPersonDto,
+    today: String,
+    metrics: SchoolProgressDto?,
+    startExpanded: Boolean,
+    collapsible: Boolean,
+    busy: Boolean,
+    onComplete: (String) -> Unit,
+) {
+    var expanded by remember(p.id) { mutableStateOf(startExpanded) }
+    val overdue = remember(p.items) { p.items.filter { it.overdue }.sortedBy { it.dueISO } }
+    val todayItems = remember(p.items, today) { p.items.filter { !it.overdue && it.dueISO == today } }
+    val card = p.card
+    val isStudent = (card?.progress?.isNotEmpty() == true) || p.classes.isNotEmpty()
+    val completeForToday = overdue.isEmpty() && todayItems.isEmpty() && isStudent
+
+    val summary = buildList {
+        if (overdue.isNotEmpty()) add("${overdue.size} overdue")
+        if (todayItems.isNotEmpty()) add("${todayItems.size} today")
+    }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
+
+    val base = Modifier.fillMaxWidth()
+    OutlinedCard(if (collapsible) base.clickable { expanded = !expanded } else base) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Header
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(12.dp).clip(RoundedCornerShape(999.dp)).background(parseColor(pr.color)))
-                Text(pr.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text("${pr.pct}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Dot(p.color, 12)
+                Text(p.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (metrics != null && metrics.dueSoFar > 0) {
+                    Text("${metrics.pct}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                }
             }
             Text(
-                "${pr.completed} of ${pr.total} done \u00b7 ${pr.onTime} on time" + if (pr.overdue > 0) " \u00b7 ${pr.overdue} overdue" else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                if (completeForToday) "Complete for today!" else summary,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
+                color = when {
+                    completeForToday -> Emerald
+                    overdue.isNotEmpty() -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
             )
-            pr.byClass.forEach { c ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(999.dp)).background(parseColor(c.color)))
-                    Text(c.key, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1)
-                    Text("${c.completed}/${c.total}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            if (expanded) {
+                if (card?.targetISO != null) {
+                    Text(
+                        "School year ends ${shortDate(card.targetISO)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+
+                if (overdue.isNotEmpty()) {
+                    SectionLabel("Overdue", MaterialTheme.colorScheme.error)
+                    overdue.forEach { ItemRow(it, busy, onComplete) }
+                }
+                if (todayItems.isNotEmpty()) {
+                    SectionLabel("Today")
+                    todayItems.forEach { ItemRow(it, busy, onComplete) }
+                }
+                if (card?.progress?.isNotEmpty() == true) {
+                    SectionLabel("Progress")
+                    card.progress.forEach { ProgressRow(it) }
+                }
+                if (card?.getAhead?.isNotEmpty() == true) {
+                    SectionLabel("Do some extra work")
+                    card.getAhead.forEach { subj ->
+                        subj.items.firstOrNull()?.let { first ->
+                            AheadRow(subj, first, busy, onComplete)
+                        }
+                    }
+                }
+            } else if (collapsible) {
+                Text("Tap to view", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
+}
+
+@Composable
+private fun SectionLabel(text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = color,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+@Composable
+private fun ItemRow(item: SchoolItemDto, busy: Boolean, onComplete: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
+                .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+                .clickable(enabled = !busy) { onComplete(item.id) },
+        )
+        Column(Modifier.weight(1f)) {
+            Text(item.className ?: item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                "${item.title} \u00b7 ${item.typeLabel} \u00b7 due ${shortDate(item.dueISO)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressRow(pr: SchoolCardProgressDto) {
+    Column {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Dot(pr.color, 10)
+            Text(pr.className, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
+            when (pr.pace) {
+                "behind" -> Tag("falling behind", Amber)
+                "ahead" -> Tag("getting ahead!", Emerald)
+            }
+            if (pr.finishISO != null) {
+                Text(
+                    "finishes ${shortDate(pr.finishISO)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (pr.onTrack) MaterialTheme.colorScheme.onSurfaceVariant else Amber,
+                )
+            }
+        }
+        if (pr.catchUpRate != null) {
+            val note = if (pr.catchUpDays != null) {
+                "Do ${pr.catchUpRate} a day for the next ${pr.catchUpDays} school day" + (if (pr.catchUpDays == 1) "" else "s") + " to finish on time."
+            } else {
+                "Do ${pr.catchUpRate} a day to finish on time."
+            }
+            Text(note, style = MaterialTheme.typography.labelSmall, color = Amber, modifier = Modifier.padding(start = 18.dp))
+        }
+    }
+}
+
+@Composable
+private fun AheadRow(subj: SchoolAheadDto, first: SchoolAheadItemDto, busy: Boolean, onComplete: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
+                .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+                .clickable(enabled = !busy) { onComplete(first.taskId) },
+        )
+        Column(Modifier.weight(1f)) {
+            Text(subj.subject, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                "${first.title} \u00b7 next up",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Tag(text: String, color: Color) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Medium,
+        color = color,
+        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.15f)).padding(horizontal = 5.dp, vertical = 1.dp),
+    )
+}
+
+@Composable
+private fun Dot(color: String?, size: Int) {
+    Box(Modifier.size(size.dp).clip(RoundedCornerShape(999.dp)).background(parseColor(color)))
+}
+
+/** "2027-05-21" -> "5/21". */
+private fun shortDate(iso: String): String {
+    val parts = iso.split("-")
+    if (parts.size != 3) return iso
+    val m = parts[1].toIntOrNull() ?: return iso
+    val d = parts[2].toIntOrNull() ?: return iso
+    return "$m/$d"
 }
 
 private fun parseColor(hex: String?): Color {

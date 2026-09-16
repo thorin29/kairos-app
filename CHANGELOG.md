@@ -1,4 +1,6 @@
 # Changelog
+## 0.211.0
+- School is now personal-first: a child sees their own work laid out like the web overlay — Overdue, Today, per-class Progress (projected finish + ahead/behind + catch-up), and get-ahead — with "Complete for today!" in green when the day is done. Parents see each child summarized on a card (their own on top if they have work); tap a card to expand the same overlay. Scheduling/admin stays on the web.
 ## 0.210.0
 - Home screen: overdue ("carried over") work now sits under its own category — oldest first, above that day's items — instead of one lumped list. Each grouping header now shows its side-menu icon and brand color.
 ## 0.209.0

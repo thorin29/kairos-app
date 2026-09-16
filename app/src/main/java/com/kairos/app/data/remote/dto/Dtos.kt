@@ -1425,6 +1425,7 @@ data class CoopProposalIdRequest(val proposalId: String)
 @Serializable
 data class SchoolDto(
     val meId: String = "",
+    val today: String = "",
     val seasonHint: String = "",
     val terms: List<SchoolTermDto> = emptyList(),
     val selectedTermId: String? = null,
@@ -1457,6 +1458,40 @@ data class SchoolPersonDto(
     val overdue: Int = 0,
     val classes: List<SchoolClassDto> = emptyList(),
     val items: List<SchoolItemDto> = emptyList(),
+    val card: SchoolCardDto? = null,
+)
+
+@Serializable
+data class SchoolCardDto(
+    val targetISO: String? = null,
+    val progress: List<SchoolCardProgressDto> = emptyList(),
+    val getAhead: List<SchoolAheadDto> = emptyList(),
+)
+
+@Serializable
+data class SchoolCardProgressDto(
+    val className: String = "",
+    val subject: String? = null,
+    val color: String? = null,
+    val finishISO: String? = null,
+    val remaining: Int = 0,
+    val onTrack: Boolean = true,
+    val pace: String? = null, // "ahead" | "behind" | null
+    val catchUpRate: Int? = null,
+    val catchUpDays: Int? = null,
+)
+
+@Serializable
+data class SchoolAheadDto(
+    val subject: String = "",
+    val items: List<SchoolAheadItemDto> = emptyList(),
+)
+
+@Serializable
+data class SchoolAheadItemDto(
+    val taskId: String = "",
+    val title: String = "",
+    val dueISO: String = "",
 )
 
 @Serializable
@@ -1482,13 +1517,15 @@ data class SchoolProgressDto(
     val pct: Int = 0,
     val completed: Int = 0,
     val total: Int = 0,
+    val dueSoFar: Int = 0,
+    val completedDue: Int = 0,
     val onTime: Int = 0,
     val overdue: Int = 0,
     val byClass: List<SchoolByClassDto> = emptyList(),
 )
 
 @Serializable
-data class SchoolByClassDto(val key: String = "", val color: String? = null, val completed: Int = 0, val total: Int = 0)
+data class SchoolByClassDto(val key: String = "", val color: String? = null, val completed: Int = 0, val total: Int = 0, val completedDue: Int = 0, val dueSoFar: Int = 0)
 
 @Serializable
 data class AddSchoolRequest(
