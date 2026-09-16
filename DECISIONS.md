@@ -837,3 +837,49 @@ token-loss cause that only reissue-via-keypair fixes, OR Kairos becomes a real
 multi-user product (then it's part of a broader hardening — multi-tenant
 isolation, onboarding, short-lived tokens — not a standalone change). Until then
 the existing revocable device tokens + recovery are sufficient.
+
+## App: cache fallback when the server is unreachable + background-refresh line (0.204)
+
+Two problems on a phone over the Cloudflared tunnel: (1) `NetworkMonitor` can
+report **online** while the tunnel/WAN endpoint is actually down, so screens
+would try a live fetch, hang, and show a spinner instead of the data we already
+had; (2) a plain fetch on return always spun even when a cached copy existed.
+
+Fix: screens now **fall back to cached data whenever the fetch fails**, not only
+when the monitor says offline — a failed/timed-out request serves the last good
+copy rather than a spinner. A **thin progress line at the top** indicates a
+background refresh is in flight, so "showing cached, updating" is visible without
+a blocking spinner. This sits on top of the existing OkHttp offline cache
+(phase-1 offline work); it changes *when we choose the cached copy*, not the
+cache itself.
+
+## App: instant return via in-memory snapshots, NOT nav-state preservation (0.204 → 0.209)
+
+**The trap (0.204, reverted 0.205).** To make returning to a section show its
+last data instantly, 0.204 preserved **navigation back-stack state**
+(save/restore on the nav graph). This **broke navigation**: the app got stuck on
+the first-visited page. Root cause — the state-preservation was **incompatible
+with the shared section route**: sections don't have their own destinations, they
+render through one shared route, so restoring nav state re-selected the same
+saved entry and swallowed subsequent navigation. Reverted in 0.205; cache
+fallback + refresh line (above) were kept.
+
+**The pattern that replaced it (0.206 → 0.209).** Instant return is done with
+**in-memory per-section snapshots**, not nav state. Each section keeps its
+last-rendered payload in a process-lifetime holder keyed by section; on return
+the screen **seeds from the snapshot immediately** and refreshes in the
+background (the refresh line shows during the fetch). Rollout:
+- **Calendar first (0.206 → 0.208):** snapshot is **view-keyed** (agenda/day/
+  week/3-day/month each cached) and **pager-seeded** (the visible page, not just
+  the frame, is seeded so even the brief page spinner is gone). A view already
+  opened shows instantly; caches still clear after an edit so nothing goes stale.
+- **Extended to Chores, Tasks, Groceries, Reading, School, Bible (0.209):** each
+  shows its last data immediately and refreshes in the background. Tasks and
+  School also stop spinning when they already have data.
+- **Money is deliberately excluded** — left on the plain fetch for now.
+- Snapshots are process-memory only and **cleared on sign-out** (like the read
+  cache) so nothing leaks across users on a shared device.
+
+**Rule for future work:** do **not** reattempt nav-state save/restore for
+instant return without **first giving each section its own nav destination**.
+Until sections are separate destinations, the snapshot approach is the way.
