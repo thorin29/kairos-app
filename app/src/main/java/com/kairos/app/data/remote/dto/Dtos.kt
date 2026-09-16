@@ -128,6 +128,7 @@ data class DashboardDto(
     val personalReading: PersonalReadingDto? = null,
     val upForGrabs: List<UpForGrabsDto> = emptyList(),
     val alwaysOpen: List<AlwaysOpenDashDto> = emptyList(),
+    val getAhead: List<GetAheadChoreDto> = emptyList(),
     val schedule: List<ScheduleItemDto> = emptyList(),
     val sportPrompts: List<SportPromptDto> = emptyList(),
 )
@@ -181,6 +182,14 @@ data class AlwaysOpenDashDto(
     val title: String = "",
     val readyAtMs: Long? = null,
     val myCount: Int = 0,
+)
+
+@Serializable
+data class GetAheadChoreDto(
+    val taskId: String = "",
+    val title: String = "",
+    val dueDateISO: String = "",
+    val bonus: Int = 0,
 )
 
 @Serializable

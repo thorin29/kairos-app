@@ -58,6 +58,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.CategoryBarDto
+import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.ui.common.LogoMenuButton
@@ -210,8 +211,23 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 d.groups.forEach { catOrder.add(it.category) }
                 d.overdue.forEach { catOrder.add(it.category) }
                 if (d.personalReading != null) catOrder.add("BIBLE")
+                if (d.getAhead.isNotEmpty()) catOrder.add("CHORE")
 
                 catOrder.forEach { cat ->
+                    if (cat == "CHORE") {
+                        // Chores get their own pop-up-style card (Overdue / Today /
+                        // Get ahead), keeping the home tidy — like School.
+                        item(key = "chores-card") {
+                            ChoresHomeCard(
+                                overdue = d.overdue.filter { it.category == "CHORE" }.sortedBy { it.dueDate },
+                                today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
+                                getAhead = d.getAhead,
+                                busyIds = ui.busyIds,
+                                vm = vm,
+                            )
+                        }
+                        return@forEach
+                    }
                     val group = d.groups.firstOrNull { it.category == cat }
                     val overdueItems = d.overdue.filter { it.category == cat }.sortedBy { it.dueDate }
                     val todayItems = group?.items ?: emptyList()
@@ -423,6 +439,106 @@ private fun MoneyReminder(m: com.kairos.app.data.remote.dto.DashboardMoneyDto, o
             )
         }
     }
+}
+
+private val ChoresGreen = Color(0xFF059669)
+
+/** Home Chores card: a tidy summary that expands to the overlay layout
+ *  (Overdue / Today / Get ahead), matching the web pop-up. Shows
+ *  "Complete for today!" once nothing chore-related is pending. */
+@Composable
+private fun ChoresHomeCard(
+    overdue: List<TaskDto>,
+    today: List<TaskDto>,
+    getAhead: List<GetAheadChoreDto>,
+    busyIds: Set<String>,
+    vm: HomeViewModel,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val pendingOverdue = overdue.filter { it.status != "COMPLETE" }
+    val pendingToday = today.filter { it.status != "COMPLETE" }
+    val hadChores = overdue.isNotEmpty() || today.isNotEmpty()
+    val completeForToday = pendingOverdue.isEmpty() && pendingToday.isEmpty() && hadChores
+
+    val summary = buildList {
+        if (pendingOverdue.isNotEmpty()) add("${pendingOverdue.size} overdue")
+        if (pendingToday.isNotEmpty()) add("${pendingToday.size} today")
+        if (pendingOverdue.isEmpty() && pendingToday.isEmpty() && getAhead.isNotEmpty()) add("${getAhead.size} to get ahead")
+    }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
+
+    Column {
+        SectionHeader("Chores", "CHORE")
+        Card(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (completeForToday) "Complete for today!" else summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
+                        color = when {
+                            completeForToday -> ChoresGreen
+                            pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(if (expanded) "Hide" else "Open", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                if (expanded) {
+                    if (overdue.isNotEmpty()) {
+                        MiniLabel("Overdue", MaterialTheme.colorScheme.error)
+                        overdue.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
+                    }
+                    if (today.isNotEmpty()) {
+                        MiniLabel("Today")
+                        today.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
+                    }
+                    if (getAhead.isNotEmpty()) {
+                        MiniLabel("Get ahead")
+                        getAhead.forEach { AheadChoreRow(it, busyIds.contains(it.taskId), vm) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniLabel(text: String, color: Color = Color.Unspecified) {
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurfaceVariant else color,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+@Composable
+private fun AheadChoreRow(chore: GetAheadChoreDto, busy: Boolean, vm: HomeViewModel) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
+                .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+                .clickable(enabled = !busy) { vm.toggle(chore.taskId, false) },
+        )
+        Column(Modifier.weight(1f)) {
+            Text(chore.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                "due ${homeShortDate(chore.dueDateISO)}" + if (chore.bonus > 0) " \u00b7 +${chore.bonus} bonus" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun homeShortDate(iso: String): String {
+    val p = iso.split("-")
+    if (p.size != 3) return iso
+    val m = p[1].toIntOrNull() ?: return iso
+    val d = p[2].toIntOrNull() ?: return iso
+    return "$m/$d"
 }
 
 /** A titled section: a small uppercase header above a card holding the rows,

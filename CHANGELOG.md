@@ -1,4 +1,7 @@
 # Changelog
+## 0.212.0
+- Home: Chores now have their own tidy card that expands to the pop-up layout — Overdue, Today, and get-ahead chores — with "Complete for today!" in green once nothing's pending, keeping the home screen uncluttered like School.
+- Chores page: the "Always open" list now rolls up (collapsed) so the page stays tidy; tap to show it.
 ## 0.211.0
 - School is now personal-first: a child sees their own work laid out like the web overlay — Overdue, Today, per-class Progress (projected finish + ahead/behind + catch-up), and get-ahead — with "Complete for today!" in green when the day is done. Parents see each child summarized on a card (their own on top if they have work); tap a card to expand the same overlay. Scheduling/admin stays on the web.
 ## 0.210.0
