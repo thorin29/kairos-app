@@ -18,6 +18,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.CircularProgressIndicator
+import com.kairos.app.ui.nav.KairosIcons
+import kotlinx.coroutines.delay
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -65,7 +73,7 @@ import java.time.format.DateTimeFormatter
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
+fun WorkoutLogScreen(date: String, onDone: () -> Unit, onOpenCalculator: () -> Unit) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
         factory = viewModelFactory {
@@ -136,7 +144,7 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        ui.blocks.forEach { block -> WorkoutBlockCard(block, vm) }
+                        ui.blocks.forEach { block -> WorkoutBlockCard(block, vm, onOpenCalculator) }
                     }
 
                     if (ui.actionError != null) {
@@ -187,7 +195,44 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
 }
 
 @Composable
-private fun WorkoutBlockCard(block: WorkoutBlock, vm: WorkoutLogViewModel) {
+private fun WorkoutActionTile(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val target =
+        if (highlighted) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurfaceVariant
+    // Slow fade so "Log weight"/"Rest / skip" ease to grey once logged/skipped.
+    val tint by animateColorAsState(target, animationSpec = tween(700), label = "tileTint")
+    OutlinedCard(onClick = onClick, enabled = enabled, modifier = modifier.height(84.dp)) {
+        Column(
+            Modifier.fillMaxSize().padding(8.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (loading) {
+                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+                color = tint,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkoutBlockCard(block: WorkoutBlock, vm: WorkoutLogViewModel, onOpenCalculator: () -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -213,16 +258,45 @@ private fun WorkoutBlockCard(block: WorkoutBlock, vm: WorkoutLogViewModel) {
             )
             HorizontalDivider()
             block.inputs.forEach { m -> MovementRow(block.plannedWorkoutId, m, vm) }
-            Button(
-                onClick = { vm.saveBlock(block.plannedWorkoutId) },
-                enabled = !block.saving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (block.saving) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
+
+            val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
+            // After a log, flash "logged" briefly, then settle on "edit weight".
+            var justLogged by remember(block.plannedWorkoutId) { mutableStateOf(false) }
+            LaunchedEffect(block.logged) {
+                if (block.logged) {
+                    justLogged = true
+                    delay(2500)
+                    justLogged = false
+                } else {
+                    justLogged = false
                 }
-                Text(if (block.logged) "Update ${logNoun(block.inputs)}" else "Log ${logNoun(block.inputs)}")
+            }
+            val logLabel = when {
+                block.logged && justLogged -> "logged"
+                block.logged -> "edit weight"
+                else -> "Log weight"
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WorkoutActionTile(
+                    icon = KairosIcons.Dumbbell,
+                    label = logLabel,
+                    modifier = Modifier.weight(1f),
+                    highlighted = !block.logged,
+                    enabled = !block.saving,
+                    loading = block.saving,
+                ) { vm.saveBlock(block.plannedWorkoutId) }
+                WorkoutActionTile(
+                    icon = KairosIcons.Moon,
+                    label = if (skipped) "skipped" else "Rest / skip",
+                    modifier = Modifier.weight(1f),
+                    highlighted = !skipped,
+                ) { vm.setBlockSkipped(block.plannedWorkoutId, !skipped) }
+                WorkoutActionTile(
+                    icon = KairosIcons.Dumbbell,
+                    label = "Calculator",
+                    modifier = Modifier.weight(1f),
+                    highlighted = false,
+                ) { onOpenCalculator() }
             }
         }
     }

@@ -1,4 +1,6 @@
 # Changelog
+## 0.230.0
+- Log workout cards now have three tiles instead of one button: Log weight, Rest / skip (that exercise only), and Calculator. After logging, the tile eases to grey and reads "logged", then settles on "edit weight"; Rest / skip greys to "skipped" and taps back to reset. (Stage 2 of the workout redesign; the calculator hand-off and home entry point are next.)
 ## 0.229.0
 - Log workout page: removed the "Expire this workout" button, and the date and "Log something else" buttons now sit on white instead of blending into the background. (First step of the workout-logging redesign.)
 ## 0.228.0

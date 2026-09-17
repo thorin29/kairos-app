@@ -169,6 +169,21 @@ class WorkoutLogViewModel(
         }
     }
 
+    /** Skip or un-skip a whole block (its Rest/skip button) — sets every movement
+     *  in the block to the given skipped state. */
+    fun setBlockSkipped(planId: String, skipped: Boolean) {
+        _ui.update { s ->
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.plannedWorkoutId != planId) b
+                    else b.copy(inputs = b.inputs.map {
+                        it.copy(skipped = skipped, value = if (skipped) "" else it.value)
+                    })
+                },
+            )
+        }
+    }
+
     /** Log one block's entered (non-skipped) movements. Other blocks stay open. */
     fun saveBlock(planId: String, replace: Boolean = false) {
         val d = date ?: return

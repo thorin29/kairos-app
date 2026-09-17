@@ -446,6 +446,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     WorkoutLogScreen(
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
+                        onOpenCalculator = { navController.navigate(Route.WeightCalculator) },
                     )
                 }
                 composable<Route.AddClass> { entry ->
