@@ -328,6 +328,22 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
+    /** "Do some extra work": pull an upcoming school lesson into today and let the
+     *  server reschedule; then refresh so the get-ahead list advances. */
+    fun addSchoolToToday(taskId: String) {
+        val key = "add-$taskId"
+        if (_ui.value.busyIds.contains(key)) return
+        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        viewModelScope.launch {
+            try {
+                session.addSchoolToToday(taskId)
+                _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+            }
+        }
+    }
+
     private fun bumpAlwaysOpen(dash: DashboardDto, choreId: String): DashboardDto =
         dash.copy(alwaysOpen = dash.alwaysOpen.map { if (it.id == choreId) it.copy(myCount = it.myCount + 1) else it })
 

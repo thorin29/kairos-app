@@ -753,6 +753,14 @@ class SessionRepository(
         }
     }
 
+    suspend fun addSchoolToToday(taskId: String) {
+        runAuthed {
+            requireService().addSchoolToToday(
+                com.kairos.app.data.remote.dto.AddToTodayRequest(taskId),
+            )
+        }
+    }
+
     suspend fun previewReadingPlan(
         body: com.kairos.app.data.remote.dto.PersonalPlanRequest,
     ): com.kairos.app.data.remote.dto.PlanPreviewDto =
@@ -868,6 +876,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 273
+        const val CLIENT_BUILD = 274
     }
 }

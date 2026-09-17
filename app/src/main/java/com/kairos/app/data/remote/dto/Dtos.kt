@@ -874,6 +874,11 @@ data class AlwaysOpenRequest(
     val choreId: String,
 )
 
+@Serializable
+data class AddToTodayRequest(
+    val taskId: String,
+)
+
 // --- Calendar (GET /calendar, read-only Phase 1) ---
 
 @Serializable

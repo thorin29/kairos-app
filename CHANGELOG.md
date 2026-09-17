@@ -1,4 +1,6 @@
 # Changelog
+## 0.222.0
+- School "Do some extra work": tapping a subject now opens a pop-up with its next lesson and an "Add to today" / "Subjects" choice, matching the web. "Add to today" pulls the lesson into today and reschedules (server-side); the pop-up advances to the next lesson or closes. (Requires web 0.409.)
 ## 0.221.0
 - Build fix for 0.220: import SchoolCardProgressDto in the home screen (the School full-screen Progress rows referenced it without an import). No behavior change.
 ## 0.220.0

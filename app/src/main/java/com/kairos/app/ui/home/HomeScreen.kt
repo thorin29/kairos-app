@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -559,6 +561,7 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
     )
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
+    var extraSubject by remember { mutableStateOf<String?>(null) }
 
     WorkDetailScaffold(
         title = "School",
@@ -620,8 +623,7 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
                         )
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             school.getAhead.forEach { sub ->
-                                val first = sub.items.firstOrNull()
-                                OutlinedButton(onClick = { first?.let { vm.toggle(it.taskId, false) } }, enabled = first != null) {
+                                OutlinedButton(onClick = { extraSubject = sub.subject }, enabled = sub.items.isNotEmpty()) {
                                     Text(sub.subject)
                                 }
                             }
@@ -631,6 +633,33 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
             }
             if (overdue.isEmpty() && today.isEmpty() && school?.progress.isNullOrEmpty() && school?.getAhead.isNullOrEmpty()) {
                 Text("No school work due.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            // "Do some extra work" pop-up: the subject's next lesson with Add to
+            // today / Subjects, mirroring the web. It advances (or closes) as the
+            // dashboard refreshes after adding.
+            extraSubject?.let { subjName ->
+                val sub = school?.getAhead?.firstOrNull { it.subject == subjName }
+                val item = sub?.items?.firstOrNull()
+                if (item == null) {
+                    LaunchedEffect(subjName) { extraSubject = null }
+                } else {
+                    val busy = ui.busyIds.contains("add-${item.taskId}")
+                    Dialog(onDismissRequest = { extraSubject = null }) {
+                        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp) {
+                            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(subjName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                Text(item.title, style = MaterialTheme.typography.bodyLarge)
+                                Text("due ${homeShortDate(item.dueISO)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.height(10.dp))
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedButton(onClick = { extraSubject = null }, modifier = Modifier.weight(1f)) { Text("Subjects") }
+                                    Button(onClick = { vm.addSchoolToToday(item.taskId) }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Add to today") }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

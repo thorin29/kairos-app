@@ -327,6 +327,9 @@ interface ApiService {
     @POST("chores/always-open")
     suspend fun completeAlwaysOpen(@Body body: AlwaysOpenRequest): Response<TaskStatusDto>
 
+    @POST("school/add-to-today")
+    suspend fun addSchoolToToday(@Body body: com.kairos.app.data.remote.dto.AddToTodayRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @GET("devices")
     suspend fun devices(): Response<DevicesResponse>
 
