@@ -1,4 +1,6 @@
 # Changelog
+## 0.232.0
+- Tapping a workout on the home screen now goes straight to the Log workout page — the "Log workout / Rest day" pop-up is gone. (Stage 4 of the workout redesign; pair with web 0.422 so the home row lists all of the day's blocks.)
 ## 0.231.0
 - Weight calculator: the total now sits on the left with a themed "Use this weight" button on the right. Opening the calculator from a log-workout card's Calculator tile and tapping Use this weight drops the total into that card's weight field and returns you to the log page (other cards stay blank; you still tap Log weight). The button only appears when the calculator is opened from a card. (Stage 3 of the workout redesign.)
 ## 0.230.0

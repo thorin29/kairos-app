@@ -149,7 +149,6 @@ fun HomeScreen(
                 else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork)
             }
 
-            ui.workoutSheet?.let { task -> WorkoutSheet(task, vm, onLogWorkout) }
         }
     }
 }
@@ -278,8 +277,8 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                     val label = group?.label ?: labelForCategory(cat)
                     item(key = "cat-$cat") {
                         SectionBlock(label, cat) {
-                            overdueItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
-                            todayItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm) }
+                            overdueItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm, onLogWorkout) }
+                            todayItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm, onLogWorkout) }
                             if (cat == "BIBLE" && d.personalReading != null) {
                                 PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
                             }
@@ -1178,7 +1177,7 @@ private fun SectionHeader(label: String, category: String? = null) {
 }
 
 @Composable
-private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
+private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
     val done = task.status == "COMPLETE"
     // Workout prompts open the action sheet; ordinary completable rows toggle.
     val tappable = !busy && (task.isWorkout || task.completable)
@@ -1187,7 +1186,7 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = tappable) {
-                if (task.isWorkout) vm.openWorkout(task) else vm.toggle(task.id, done)
+                if (task.isWorkout) onLogWorkout(task.dueDate) else vm.toggle(task.id, done)
             }
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
