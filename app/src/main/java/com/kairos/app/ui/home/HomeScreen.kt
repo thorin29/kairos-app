@@ -68,6 +68,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.CategoryBarDto
+import com.kairos.app.data.remote.dto.ChoreBadgeDto
 import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.SchoolCardProgressDto
@@ -244,6 +245,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                                 today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
                                 getAheadCount = d.getAhead.size,
                                 upForGrabs = d.upForGrabs,
+                                badges = d.choreBadges,
                                 onOpen = onOpenChores,
                             )
                         }
@@ -471,6 +473,7 @@ private fun WorkSummaryCard(
     today: List<TaskDto>,
     getAheadCount: Int,
     upForGrabs: List<UpForGrabsDto> = emptyList(),
+    badges: List<ChoreBadgeDto> = emptyList(),
     onOpen: () -> Unit,
 ) {
     val pendingOverdue = overdue.filter { it.status != "COMPLETE" }
@@ -498,21 +501,58 @@ private fun WorkSummaryCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (completeForToday) "Complete for today!" else summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
-                        color = when {
-                            completeForToday -> ChoresGreen
-                            pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.onSurface
-                        },
+                    Row(
                         modifier = Modifier.weight(1f),
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            if (completeForToday) "Complete for today!" else summary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
+                            color = when {
+                                completeForToday -> ChoresGreen
+                                pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                        ChoreBadgesRow(badges)
+                    }
                     Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                 }
                 if (poolText != null) {
                     Text(poolText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+private data class ChoreBadgeSpec(val icon: ImageVector, val color: Color, val label: String)
+
+private val CHORE_BADGE_ICONS: Map<String, ChoreBadgeSpec> = mapOf(
+    "grass" to ChoreBadgeSpec(KairosIcons.Grass, Color(0xFF16A34A), "Grass"),
+    "water" to ChoreBadgeSpec(KairosIcons.Water, Color(0xFF2563EB), "Water"),
+)
+
+/** Inline badges after the Chores summary line: one tinted glyph per icon done
+ *  today, with \u00d7N for always-open repeats. Unknown icons are skipped. */
+@Composable
+private fun ChoreBadgesRow(badges: List<ChoreBadgeDto>) {
+    val shown = badges.filter { CHORE_BADGE_ICONS.containsKey(it.icon) }
+    if (shown.isEmpty()) return
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        shown.forEach { b ->
+            val spec = CHORE_BADGE_ICONS.getValue(b.icon)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(spec.icon, contentDescription = spec.label, tint = spec.color, modifier = Modifier.size(16.dp))
+                if (b.count > 1) {
+                    Text(
+                        "\u00d7${b.count}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = spec.color,
+                    )
                 }
             }
         }

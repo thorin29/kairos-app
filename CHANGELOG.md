@@ -1,4 +1,6 @@
 # Changelog
+## 0.226.0
+- Chore badges: a chore that carries a glyph (grass or water, set in the web Chores admin) now shows that icon after its home summary line on the day it's done — once for a one-time chore, ×N for an always-open one done several times. Matches the web card.
 ## 0.225.0
 - Up for grabs is now one tap: the button on a pool chore claims it for you AND marks it done in a single request — no separate claim-then-complete step — matching the web. Added grass and water chore-badge icons ahead of the completed-today badges.
 ## 0.224.0

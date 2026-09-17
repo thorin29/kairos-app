@@ -132,6 +132,7 @@ data class DashboardDto(
     val school: SchoolDashDto? = null,
     val schedule: List<ScheduleItemDto> = emptyList(),
     val sportPrompts: List<SportPromptDto> = emptyList(),
+    val choreBadges: List<ChoreBadgeDto> = emptyList(),
 )
 
 @Serializable
@@ -183,6 +184,12 @@ data class AlwaysOpenDashDto(
     val title: String = "",
     val readyAtMs: Long? = null,
     val myCount: Int = 0,
+)
+
+@Serializable
+data class ChoreBadgeDto(
+    val icon: String = "",
+    val count: Int = 0,
 )
 
 @Serializable
