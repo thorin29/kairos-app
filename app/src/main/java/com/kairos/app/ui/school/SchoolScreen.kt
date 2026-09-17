@@ -48,6 +48,7 @@ import com.kairos.app.data.remote.dto.SchoolItemDto
 import com.kairos.app.data.remote.dto.SchoolPersonDto
 import com.kairos.app.data.remote.dto.SchoolProgressDto
 import com.kairos.app.ui.common.LogoMenuButton
+import com.kairos.app.ui.common.OverlayDialog
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 
@@ -103,6 +104,12 @@ private fun SchoolContent(
     val myPerson = data.people.firstOrNull { it.id == data.meId }
     val others = data.people.filter { it.id != data.meId }
     val progressById = remember(data.progress) { data.progress.associateBy { it.id } }
+    var detailId by remember { mutableStateOf<String?>(null) }
+
+    // Own card first (a parent rarely has school work; a child sees just theirs),
+    // then each child. Tapping a card opens the detail in a pop-up window.
+    val ownFirst = if (myPerson != null && hasSchool(myPerson)) listOf(myPerson) else emptyList()
+    val cards = ownFirst + others.filter { hasSchool(it) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -111,25 +118,24 @@ private fun SchoolContent(
         message?.let { msg ->
             Text(msg, style = MaterialTheme.typography.bodyMedium, color = Emerald, modifier = Modifier.fillMaxWidth())
         }
-
-        if (others.isEmpty()) {
-            // Personal view (a child, or a parent looking only at themselves): the
-            // full overlay layout, always expanded.
-            if (myPerson == null || !hasSchool(myPerson)) {
-                EmptyNote("Nothing due right now.")
-            } else {
-                SchoolPersonCard(myPerson, data.today, progressById[myPerson.id], startExpanded = true, collapsible = false)
-            }
+        if (cards.isEmpty()) {
+            EmptyNote("Nothing due right now.")
         } else {
-            // Parent view: every child summarized on its own card. A parent with
-            // school work of their own sits at the top.
-            val ownFirst = if (myPerson != null && hasSchool(myPerson)) listOf(myPerson) else emptyList()
-            val ordered = ownFirst + others
-            if (ordered.none { hasSchool(it) }) {
-                EmptyNote("No school work yet.")
+            cards.forEach { p ->
+                SchoolSummaryCard(p, data.today, progressById[p.id]) { detailId = p.id }
             }
-            ordered.forEach { p ->
-                SchoolPersonCard(p, data.today, progressById[p.id], startExpanded = false, collapsible = true)
+        }
+    }
+
+    detailId?.let { id ->
+        data.people.firstOrNull { it.id == id }?.let { p ->
+            OverlayDialog(
+                onDismiss = { detailId = null },
+                icon = KairosIcons.School,
+                iconColor = Color(0xFF4F46E5),
+                title = p.name,
+            ) {
+                SchoolOverlayBody(p, data.today)
             }
         }
     }
@@ -152,29 +158,23 @@ private fun EmptyNote(text: String) {
 }
 
 @Composable
-private fun SchoolPersonCard(
+private fun SchoolSummaryCard(
     p: SchoolPersonDto,
     today: String,
     metrics: SchoolProgressDto?,
-    startExpanded: Boolean,
-    collapsible: Boolean,
+    onOpen: () -> Unit,
 ) {
-    var expanded by remember(p.id) { mutableStateOf(startExpanded) }
-    val overdue = remember(p.items) { p.items.filter { it.overdue }.sortedBy { it.dueISO } }
-    val todayItems = remember(p.items, today) { p.items.filter { !it.overdue && it.dueISO == today } }
-    val card = p.card
-    val isStudent = (card?.progress?.isNotEmpty() == true) || p.classes.isNotEmpty()
+    val overdue = p.items.filter { it.overdue }
+    val todayItems = p.items.filter { !it.overdue && it.dueISO == today }
+    val isStudent = (p.card?.progress?.isNotEmpty() == true) || p.classes.isNotEmpty()
     val completeForToday = overdue.isEmpty() && todayItems.isEmpty() && isStudent
-
     val summary = buildList {
         if (overdue.isNotEmpty()) add("${overdue.size} overdue")
         if (todayItems.isNotEmpty()) add("${todayItems.size} today")
     }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
 
-    val base = Modifier.fillMaxWidth()
-    OutlinedCard(if (collapsible) base.clickable { expanded = !expanded } else base) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Header
+    OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Dot(p.color, 12)
                 Text(p.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
@@ -182,50 +182,64 @@ private fun SchoolPersonCard(
                     Text("${metrics.pct}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                 }
             }
-            Text(
-                if (completeForToday) "Complete for today!" else summary,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
-                color = when {
-                    completeForToday -> Emerald
-                    overdue.isNotEmpty() -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-
-            if (expanded) {
-                if (card?.targetISO != null) {
-                    Text(
-                        "School year ends ${shortDate(card.targetISO)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                if (overdue.isNotEmpty()) {
-                    SectionLabel("Overdue", MaterialTheme.colorScheme.error)
-                    overdue.forEach { ItemRow(it) }
-                }
-                if (todayItems.isNotEmpty()) {
-                    SectionLabel("Today")
-                    todayItems.forEach { ItemRow(it) }
-                }
-                if (card?.progress?.isNotEmpty() == true) {
-                    SectionLabel("Progress")
-                    card.progress.forEach { ProgressRow(it) }
-                }
-                if (card?.getAhead?.isNotEmpty() == true) {
-                    SectionLabel("Coming up")
-                    card.getAhead.forEach { subj ->
-                        subj.items.firstOrNull()?.let { first ->
-                            AheadRow(subj, first)
-                        }
-                    }
-                }
-            } else if (collapsible) {
-                Text("Tap to view", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (completeForToday) "Complete for today!" else summary,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
+                    color = when {
+                        completeForToday -> Emerald
+                        overdue.isNotEmpty() -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
             }
         }
+    }
+}
+
+/** The pop-up body for one student: school-year end, then Overdue / Today /
+ *  Progress / Coming up — mirroring the web School overlay. */
+@Composable
+private fun SchoolOverlayBody(p: SchoolPersonDto, today: String) {
+    val overdue = p.items.filter { it.overdue }.sortedBy { it.dueISO }
+    val todayItems = p.items.filter { !it.overdue && it.dueISO == today }
+    val card = p.card
+    val isStudent = (card?.progress?.isNotEmpty() == true) || p.classes.isNotEmpty()
+
+    if (card?.targetISO != null) {
+        Text(
+            "School year ends ${shortDate(card.targetISO)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (overdue.isEmpty() && todayItems.isEmpty() && isStudent) {
+        Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = Emerald)
+    }
+    if (overdue.isNotEmpty()) {
+        OverlaySection("Overdue", MaterialTheme.colorScheme.error) { overdue.forEach { ItemRow(it) } }
+    }
+    if (todayItems.isNotEmpty()) {
+        OverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) { todayItems.forEach { ItemRow(it) } }
+    }
+    if (card?.progress?.isNotEmpty() == true) {
+        OverlaySection("Progress", MaterialTheme.colorScheme.onSurfaceVariant) { card.progress.forEach { ProgressRow(it) } }
+    }
+    if (card?.getAhead?.isNotEmpty() == true) {
+        OverlaySection("Coming up", MaterialTheme.colorScheme.onSurfaceVariant) {
+            card.getAhead.forEach { subj -> subj.items.firstOrNull()?.let { AheadRow(subj, it) } }
+        }
+    }
+}
+
+@Composable
+private fun OverlaySection(label: String, color: Color, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionLabel(label, color)
+        content()
     }
 }
 

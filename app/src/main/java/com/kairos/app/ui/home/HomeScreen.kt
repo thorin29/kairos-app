@@ -62,6 +62,7 @@ import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.ui.common.LogoMenuButton
+import com.kairos.app.ui.common.OverlayDialog
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.AttendanceIcon
 import com.kairos.app.ui.common.AttendeesColumn
@@ -449,7 +450,7 @@ private fun ChoresHomeCard(
     busyIds: Set<String>,
     vm: HomeViewModel,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var open by remember { mutableStateOf(false) }
     val pendingOverdue = overdue.filter { it.status != "COMPLETE" }
     val pendingToday = today.filter { it.status != "COMPLETE" }
     val hadChores = overdue.isNotEmpty() || today.isNotEmpty()
@@ -463,42 +464,67 @@ private fun ChoresHomeCard(
 
     Column {
         SectionHeader("Chores", "CHORE")
-        Card(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (completeForToday) "Complete for today!" else summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
-                        color = when {
-                            completeForToday -> ChoresGreen
-                            pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.onSurface
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(if (expanded) "Hide" else "Open", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Card(Modifier.fillMaxWidth().clickable { open = true }) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    if (completeForToday) "Complete for today!" else summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
+                    color = when {
+                        completeForToday -> ChoresGreen
+                        pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+
+    if (open) {
+        OverlayDialog(
+            onDismiss = { open = false },
+            icon = KairosIcons.Chores,
+            iconColor = Color(0xFFD97706),
+            title = "Chores",
+        ) {
+            if (completeForToday) {
+                Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
+            }
+            if (overdue.isNotEmpty()) {
+                ChoreOverlaySection("Overdue", MaterialTheme.colorScheme.error) {
+                    overdue.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
                 }
-                if (expanded) {
-                    if (overdue.isNotEmpty()) {
-                        MiniLabel("Overdue", MaterialTheme.colorScheme.error)
-                        overdue.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
-                    }
-                    if (today.isNotEmpty()) {
-                        MiniLabel("Today")
-                        today.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
-                    }
-                    if (getAhead.isNotEmpty()) {
-                        MiniLabel("Get ahead")
-                        getAhead.forEach { AheadChoreRow(it, busyIds.contains(it.taskId), vm) }
-                    }
-                    if (alwaysOpen.isNotEmpty()) {
-                        MiniLabel("Always open")
-                        alwaysOpen.forEach { AlwaysOpenRow(it, busyIds.contains("always-${it.id}"), vm) }
-                    }
+            }
+            if (today.isNotEmpty()) {
+                ChoreOverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) {
+                    today.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
+                }
+            }
+            if (getAhead.isNotEmpty()) {
+                ChoreOverlaySection("Get ahead", MaterialTheme.colorScheme.onSurfaceVariant) {
+                    getAhead.forEach { AheadChoreRow(it, busyIds.contains(it.taskId), vm) }
+                }
+            }
+            if (alwaysOpen.isNotEmpty()) {
+                ChoreOverlaySection("Always open", MaterialTheme.colorScheme.onSurfaceVariant) {
+                    alwaysOpen.forEach { AlwaysOpenRow(it, busyIds.contains("always-${it.id}"), vm) }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChoreOverlaySection(label: String, color: Color, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        MiniLabel(label, color)
+        content()
     }
 }
 

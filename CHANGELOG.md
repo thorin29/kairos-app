@@ -1,4 +1,6 @@
 # Changelog
+## 0.216.0
+- School and Chores now open in a proper pop-up window (a modal overlay) instead of expanding in place. The window matches the web overlays: a rounded card with an icon + title header, a close button, and scrollable Overdue / Today / Progress / Get ahead / Always open sections, with "Complete for today!" in green. Tap any School child card, or the home Chores card, to open it.
 ## 0.215.0
 - Fixed a home-screen crash ("Unexpected JSON token … getAhead[0].bonus") for users whose next get-ahead chore had a fractional bonus (e.g. 0.5). The chore-bonus field is now read as a decimal instead of a whole number.
 ## 0.214.0
