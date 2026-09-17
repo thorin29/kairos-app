@@ -189,7 +189,7 @@ data class GetAheadChoreDto(
     val taskId: String = "",
     val title: String = "",
     val dueDateISO: String = "",
-    val bonus: Int = 0,
+    val bonus: Double = 0.0,
 )
 
 @Serializable

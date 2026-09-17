@@ -524,7 +524,7 @@ private fun AheadChoreRow(chore: GetAheadChoreDto, busy: Boolean, vm: HomeViewMo
         Column(Modifier.weight(1f)) {
             Text(chore.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(
-                "due ${homeShortDate(chore.dueDateISO)}" + if (chore.bonus > 0) " \u00b7 +${chore.bonus} bonus" else "",
+                "due ${homeShortDate(chore.dueDateISO)}" + if (chore.bonus > 0) " \u00b7 +${if (chore.bonus % 1.0 == 0.0) chore.bonus.toInt().toString() else chore.bonus.toString()} bonus" else "",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -1,4 +1,6 @@
 # Changelog
+## 0.215.0
+- Fixed a home-screen crash ("Unexpected JSON token … getAhead[0].bonus") for users whose next get-ahead chore had a fractional bonus (e.g. 0.5). The chore-bonus field is now read as a decimal instead of a whole number.
 ## 0.214.0
 - Restored the "Add school work" (+) button on the School tab. The tab stays view-only for ticking work off — the + just adds an assignment/test.
 ## 0.213.0
