@@ -1,4 +1,6 @@
 # Changelog
+## 0.228.0
+- Home screen category order now matches the web: Bible reading, Chores, School, then Workouts.
 ## 0.227.0
 - School progress: the "falling behind" / "getting ahead" tag now sits next to the class name (not out on the right) with a tinted pill background, matching the web.
 ## 0.226.0

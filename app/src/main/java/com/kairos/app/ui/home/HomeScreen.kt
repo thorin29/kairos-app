@@ -233,7 +233,15 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
                 if (d.upForGrabs.isNotEmpty()) catOrder.add("CHORE")
 
-                catOrder.forEach { cat ->
+                // Fixed order, matching the web dashboard: Bible reading, Chores,
+                // School, Workouts, then anything else (in its arrival order).
+                val homeOrder =
+                    listOf("BIBLE", "CHORE", "SCHOOL", "EXERCISE", "WORK", "APPOINTMENT", "OTHER")
+                catOrder
+                    .sortedBy { c ->
+                        homeOrder.indexOf(c).let { if (it < 0) Int.MAX_VALUE else it }
+                    }
+                    .forEach { cat ->
                     // School work and Chores are interactive, so they open a full
                     // screen (like add-event / create-task) rather than render here.
                     if (cat == "CHORE") {
