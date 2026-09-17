@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +37,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -73,6 +78,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.nav.sectionFor
+import com.kairos.app.ui.theme.KairosThemeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -541,9 +547,9 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
 
 /** Full-screen interactive School work detail (Overdue / Today) for the person's
  *  own school work. Progress lives on the School tab (informational). */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
+fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, onAdd: () -> Unit = {}) {
     val container = rememberContainer()
     val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
     val vm: HomeViewModel = viewModel(
@@ -553,22 +559,163 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) 
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
 
-    WorkDetailScaffold("School", KairosIcons.School, Color(0xFF4F46E5), onBack) {
+    WorkDetailScaffold(
+        title = "School",
+        icon = KairosIcons.School,
+        iconColor = Color(0xFF4F46E5),
+        onBack = onBack,
+        actions = {
+            IconButton(onClick = onAdd) { Icon(KairosIcons.Plus, contentDescription = "Add assignment or test") }
+        },
+    ) {
         if (d == null) {
             Text("Loading\u2026", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
+            val school = d.school
             val overdue = d.overdue.filter { it.category == "SCHOOL" }.sortedBy { it.dueDate }
             val today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList()
             val pending = overdue.count { it.status != "COMPLETE" } + today.count { it.status != "COMPLETE" }
-            if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
-                Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
+
+            if (school?.targetISO != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("School year ends ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(homeShortDate(school.targetISO), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = KairosThemeState.accent)
+                }
             }
-            if (overdue.isNotEmpty()) ChoreOverlaySection("Overdue", MaterialTheme.colorScheme.error) { overdue.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
-            if (today.isNotEmpty()) ChoreOverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) { today.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
-            if (overdue.isEmpty() && today.isEmpty()) {
+            if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
+                Text("Complete for today!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
+            }
+            if (overdue.isNotEmpty()) {
+                DetailSection("Overdue") {
+                    overdue.forEachIndexed { i, t ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        SchoolCheckRow(t, ui.busyIds.contains(t.id), vm)
+                    }
+                }
+            }
+            if (today.isNotEmpty()) {
+                DetailSection("Today") {
+                    today.forEachIndexed { i, t ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        SchoolCheckRow(t, ui.busyIds.contains(t.id), vm)
+                    }
+                }
+            }
+            if (school?.progress?.isNotEmpty() == true) {
+                DetailSection("Progress") {
+                    school.progress.forEachIndexed { i, pr ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        SchoolProgressRow(pr)
+                    }
+                }
+            }
+            if (school?.getAhead?.isNotEmpty() == true) {
+                DetailSection("Do some extra work") {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            "Pick a subject to pull its next lesson into today \u2014 do a little extra to finish on time.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            school.getAhead.forEach { sub ->
+                                val first = sub.items.firstOrNull()
+                                OutlinedButton(onClick = { first?.let { vm.toggle(it.taskId, false) } }, enabled = first != null) {
+                                    Text(sub.subject)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (overdue.isEmpty() && today.isEmpty() && school?.progress.isNullOrEmpty() && school?.getAhead.isNullOrEmpty()) {
                 Text("No school work due.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+}
+
+/** Section label + a bordered white card holding the rows (dividers between). */
+@Composable
+private fun DetailSection(label: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.fillMaxWidth(), content = content) }
+    }
+}
+
+@Composable
+private fun SchoolCheckRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
+    val done = task.status == "COMPLETE"
+    val enabled = !busy && task.completable
+    val parts = (task.subtitle ?: "").split(" \u00b7 ")
+    val className = parts.firstOrNull()?.takeIf { it.isNotBlank() } ?: task.title
+    val detail = (listOf(task.title) + parts.drop(1)).joinToString(" \u00b7 ")
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = enabled) { vm.toggle(task.id, done) }.padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = done, onCheckedChange = null)
+        Spacer(Modifier.width(4.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                className,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (task.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SchoolProgressRow(pr: SchoolCardProgressDto) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseHex(pr.color)))
+        Text(pr.className, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
+        when (pr.pace) {
+            "behind" -> Text("falling behind", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = SchoolAmber)
+            "ahead" -> Text("getting ahead!", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = ChoresGreen)
+        }
+        if (pr.finishISO != null) {
+            Text(
+                "finishes ${homeShortDate(pr.finishISO)}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = if (pr.onTrack) MaterialTheme.colorScheme.onSurfaceVariant else SchoolAmber,
+                textDecoration = if (!pr.onTrack) androidx.compose.ui.text.style.TextDecoration.Underline else null,
+            )
+        }
+    }
+}
+
+private val SchoolAmber = Color(0xFFD97706)
+
+private fun parseHex(hex: String?): Color {
+    val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF94A3B8)
+    return try {
+        when (s.length) {
+            6 -> Color(("FF$s").toLong(16))
+            8 -> Color(s.toLong(16))
+            else -> Color(0xFF94A3B8)
+        }
+    } catch (_: NumberFormatException) {
+        Color(0xFF94A3B8)
     }
 }
 
@@ -579,9 +726,11 @@ private fun WorkDetailScaffold(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     iconColor: Color,
     onBack: () -> Unit,
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
     body: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
@@ -595,12 +744,14 @@ private fun WorkDetailScaffold(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = actions,
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
         },
     ) { inner ->
         Column(
             Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             body()
         }

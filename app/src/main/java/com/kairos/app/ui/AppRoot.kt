@@ -373,6 +373,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     SchoolWorkDetailScreen(
                         parentEntry = navController.previousBackStackEntry,
                         onBack = { navController.popBackStack() },
+                        onAdd = { navController.navigate(Route.AddSchool) },
                     )
                 }
                 composable<Route.Settings> {

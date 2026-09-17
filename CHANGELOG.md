@@ -1,4 +1,6 @@
 # Changelog
+## 0.220.0
+- Home School full screen now matches the web: white background, School-year end date, checkbox rows in bordered cards with divider lines (subject-first), a Progress section (finish dates, ahead/behind), a "Do some extra work" section with subject buttons, and an add-assignment action. (Requires web 0.408 for the progress/get-ahead data.) Chores full screen gets the white background; its detailed styling is next.
 ## 0.219.0
 - Build fix for 0.218: thread the new home nav callbacks through DashboardContent and add the missing scroll imports (the full-screen School/Chores work from 0.218 is unchanged).
 ## 0.218.0
