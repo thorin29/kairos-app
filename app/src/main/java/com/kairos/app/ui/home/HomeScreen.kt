@@ -68,6 +68,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.CategoryBarDto
 import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.SchoolCardProgressDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.AnimatedDialog
