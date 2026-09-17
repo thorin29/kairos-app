@@ -528,7 +528,7 @@ private fun WorkSummaryCard(
     }
 }
 
-private data class ChoreBadgeSpec(val icon: ImageVector, val color: Color, val label: String)
+private data class ChoreBadgeSpec(val icon: androidx.compose.ui.graphics.vector.ImageVector, val color: Color, val label: String)
 
 private val CHORE_BADGE_ICONS: Map<String, ChoreBadgeSpec> = mapOf(
     "grass" to ChoreBadgeSpec(KairosIcons.Grass, Color(0xFF16A34A), "Grass"),
