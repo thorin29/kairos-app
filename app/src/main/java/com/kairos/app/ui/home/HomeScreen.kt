@@ -153,37 +153,6 @@ fun HomeScreen(
     }
 }
 
-@Composable
-private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
-    // A centered animated dialog (not a bottom sheet): the sheet's window kept
-    // leaking across navigation and freezing, so this uses the shared reliable
-    // dialog instead — it opens every time and disposes cleanly on navigation.
-    AnimatedDialog(onDismissRequest = vm::dismissWorkout, title = task.title) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = { vm.dismissWorkout(); onLogWorkout(task.dueDate) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Log workout") }
-
-            when (task.status) {
-                "COMPLETE" -> OutlinedButton(
-                    onClick = { vm.dismissWorkout(); vm.undoWorkout(task) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Mark as not done") }
-                "SKIPPED" -> Text(
-                    "Marked as a rest day.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                else -> OutlinedButton(
-                    onClick = { vm.dismissWorkout(); vm.restDay(task) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Rest day") }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}, onLogWorkout: (String) -> Unit = {}) {

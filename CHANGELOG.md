@@ -1,4 +1,6 @@
 # Changelog
+## 0.233.0
+- Removed the now-dead workout action-sheet code (the old "Log workout / Rest day" pop-up and its view-model plumbing).
 ## 0.232.0
 - Tapping a workout on the home screen now goes straight to the Log workout page — the "Log workout / Rest day" pop-up is gone. (Stage 4 of the workout redesign; pair with web 0.422 so the home row lists all of the day's blocks.)
 ## 0.231.0

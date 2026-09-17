@@ -35,8 +35,6 @@ data class HomeUiState(
     val actionError: String? = null,
     /** Task ids with an in-flight complete/uncomplete, for per-row spinners. */
     val busyIds: Set<String> = emptySet(),
-    /** The workout prompt whose action sheet is open, if any. */
-    val workoutSheet: TaskDto? = null,
     val signingOut: Boolean = false,
 )
 
@@ -394,42 +392,6 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
-    // --- Workout prompts: a small action sheet instead of a plain checkbox ---
-
-    fun openWorkout(task: TaskDto) {
-        _ui.update { it.copy(workoutSheet = task) }
-    }
-
-    fun dismissWorkout() {
-        _ui.update { it.copy(workoutSheet = null) }
-    }
-
-    fun markWorkoutDone(task: TaskDto) = workoutOp(task, "COMPLETE") { session.workoutComplete(task.dueDate) }
-
-    fun undoWorkout(task: TaskDto) = workoutOp(task, "PENDING") { session.workoutUncomplete(task.dueDate) }
-
-    fun restDay(task: TaskDto) = workoutOp(task, "COMPLETE") { session.workoutRest(task.dueDate) }
-
-    private fun workoutOp(task: TaskDto, status: String, block: suspend () -> Unit) {
-        val before = _ui.value.dashboard
-        _ui.update {
-            it.copy(
-                workoutSheet = null,
-                busyIds = it.busyIds + task.id,
-                actionError = null,
-                dashboard = it.dashboard?.let { d -> mutateTaskStatus(d, task.id, status) },
-            )
-        }
-        viewModelScope.launch {
-            try {
-                block()
-                val data = if (session.isOnline()) freshDashboard() else _ui.value.dashboard
-                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - task.id) }
-            } catch (e: ApiException) {
-                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - task.id, actionError = e.error.message) }
-            }
-        }
-    }
 
     private fun setWorkoutStatus(dash: DashboardDto, date: String, status: String): DashboardDto =
         dash.copy(
