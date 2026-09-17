@@ -1,4 +1,7 @@
 # Changelog
+## 0.224.0
+- Chores full screen: removed the Release button (release stays on the web); Always open and Up for grabs now live in the Chores card, ordered Overdue → Today → Always open → Up for grabs → Get ahead, with matching filled buttons. Fixed the get-ahead flame icon (clearer, aligned).
+- Home Chores card: no longer miscounts always-open/up-for-grabs as "to get ahead"; adds a small line for up-for-grabs (the chore name if one, else "Up for grabs chores are available"). "Complete for today!" only shows when you have personally-assigned chores.
 ## 0.223.0
 - Chores full screen now matches the web (same as School): white background, bordered white cards with divider lines, filled checkbox rows (subject-first, strikethrough when done) with a Release button on pending chores, a Get ahead section with a flame + bonus and a theme-colored "Do it now" button per chore, and Always open in a card. (Requires web 0.410 for Release.)
 ## 0.222.0

@@ -72,6 +72,7 @@ import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.SchoolCardProgressDto
 import com.kairos.app.data.remote.dto.TaskDto
+import com.kairos.app.data.remote.dto.UpForGrabsDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.AttendanceIcon
@@ -229,6 +230,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 if (d.personalReading != null) catOrder.add("BIBLE")
                 if (d.getAhead.isNotEmpty()) catOrder.add("CHORE")
                 if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
+                if (d.upForGrabs.isNotEmpty()) catOrder.add("CHORE")
 
                 catOrder.forEach { cat ->
                     // School work and Chores are interactive, so they open a full
@@ -240,7 +242,8 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                                 category = "CHORE",
                                 overdue = d.overdue.filter { it.category == "CHORE" },
                                 today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
-                                extraCount = d.getAhead.size + d.alwaysOpen.size,
+                                getAheadCount = d.getAhead.size,
+                                upForGrabs = d.upForGrabs,
                                 onOpen = onOpenChores,
                             )
                         }
@@ -253,7 +256,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                                 category = "SCHOOL",
                                 overdue = d.overdue.filter { it.category == "SCHOOL" },
                                 today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList(),
-                                extraCount = 0,
+                                getAheadCount = 0,
                                 onOpen = onOpenSchoolWork,
                             )
                         }
@@ -277,14 +280,6 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
 
             if (d.overdue.isEmpty() && d.groups.isEmpty() && d.personalReading == null) {
                 item(key = "empty") { EmptyDay() }
-            }
-
-            if (d.upForGrabs.isNotEmpty()) {
-                item(key = "grabs") {
-                    SectionBlock("Up for grabs") {
-                        d.upForGrabs.forEach { c -> UpForGrabsRow(c, ui.busyIds.contains("claim-${c.id}"), vm) }
-                    }
-                }
             }
 
             item(key = "schedule") {
@@ -474,39 +469,51 @@ private fun WorkSummaryCard(
     category: String,
     overdue: List<TaskDto>,
     today: List<TaskDto>,
-    extraCount: Int,
+    getAheadCount: Int,
+    upForGrabs: List<UpForGrabsDto> = emptyList(),
     onOpen: () -> Unit,
 ) {
     val pendingOverdue = overdue.filter { it.status != "COMPLETE" }
     val pendingToday = today.filter { it.status != "COMPLETE" }
+    // Only personally-assigned work counts toward "Complete for today!" — an
+    // always-open or up-for-grabs chore doesn't earn or block it.
     val hadWork = overdue.isNotEmpty() || today.isNotEmpty()
     val completeForToday = pendingOverdue.isEmpty() && pendingToday.isEmpty() && hadWork
     val summary = buildList {
         if (pendingOverdue.isNotEmpty()) add("${pendingOverdue.size} overdue")
         if (pendingToday.isNotEmpty()) add("${pendingToday.size} today")
-        if (pendingOverdue.isEmpty() && pendingToday.isEmpty() && extraCount > 0) add("$extraCount to get ahead")
+        if (pendingOverdue.isEmpty() && pendingToday.isEmpty() && getAheadCount > 0) add("$getAheadCount to get ahead")
     }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
+    val poolText = when {
+        upForGrabs.size == 1 -> upForGrabs.first().title
+        upForGrabs.size > 1 -> "Up for grabs chores are available"
+        else -> null
+    }
 
     Column {
         SectionHeader(title, category)
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
-            Row(
+            Column(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text(
-                    if (completeForToday) "Complete for today!" else summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
-                    color = when {
-                        completeForToday -> ChoresGreen
-                        pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurface
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (completeForToday) "Complete for today!" else summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
+                        color = when {
+                            completeForToday -> ChoresGreen
+                            pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                }
+                if (poolText != null) {
+                    Text(poolText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }
@@ -554,6 +561,22 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
                     }
                 }
             }
+            if (d.alwaysOpen.isNotEmpty()) {
+                DetailSection("Always open") {
+                    d.alwaysOpen.forEachIndexed { i, c ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm)
+                    }
+                }
+            }
+            if (d.upForGrabs.isNotEmpty()) {
+                DetailSection("Up for grabs") {
+                    d.upForGrabs.forEachIndexed { i, g ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        UpForGrabsRow(g, ui.busyIds.contains("claim-${g.id}"), vm)
+                    }
+                }
+            }
             if (d.getAhead.isNotEmpty()) {
                 DetailSection("Get ahead") {
                     d.getAhead.forEachIndexed { i, c ->
@@ -567,17 +590,7 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (d.alwaysOpen.isNotEmpty()) {
-                DetailSection("Always open") {
-                    d.alwaysOpen.forEachIndexed { i, c ->
-                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Box(Modifier.padding(horizontal = 8.dp)) {
-                            AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm)
-                        }
-                    }
-                }
-            }
-            if (overdue.isEmpty() && today.isEmpty() && d.getAhead.isEmpty() && d.alwaysOpen.isEmpty()) {
+            if (overdue.isEmpty() && today.isEmpty() && d.getAhead.isEmpty() && d.alwaysOpen.isEmpty() && d.upForGrabs.isEmpty()) {
                 Text("No chores right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -591,10 +604,7 @@ private fun formatBonus(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toStr
 @Composable
 private fun ChoreCheckRow(task: TaskDto, busyIds: Set<String>, vm: HomeViewModel) {
     val done = task.status == "COMPLETE"
-    val busy = busyIds.contains(task.id)
-    val releaseBusy = busyIds.contains("release-${task.id}")
-    val enabled = !busy && task.completable
-    val releasable = task.locked && !done
+    val enabled = !busyIds.contains(task.id) && task.completable
     Row(
         Modifier.fillMaxWidth().clickable(enabled = enabled) { vm.toggle(task.id, done) }.padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -621,18 +631,6 @@ private fun ChoreCheckRow(task: TaskDto, busyIds: Set<String>, vm: HomeViewModel
                 }
             }
         }
-        if (releasable) {
-            Spacer(Modifier.width(8.dp))
-            OutlinedButton(
-                onClick = { vm.releaseChore(task.id) },
-                enabled = !releaseBusy,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Icon(KairosIcons.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Release")
-            }
-        }
     }
 }
 
@@ -648,10 +646,8 @@ private fun ChoreAheadRow(chore: GetAheadChoreDto, busy: Boolean, vm: HomeViewMo
             Text("due ${homeShortDate(chore.dueDateISO)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (chore.bonus > 0) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Icon(KairosIcons.Flame, contentDescription = null, tint = BonusOrange, modifier = Modifier.size(15.dp))
-                Text("+${formatBonus(chore.bonus)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = BonusOrange)
-            }
+            Icon(KairosIcons.Flame, contentDescription = null, tint = BonusOrange, modifier = Modifier.size(18.dp))
+            Text("+${formatBonus(chore.bonus)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = BonusOrange)
         }
         Button(
             onClick = { vm.toggle(chore.taskId, false) },
@@ -659,6 +655,35 @@ private fun ChoreAheadRow(chore: GetAheadChoreDto, busy: Boolean, vm: HomeViewMo
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
         ) {
             Text("Do it now")
+        }
+    }
+}
+
+@Composable
+private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(item.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            val sub = buildString {
+                append(if (item.isShared) "shared chore" else "from ${item.releasedByName}")
+                if (item.isOverdue && item.dueDate.isNotBlank()) {
+                    append(" \u00b7 due ${homeShortDate(item.dueDate)}")
+                }
+            }
+            if (sub.isNotBlank()) {
+                Text(sub, style = MaterialTheme.typography.bodySmall, color = if (item.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Button(
+            onClick = { vm.claimChore(item.id) },
+            enabled = !busy,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+        ) {
+            Text("Take it")
         }
     }
 }
@@ -1134,39 +1159,14 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
 }
 
 @Composable
-private fun UpForGrabsRow(c: com.kairos.app.data.remote.dto.UpForGrabsDto, busy: Boolean, vm: HomeViewModel) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(c.title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                buildString {
-                    append(if (c.isShared) "shared chore" else "released from ${c.releasedByName}")
-                    if (c.isOverdue) append(" \u00b7 due ${shortDate(c.dueDate)}")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (c.isOverdue) MaterialTheme.colorScheme.error
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Button(onClick = { vm.claimChore(c.id) }, enabled = !busy) {
-            Text(if (busy) "Taking\u2026" else "Take it")
-        }
-    }
-}
-
-@Composable
 private fun AlwaysOpenRow(c: com.kairos.app.data.remote.dto.AlwaysOpenDashDto, busy: Boolean, vm: HomeViewModel) {
     val onCooldown = c.readyAtMs != null && c.readyAtMs > System.currentTimeMillis()
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(c.title, style = MaterialTheme.typography.bodyLarge)
+            Text(c.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             if (c.myCount > 0) {
                 Text(
                     "done ${c.myCount}\u00d7 today",
@@ -1176,7 +1176,11 @@ private fun AlwaysOpenRow(c: com.kairos.app.data.remote.dto.AlwaysOpenDashDto, b
             }
         }
         Spacer(Modifier.width(12.dp))
-        OutlinedButton(onClick = { vm.completeAlwaysOpen(c.id) }, enabled = !busy && !onCooldown) {
+        Button(
+            onClick = { vm.completeAlwaysOpen(c.id) },
+            enabled = !busy && !onCooldown,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+        ) {
             Text(if (busy) "\u2026" else if (onCooldown) "Not back yet" else "Done")
         }
     }
