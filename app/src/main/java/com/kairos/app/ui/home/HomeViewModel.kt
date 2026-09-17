@@ -344,6 +344,21 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
+    /** Release a chore to the household pool (up for grabs). */
+    fun releaseChore(taskId: String) {
+        val key = "release-$taskId"
+        if (_ui.value.busyIds.contains(key)) return
+        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        viewModelScope.launch {
+            try {
+                session.releaseChore(taskId)
+                _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+            }
+        }
+    }
+
     private fun bumpAlwaysOpen(dash: DashboardDto, choreId: String): DashboardDto =
         dash.copy(alwaysOpen = dash.alwaysOpen.map { if (it.id == choreId) it.copy(myCount = it.myCount + 1) else it })
 

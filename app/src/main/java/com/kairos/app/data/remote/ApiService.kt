@@ -318,6 +318,9 @@ interface ApiService {
     @POST("chores/claim")
     suspend fun claimChore(@Body body: ClaimChoreRequest): Response<TaskStatusDto>
 
+    @POST("chores/release")
+    suspend fun releaseChore(@Body body: com.kairos.app.data.remote.dto.ReleaseChoreRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
+
     @POST("sport/confirm")
     suspend fun sportConfirm(@Body body: com.kairos.app.data.remote.dto.SportAnswerRequest): Response<Unit>
 

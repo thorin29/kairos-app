@@ -745,6 +745,14 @@ class SessionRepository(
         }
     }
 
+    suspend fun releaseChore(taskId: String) {
+        runAuthed {
+            requireService().releaseChore(
+                com.kairos.app.data.remote.dto.ReleaseChoreRequest(taskId),
+            )
+        }
+    }
+
     suspend fun completeAlwaysOpen(choreId: String) {
         runAuthed {
             requireService().completeAlwaysOpen(
@@ -876,6 +884,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 274
+        const val CLIENT_BUILD = 275
     }
 }

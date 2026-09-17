@@ -1,4 +1,6 @@
 # Changelog
+## 0.223.0
+- Chores full screen now matches the web (same as School): white background, bordered white cards with divider lines, filled checkbox rows (subject-first, strikethrough when done) with a Release button on pending chores, a Get ahead section with a flame + bonus and a theme-colored "Do it now" button per chore, and Always open in a card. (Requires web 0.410 for Release.)
 ## 0.222.0
 - School "Do some extra work": tapping a subject now opens a pop-up with its next lesson and an "Add to today" / "Subjects" choice, matching the web. "Add to today" pulls the lesson into today and reschedules (server-side); the pop-up advances to the next lesson or closes. (Requires web 0.409.)
 ## 0.221.0

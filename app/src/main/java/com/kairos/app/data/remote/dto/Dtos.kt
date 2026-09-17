@@ -870,6 +870,11 @@ data class ClaimChoreRequest(
 )
 
 @Serializable
+data class ReleaseChoreRequest(
+    val taskId: String,
+)
+
+@Serializable
 data class AlwaysOpenRequest(
     val choreId: String,
 )

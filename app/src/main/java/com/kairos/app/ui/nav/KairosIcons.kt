@@ -207,6 +207,8 @@ object KairosIcons {
         "m8.5 12 2.5 2.5 4.5-5.5",
     )
     val Plus = stroked("Plus", "M12 5v14", "M5 12h14")
+
+    val Flame = filled("Flame", "M12 3c1 2.5 3.5 4 3.5 7a3.5 3.5 0 0 1-7 0c0-1 .3-1.7.8-2.3C9 10 9 11.5 10 12c-.3-3 2-4.5 2-9Z")
     val Bookmark = stroked("Bookmark", "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z")
     val Search = stroked(
         "Search",

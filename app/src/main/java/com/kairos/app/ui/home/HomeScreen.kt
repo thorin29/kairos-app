@@ -534,16 +534,131 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
             val overdue = d.overdue.filter { it.category == "CHORE" }.sortedBy { it.dueDate }
             val today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList()
             val pending = overdue.count { it.status != "COMPLETE" } + today.count { it.status != "COMPLETE" }
+
             if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
-                Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
+                Text("Complete for today!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
             }
-            if (overdue.isNotEmpty()) ChoreOverlaySection("Overdue", MaterialTheme.colorScheme.error) { overdue.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
-            if (today.isNotEmpty()) ChoreOverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) { today.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
-            if (d.getAhead.isNotEmpty()) ChoreOverlaySection("Get ahead", MaterialTheme.colorScheme.onSurfaceVariant) { d.getAhead.forEach { AheadChoreRow(it, ui.busyIds.contains(it.taskId), vm) } }
-            if (d.alwaysOpen.isNotEmpty()) ChoreOverlaySection("Always open", MaterialTheme.colorScheme.onSurfaceVariant) { d.alwaysOpen.forEach { AlwaysOpenRow(it, ui.busyIds.contains("always-${it.id}"), vm) } }
+            if (overdue.isNotEmpty()) {
+                DetailSection("Overdue") {
+                    overdue.forEachIndexed { i, t ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ChoreCheckRow(t, ui.busyIds, vm)
+                    }
+                }
+            }
+            if (today.isNotEmpty()) {
+                DetailSection("Today") {
+                    today.forEachIndexed { i, t ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ChoreCheckRow(t, ui.busyIds, vm)
+                    }
+                }
+            }
+            if (d.getAhead.isNotEmpty()) {
+                DetailSection("Get ahead") {
+                    d.getAhead.forEachIndexed { i, c ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ChoreAheadRow(c, ui.busyIds.contains(c.taskId), vm)
+                    }
+                }
+                Text(
+                    "Jump on an upcoming chore for a small bonus \u2014 it still counts toward its own week; the bonus is on top, this week.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (d.alwaysOpen.isNotEmpty()) {
+                DetailSection("Always open") {
+                    d.alwaysOpen.forEachIndexed { i, c ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Box(Modifier.padding(horizontal = 8.dp)) {
+                            AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm)
+                        }
+                    }
+                }
+            }
             if (overdue.isEmpty() && today.isEmpty() && d.getAhead.isEmpty() && d.alwaysOpen.isEmpty()) {
                 Text("No chores right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+private val BonusOrange = Color(0xFFEA580C)
+
+private fun formatBonus(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
+
+@Composable
+private fun ChoreCheckRow(task: TaskDto, busyIds: Set<String>, vm: HomeViewModel) {
+    val done = task.status == "COMPLETE"
+    val busy = busyIds.contains(task.id)
+    val releaseBusy = busyIds.contains("release-${task.id}")
+    val enabled = !busy && task.completable
+    val releasable = task.locked && !done
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = enabled) { vm.toggle(task.id, done) }.padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = done, onCheckedChange = null)
+        Spacer(Modifier.width(4.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                task.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Chores", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (task.isOverdue) {
+                    Text(
+                        " \u00b7 due ${homeShortDate(task.dueDate)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
+        if (releasable) {
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(
+                onClick = { vm.releaseChore(task.id) },
+                enabled = !releaseBusy,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(KairosIcons.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Release")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChoreAheadRow(chore: GetAheadChoreDto, busy: Boolean, vm: HomeViewModel) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(chore.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text("due ${homeShortDate(chore.dueDateISO)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (chore.bonus > 0) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Icon(KairosIcons.Flame, contentDescription = null, tint = BonusOrange, modifier = Modifier.size(15.dp))
+                Text("+${formatBonus(chore.bonus)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = BonusOrange)
+            }
+        }
+        Button(
+            onClick = { vm.toggle(chore.taskId, false) },
+            enabled = !busy,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+        ) {
+            Text("Do it now")
         }
     }
 }
