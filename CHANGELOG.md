@@ -1,4 +1,6 @@
 # Changelog
+## 0.231.0
+- Weight calculator: the total now sits on the left with a themed "Use this weight" button on the right. Opening the calculator from a log-workout card's Calculator tile and tapping Use this weight drops the total into that card's weight field and returns you to the log page (other cards stay blank; you still tap Log weight). The button only appears when the calculator is opened from a card. (Stage 3 of the workout redesign.)
 ## 0.230.0
 - Log workout cards now have three tiles instead of one button: Log weight, Rest / skip (that exercise only), and Calculator. After logging, the tile eases to grey and reads "logged", then settles on "edit weight"; Rest / skip greys to "skipped" and taps back to reset. (Stage 2 of the workout redesign; the calculator hand-off and home entry point are next.)
 ## 0.229.0

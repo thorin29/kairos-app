@@ -73,7 +73,13 @@ import java.time.format.DateTimeFormatter
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkoutLogScreen(date: String, onDone: () -> Unit, onOpenCalculator: () -> Unit) {
+fun WorkoutLogScreen(
+    date: String,
+    onDone: () -> Unit,
+    onOpenCalculator: () -> Unit,
+    usedWeight: String?,
+    onWeightConsumed: () -> Unit,
+) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
         factory = viewModelFactory {
@@ -82,8 +88,21 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit, onOpenCalculator: () -> U
     )
     val ui by vm.ui.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
+    // Which card's movement launched the calculator, so its returned weight goes
+    // to the right input.
+    var pendingTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
+
+    LaunchedEffect(usedWeight) {
+        val w = usedWeight
+        val target = pendingTarget
+        if (w != null && target != null) {
+            vm.onValue(target.first, target.second, w)
+            pendingTarget = null
+            onWeightConsumed()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -144,7 +163,12 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit, onOpenCalculator: () -> U
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        ui.blocks.forEach { block -> WorkoutBlockCard(block, vm, onOpenCalculator) }
+                        ui.blocks.forEach { block ->
+                            WorkoutBlockCard(block, vm) { planId, exId ->
+                                pendingTarget = planId to exId
+                                onOpenCalculator()
+                            }
+                        }
                     }
 
                     if (ui.actionError != null) {
@@ -232,7 +256,11 @@ private fun WorkoutActionTile(
 }
 
 @Composable
-private fun WorkoutBlockCard(block: WorkoutBlock, vm: WorkoutLogViewModel, onOpenCalculator: () -> Unit) {
+private fun WorkoutBlockCard(
+    block: WorkoutBlock,
+    vm: WorkoutLogViewModel,
+    onOpenCalculatorFor: (String, String) -> Unit,
+) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -296,7 +324,12 @@ private fun WorkoutBlockCard(block: WorkoutBlock, vm: WorkoutLogViewModel, onOpe
                     label = "Calculator",
                     modifier = Modifier.weight(1f),
                     highlighted = false,
-                ) { onOpenCalculator() }
+                ) {
+                    onOpenCalculatorFor(
+                        block.plannedWorkoutId,
+                        block.inputs.firstOrNull()?.poolExerciseId ?: "",
+                    )
+                }
             }
         }
     }

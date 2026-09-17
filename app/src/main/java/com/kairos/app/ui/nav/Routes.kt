@@ -53,7 +53,7 @@ sealed interface Route {
     data object RecentWorkouts : Route
 
     @Serializable
-    data object WeightCalculator : Route
+    data class WeightCalculator(val forLog: Boolean = false) : Route
 
     @Serializable
     data object BrowseWorkouts : Route

@@ -283,7 +283,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenDrawer = { open = true },
                             onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
                             onOpenRecent = { navController.navigate(Route.RecentWorkouts) },
-                            onOpenCalculator = { navController.navigate(Route.WeightCalculator) },
+                            onOpenCalculator = { navController.navigate(Route.WeightCalculator()) },
                             onOpenBrowse = { navController.navigate(Route.BrowseWorkouts) },
                             onOpenCreatePersonal = { navController.navigate(Route.CreatePersonalWorkout) },
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
@@ -342,8 +342,18 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 composable<Route.RecentWorkouts> {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })
                 }
-                composable<Route.WeightCalculator> {
-                    WeightCalculatorScreen(onBack = { navController.popBackStack() })
+                composable<Route.WeightCalculator> { entry ->
+                    val forLog = entry.toRoute<Route.WeightCalculator>().forLog
+                    WeightCalculatorScreen(
+                        onBack = { navController.popBackStack() },
+                        onUseWeight = if (forLog) {
+                            { w ->
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle?.set("useWeight", w)
+                                navController.popBackStack()
+                            }
+                        } else null,
+                    )
                 }
                 composable<Route.BrowseWorkouts> {
                     BrowseWorkoutsScreen(onBack = { navController.popBackStack() })
@@ -443,10 +453,15 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     DevicesScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.WorkoutLog> { entry ->
+                    val usedWeight by entry.savedStateHandle
+                        .getStateFlow<String?>("useWeight", null)
+                        .collectAsState()
                     WorkoutLogScreen(
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
-                        onOpenCalculator = { navController.navigate(Route.WeightCalculator) },
+                        onOpenCalculator = { navController.navigate(Route.WeightCalculator(forLog = true)) },
+                        usedWeight = usedWeight,
+                        onWeightConsumed = { entry.savedStateHandle["useWeight"] = null },
                     )
                 }
                 composable<Route.AddClass> { entry ->

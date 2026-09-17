@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -75,7 +76,7 @@ private val OUTLINE = Color(0x596F767E) // #6f767e @ 0.35
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WeightCalculatorScreen(onBack: () -> Unit) {
+fun WeightCalculatorScreen(onBack: () -> Unit, onUseWeight: ((String) -> Unit)? = null) {
     var bar by remember { mutableStateOf(BARS[0]) }
     var loaded by remember { mutableStateOf(listOf<String>()) } // plate ids, one entry = one pair
 
@@ -115,12 +116,19 @@ fun WeightCalculatorScreen(onBack: () -> Unit) {
                 Barbell(perSide, bar.type)
             }
 
-            Text(
-                "${fmtWeight(total)} lb",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${fmtWeight(total)} lb",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                if (onUseWeight != null) {
+                    Button(onClick = { onUseWeight(fmtWeight(total)) }) {
+                        Text("Use this weight")
+                    }
+                }
+            }
 
             // Bar selector + Clear
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
