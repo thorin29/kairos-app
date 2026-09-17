@@ -2,6 +2,8 @@ package com.kairos.app.ui.home
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,7 +135,7 @@ fun HomeScreen(
                     }
                 }
                 ui.dashboard == null -> ErrorState(ui.loadError, onRetry = vm::load)
-                else -> DashboardContent(person, ui, vm, onOpenMoney)
+                else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork)
             }
 
             ui.workoutSheet?.let { task -> WorkoutSheet(task, vm, onLogWorkout) }
@@ -174,7 +176,7 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}) {
+private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
     PullToRefreshBox(

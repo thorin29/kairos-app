@@ -1,4 +1,6 @@
 # Changelog
+## 0.219.0
+- Build fix for 0.218: thread the new home nav callbacks through DashboardContent and add the missing scroll imports (the full-screen School/Chores work from 0.218 is unchanged).
 ## 0.218.0
 - Home screen: School work and Chores are now cards that open a real full screen (with a top bar + back arrow), like adding a calendar event or task — because they're interactive. Completing work there updates the home behind it. The School tab's per-child view stays an informational pop-up, matching the pattern: interactive = full screen, informational = pop-up.
 ## 0.217.0
