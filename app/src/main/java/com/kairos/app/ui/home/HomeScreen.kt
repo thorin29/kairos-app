@@ -683,7 +683,7 @@ private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel)
             enabled = !busy,
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
         ) {
-            Text("Take it")
+            Text(if (busy) "Doing\u2026" else "Done")
         }
     }
 }

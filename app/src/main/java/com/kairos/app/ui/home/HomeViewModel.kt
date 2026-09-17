@@ -276,7 +276,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
-    /** Take an up-for-grabs chore for yourself, then reload. */
+    /** Take an up-for-grabs chore for yourself AND complete it in one tap, then reload. */
     fun claimChore(taskId: String) {
         val key = "claim-$taskId"
         if (_ui.value.busyIds.contains(key)) return
@@ -290,7 +290,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
         }
         viewModelScope.launch {
             try {
-                session.claimChore(taskId)
+                session.claimAndCompleteChore(taskId)
                 if (session.isOnline()) {
                     _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
                 } else {

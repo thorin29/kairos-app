@@ -1,4 +1,6 @@
 # Changelog
+## 0.225.0
+- Up for grabs is now one tap: the button on a pool chore claims it for you AND marks it done in a single request — no separate claim-then-complete step — matching the web. Added grass and water chore-badge icons ahead of the completed-today badges.
 ## 0.224.0
 - Chores full screen: removed the Release button (release stays on the web); Always open and Up for grabs now live in the Chores card, ordered Overdue → Today → Always open → Up for grabs → Get ahead, with matching filled buttons. Fixed the get-ahead flame icon (clearer, aligned).
 - Home Chores card: no longer miscounts always-open/up-for-grabs as "to get ahead"; adds a small line for up-for-grabs (the chore name if one, else "Up for grabs chores are available"). "Complete for today!" only shows when you have personally-assigned chores.

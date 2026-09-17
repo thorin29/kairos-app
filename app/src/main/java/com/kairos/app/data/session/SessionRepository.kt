@@ -745,6 +745,14 @@ class SessionRepository(
         }
     }
 
+    suspend fun claimAndCompleteChore(taskId: String) {
+        runAuthed {
+            requireService().claimAndCompleteChore(
+                com.kairos.app.data.remote.dto.ClaimChoreRequest(taskId),
+            )
+        }
+    }
+
     suspend fun releaseChore(taskId: String) {
         runAuthed {
             requireService().releaseChore(
@@ -884,6 +892,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 276
+        const val CLIENT_BUILD = 277
     }
 }

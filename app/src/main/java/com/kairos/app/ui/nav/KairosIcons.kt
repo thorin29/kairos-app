@@ -68,6 +68,26 @@ private fun filled(name: String, path: String): ImageVector {
     return builder.build()
 }
 
+/** A filled icon whose source path uses a viewport other than 24 (e.g. imported
+ *  SVGs at 48 or 512). Keeps the raw coordinates and just sizes the viewport to
+ *  match, so no error-prone hand-scaling of path data. Icon() tints it. */
+private fun filledVp(name: String, viewport: Float, vararg paths: String): ImageVector {
+    val builder = ImageVector.Builder(
+        name = name,
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = viewport,
+        viewportHeight = viewport,
+    )
+    for (d in paths) {
+        builder.addPath(
+            pathData = PathParser().parsePathString(d).toNodes(),
+            fill = SolidColor(Color.Black),
+        )
+    }
+    return builder.build()
+}
+
 /** A filled icon whose path cuts out inner shapes (even-odd) — e.g. a person
  *  silhouette with a check / X / ? punched out. Single color; Icon() tints it. */
 private fun filledEvenOdd(name: String, path: String): ImageVector {
@@ -87,6 +107,18 @@ private fun filledEvenOdd(name: String, path: String): ImageVector {
 }
 
 object KairosIcons {
+    // Chore-badge glyphs, imported from SVG (grass tinted green, water blue at
+    // render). filledVp keeps their native 512 / 48 viewports.
+    val Grass = filledVp(
+        "Grass",
+        512f,
+        "M461.563 38.938C313.435 165.053 232.49 371.144 210.313 492.5h77.218c31.597-122.495 51.135-263.494 174.033-453.563zM78.375 91.374c52.397 62.796 102.31 132.45 142.094 199.28a1188 1188 0 0 1 20.81 36.408 956 956 0 0 1 26.095-58.282c-51.817-71.23-113.464-135.005-189-177.405zm391.188 133.72c-51.588 46.498-78.856 114.453-90.594 190.655 13.775 25.835 26.704 51.295 38.936 75.875h39.375c-25.25-71.46-11.537-162.36 12.283-266.53M67 240.437c72.962 73.26 120.794 188.6 80.094 250.78h45c4.494-25.12 11.34-53.633 20.687-84.25C194.338 322.68 131.42 242.927 67 240.44zm-32.875 87.937C87.145 409.31 95.83 453.34 75.063 490.97h67.5c-13.1-72.02-31.444-116.305-108.438-162.595zm300.938 45.594c-10.65 41.36-19.188 80.437-28.813 118.25h91.72c-19.144-38.286-39.92-78.392-62.908-118.25z",
+    )
+    val Water = filledVp(
+        "Water",
+        48f,
+        "M24.855 5.636a1.125 1.125 0 0 0-1.71 0C20.179 9.108 10.5 21.11 10.5 30c0 8.285 5.216 13.5 13.5 13.5S37.5 38.285 37.5 30c0-8.89-9.678-20.892-12.645-24.364m.645 32.989a1.125 1.125 0 0 1-1.063-1.5 1.115 1.115 0 0 1 1.07-.75 5.63 5.63 0 0 0 5.618-5.618 1.115 1.115 0 0 1 .75-1.07 1.125 1.125 0 0 1 1.5 1.063 7.883 7.883 0 0 1-7.875 7.875",
+    )
     // A real cog: eight-tooth gear ring with a center circle (Lucide "settings").
     val Bell = stroked(
         "Bell",
