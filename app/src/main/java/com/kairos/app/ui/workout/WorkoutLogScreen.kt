@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -73,7 +74,6 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
     )
     val ui by vm.ui.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
-    var confirmExpire by remember { mutableStateOf(false) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
 
@@ -110,6 +110,9 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                         OutlinedButton(
                             onClick = { showDatePicker = true },
                             modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
                         ) {
                             Icon(
                                 Icons.Default.DateRange,
@@ -134,18 +137,6 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
                             fontWeight = FontWeight.SemiBold,
                         )
                         ui.blocks.forEach { block -> WorkoutBlockCard(block, vm) }
-
-                        OutlinedButton(
-                            onClick = { confirmExpire = true },
-                            enabled = !ui.expiring,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            if (ui.expiring) {
-                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            Text("Expire this workout")
-                        }
                     }
 
                     if (ui.actionError != null) {
@@ -172,20 +163,6 @@ fun WorkoutLogScreen(date: String, onDone: () -> Unit) {
             dateIso = picking,
             onPick = { vm.setDate(it); showDatePicker = false },
             onDismiss = { showDatePicker = false },
-        )
-    }
-
-    if (confirmExpire) {
-        AlertDialog(
-            onDismissRequest = { confirmExpire = false },
-            title = { Text("Expire this workout?") },
-            text = { Text("It will stop showing as due and won't count. Use this for a missed workout you're not going to make up.") },
-            confirmButton = {
-                TextButton(onClick = { confirmExpire = false; vm.expire() }) { Text("Expire") }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmExpire = false }) { Text("Cancel") }
-            },
         )
     }
 

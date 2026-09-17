@@ -1,4 +1,6 @@
 # Changelog
+## 0.229.0
+- Log workout page: removed the "Expire this workout" button, and the date and "Log something else" buttons now sit on white instead of blending into the background. (First step of the workout-logging redesign.)
 ## 0.228.0
 - Home screen category order now matches the web: Bible reading, Chores, School, then Workouts.
 ## 0.227.0
