@@ -146,7 +146,7 @@ fun HomeScreen(
                     }
                 }
                 ui.dashboard == null -> ErrorState(ui.loadError, onRetry = vm::load)
-                else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork)
+                else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork, onLogWorkout)
             }
 
         }
@@ -186,7 +186,7 @@ private fun WorkoutSheet(task: TaskDto, vm: HomeViewModel, onLogWorkout: (String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}) {
+private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}, onLogWorkout: (String) -> Unit = {}) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
     PullToRefreshBox(
