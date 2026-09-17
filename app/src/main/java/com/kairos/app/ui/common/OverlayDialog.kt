@@ -31,10 +31,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 /**
- * A large content modal that mirrors the web pop-up overlays (School / Chores):
- * a rounded surface card centered on a scrim, with a colored icon + title +
- * close in the header and a scrollable body. Shared so every overlay in the app
- * reads the same.
+ * A pop-up overlay modal for informational (read-only) detail, mirroring the web
+ * pop-up overlays: a rounded surface card centered on a scrim, with a colored
+ * icon + title + close in the header and a scrollable body. Used for views you
+ * only read (e.g. a parent viewing a child's school on the School tab).
+ * Interactive detail uses a full screen instead — see the *DetailScreen screens.
  */
 @Composable
 fun OverlayDialog(
@@ -53,9 +54,7 @@ fun OverlayDialog(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 3.dp,
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .heightIn(max = 660.dp),
+            modifier = Modifier.fillMaxWidth(0.94f).heightIn(max = 660.dp),
         ) {
             Column(Modifier.padding(20.dp)) {
                 Row(

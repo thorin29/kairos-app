@@ -77,6 +77,12 @@ sealed interface Route {
     data object AddSchool : Route
 
     @Serializable
+    data object HomeChores : Route
+
+    @Serializable
+    data object HomeSchoolWork : Route
+
+    @Serializable
     data object AssignTask : Route
 
     @Serializable

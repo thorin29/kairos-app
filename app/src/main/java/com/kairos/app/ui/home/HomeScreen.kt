@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -62,11 +63,12 @@ import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.ui.common.LogoMenuButton
-import com.kairos.app.ui.common.OverlayDialog
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.AttendanceIcon
 import com.kairos.app.ui.common.AttendeesColumn
 import com.kairos.app.ui.common.rememberContainer
+import androidx.navigation.NavBackStackEntry
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.nav.sectionFor
 
@@ -78,6 +80,8 @@ fun HomeScreen(
     onLogWorkout: (String) -> Unit,
     onOpenMoney: () -> Unit = {},
     onAssignTask: () -> Unit = {},
+    onOpenChores: () -> Unit = {},
+    onOpenSchoolWork: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
@@ -216,17 +220,30 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
 
                 catOrder.forEach { cat ->
+                    // School work and Chores are interactive, so they open a full
+                    // screen (like add-event / create-task) rather than render here.
                     if (cat == "CHORE") {
-                        // Chores get their own pop-up-style card (Overdue / Today /
-                        // Get ahead / Always open), keeping the home tidy — like School.
                         item(key = "chores-card") {
-                            ChoresHomeCard(
-                                overdue = d.overdue.filter { it.category == "CHORE" }.sortedBy { it.dueDate },
+                            WorkSummaryCard(
+                                title = "Chores",
+                                category = "CHORE",
+                                overdue = d.overdue.filter { it.category == "CHORE" },
                                 today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
-                                getAhead = d.getAhead,
-                                alwaysOpen = d.alwaysOpen,
-                                busyIds = ui.busyIds,
-                                vm = vm,
+                                extraCount = d.getAhead.size + d.alwaysOpen.size,
+                                onOpen = onOpenChores,
+                            )
+                        }
+                        return@forEach
+                    }
+                    if (cat == "SCHOOL") {
+                        item(key = "school-card") {
+                            WorkSummaryCard(
+                                title = "School",
+                                category = "SCHOOL",
+                                overdue = d.overdue.filter { it.category == "SCHOOL" },
+                                today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList(),
+                                extraCount = 0,
+                                onOpen = onOpenSchoolWork,
                             )
                         }
                         return@forEach
@@ -438,33 +455,30 @@ private fun MoneyReminder(m: com.kairos.app.data.remote.dto.DashboardMoneyDto, o
 
 private val ChoresGreen = Color(0xFF059669)
 
-/** Home Chores card: a tidy summary that expands to the overlay layout
- *  (Overdue / Today / Get ahead), matching the web pop-up. Shows
- *  "Complete for today!" once nothing chore-related is pending. */
+/** A compact home card for an interactive category (School work / Chores): a
+ *  header + one-line summary that opens the full-screen detail on tap. */
 @Composable
-private fun ChoresHomeCard(
+private fun WorkSummaryCard(
+    title: String,
+    category: String,
     overdue: List<TaskDto>,
     today: List<TaskDto>,
-    getAhead: List<GetAheadChoreDto>,
-    alwaysOpen: List<com.kairos.app.data.remote.dto.AlwaysOpenDashDto>,
-    busyIds: Set<String>,
-    vm: HomeViewModel,
+    extraCount: Int,
+    onOpen: () -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
     val pendingOverdue = overdue.filter { it.status != "COMPLETE" }
     val pendingToday = today.filter { it.status != "COMPLETE" }
-    val hadChores = overdue.isNotEmpty() || today.isNotEmpty()
-    val completeForToday = pendingOverdue.isEmpty() && pendingToday.isEmpty() && hadChores
-
+    val hadWork = overdue.isNotEmpty() || today.isNotEmpty()
+    val completeForToday = pendingOverdue.isEmpty() && pendingToday.isEmpty() && hadWork
     val summary = buildList {
         if (pendingOverdue.isNotEmpty()) add("${pendingOverdue.size} overdue")
         if (pendingToday.isNotEmpty()) add("${pendingToday.size} today")
-        if (pendingOverdue.isEmpty() && pendingToday.isEmpty() && getAhead.isNotEmpty()) add("${getAhead.size} to get ahead")
+        if (pendingOverdue.isEmpty() && pendingToday.isEmpty() && extraCount > 0) add("$extraCount to get ahead")
     }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
 
     Column {
-        SectionHeader("Chores", "CHORE")
-        Card(Modifier.fillMaxWidth().clickable { open = true }) {
+        SectionHeader(title, category)
+        Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -485,37 +499,108 @@ private fun ChoresHomeCard(
             }
         }
     }
+}
 
-    if (open) {
-        OverlayDialog(
-            onDismiss = { open = false },
-            icon = KairosIcons.Chores,
-            iconColor = Color(0xFFD97706),
-            title = "Chores",
-        ) {
-            if (completeForToday) {
+/** Full-screen interactive Chores detail (Overdue / Today / Get ahead / Always
+ *  open). Shares the home's ViewModel via [parentEntry] so completions here
+ *  update the home behind it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
+    val container = rememberContainer()
+    val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
+    val vm: HomeViewModel = viewModel(
+        viewModelStoreOwner = owner,
+        factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository) } },
+    )
+    val ui by vm.ui.collectAsState()
+    val d = ui.dashboard
+
+    WorkDetailScaffold("Chores", KairosIcons.Chores, Color(0xFFD97706), onBack) {
+        if (d == null) {
+            Text("Loading\u2026", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            val overdue = d.overdue.filter { it.category == "CHORE" }.sortedBy { it.dueDate }
+            val today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList()
+            val pending = overdue.count { it.status != "COMPLETE" } + today.count { it.status != "COMPLETE" }
+            if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
                 Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
             }
-            if (overdue.isNotEmpty()) {
-                ChoreOverlaySection("Overdue", MaterialTheme.colorScheme.error) {
-                    overdue.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
-                }
+            if (overdue.isNotEmpty()) ChoreOverlaySection("Overdue", MaterialTheme.colorScheme.error) { overdue.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
+            if (today.isNotEmpty()) ChoreOverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) { today.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
+            if (d.getAhead.isNotEmpty()) ChoreOverlaySection("Get ahead", MaterialTheme.colorScheme.onSurfaceVariant) { d.getAhead.forEach { AheadChoreRow(it, ui.busyIds.contains(it.taskId), vm) } }
+            if (d.alwaysOpen.isNotEmpty()) ChoreOverlaySection("Always open", MaterialTheme.colorScheme.onSurfaceVariant) { d.alwaysOpen.forEach { AlwaysOpenRow(it, ui.busyIds.contains("always-${it.id}"), vm) } }
+            if (overdue.isEmpty() && today.isEmpty() && d.getAhead.isEmpty() && d.alwaysOpen.isEmpty()) {
+                Text("No chores right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (today.isNotEmpty()) {
-                ChoreOverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) {
-                    today.forEach { TaskRow(it, busyIds.contains(it.id), vm) }
-                }
+        }
+    }
+}
+
+/** Full-screen interactive School work detail (Overdue / Today) for the person's
+ *  own school work. Progress lives on the School tab (informational). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
+    val container = rememberContainer()
+    val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
+    val vm: HomeViewModel = viewModel(
+        viewModelStoreOwner = owner,
+        factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository) } },
+    )
+    val ui by vm.ui.collectAsState()
+    val d = ui.dashboard
+
+    WorkDetailScaffold("School", KairosIcons.School, Color(0xFF4F46E5), onBack) {
+        if (d == null) {
+            Text("Loading\u2026", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            val overdue = d.overdue.filter { it.category == "SCHOOL" }.sortedBy { it.dueDate }
+            val today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList()
+            val pending = overdue.count { it.status != "COMPLETE" } + today.count { it.status != "COMPLETE" }
+            if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
+                Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
             }
-            if (getAhead.isNotEmpty()) {
-                ChoreOverlaySection("Get ahead", MaterialTheme.colorScheme.onSurfaceVariant) {
-                    getAhead.forEach { AheadChoreRow(it, busyIds.contains(it.taskId), vm) }
-                }
+            if (overdue.isNotEmpty()) ChoreOverlaySection("Overdue", MaterialTheme.colorScheme.error) { overdue.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
+            if (today.isNotEmpty()) ChoreOverlaySection("Today", MaterialTheme.colorScheme.onSurfaceVariant) { today.forEach { TaskRow(it, ui.busyIds.contains(it.id), vm) } }
+            if (overdue.isEmpty() && today.isEmpty()) {
+                Text("No school work due.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (alwaysOpen.isNotEmpty()) {
-                ChoreOverlaySection("Always open", MaterialTheme.colorScheme.onSurfaceVariant) {
-                    alwaysOpen.forEach { AlwaysOpenRow(it, busyIds.contains("always-${it.id}"), vm) }
-                }
-            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkDetailScaffold(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color,
+    onBack: () -> Unit,
+    body: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
+                        Text(title)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { inner ->
+        Column(
+            Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            body()
         }
     }
 }

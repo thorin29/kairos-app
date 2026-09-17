@@ -1,4 +1,8 @@
 # Changelog
+## 0.218.0
+- Home screen: School work and Chores are now cards that open a real full screen (with a top bar + back arrow), like adding a calendar event or task — because they're interactive. Completing work there updates the home behind it. The School tab's per-child view stays an informational pop-up, matching the pattern: interactive = full screen, informational = pop-up.
+## 0.217.0
+- School and Chores now open as a full screen (top bar with icon + title + back arrow, scrollable body) like the add-event / create-task screens — not a pop-up. Tap a School child card, or the home Chores card, to open it; back returns.
 ## 0.216.0
 - School and Chores now open in a proper pop-up window (a modal overlay) instead of expanding in place. The window matches the web overlays: a rounded card with an icon + title header, a close button, and scrollable Overdue / Today / Progress / Get ahead / Always open sections, with "Complete for today!" in green. Tap any School child card, or the home Chores card, to open it.
 ## 0.215.0

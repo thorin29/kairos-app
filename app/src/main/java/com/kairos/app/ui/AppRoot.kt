@@ -49,6 +49,8 @@ import androidx.compose.ui.Alignment
 import com.kairos.app.ui.common.OfflineBanner
 import com.kairos.app.ui.devices.DevicesScreen
 import com.kairos.app.ui.home.HomeScreen
+import com.kairos.app.ui.home.ChoresDetailScreen
+import com.kairos.app.ui.home.SchoolWorkDetailScreen
 import com.kairos.app.ui.nav.KairosRail
 import com.kairos.app.ui.nav.Route
 import com.kairos.app.ui.nav.sectionFor
@@ -269,6 +271,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
                         onOpenMoney = { go(Route.Section("money"), "money") },
                         onAssignTask = { navController.navigate(Route.AssignTask) },
+                        onOpenChores = { navController.navigate(Route.HomeChores) },
+                        onOpenSchoolWork = { navController.navigate(Route.HomeSchoolWork) },
                         refreshKey = homeRefresh,
                     )
                 }
@@ -357,6 +361,18 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     AddGroceryScreen(
                         parentEntry = navController.previousBackStackEntry,
                         onClose = { navController.popBackStack() },
+                    )
+                }
+                composable<Route.HomeChores> {
+                    ChoresDetailScreen(
+                        parentEntry = navController.previousBackStackEntry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<Route.HomeSchoolWork> {
+                    SchoolWorkDetailScreen(
+                        parentEntry = navController.previousBackStackEntry,
+                        onBack = { navController.popBackStack() },
                     )
                 }
                 composable<Route.Settings> {
