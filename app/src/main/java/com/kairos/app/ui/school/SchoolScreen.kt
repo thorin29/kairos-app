@@ -1,7 +1,6 @@
 package com.kairos.app.ui.school
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,7 +89,7 @@ fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: In
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> SchoolContent(data, ui.busy, ui.message) { vm.complete(it) }
+                else -> SchoolContent(data, ui.message)
             }
         }
     }
@@ -99,9 +98,7 @@ fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: In
 @Composable
 private fun SchoolContent(
     data: SchoolDto,
-    busy: Boolean,
     message: String?,
-    onComplete: (String) -> Unit,
 ) {
     val myPerson = data.people.firstOrNull { it.id == data.meId }
     val others = data.people.filter { it.id != data.meId }
@@ -121,7 +118,7 @@ private fun SchoolContent(
             if (myPerson == null || !hasSchool(myPerson)) {
                 EmptyNote("Nothing due right now.")
             } else {
-                SchoolPersonCard(myPerson, data.today, progressById[myPerson.id], startExpanded = true, collapsible = false, busy = busy, onComplete = onComplete)
+                SchoolPersonCard(myPerson, data.today, progressById[myPerson.id], startExpanded = true, collapsible = false)
             }
         } else {
             // Parent view: every child summarized on its own card. A parent with
@@ -132,7 +129,7 @@ private fun SchoolContent(
                 EmptyNote("No school work yet.")
             }
             ordered.forEach { p ->
-                SchoolPersonCard(p, data.today, progressById[p.id], startExpanded = false, collapsible = true, busy = busy, onComplete = onComplete)
+                SchoolPersonCard(p, data.today, progressById[p.id], startExpanded = false, collapsible = true)
             }
         }
     }
@@ -161,8 +158,6 @@ private fun SchoolPersonCard(
     metrics: SchoolProgressDto?,
     startExpanded: Boolean,
     collapsible: Boolean,
-    busy: Boolean,
-    onComplete: (String) -> Unit,
 ) {
     var expanded by remember(p.id) { mutableStateOf(startExpanded) }
     val overdue = remember(p.items) { p.items.filter { it.overdue }.sortedBy { it.dueISO } }
@@ -209,21 +204,21 @@ private fun SchoolPersonCard(
 
                 if (overdue.isNotEmpty()) {
                     SectionLabel("Overdue", MaterialTheme.colorScheme.error)
-                    overdue.forEach { ItemRow(it, busy, onComplete) }
+                    overdue.forEach { ItemRow(it) }
                 }
                 if (todayItems.isNotEmpty()) {
                     SectionLabel("Today")
-                    todayItems.forEach { ItemRow(it, busy, onComplete) }
+                    todayItems.forEach { ItemRow(it) }
                 }
                 if (card?.progress?.isNotEmpty() == true) {
                     SectionLabel("Progress")
                     card.progress.forEach { ProgressRow(it) }
                 }
                 if (card?.getAhead?.isNotEmpty() == true) {
-                    SectionLabel("Do some extra work")
+                    SectionLabel("Coming up")
                     card.getAhead.forEach { subj ->
                         subj.items.firstOrNull()?.let { first ->
-                            AheadRow(subj, first, busy, onComplete)
+                            AheadRow(subj, first)
                         }
                     }
                 }
@@ -246,21 +241,14 @@ private fun SectionLabel(text: String, color: Color = MaterialTheme.colorScheme.
 }
 
 @Composable
-private fun ItemRow(item: SchoolItemDto, busy: Boolean, onComplete: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(
-            Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
-                .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                .clickable(enabled = !busy) { onComplete(item.id) },
+private fun ItemRow(item: SchoolItemDto) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        Text(item.className ?: item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Text(
+            "${item.title} \u00b7 ${item.typeLabel} \u00b7 due ${shortDate(item.dueISO)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Column(Modifier.weight(1f)) {
-            Text(item.className ?: item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Text(
-                "${item.title} \u00b7 ${item.typeLabel} \u00b7 due ${shortDate(item.dueISO)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -294,21 +282,14 @@ private fun ProgressRow(pr: SchoolCardProgressDto) {
 }
 
 @Composable
-private fun AheadRow(subj: SchoolAheadDto, first: SchoolAheadItemDto, busy: Boolean, onComplete: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(
-            Modifier.size(20.dp).clip(RoundedCornerShape(999.dp))
-                .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                .clickable(enabled = !busy) { onComplete(first.taskId) },
+private fun AheadRow(subj: SchoolAheadDto, first: SchoolAheadItemDto) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        Text(subj.subject, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Text(
+            "${first.title} \u00b7 next up",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Column(Modifier.weight(1f)) {
-            Text(subj.subject, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Text(
-                "${first.title} \u00b7 next up",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

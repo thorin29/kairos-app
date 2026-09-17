@@ -1,4 +1,9 @@
 # Changelog
+## 0.214.0
+- Restored the "Add school work" (+) button on the School tab. The tab stays view-only for ticking work off — the + just adds an assignment/test.
+## 0.213.0
+- School tab is now view-only — it shows what's due, done today, and overdue for each child, with no way to tick work off (work is completed on each person's own home screen; scheduling stays on the web).
+- The home Chores card now includes Always open chores in its list (Overdue / Today / Get ahead / Always open), and the separate home "Always open" section is gone. The Chores page is back to its normal layout.
 ## 0.212.0
 - Home: Chores now have their own tidy card that expands to the pop-up layout — Overdue, Today, and get-ahead chores — with "Complete for today!" in green once nothing's pending, keeping the home screen uncluttered like School.
 - Chores page: the "Always open" list now rolls up (collapsed) so the page stays tidy; tap to show it.

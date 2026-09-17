@@ -212,16 +212,18 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 d.overdue.forEach { catOrder.add(it.category) }
                 if (d.personalReading != null) catOrder.add("BIBLE")
                 if (d.getAhead.isNotEmpty()) catOrder.add("CHORE")
+                if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
 
                 catOrder.forEach { cat ->
                     if (cat == "CHORE") {
                         // Chores get their own pop-up-style card (Overdue / Today /
-                        // Get ahead), keeping the home tidy — like School.
+                        // Get ahead / Always open), keeping the home tidy — like School.
                         item(key = "chores-card") {
                             ChoresHomeCard(
                                 overdue = d.overdue.filter { it.category == "CHORE" }.sortedBy { it.dueDate },
                                 today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
                                 getAhead = d.getAhead,
+                                alwaysOpen = d.alwaysOpen,
                                 busyIds = ui.busyIds,
                                 vm = vm,
                             )
@@ -252,14 +254,6 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 item(key = "grabs") {
                     SectionBlock("Up for grabs") {
                         d.upForGrabs.forEach { c -> UpForGrabsRow(c, ui.busyIds.contains("claim-${c.id}"), vm) }
-                    }
-                }
-            }
-
-            if (d.alwaysOpen.isNotEmpty()) {
-                item(key = "always") {
-                    SectionBlock("Always open") {
-                        d.alwaysOpen.forEach { c -> AlwaysOpenRow(c, ui.busyIds.contains("always-${c.id}"), vm) }
                     }
                 }
             }
@@ -451,6 +445,7 @@ private fun ChoresHomeCard(
     overdue: List<TaskDto>,
     today: List<TaskDto>,
     getAhead: List<GetAheadChoreDto>,
+    alwaysOpen: List<com.kairos.app.data.remote.dto.AlwaysOpenDashDto>,
     busyIds: Set<String>,
     vm: HomeViewModel,
 ) {
@@ -496,6 +491,10 @@ private fun ChoresHomeCard(
                     if (getAhead.isNotEmpty()) {
                         MiniLabel("Get ahead")
                         getAhead.forEach { AheadChoreRow(it, busyIds.contains(it.taskId), vm) }
+                    }
+                    if (alwaysOpen.isNotEmpty()) {
+                        MiniLabel("Always open")
+                        alwaysOpen.forEach { AlwaysOpenRow(it, busyIds.contains("always-${it.id}"), vm) }
                     }
                 }
             }
