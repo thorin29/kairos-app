@@ -270,11 +270,23 @@ private fun ItemRow(item: SchoolItemDto) {
 private fun ProgressRow(pr: SchoolCardProgressDto) {
     Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Dot(pr.color, 10)
-            Text(pr.className, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
-            when (pr.pace) {
-                "behind" -> Tag("falling behind", Amber)
-                "ahead" -> Tag("getting ahead!", Emerald)
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Dot(pr.color, 10)
+                Text(
+                    pr.className,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                when (pr.pace) {
+                    "behind" -> Tag("falling behind", Amber)
+                    "ahead" -> Tag("getting ahead!", Emerald)
+                }
             }
             if (pr.finishISO != null) {
                 Text(

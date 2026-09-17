@@ -896,11 +896,23 @@ private fun SchoolProgressRow(pr: SchoolCardProgressDto) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseHex(pr.color)))
-        Text(pr.className, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
-        when (pr.pace) {
-            "behind" -> Text("falling behind", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = SchoolAmber)
-            "ahead" -> Text("getting ahead!", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = ChoresGreen)
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseHex(pr.color)))
+            Text(
+                pr.className,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            when (pr.pace) {
+                "behind" -> SchoolPaceTag("falling behind", SchoolAmber)
+                "ahead" -> SchoolPaceTag("getting ahead!", ChoresGreen)
+            }
         }
         if (pr.finishISO != null) {
             Text(
@@ -912,6 +924,20 @@ private fun SchoolProgressRow(pr: SchoolCardProgressDto) {
             )
         }
     }
+}
+
+@Composable
+private fun SchoolPaceTag(text: String, color: Color) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Medium,
+        color = color,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+    )
 }
 
 private val SchoolAmber = Color(0xFFD97706)

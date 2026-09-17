@@ -1,4 +1,6 @@
 # Changelog
+## 0.227.0
+- School progress: the "falling behind" / "getting ahead" tag now sits next to the class name (not out on the right) with a tinted pill background, matching the web.
 ## 0.226.0
 - Chore badges: a chore that carries a glyph (grass or water, set in the web Chores admin) now shows that icon after its home summary line on the day it's done — once for a one-time chore, ×N for an always-open one done several times. Matches the web card.
 ## 0.225.0
