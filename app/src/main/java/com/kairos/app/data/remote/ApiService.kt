@@ -1,6 +1,7 @@
 package com.kairos.app.data.remote
 
 import com.kairos.app.data.remote.dto.AddressesResponse
+import com.kairos.app.data.remote.dto.EventNamesResponse
 import com.kairos.app.data.remote.dto.SubmitAddressRequest
 import com.kairos.app.data.remote.dto.SubmitAddressResponse
 import com.kairos.app.data.remote.dto.DashboardDto
