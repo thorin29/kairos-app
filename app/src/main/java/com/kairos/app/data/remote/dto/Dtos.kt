@@ -1501,6 +1501,7 @@ data class SchoolPersonDto(
     val classes: List<SchoolClassDto> = emptyList(),
     val items: List<SchoolItemDto> = emptyList(),
     val card: SchoolCardDto? = null,
+    val needsAttendance: Boolean = false,
 )
 
 @Serializable
@@ -1549,6 +1550,7 @@ data class SchoolItemDto(
     val classColor: String? = null,
     val dueISO: String = "",
     val overdue: Boolean = false,
+    val complete: Boolean = false,
 )
 
 @Serializable

@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -166,11 +168,14 @@ private fun SchoolSummaryCard(
 ) {
     val overdue = p.items.filter { it.overdue }
     val todayItems = p.items.filter { !it.overdue && it.dueISO == today }
+    val todayLeft = todayItems.filter { !it.complete }
     val isStudent = (p.card?.progress?.isNotEmpty() == true) || p.classes.isNotEmpty()
-    val completeForToday = overdue.isEmpty() && todayItems.isEmpty() && isStudent
+    val completeForToday =
+        overdue.isEmpty() && todayLeft.isEmpty() && !p.needsAttendance && isStudent
     val summary = buildList {
         if (overdue.isNotEmpty()) add("${overdue.size} overdue")
-        if (todayItems.isNotEmpty()) add("${todayItems.size} today")
+        if (todayLeft.isNotEmpty()) add("${todayLeft.size} today")
+        if (p.needsAttendance) add("check-in")
     }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
 
     OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
@@ -206,6 +211,7 @@ private fun SchoolSummaryCard(
 private fun SchoolOverlayBody(p: SchoolPersonDto, today: String) {
     val overdue = p.items.filter { it.overdue }.sortedBy { it.dueISO }
     val todayItems = p.items.filter { !it.overdue && it.dueISO == today }
+    val todayLeft = todayItems.count { !it.complete }
     val card = p.card
     val isStudent = (card?.progress?.isNotEmpty() == true) || p.classes.isNotEmpty()
 
@@ -216,8 +222,15 @@ private fun SchoolOverlayBody(p: SchoolPersonDto, today: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    if (overdue.isEmpty() && todayItems.isEmpty() && isStudent) {
+    if (overdue.isEmpty() && todayLeft == 0 && !p.needsAttendance && isStudent) {
         Text("Complete for today!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = Emerald)
+    }
+    if (p.needsAttendance) {
+        Text(
+            "Waiting on an after-class check-in.",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
     if (overdue.isNotEmpty()) {
         OverlaySection("Overdue", MaterialTheme.colorScheme.error) { overdue.forEach { ItemRow(it) } }
@@ -256,13 +269,26 @@ private fun SectionLabel(text: String, color: Color = MaterialTheme.colorScheme.
 
 @Composable
 private fun ItemRow(item: SchoolItemDto) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(item.className ?: item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-        Text(
-            "${item.title} \u00b7 ${item.typeLabel} \u00b7 due ${shortDate(item.dueISO)}",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (item.complete) {
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = "Completed",
+                tint = Emerald,
+                modifier = Modifier.size(16.dp).padding(top = 2.dp),
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(item.className ?: item.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                "${item.title} \u00b7 ${item.typeLabel} \u00b7 due ${shortDate(item.dueISO)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (item.overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
