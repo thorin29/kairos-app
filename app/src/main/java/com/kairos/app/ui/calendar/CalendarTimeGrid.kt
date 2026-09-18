@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.rememberScrollState
@@ -537,7 +537,7 @@ fun ThreeDayGrid(
                         Row(
                             Modifier
                                 .fillMaxHeight()
-                                .requiredWidth(dayWidth * 4)
+                                .wrapContentWidth(align = Alignment.Start, unbounded = true)
                                 .offset { IntOffset(-listState.firstVisibleItemScrollOffset, 0) },
                         ) {
                             for (i in headerFirst until headerFirst + 4) {

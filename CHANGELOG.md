@@ -1,4 +1,6 @@
 # Changelog
+## 0.251.0
+- 3-day view: fixed the day names/dates drifting off-center from their columns (a side effect of the 0.250 header fix) — the header row is now pinned to the left so each date sits centered over its day again, while the incoming day still keeps its full width.
 ## 0.250.0
 - 3-day view: fixed the day name rendering vertically (one letter per line) as a new day slid in from the right — the incoming column now keeps full width and the label slides in normally. Also locked the scroll axis on the first movement so a vertical swipe scrolls the hours and can’t be flipped into changing days by slight sideways movement; only a clearly sideways swipe pages days now.
 ## 0.249.0
