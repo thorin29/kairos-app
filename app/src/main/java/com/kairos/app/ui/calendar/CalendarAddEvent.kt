@@ -86,6 +86,11 @@ fun AddEventOverlay(
     // yourself). For a new event that's me; for an edit it's the event's owner.
     val ownerId = editEvent?.ownerId ?: meId
     var title by remember { mutableStateOf(editEvent?.title ?: "") }
+    var eventNames by remember { mutableStateOf<List<String>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        eventNames = runCatching { container.sessionRepository.loadEventNames() }
+            .getOrDefault(emptyList())
+    }
     var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
     val initDate = editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }
     var startDateIso by remember { mutableStateOf(initDate) }
@@ -308,6 +313,36 @@ fun AddEventOverlay(
                         inner()
                     },
                 )
+
+                val nameSuggestions = remember(title, eventNames) {
+                    val q = title.trim()
+                    if (q.isEmpty()) emptyList()
+                    else eventNames
+                        .filter { it.contains(q, ignoreCase = true) && !it.equals(q, ignoreCase = true) }
+                        .sortedBy { it.lowercase() }
+                        .take(6)
+                }
+                if (nameSuggestions.isNotEmpty()) {
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        nameSuggestions.forEach { s ->
+                            Surface(
+                                onClick = { title = s },
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    s,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

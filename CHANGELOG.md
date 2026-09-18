@@ -1,4 +1,6 @@
 # Changelog
+## 0.245.0
+- New-event name field now suggests names you've used before: as you type the event title, matching remembered names appear below (alphabetical) — tap to fill. Type anything new and it saves and is remembered for next time. The list is managed on the web (Admin -> Event names). Needs web 0.432. Cumulative; load 0.245.
 ## 0.244.0
 - Removing a workout from a plan (Edit plan) now asks to confirm first, so a stray tap on the trash icon can't drop a workout silently. Cumulative; load 0.244.
 ## 0.243.0

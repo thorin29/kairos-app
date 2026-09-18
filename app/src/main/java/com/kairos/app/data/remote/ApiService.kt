@@ -83,6 +83,9 @@ interface ApiService {
     @GET("addresses")
     suspend fun addresses(): Response<AddressesResponse>
 
+    @GET("event-names")
+    suspend fun eventNames(): Response<EventNamesResponse>
+
     @POST("addresses")
     suspend fun submitAddress(@Body body: SubmitAddressRequest): Response<SubmitAddressResponse>
 

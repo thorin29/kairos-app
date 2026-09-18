@@ -1701,6 +1701,11 @@ data class AddressesResponse(
 )
 
 @Serializable
+data class EventNamesResponse(
+    val names: List<String> = emptyList(),
+)
+
+@Serializable
 data class SubmitAddressRequest(
     val name: String,
     val address: String,

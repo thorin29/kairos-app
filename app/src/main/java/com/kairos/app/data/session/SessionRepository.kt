@@ -184,6 +184,9 @@ class SessionRepository(
     suspend fun listSavedAddresses(): com.kairos.app.data.remote.dto.AddressesResponse =
         runAuthed { requireService().addresses() }
 
+    suspend fun loadEventNames(): List<String> =
+        runAuthed(clearOnUnauth = false) { requireService().eventNames() }.names
+
     suspend fun submitAddress(
         name: String,
         address: String,
@@ -952,6 +955,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 296
+        const val CLIENT_BUILD = 297
     }
 }
