@@ -1,4 +1,6 @@
 # Changelog
+## 0.249.0
+- Changing an event's start time now preserves its length (the end shifts with the start) instead of resetting to the event type's default duration. Added a Refresh button to the calendar top bar (next to Today) so you can reload without scrolling up to pull-to-refresh.
 ## 0.248.0
 - The event name now opens a full-screen search (like the address field) instead of the inline dropdown: tap the title to search remembered names or type a new one. Type-anything still works and is remembered on save. Replaces the messy inline drop.
 ## 0.247.0

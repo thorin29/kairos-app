@@ -463,8 +463,9 @@ fun AddEventOverlay(
 
     if (showStart) {
         TimePickerDialog(startMin, onConfirm = { m ->
+            val delta = m - startMin
             startMin = m
-            endMin = (m + typeDurationMin(eventTypeId, customTypes)).coerceAtMost(23 * 60 + 59)
+            endMin = (endMin + delta).coerceIn(0, 23 * 60 + 59)
             showStart = false
         }, onDismiss = { showStart = false })
     }

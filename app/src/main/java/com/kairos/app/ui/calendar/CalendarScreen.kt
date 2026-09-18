@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.HorizontalDivider
 import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.material3.Checkbox
@@ -148,6 +149,16 @@ fun CalendarScreen(
                             TodayBox(dayNum = dayOfMonth(data.today)) {
                                 monthExpanded = false
                                 vm.goToday()
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape).clickable { vm.reload() },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = "Refresh",
+                                )
                             }
                             Spacer(Modifier.width(4.dp))
                             Box(
