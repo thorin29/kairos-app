@@ -1,4 +1,6 @@
 # Changelog
+## 0.247.0
+- Editing an event: changing the start date now carries the end with it (preserving the event's length), so moving the start to an earlier day no longer turns a short event into a multi-day one. Changing the end to before the start now carries the start back too, instead of doing nothing.
 ## 0.246.0
 - Editing a repeating event now offers "This and future events" (in the Edit-repeating-event dialog) alongside "This event" and "All events." Events before the one you edit stay unchanged; this one and all later ones get the change. Needs web 0.433. Cumulative; load 0.246.
 ## 0.245.0

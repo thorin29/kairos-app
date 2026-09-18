@@ -451,8 +451,14 @@ fun AddEventOverlay(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let {
                         val iso = utcMillisToIso(it)
+                        // Keep the event's length: carry the end with the start by
+                        // the same day gap, whether moving earlier or later.
+                        val gap = java.time.temporal.ChronoUnit.DAYS.between(
+                            LocalDate.parse(startDateIso),
+                            LocalDate.parse(endDateIso),
+                        )
                         startDateIso = iso
-                        if (endDateIso < iso) endDateIso = iso
+                        endDateIso = LocalDate.parse(iso).plusDays(gap).toString()
                     }
                     showStartDate = false
                 }) { Text("OK") }
@@ -468,7 +474,17 @@ fun AddEventOverlay(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let {
                         val iso = utcMillisToIso(it)
-                        endDateIso = if (iso < startDateIso) startDateIso else iso
+                        // Changing the end is allowed; if it moves before the start,
+                        // carry the start back with it so the event keeps its length
+                        // instead of snapping shut.
+                        if (iso < startDateIso) {
+                            val gap = java.time.temporal.ChronoUnit.DAYS.between(
+                                LocalDate.parse(startDateIso),
+                                LocalDate.parse(endDateIso),
+                            )
+                            startDateIso = LocalDate.parse(iso).minusDays(gap).toString()
+                        }
+                        endDateIso = iso
                     }
                     showEndDate = false
                 }) { Text("OK") }
