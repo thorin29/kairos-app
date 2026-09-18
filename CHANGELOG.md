@@ -1,4 +1,7 @@
 # Changelog
+## 0.234.0
+- Home workout row: dropped the empty circle and "tap to log"; it now reads the workout name with "Log" on the right (like Chores' "Open"), and shows a green "Complete for today!" once the day's workout is done.
+- Log workout page: removed the redundant per-movement "Skip" text (the card's Rest / skip button covers it).
 ## 0.233.0
 - Removed the now-dead workout action-sheet code (the old "Log workout / Rest day" pop-up and its view-model plumbing).
 ## 0.232.0

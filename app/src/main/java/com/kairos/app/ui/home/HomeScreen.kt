@@ -1148,6 +1148,37 @@ private fun SectionHeader(label: String, category: String? = null) {
 @Composable
 private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel, onLogWorkout: (String) -> Unit) {
     val done = task.status == "COMPLETE"
+    // Workouts render like the Chores/School summary rows: no checkbox marker,
+    // a "Log" affordance on the right, and "Complete for today!" when done.
+    if (task.isWorkout) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !busy) { onLogWorkout(task.dueDate) }
+                .padding(vertical = 12.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                if (done) {
+                    Text(
+                        "Complete for today!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ChoresGreen,
+                    )
+                } else {
+                    Text(task.title, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+            Text(
+                "Log",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        return
+    }
     // Workout prompts open the action sheet; ordinary completable rows toggle.
     val tappable = !busy && (task.isWorkout || task.completable)
 

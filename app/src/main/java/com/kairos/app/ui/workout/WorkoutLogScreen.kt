@@ -387,9 +387,6 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     )
                 }
             }
-            TextButton(onClick = { vm.toggleSkip(planId, m.poolExerciseId) }) {
-                Text(if (m.skipped) "Undo" else "Skip")
-            }
         }
         if (!m.skipped) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
