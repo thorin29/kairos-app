@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.collectAsState
@@ -131,6 +132,7 @@ private fun DayCard(
     onAdd: () -> Unit,
 ) {
     val hasRest = day.workouts.any { it.isRest }
+    var pendingRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
     Column(
         Modifier
             .fillMaxWidth()
@@ -174,7 +176,7 @@ private fun DayCard(
                         Text(w.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                IconButton(onClick = { onRemove(w.id) }) {
+                IconButton(onClick = { pendingRemove = w.id to w.name }) {
                     Icon(KairosIcons.Trash, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 }
             }
@@ -186,6 +188,23 @@ private fun DayCard(
                 TextButton(onClick = onMarkRest) { Text("Mark rest") }
             }
         }
+    }
+
+    pendingRemove?.let { (id, name) ->
+        AlertDialog(
+            onDismissRequest = { pendingRemove = null },
+            title = { Text("Remove workout?") },
+            text = { Text("Remove \"$name\" from ${DAY_NAMES[day.day]}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onRemove(id)
+                    pendingRemove = null
+                }) { Text("Remove") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemove = null }) { Text("Cancel") }
+            },
+        )
     }
 }
 

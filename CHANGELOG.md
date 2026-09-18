@@ -1,4 +1,6 @@
 # Changelog
+## 0.244.0
+- Removing a workout from a plan (Edit plan) now asks to confirm first, so a stray tap on the trash icon can't drop a workout silently. Cumulative; load 0.244.
 ## 0.243.0
 - White-screen diagnostics, round 2: added a persisted UI breadcrumb trail (last 30 nav destinations, dialog open/close, and session changes) under Settings -> Diagnostics, with a Copy button. It survives closing/reopening the app, so a user who hits a white screen can reopen and read/send exactly what led up to it - no logcat needed. Instrumented the two dialogs in the implicated area (schedule detail, school extra-work). Type-of-screen only, never user data. Cumulative; load 0.243.
 ## 0.242.0
