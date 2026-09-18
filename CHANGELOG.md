@@ -1,4 +1,6 @@
 # Changelog
+## 0.250.0
+- 3-day view: fixed the day name rendering vertically (one letter per line) as a new day slid in from the right — the incoming column now keeps full width and the label slides in normally. Also locked the scroll axis on the first movement so a vertical swipe scrolls the hours and can’t be flipped into changing days by slight sideways movement; only a clearly sideways swipe pages days now.
 ## 0.249.0
 - Changing an event's start time now preserves its length (the end shifts with the start) instead of resetting to the event type's default duration. Added a Refresh button to the calendar top bar (next to Today) so you can reload without scrolling up to pull-to-refresh.
 ## 0.248.0

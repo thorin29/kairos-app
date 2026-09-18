@@ -24,6 +24,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +35,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -529,6 +537,7 @@ fun ThreeDayGrid(
                         Row(
                             Modifier
                                 .fillMaxHeight()
+                                .requiredWidth(dayWidth * 4)
                                 .offset { IntOffset(-listState.firstVisibleItemScrollOffset, 0) },
                         ) {
                             for (i in headerFirst until headerFirst + 4) {
@@ -551,10 +560,43 @@ fun ThreeDayGrid(
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
                 // One vertical scroll for the whole grid; LazyRow pages days inside it.
-                Box(Modifier.weight(1f).verticalScroll(scroll)) {
+                // Lock the axis at the first slop crossing: a drag that leads vertical
+                // owns the gesture for time-scrolling and can't be flipped into paging by
+                // later sideways wobble.
+                val touchSlop = LocalViewConfiguration.current.touchSlop
+                var pageEnabled by remember { mutableStateOf(true) }
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .verticalScroll(scroll)
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(
+                                    requireUnconsumed = false,
+                                    pass = PointerEventPass.Initial,
+                                )
+                                var decided = false
+                                while (true) {
+                                    val ev = awaitPointerEvent(PointerEventPass.Initial)
+                                    val ch = ev.changes.firstOrNull { it.id == down.id }
+                                    if (ch == null || !ch.pressed) break
+                                    if (!decided) {
+                                        val dx = kotlin.math.abs(ch.position.x - down.position.x)
+                                        val dy = kotlin.math.abs(ch.position.y - down.position.y)
+                                        if (dx > touchSlop || dy > touchSlop) {
+                                            decided = true
+                                            pageEnabled = dx > dy
+                                        }
+                                    }
+                                }
+                                pageEnabled = true
+                            }
+                        },
+                ) {
                     LazyRow(
                         state = listState,
                         flingBehavior = snapFling,
+                        userScrollEnabled = pageEnabled,
                         modifier = Modifier.height(HOUR_H * HOURS),
                     ) {
                         items(itemCount) { index ->
