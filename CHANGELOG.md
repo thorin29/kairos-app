@@ -1,4 +1,12 @@
 # Changelog
+## 0.239.0
+- Two more structural guards against false de-enrollment (cumulative with 0.236-0.238): (1) runAuthed now refuses to send any authenticated request when no credential is loaded, so no future caller can recreate the tokenless-401 bug; (2) before ever clearing enrollment on a 401, the app now re-confirms with a deliberate /me check using the loaded token - a spurious endpoint 401 can no longer strand a valid phone; only a second positive "unauthenticated" clears the token. Load 0.239; supersedes 0.236/0.237/0.238.
+## 0.238.0
+- Notification worker now retries if it fires during session bootstrap (cold start) instead of silently skipping the refresh, so reminders stay current. Rounds out the re-enrollment race fix. Supersedes 0.236/0.237 (cumulative).
+## 0.237.0
+- Root-cause fix for the recurring forced re-enrollment (cold-start race). Three layers: (1) a 401 whose request carried NO Authorization header is treated as a missing-credential race, never a dead token, so it can't wipe enrollment; (2) bootstrap now loads the stored token BEFORE building the authenticated service, closing the window where a background call could fire tokenless; (3) the background notification poll no longer clears the session on a 401. Supersedes 0.236.
+## 0.236.0
+- Fix recurring forced re-enrollment: the background notification refresh (which runs at boot) no longer de-enrolls the phone when its /notifications/upcoming call returns a 401. Only interactive calls clear the session now, so a transient or boot-time 401 on the background poll can't wipe enrollment.
 ## 0.235.0
 - Log workout page: overdue workouts (past days never logged) now appear at the top under an "Overdue" heading with a light-red card tint, each logging to its own day; then "Today's plan". (Pairs with web 0.426.)
 ## 0.234.0

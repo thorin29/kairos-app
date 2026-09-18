@@ -18,9 +18,17 @@ class NotificationWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
+        val container = (applicationContext as? com.kairos.app.KairosApp)?.container
+        // Cold start: if the session is still initializing, don't run authenticated
+        // work now (it would just fail to refresh and report success). Retry shortly,
+        // by which point bootstrap has finished.
+        if (container?.sessionRepository?.state?.value
+            is com.kairos.app.data.session.SessionState.Loading
+        ) {
+            return Result.retry()
+        }
         runCatching { NotificationScheduler.refresh(applicationContext) }
         runCatching {
-            val container = (applicationContext as? com.kairos.app.KairosApp)?.container
             val checker = container?.updateChecker
             checker?.check()
             val avail = checker?.available?.value

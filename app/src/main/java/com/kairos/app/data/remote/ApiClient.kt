@@ -249,7 +249,16 @@ fun <T> Response<T>.bodyOrThrow(): T {
     val message = parsed?.message ?: "Request failed (${code()})."
     throw ApiException(
         when (parsed?.code) {
-            "unauthenticated" -> ApiError.Unauthenticated
+            "unauthenticated" ->
+                // A genuine Kairos "unauthenticated" normally means the device
+                // token is dead. But if the request went out with NO Authorization
+                // header, it's a missing-credential — a background/cold-start call
+                // that raced before the token finished loading — not a lost
+                // enrollment. Treat that as a recoverable server error so it can
+                // never wipe this phone's enrollment; only a rejected *bearer*
+                // clears the token.
+                if (raw().request.header("Authorization") == null) ApiError.Server(message)
+                else ApiError.Unauthenticated
             "reauth_required" -> ApiError.ReauthRequired
             "forbidden" -> ApiError.Forbidden(message)
             "not_found" -> ApiError.NotFound(message)

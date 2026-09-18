@@ -102,7 +102,6 @@ class SessionRepository(
             _state.value = SessionState.NeedsSetup
             return
         }
-        rebuildService(url)
         val hadBlob = tokens.blobExists()
         val token = tokens.load()
         if (token.isNullOrBlank()) {
@@ -113,6 +112,10 @@ class SessionRepository(
             _state.value = SessionState.NeedsEnroll
             return
         }
+        // Build the authenticated service only AFTER the token is loaded, so a
+        // concurrent background call (e.g. the notification worker at cold start)
+        // can never race a window where the service exists but the token is null.
+        rebuildService(url)
         // Logged out on this (still-enrolled) phone: resume to the lock screen.
         settings.currentLockedPerson()?.let { js ->
             runCatching { json.decodeFromString<PersonDto>(js) }.getOrNull()?.let {
@@ -175,8 +178,10 @@ class SessionRepository(
     ): com.kairos.app.data.remote.dto.SubmitAddressResponse =
         runAuthed { requireService().submitAddress(com.kairos.app.data.remote.dto.SubmitAddressRequest(name, address, navByName, force)) }
 
+    /** Background notification poll — non-nuking: a 401 here (e.g. at boot before
+     *  the token is loaded) must not de-enroll the phone. */
     suspend fun loadUpcoming(): com.kairos.app.data.remote.dto.UpcomingDto =
-        runAuthed { requireService().upcoming() }
+        runAuthed(clearOnUnauth = false) { requireService().upcoming() }
 
     suspend fun loadClassForm(): com.kairos.app.data.remote.dto.ClassFormDto =
         runAuthed { requireService().classForm() }
@@ -846,7 +851,17 @@ class SessionRepository(
      *  writes belong to "me" (e.g. a task added for this device's person). */
     fun currentPersonId(): String? = (_state.value as? SessionState.Ready)?.person?.id
 
-    private suspend fun <T> runAuthed(block: suspend () -> Response<T>): T {
+    private suspend fun <T> runAuthed(
+        clearOnUnauth: Boolean = true,
+        block: suspend () -> Response<T>,
+    ): T {
+        // #3 defensive invariant: never send an authenticated request without a
+        // loaded credential. A tokenless request draws a "missing bearer" 401 that
+        // historically wiped enrollment; if the token isn't loaded yet (cold-start
+        // race), fail transiently here instead of sending it.
+        if (tokens.current() == null) {
+            throw ApiException(ApiError.Server("Session not ready - no credential loaded."))
+        }
         try {
             return apiCall(block)
         } catch (e: ApiException) {
@@ -855,10 +870,26 @@ class SessionRepository(
                     // Keep the device token; the app shows a password prompt.
                     _state.value = SessionState.NeedsReauth(null)
                 is ApiError.Unauthenticated -> {
-                    noteEnrollLoss("server_unauthenticated@api")
-                    tokens.clear()
-                    clearOfflineWrites()
-                    _state.value = SessionState.NeedsEnroll
+                    if (clearOnUnauth) {
+                        // #5: before the drastic step of wiping enrollment, confirm
+                        // the token is really dead with a deliberate /me check using
+                        // the loaded credential. A spurious endpoint 401 (server
+                        // hiccup) then can't strand a valid phone; only a second,
+                        // positive "unauthenticated" clears it. 401s are rare, so
+                        // this extra call is cheap and only runs on that path.
+                        val confirmedDead = try {
+                            apiCall { requireService().me() }
+                            false
+                        } catch (confirm: ApiException) {
+                            confirm.error is ApiError.Unauthenticated
+                        }
+                        if (confirmedDead) {
+                            noteEnrollLoss("server_unauthenticated@api (confirmed via /me)")
+                            tokens.clear()
+                            clearOfflineWrites()
+                            _state.value = SessionState.NeedsEnroll
+                        }
+                    }
                 }
                 else -> {}
             }
@@ -892,6 +923,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 287
+        const val CLIENT_BUILD = 291
     }
 }
