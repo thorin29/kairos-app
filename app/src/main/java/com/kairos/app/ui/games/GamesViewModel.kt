@@ -15,6 +15,7 @@ data class GamesUiState(
     val loading: Boolean = true,
     val loadError: String? = null,
     val data: GameTimeResponseDto? = null,
+    val refreshing: Boolean = false,
 )
 
 class GamesViewModel(private val session: SessionRepository) : ViewModel() {
@@ -27,10 +28,15 @@ class GamesViewModel(private val session: SessionRepository) : ViewModel() {
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(loading = false, data = session.loadGameTime()) }
+                _ui.update { it.copy(loading = false, refreshing = false, data = session.loadGameTime()) }
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+                _ui.update { it.copy(loading = false, refreshing = false, loadError = e.error.message) }
             }
         }
+    }
+
+    fun refresh() {
+        _ui.update { it.copy(refreshing = true) }
+        load()
     }
 }

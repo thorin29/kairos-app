@@ -1,4 +1,6 @@
 # Changelog
+## 0.253.0
+- Game time: pull down to refresh, matching the home and calendar screens. Works on the household list and the per-person detail view.
 ## 0.252.0
 - School: a completed assignment now shows a green check in front of it in the student's Today list, so you can see what's done versus still due even when they're not at 100%. The student card shows "Complete for today!" only when everything due today is actually finished (it counts only what's still left, not the day's total), and both the card and the detail hold off on "Complete for today!" while an after-class "did you attend" check-in is still open.
 ## 0.251.0

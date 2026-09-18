@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -79,8 +80,13 @@ fun GamesScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
         },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
-            val data = ui.data
-            when {
+            PullToRefreshBox(
+                isRefreshing = ui.refreshing,
+                onRefresh = vm::refresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                val data = ui.data
+                when {
                 ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -112,6 +118,7 @@ fun GamesScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                 ) {
                     data.people.forEach { p -> PersonCard(p, onClick = { selected = p }) }
                 }
+            }
             }
         }
     }
