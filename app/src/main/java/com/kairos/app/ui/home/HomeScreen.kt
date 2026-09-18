@@ -542,7 +542,19 @@ private fun ChoreBadgesRow(badges: List<ChoreBadgeDto>) {
 @Composable
 fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
     val container = rememberContainer()
-    val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
+    val owner = parentEntry ?: LocalViewModelStoreOwner.current
+    if (owner == null) {
+        // Should not happen inside a NavHost, but never leave a blank surface —
+        // show a recoverable scaffold instead of a white screen.
+        WorkDetailScaffold("Chores", KairosIcons.Chores, Color(0xFFD97706), onBack) {
+            Text(
+                "Couldn't open this screen. Go back and try again.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
     val vm: HomeViewModel = viewModel(
         viewModelStoreOwner = owner,
         factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository) } },
@@ -710,7 +722,24 @@ private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel)
 @Composable
 fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, onAdd: () -> Unit = {}) {
     val container = rememberContainer()
-    val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
+    val owner = parentEntry ?: LocalViewModelStoreOwner.current
+    if (owner == null) {
+        // Should not happen inside a NavHost, but never leave a blank surface —
+        // show a recoverable scaffold instead of a white screen.
+        WorkDetailScaffold(
+            title = "School",
+            icon = KairosIcons.School,
+            iconColor = Color(0xFF4F46E5),
+            onBack = onBack,
+        ) {
+            Text(
+                "Couldn't open this screen. Go back and try again.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
     val vm: HomeViewModel = viewModel(
         viewModelStoreOwner = owner,
         factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository) } },

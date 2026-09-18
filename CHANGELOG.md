@@ -1,4 +1,6 @@
 # Changelog
+## 0.242.0
+- White-screen investigation (two users on old build 273/0.221): added durable navigation diagnostics - every destination change logs the route and full back stack under logcat tag "KairosNav", so a future report names the exact blank destination and shows whether Home is really behind a Home-detail screen. Hardened the Home Chores/School detail screens: removed the LocalViewModelStoreOwner !! (latent NPE) and added a recoverable fallback so those screens can never render a blank surface. Instrumentation + hardening; root cause not yet proven from the OS-only log. Cumulative; load 0.242.
 ## 0.241.0
 - Maps the server's new split auth codes (needs web 0.430): missing_bearer -> recoverable (never drops enrollment); invalid_token / device_revoked / device_expired -> a dead token (-> DeviceInvalid, which keeps the token). Unrecognised/older unauthenticated still handled as before. Cumulative; load 0.241.
 ## 0.240.0

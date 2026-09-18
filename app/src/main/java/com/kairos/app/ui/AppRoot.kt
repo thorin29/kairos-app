@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -154,6 +155,22 @@ private val EXPANDED_WIDTH = 224.dp
 @Composable
 private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val navController = rememberNavController()
+    // Durable nav diagnostics: every destination change logs the new route and the
+    // full back stack (route short-names only, never user data). A future "white
+    // screen" report then points at an exact destination in logcat, and shows
+    // whether Home is actually behind a Home-detail screen (the shared-ViewModel
+    // assumption). Filter logcat by tag "KairosNav".
+    DisposableEffect(navController) {
+        val listener = androidx.navigation.NavController.OnDestinationChangedListener { c, dest, _ ->
+            val here = dest.route?.substringAfterLast('.')?.substringBefore('/')
+            val stack = c.currentBackStack.value.mapNotNull {
+                it.destination.route?.substringAfterLast('.')?.substringBefore('/')
+            }
+            android.util.Log.i("KairosNav", "dest=$here backstack=$stack")
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
     val scope = rememberCoroutineScope()
     val container = rememberContainer()
 
