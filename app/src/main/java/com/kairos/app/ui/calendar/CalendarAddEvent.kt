@@ -557,6 +557,11 @@ fun AddEventOverlay(
                         modifier = Modifier.fillMaxWidth().clickable { showScope = false; submit("single") }.padding(vertical = 12.dp),
                     )
                     Text(
+                        "This and future events",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth().clickable { showScope = false; submit("future") }.padding(vertical = 12.dp),
+                    )
+                    Text(
                         "All events",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth().clickable { showScope = false; submit("series") }.padding(vertical = 12.dp),

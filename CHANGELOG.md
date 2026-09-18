@@ -1,4 +1,6 @@
 # Changelog
+## 0.246.0
+- Editing a repeating event now offers "This and future events" (in the Edit-repeating-event dialog) alongside "This event" and "All events." Events before the one you edit stay unchanged; this one and all later ones get the change. Needs web 0.433. Cumulative; load 0.246.
 ## 0.245.0
 - New-event name field now suggests names you've used before: as you type the event title, matching remembered names appear below (alphabetical) — tap to fill. Type anything new and it saves and is remembered for next time. The list is managed on the web (Admin -> Event names). Needs web 0.432. Cumulative; load 0.245.
 ## 0.244.0
