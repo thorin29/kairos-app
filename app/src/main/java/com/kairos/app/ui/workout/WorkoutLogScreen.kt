@@ -32,6 +32,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -151,24 +152,40 @@ fun WorkoutLogScreen(
                         }
                     }
 
-                    if (!ui.loggable || ui.blocks.isEmpty()) {
+                    val overdueBlocks = ui.blocks.filter { it.isOverdue }
+                    val todayBlocks = ui.blocks.filter { !it.isOverdue }
+                    val openCalc: (String, String) -> Unit = { blockKey, exId ->
+                        pendingTarget = blockKey to exId
+                        onOpenCalculator()
+                    }
+
+                    if (overdueBlocks.isNotEmpty()) {
                         Text(
-                            "No scheduled workouts today.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            "Overdue",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error,
                         )
-                    } else {
+                        overdueBlocks.forEach { block ->
+                            WorkoutBlockCard(block, vm, openCalc)
+                        }
+                    }
+
+                    if (todayBlocks.isNotEmpty()) {
                         Text(
                             "Today's plan",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        ui.blocks.forEach { block ->
-                            WorkoutBlockCard(block, vm) { planId, exId ->
-                                pendingTarget = planId to exId
-                                onOpenCalculator()
-                            }
+                        todayBlocks.forEach { block ->
+                            WorkoutBlockCard(block, vm, openCalc)
                         }
+                    } else if (overdueBlocks.isEmpty()) {
+                        Text(
+                            "No scheduled workouts today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
 
                     if (ui.actionError != null) {
@@ -261,7 +278,14 @@ private fun WorkoutBlockCard(
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
 ) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    OutlinedCard(
+        Modifier.fillMaxWidth(),
+        colors = if (block.isOverdue) {
+            CardDefaults.outlinedCardColors(containerColor = Color(0xFFFEF2F2))
+        } else {
+            CardDefaults.outlinedCardColors()
+        },
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -285,11 +309,11 @@ private fun WorkoutBlockCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             HorizontalDivider()
-            block.inputs.forEach { m -> MovementRow(block.plannedWorkoutId, m, vm) }
+            block.inputs.forEach { m -> MovementRow(block.key, m, vm) }
 
             val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
             // After a log, flash "logged" briefly, then settle on "edit weight".
-            var justLogged by remember(block.plannedWorkoutId) { mutableStateOf(false) }
+            var justLogged by remember(block.key) { mutableStateOf(false) }
             LaunchedEffect(block.logged) {
                 if (block.logged) {
                     justLogged = true
@@ -312,13 +336,13 @@ private fun WorkoutBlockCard(
                     highlighted = !block.logged,
                     enabled = !block.saving,
                     loading = block.saving,
-                ) { vm.saveBlock(block.plannedWorkoutId) }
+                ) { vm.saveBlock(block.key) }
                 WorkoutActionTile(
                     icon = KairosIcons.Moon,
                     label = if (skipped) "skipped" else "Rest / skip",
                     modifier = Modifier.weight(1f),
                     highlighted = !skipped,
-                ) { vm.setBlockSkipped(block.plannedWorkoutId, !skipped) }
+                ) { vm.setBlockSkipped(block.key, !skipped) }
                 WorkoutActionTile(
                     icon = KairosIcons.Dumbbell,
                     label = "Calculator",
@@ -326,7 +350,7 @@ private fun WorkoutBlockCard(
                     highlighted = false,
                 ) {
                     onOpenCalculatorFor(
-                        block.plannedWorkoutId,
+                        block.key,
                         block.inputs.firstOrNull()?.poolExerciseId ?: "",
                     )
                 }

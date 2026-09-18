@@ -1,4 +1,6 @@
 # Changelog
+## 0.235.0
+- Log workout page: overdue workouts (past days never logged) now appear at the top under an "Overdue" heading with a light-red card tint, each logging to its own day; then "Today's plan". (Pairs with web 0.426.)
 ## 0.234.0
 - Home workout row: dropped the empty circle and "tap to log"; it now reads the workout name with "Log" on the right (like Chores' "Open"), and shows a green "Complete for today!" once the day's workout is done.
 - Log workout page: removed the redundant per-movement "Skip" text (the card's Rest / skip button covers it).

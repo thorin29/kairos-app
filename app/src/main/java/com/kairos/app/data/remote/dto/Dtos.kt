@@ -295,9 +295,17 @@ data class WorkoutPlanDto(
     // All of the day's planned workouts (Core, Arms, ...). Legacy single fields
     // below remain for older payloads.
     val workouts: List<WorkoutBlockDto> = emptyList(),
+    // Past days whose workout is still pending, each with its own plan.
+    val overdue: List<OverdueWorkoutDto> = emptyList(),
     val plannedWorkoutId: String? = null,
     val name: String? = null,
     val exercises: List<PlannedMovementDto> = emptyList(),
+)
+
+@Serializable
+data class OverdueWorkoutDto(
+    val date: String = "",
+    val workouts: List<WorkoutBlockDto> = emptyList(),
 )
 
 @Serializable

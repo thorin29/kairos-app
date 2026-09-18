@@ -36,6 +36,12 @@ data class WorkoutBlock(
     val inputs: List<MovementInput>,
     val saving: Boolean = false,
     val logged: Boolean = false,
+    // Unique row id (plannedWorkoutId, or plannedWorkoutId@date for an overdue
+    // day, since a past day can share a weekday's plan with today).
+    val key: String = plannedWorkoutId,
+    // The day this block logs to (null = the screen's date).
+    val date: String? = null,
+    val isOverdue: Boolean = false,
 )
 
 data class WorkoutLogUiState(
@@ -87,7 +93,7 @@ class WorkoutLogViewModel(
                     )
                     else -> emptyList()
                 }
-                val blocks = src.map { b ->
+                fun toBlock(b: WorkoutBlockDto, blockKey: String, day: String?, overdue: Boolean) =
                     WorkoutBlock(
                         plannedWorkoutId = b.plannedWorkoutId,
                         name = b.name,
@@ -100,9 +106,16 @@ class WorkoutLogViewModel(
                                 value = e.value?.let { fmt(it) } ?: "",
                             )
                         },
+                        key = blockKey,
+                        date = day,
+                        isOverdue = overdue,
                     )
+                val overdueBlocks = plan.overdue.flatMap { od ->
+                    od.workouts.map { b -> toBlock(b, "${b.plannedWorkoutId}@${od.date}", od.date, true) }
                 }
-                val planName = if (blocks.isEmpty()) null else blocks.joinToString(" \u00b7 ") { it.name }
+                val todayBlocks = src.map { b -> toBlock(b, b.plannedWorkoutId, null, false) }
+                val blocks = overdueBlocks + todayBlocks
+                val planName = if (todayBlocks.isEmpty()) null else todayBlocks.joinToString(" \u00b7 ") { it.name }
                 _ui.update {
                     it.copy(loading = false, loggable = plan.loggable, date = plan.date, blocks = blocks, planName = planName)
                 }
@@ -143,11 +156,11 @@ class WorkoutLogViewModel(
         return plan.copy(loggable = loggable)
     }
 
-    fun onValue(planId: String, exId: String, v: String) {
+    fun onValue(key: String, exId: String, v: String) {
         _ui.update { s ->
             s.copy(
                 blocks = s.blocks.map { b ->
-                    if (b.plannedWorkoutId != planId) b
+                    if (b.key != key) b
                     else b.copy(inputs = b.inputs.map { if (it.poolExerciseId == exId) it.copy(value = v) else it })
                 },
                 actionError = null,
@@ -171,11 +184,11 @@ class WorkoutLogViewModel(
 
     /** Skip or un-skip a whole block (its Rest/skip button) — sets every movement
      *  in the block to the given skipped state. */
-    fun setBlockSkipped(planId: String, skipped: Boolean) {
+    fun setBlockSkipped(key: String, skipped: Boolean) {
         _ui.update { s ->
             s.copy(
                 blocks = s.blocks.map { b ->
-                    if (b.plannedWorkoutId != planId) b
+                    if (b.key != key) b
                     else b.copy(inputs = b.inputs.map {
                         it.copy(skipped = skipped, value = if (skipped) "" else it.value)
                     })
@@ -185,10 +198,10 @@ class WorkoutLogViewModel(
     }
 
     /** Log one block's entered (non-skipped) movements. Other blocks stay open. */
-    fun saveBlock(planId: String, replace: Boolean = false) {
-        val d = date ?: return
-        val block = _ui.value.blocks.find { it.plannedWorkoutId == planId } ?: return
-        _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = true) else it }, actionError = null) }
+    fun saveBlock(key: String, replace: Boolean = false) {
+        val block = _ui.value.blocks.find { it.key == key } ?: return
+        val d = block.date ?: date ?: return
+        _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.key == key) it.copy(saving = true) else it }, actionError = null) }
         viewModelScope.launch {
             try {
                 val entries = block.inputs.filter { !it.skipped }.mapNotNull { m ->
@@ -196,24 +209,24 @@ class WorkoutLogViewModel(
                         PlannedEntryDto(m.poolExerciseId, m.metric, v, m.unit)
                     }
                 }
-                val ack = session.logWorkout(d, planId, entries, replace = replace, detectConflict = true)
+                val ack = session.logWorkout(d, block.plannedWorkoutId, entries, replace = replace, detectConflict = true)
                 if (ack.status == "conflict" && ack.conflict != null) {
                     _ui.update { s ->
                         s.copy(
-                            blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = false) else it },
-                            conflict = ack.conflict, conflictPlanId = planId,
+                            blocks = s.blocks.map { if (it.key == key) it.copy(saving = false) else it },
+                            conflict = ack.conflict, conflictPlanId = key,
                         )
                     }
                 } else {
                     _ui.update { s ->
                         s.copy(
-                            blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = false, logged = true) else it },
+                            blocks = s.blocks.map { if (it.key == key) it.copy(saving = false, logged = true) else it },
                             savedTick = s.savedTick + 1,
                         )
                     }
                 }
             } catch (e: ApiException) {
-                _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.plannedWorkoutId == planId) it.copy(saving = false) else it }, actionError = e.error.message) }
+                _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.key == key) it.copy(saving = false) else it }, actionError = e.error.message) }
             }
         }
     }
