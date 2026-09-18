@@ -121,6 +121,14 @@ fun AppRoot(container: AppContainer) {
         }
         is SessionState.Locked -> AuthSurface { LockScreen(person = s.person) }
         is SessionState.NeedsReauth -> AuthSurface { ReauthScreen(person = s.person) }
+        is SessionState.DeviceInvalid -> AuthSurface {
+            val jt = joinToken
+            if (jt != null) {
+                JoinScreen(token = jt, onCancel = { container.pendingJoinToken.value = null })
+            } else {
+                AuthFlow(reconnectPerson = s.person)
+            }
+        }
         is SessionState.Ready -> AuthenticatedApp(person = s.person)
     }
 }

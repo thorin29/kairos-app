@@ -1,4 +1,6 @@
 # Changelog
+## 0.240.0
+- Extended enrollment-loss protection (the "strong #5"): a rejected device token is no longer destroyed automatically. Instead the app enters a new DeviceInvalid state that KEEPS the token, so a later successful validation silently restores the session with no user action. A friendly "Reconnect this phone" screen (naming who it was set up for) offers recover / re-enroll / forget. The token is only ever cleared by a deliberate action - re-enroll (replaces it), change server, or the new "Forget this device" button. Converts all three automatic clear paths (boot validate, api /me-confirmed, refreshMe). Cumulative; load 0.240.
 ## 0.239.0
 - Two more structural guards against false de-enrollment (cumulative with 0.236-0.238): (1) runAuthed now refuses to send any authenticated request when no credential is loaded, so no future caller can recreate the tokenless-401 bug; (2) before ever clearing enrollment on a 401, the app now re-confirms with a deliberate /me check using the loaded token - a spurious endpoint 401 can no longer strand a valid phone; only a second positive "unauthenticated" clears the token. Load 0.239; supersedes 0.236/0.237/0.238.
 ## 0.238.0

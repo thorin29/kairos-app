@@ -41,6 +41,11 @@ sealed interface SessionState {
     /** Enrolled but logged out — locked to [person]. Username + password (theirs)
      *  gets back in; no new code. A blank phone can't reach this state. */
     data class Locked(val person: PersonDto) : SessionState
+    /** Enrolled, but the server rejected this device's token. The token is KEPT
+     *  (never destroyed automatically): a later successful validation silently
+     *  restores the session, and recovery keeps the credential as evidence. Only
+     *  a deliberate re-enroll, server change, or forgetDevice() clears it. */
+    data class DeviceInvalid(val person: PersonDto?) : SessionState
     /** Enrolled; [person] came from /me. */
     data class Ready(val person: PersonDto) : SessionState
 }
@@ -62,6 +67,13 @@ class SessionRepository(
     private val json = Json { ignoreUnknownKeys = true }
     private val _state = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = _state.asStateFlow()
+
+    /** The last person cached from /me, decoded, or null. Used to show a friendly
+     *  "reconnect" screen when the device token is rejected without losing who was
+     *  enrolled. */
+    private suspend fun cachedPerson(): PersonDto? =
+        settings.currentCachedPerson()
+            ?.let { runCatching { json.decodeFromString<PersonDto>(it) }.getOrNull() }
 
     /** Fires when a task changes outside the on-screen flow (e.g. completed from a
      *  notification), so an open Home/Tasks screen can refresh instead of showing
@@ -142,11 +154,13 @@ class SessionRepository(
                         return
                     }
                     is ApiError.Unauthenticated -> {
-                        // The token really is dead server-side \u2014 re-enroll.
+                        // The stored token was rejected. DON'T destroy it: keep it so
+                        // a later boot can silently restore the session if this was a
+                        // transient/false rejection, and so recovery has the credential
+                        // as evidence. Surface a distinct "reconnect" state instead of
+                        // a blank re-enroll.
                         noteEnrollLoss("server_unauthenticated@boot")
-                        tokens.clear()
-                        clearOfflineWrites()
-                        _state.value = SessionState.NeedsEnroll
+                        _state.value = SessionState.DeviceInvalid(cachedPerson())
                         return
                     }
                     else -> if (attempt < 2) delay(800)
@@ -356,6 +370,19 @@ class SessionRepository(
         service = null
         baseUrlRaw = null
         _state.value = SessionState.NeedsSetup
+    }
+
+    /** Deliberately forget this device's stored credential and return to
+     *  enrollment. This is the user explicitly choosing to start over from a
+     *  DeviceInvalid screen; it is the only automatic-free path (besides a server
+     *  change or a fresh enroll, which replaces the token) that destroys the
+     *  token. */
+    suspend fun forgetDevice() {
+        tokens.clear()
+        clearOfflineWrites()
+        runCatching { httpCache?.evictAll() }
+        settings.clearLockedPerson()
+        _state.value = SessionState.NeedsEnroll
     }
 
     /** Load the day. A 401 here means the token died server-side, so we drop it
@@ -885,9 +912,10 @@ class SessionRepository(
                         }
                         if (confirmedDead) {
                             noteEnrollLoss("server_unauthenticated@api (confirmed via /me)")
-                            tokens.clear()
-                            clearOfflineWrites()
-                            _state.value = SessionState.NeedsEnroll
+                            // Keep the token — a later validation can still recover it.
+                            _state.value = SessionState.DeviceInvalid(
+                                (_state.value as? SessionState.Ready)?.person ?: cachedPerson(),
+                            )
                         }
                     }
                 }
@@ -914,15 +942,16 @@ class SessionRepository(
         } catch (e: ApiException) {
             if (e.error is ApiError.Unauthenticated) {
                 noteEnrollLoss("server_unauthenticated@refreshMe")
-                tokens.clear()
-                clearOfflineWrites()
-                _state.value = SessionState.NeedsEnroll
+                // Keep the token — a later validation can still recover it.
+                _state.value = SessionState.DeviceInvalid(
+                    (_state.value as? SessionState.Ready)?.person ?: cachedPerson(),
+                )
             }
         }
     }
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 291
+        const val CLIENT_BUILD = 292
     }
 }

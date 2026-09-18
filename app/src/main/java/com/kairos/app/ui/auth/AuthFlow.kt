@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
  * username and password happens on the lock screen, once a phone is enrolled.
  */
 @Composable
-fun AuthFlow() {
+fun AuthFlow(reconnectPerson: com.kairos.app.data.remote.dto.PersonDto? = null) {
     val container = rememberContainer()
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
@@ -49,15 +49,28 @@ fun AuthFlow() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Set up this phone", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Enter the invitation code from your household (texted, read aloud, or " +
-                "in your invite email).",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        if (reconnectPerson != null) {
+            Text("Reconnect this phone", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "This phone was set up for ${reconnectPerson.name}, but the server " +
+                    "didn't recognize it just now. It will reconnect on its own if this " +
+                    "was temporary — or you can recover or re-enroll it below.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            Text("Set up this phone", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Enter the invitation code from your household (texted, read aloud, or " +
+                    "in your invite email).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(20.dp))
         OutlinedTextField(
             value = code,
@@ -90,6 +103,11 @@ fun AuthFlow() {
         TextButton(onClick = {
             scope.launch { container.sessionRepository.changeServer() }
         }) { Text("Change server") }
+        if (reconnectPerson != null) {
+            TextButton(onClick = {
+                scope.launch { container.sessionRepository.forgetDevice() }
+            }) { Text("Forget this device") }
+        }
 
         diag?.let {
             Spacer(Modifier.height(24.dp))
