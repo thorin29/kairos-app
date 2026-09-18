@@ -87,6 +87,7 @@ fun AddEventOverlay(
     val ownerId = editEvent?.ownerId ?: meId
     var title by remember { mutableStateOf(editEvent?.title ?: "") }
     var eventNames by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showNameSearch by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         eventNames = runCatching { container.sessionRepository.loadEventNames() }
             .getOrDefault(emptyList())
@@ -238,6 +239,16 @@ fun AddEventOverlay(
                     addressSearchOpen = false
                 },
             )
+        } else if (showNameSearch) {
+            EventNameSearchScreen(
+                initial = title,
+                names = eventNames,
+                onDismiss = { showNameSearch = false },
+                onPick = {
+                    title = it
+                    showNameSearch = false
+                },
+            )
         } else {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // Top bar
@@ -290,59 +301,16 @@ fun AddEventOverlay(
                 Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                BasicTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    keyboardOptions = SentenceCaps,
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    decorationBox = { inner ->
-                        if (title.isEmpty()) {
-                            Text(
-                                "Add Title",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        inner()
-                    },
+                Text(
+                    title.ifBlank { "Add title" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (title.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable { showNameSearch = true }
+                        .padding(vertical = 8.dp),
                 )
-
-                val nameSuggestions = remember(title, eventNames) {
-                    val q = title.trim()
-                    if (q.isEmpty()) emptyList()
-                    else eventNames
-                        .filter { it.contains(q, ignoreCase = true) && !it.equals(q, ignoreCase = true) }
-                        .sortedBy { it.lowercase() }
-                        .take(6)
-                }
-                if (nameSuggestions.isNotEmpty()) {
-                    Column(
-                        Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        nameSuggestions.forEach { s ->
-                            Surface(
-                                onClick = { title = s },
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(
-                                    s,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                )
-                            }
-                        }
-                    }
-                }
 
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

@@ -1,4 +1,6 @@
 # Changelog
+## 0.248.0
+- The event name now opens a full-screen search (like the address field) instead of the inline dropdown: tap the title to search remembered names or type a new one. Type-anything still works and is remembered on save. Replaces the messy inline drop.
 ## 0.247.0
 - Editing an event: changing the start date now carries the end with it (preserving the event's length), so moving the start to an earlier day no longer turns a short event into a multi-day one. Changing the end to before the start now carries the start back too, instead of doing nothing.
 ## 0.246.0
