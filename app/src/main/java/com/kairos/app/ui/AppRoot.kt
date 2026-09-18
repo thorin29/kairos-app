@@ -94,6 +94,9 @@ fun AppRoot(container: AppContainer) {
     val session = container.sessionRepository
     val state by session.state.collectAsState()
     val joinToken by container.pendingJoinToken.collectAsState()
+    LaunchedEffect(state) {
+        com.kairos.app.data.diag.Breadcrumbs.drop("session=${state::class.simpleName}")
+    }
 
     // Show the branded splash for at least ~2s on launch, even when the session
     // resolves instantly, so the logo + καιρός is actually seen.
@@ -167,6 +170,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 it.destination.route?.substringAfterLast('.')?.substringBefore('/')
             }
             android.util.Log.i("KairosNav", "dest=$here backstack=$stack")
+            com.kairos.app.data.diag.Breadcrumbs.drop("nav dest=$here backstack=$stack")
         }
         navController.addOnDestinationChangedListener(listener)
         onDispose { navController.removeOnDestinationChangedListener(listener) }
@@ -419,6 +423,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenNotifications = { navController.navigate(Route.SettingsNotifications) },
                         onOpenUpdate = { navController.navigate(Route.SettingsUpdate) },
                         onOpenReminders = { navController.navigate(Route.SettingsReminders) },
+                        onOpenDiagnostics = { navController.navigate(Route.SettingsDiagnostics) },
                         onOpenApprovals = if (isAdmin) {
                             { navController.navigate(Route.SchoolApprovals) }
                         } else null,
@@ -433,6 +438,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.SettingsAppearance> {
                     com.kairos.app.ui.settings.AppearanceScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.SettingsDiagnostics> {
+                    com.kairos.app.ui.settings.DiagnosticsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.SettingsProfile> {
                     com.kairos.app.ui.settings.ProfileScreen(person = person, onBack = { navController.popBackStack() })

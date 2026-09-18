@@ -1,4 +1,6 @@
 # Changelog
+## 0.243.0
+- White-screen diagnostics, round 2: added a persisted UI breadcrumb trail (last 30 nav destinations, dialog open/close, and session changes) under Settings -> Diagnostics, with a Copy button. It survives closing/reopening the app, so a user who hits a white screen can reopen and read/send exactly what led up to it - no logcat needed. Instrumented the two dialogs in the implicated area (schedule detail, school extra-work). Type-of-screen only, never user data. Cumulative; load 0.243.
 ## 0.242.0
 - White-screen investigation (two users on old build 273/0.221): added durable navigation diagnostics - every destination change logs the route and full back stack under logcat tag "KairosNav", so a future report names the exact blank destination and shows whether Home is really behind a Home-detail screen. Hardened the Home Chores/School detail screens: removed the LocalViewModelStoreOwner !! (latent NPE) and added a recoverable fallback so those screens can never render a blank surface. Instrumentation + hardening; root cause not yet proven from the OS-only log. Cumulative; load 0.242.
 ## 0.241.0

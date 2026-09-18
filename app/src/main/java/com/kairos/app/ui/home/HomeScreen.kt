@@ -299,6 +299,10 @@ private fun ScheduleDetailDialog(
         onDismissRequest = onDismiss,
         confirmButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Close") } },
     ) {
+        androidx.compose.runtime.DisposableEffect(Unit) {
+            com.kairos.app.data.diag.Breadcrumbs.drop("open ScheduleDetail")
+            onDispose { com.kairos.app.data.diag.Breadcrumbs.drop("close ScheduleDetail") }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.width(4.dp).height(20.dp).clip(RoundedCornerShape(2.dp)).background(parseScheduleColor(ev.color)))
@@ -831,6 +835,10 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
                 } else {
                     val busy = ui.busyIds.contains("add-${item.taskId}")
                     Dialog(onDismissRequest = { extraSubject = null }) {
+                        androidx.compose.runtime.DisposableEffect(Unit) {
+                            com.kairos.app.data.diag.Breadcrumbs.drop("open SchoolExtraWork")
+                            onDispose { com.kairos.app.data.diag.Breadcrumbs.drop("close SchoolExtraWork") }
+                        }
                         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(subjName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

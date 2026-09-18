@@ -46,6 +46,11 @@ class AppContainer(context: Context) {
     val settingsStore = SettingsStore(dataStore)
     val tokenStore = TokenStore(dataStore)
 
+    init {
+        // Wire the persisted UI breadcrumb trail (Settings -> Diagnostics).
+        com.kairos.app.data.diag.Breadcrumbs.init(settingsStore, appScope)
+    }
+
     /** Tracks connectivity; drives the offline banner and the read-through cache. */
     val networkMonitor = NetworkMonitor(context.applicationContext, appScope)
 

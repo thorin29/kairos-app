@@ -53,6 +53,7 @@ fun SettingsScreen(
     onOpenNotifications: () -> Unit,
     onOpenUpdate: () -> Unit = {},
     onOpenReminders: () -> Unit = {},
+    onOpenDiagnostics: () -> Unit = {},
     onOpenApprovals: (() -> Unit)? = null,
     approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
@@ -104,6 +105,13 @@ fun SettingsScreen(
             ready = true,
             onOpen = onOpenUpdate,
             badge = updateAvailable,
+        ),
+        Section(
+            KairosIcons.Search,
+            "Diagnostics",
+            "Recent activity log, for troubleshooting",
+            ready = true,
+            onOpen = onOpenDiagnostics,
         ),
     )
 

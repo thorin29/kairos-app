@@ -182,6 +182,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_ENROLL_LOSS] = v }
     }
 
+    suspend fun uiBreadcrumbs(): String? = dataStore.data.first()[KEY_UI_BREADCRUMBS]
+
+    suspend fun setUiBreadcrumbs(v: String) {
+        dataStore.edit { it[KEY_UI_BREADCRUMBS] = v }
+    }
+
     private companion object {
         val KEY_BASE_URL = stringPreferencesKey("base_url")
         val KEY_LOCKED_PERSON = stringPreferencesKey("locked_person_json")
@@ -196,6 +202,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_LAST_COLOR = stringPreferencesKey("profile.lastCustomColor")
         val KEY_LAST_UPDATE_NOTIFIED = intPreferencesKey("last_update_notified_code")
         val KEY_ENROLL_LOSS = stringPreferencesKey("enroll_loss_reason")
+        val KEY_UI_BREADCRUMBS = stringPreferencesKey("ui_breadcrumbs")
         val KEY_NOTIF = stringPreferencesKey("notif.prefs")
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
         val KEY_DELIVERED = stringPreferencesKey("notif.deliveredCodes")
