@@ -1,4 +1,6 @@
 # Changelog
+## 0.241.0
+- Maps the server's new split auth codes (needs web 0.430): missing_bearer -> recoverable (never drops enrollment); invalid_token / device_revoked / device_expired -> a dead token (-> DeviceInvalid, which keeps the token). Unrecognised/older unauthenticated still handled as before. Cumulative; load 0.241.
 ## 0.240.0
 - Extended enrollment-loss protection (the "strong #5"): a rejected device token is no longer destroyed automatically. Instead the app enters a new DeviceInvalid state that KEEPS the token, so a later successful validation silently restores the session with no user action. A friendly "Reconnect this phone" screen (naming who it was set up for) offers recover / re-enroll / forget. The token is only ever cleared by a deliberate action - re-enroll (replaces it), change server, or the new "Forget this device" button. Converts all three automatic clear paths (boot validate, api /me-confirmed, refreshMe). Cumulative; load 0.240.
 ## 0.239.0
