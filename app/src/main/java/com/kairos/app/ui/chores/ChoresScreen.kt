@@ -112,16 +112,27 @@ private fun ChoresContent(data: ChoresDto) {
         data.pause?.let { PauseBanner(it.name) }
 
         val people = data.people.filter { it.person != null }
-        if (people.size > 1) {
-            ThisWeekTable(people)
-            RotationGrid(people)
-        } else if (people.size == 1) {
-            FocusedSummary(people.first())
-            RotationCard(people.first())
+        // Parents/admins get the household view with "Up for grabs" pulled up
+        // between "This week" and the weekly rotation; a child sees only their
+        // own rotation, with the shared sections kept at the bottom.
+        if (data.scope == "household") {
+            if (people.size > 1) ThisWeekTable(people)
+            else if (people.size == 1) FocusedSummary(people.first())
+            if (data.pool.chores.isNotEmpty()) UpForGrabsSection(data.pool.chores)
+            if (people.size > 1) RotationGrid(people)
+            else if (people.size == 1) RotationCard(people.first())
+            if (data.pool.alwaysOpenTally.isNotEmpty()) AlwaysOpenTallySection(data.pool.alwaysOpenTally)
+        } else {
+            if (people.size > 1) {
+                ThisWeekTable(people)
+                RotationGrid(people)
+            } else if (people.size == 1) {
+                FocusedSummary(people.first())
+                RotationCard(people.first())
+            }
+            if (data.pool.alwaysOpenTally.isNotEmpty()) AlwaysOpenTallySection(data.pool.alwaysOpenTally)
+            if (data.pool.chores.isNotEmpty()) UpForGrabsSection(data.pool.chores)
         }
-
-        if (data.alwaysOpen.isNotEmpty()) AlwaysOpenSection(data.alwaysOpen)
-        if (data.pool.chores.isNotEmpty()) SharedChoresSection(data.pool.chores, data.pool.tally)
     }
 }
 
@@ -311,16 +322,13 @@ private fun RotationCardInner(row: ChorePersonDto) {
     }
 }
 
-// ---- Always open ----
+// ---- Always open (per-person weekly tally) ----
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AlwaysOpenSection(items: List<AlwaysOpenChoreDto>) {
-    var expanded by remember { mutableStateOf(false) }
+private fun AlwaysOpenTallySection(tally: List<PoolTallyDto>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            Modifier.fillMaxWidth().clickable { expanded = !expanded },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Always open",
                 style = MaterialTheme.typography.titleSmall,
@@ -329,88 +337,84 @@ private fun AlwaysOpenSection(items: List<AlwaysOpenChoreDto>) {
                 modifier = Modifier.weight(1f),
             )
             Text(
-                if (expanded) "Hide" else "${items.size} \u00b7 Show",
+                "this week",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (expanded) {
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Chore", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                        Text("Today", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
-                        Text("Week", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
-                    }
-                    items.forEach { c ->
-                        Divider()
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(c.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(c.today.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
-                            Text(c.week.toString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
-                        }
-                    }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            tally.forEach { t ->
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(parseTallyColor(t.color)))
+                    Text(t.name, style = MaterialTheme.typography.labelMedium)
+                    Text(t.count.toString(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
     }
 }
 
-// ---- Shared chores ----
+// ---- Up for grabs (shared/pool chores) ----
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SharedChoresSection(chores: List<PoolChoreDto>, tally: List<PoolTallyDto>) {
+private fun UpForGrabsSection(chores: List<PoolChoreDto>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Heading("Shared chores")
-        if (tally.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                tally.forEach { t ->
-                    Row(
-                        Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(parseTallyColor(t.color)))
-                        Text(t.name, style = MaterialTheme.typography.labelMedium)
-                        Text(t.count.toString(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        }
-        OutlinedCard(Modifier.fillMaxWidth()) {
-            Column {
-                chores.forEachIndexed { i, c ->
-                    if (i > 0) Divider()
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(c.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                            if (c.isPaused) {
-                                Box(
-                                    Modifier
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                                ) {
-                                    Text("paused", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+        Heading("Up for grabs")
+        chores.forEach { c ->
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(c.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        if (c.isPaused) {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                            ) {
+                                Text("paused", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            poolStatus(c),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    }
+                    Text(
+                        poolStatus(c),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (c.people.isNotEmpty()) {
+                        Spacer(Modifier.height(6.dp))
+                        // Column headers.
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Who", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                            Text("Times", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, modifier = Modifier.width(52.dp))
+                            Text("Last done", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, modifier = Modifier.width(84.dp))
+                        }
+                        // Server sends people most-recent first; longest-ago sinks to the bottom.
+                        c.people.forEach { p ->
+                            Divider()
+                            val stale = c.intervalDays > 0 && (daysSince(p.lastDoneISO)?.let { it > 2L * c.intervalDays } ?: false)
+                            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(9.dp).clip(CircleShape).background(parseTallyColor(p.color)))
+                                Spacer(Modifier.width(8.dp))
+                                Text(p.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("\u00d7${p.count}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.width(52.dp))
+                                val staleColor = if (KairosThemeState.dark) Color(0xFFF59E0B) else Color(0xFFB45309)
+                                Text(
+                                    lastDoneLabel(p.lastDoneISO),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (stale) staleColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.width(84.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -445,6 +449,26 @@ private fun shortDate(iso: String): String =
     } catch (_: Exception) {
         iso
     }
+
+/** Whole days between an ISO date and today, or null if it can't be parsed. */
+private fun daysSince(iso: String): Long? =
+    try {
+        LocalDate.now().toEpochDay() - LocalDate.parse(iso).toEpochDay()
+    } catch (_: Exception) {
+        null
+    }
+
+/** "today" / "1d ago" / "Nd ago" for recent dates; falls back to a short date
+ *  once it's far enough back that a day count stops being readable. */
+private fun lastDoneLabel(iso: String): String {
+    val d = daysSince(iso) ?: return shortDate(iso)
+    return when {
+        d <= 0L -> "today"
+        d == 1L -> "1d ago"
+        d <= 60L -> "${d}d ago"
+        else -> shortDate(iso)
+    }
+}
 
 private fun parseTallyColor(hex: String?): Color {
     val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)

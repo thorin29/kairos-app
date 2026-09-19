@@ -1,4 +1,6 @@
 # Changelog
+## 0.255.0
+- Chores page: the shared-chore section is now "Up for grabs" and, on parent/admin phones, moves up to sit right under "This week" and above the weekly rotation. The name+number chips are gone; instead each up-for-grabs chore shows everyone who has done it with how many times (last 90 days) and when they last did it, sorted most-recent first so whoever's overdue to pitch in sinks to the bottom (a stale "last done" is flagged amber). Always-open chores become a simple per-person tally for the current week that clears itself each week. Needs web 0.449. Cumulative; load 0.255.
 ## 0.254.0
 - Log workout card: reordered the action buttons to Rest / skip, Calculator, Log weight. Calculator's icon and label now use the theme color. Log weight is now a filled button in the theme color with a white icon and label while it's the primary action, and slowly fades to a greyed-out button with theme-color icon and label once the block is logged (or while it's saving it stays filled). Rest / skip is unchanged.
 ## 0.253.0

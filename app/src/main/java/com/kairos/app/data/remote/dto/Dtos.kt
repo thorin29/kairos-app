@@ -842,6 +842,14 @@ data class AlwaysOpenChoreDto(
 )
 
 @Serializable
+data class PoolParticipantDto(
+    val name: String = "",
+    val color: String = "#64748b",
+    val count: Int = 0,
+    val lastDoneISO: String = "",
+)
+
+@Serializable
 data class PoolChoreDto(
     val id: String = "",
     val title: String = "",
@@ -854,6 +862,7 @@ data class PoolChoreDto(
     val cooldownMinutes: Int = 0,
     val effort: Int = 0,
     val effortLocked: Boolean = false,
+    val people: List<PoolParticipantDto> = emptyList(),
 )
 
 @Serializable
@@ -867,6 +876,7 @@ data class PoolTallyDto(
 data class PoolBlockDto(
     val chores: List<PoolChoreDto> = emptyList(),
     val tally: List<PoolTallyDto> = emptyList(),
+    val alwaysOpenTally: List<PoolTallyDto> = emptyList(),
 )
 
 @Serializable
