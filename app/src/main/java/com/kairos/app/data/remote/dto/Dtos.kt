@@ -178,6 +178,7 @@ data class UpForGrabsDto(
     val dueDate: String = "",
     val lastDoneISO: String? = null,
     val intervalDays: Int = 0,
+    val furthestBehind: Boolean = false,
 )
 
 @Serializable
@@ -848,7 +849,7 @@ data class PoolParticipantDto(
     val name: String = "",
     val color: String = "#64748b",
     val count: Int = 0,
-    val lastDoneISO: String = "",
+    val lastDoneISO: String? = null,
 )
 
 @Serializable

@@ -1,4 +1,6 @@
 # Changelog
+## 0.258.0
+- Up-for-grabs chores now respect who they're available for (set per chore in the admin web). The Chores-page roster lists everyone a chore is available for — people who've never done it show "never", and anything past 90 days shows "+90d ago". On the home chores card, a shared chore only appears for people it's available for, says "You've never done this" when you haven't, and shows a red "!" badge by the name when you're the one who's gone longest without doing it. Needs web 0.452.
 ## 0.257.0
 - Home: the up-for-grabs "last done" line now reads "You last did this Xd ago" — your own most recent completion of that shared chore, matching the Chores-page table. (The wrong day count came from the server; needs web 0.451.)
 ## 0.256.0

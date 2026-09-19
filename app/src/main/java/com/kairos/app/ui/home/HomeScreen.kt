@@ -691,6 +691,17 @@ private fun ChoreAheadRow(chore: GetAheadChoreDto, busy: Boolean, vm: HomeViewMo
     }
 }
 
+/** Small red "!" — marks the person who's furthest behind on a shared chore. */
+@Composable
+private fun FurthestBehindBadge() {
+    Box(
+        Modifier.size(18.dp).background(Color(0xFFDC2626), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("!", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White)
+    }
+}
+
 @Composable
 private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel) {
     Row(
@@ -699,7 +710,10 @@ private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel)
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(item.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(item.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (item.furthestBehind) FurthestBehindBadge()
+            }
             val sub = buildString {
                 append(if (item.isShared) "shared chore" else "from ${item.releasedByName}")
                 if (item.isOverdue && item.dueDate.isNotBlank()) {
@@ -709,17 +723,18 @@ private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel)
             if (sub.isNotBlank()) {
                 Text(sub, style = MaterialTheme.typography.bodySmall, color = if (item.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            val last = item.lastDoneISO
-            if (last != null) {
-                val since = homeDaysSince(last)
+            if (item.isShared) {
+                val last = item.lastDoneISO
+                val since = last?.let { homeDaysSince(it) }
                 val label = when {
+                    last == null -> "You've never done this"
                     since == null -> "You last did this ${homeShortDate(last)}"
                     since <= 0L -> "You last did this today"
                     since == 1L -> "You last did this 1d ago"
                     else -> "You last did this ${since}d ago"
                 }
-                // Same staleness rule as the Chores page: past twice the cadence.
-                val stale = item.intervalDays > 0 && since != null && since > 2L * item.intervalDays
+                // Amber once you've never done it, or you're past twice the cadence.
+                val stale = last == null || (item.intervalDays > 0 && since != null && since > 2L * item.intervalDays)
                 val staleColor = if (KairosThemeState.dark) Color(0xFFF59E0B) else Color(0xFFB45309)
                 Text(label, style = MaterialTheme.typography.bodySmall, color = if (stale) staleColor else MaterialTheme.colorScheme.onSurfaceVariant)
             }

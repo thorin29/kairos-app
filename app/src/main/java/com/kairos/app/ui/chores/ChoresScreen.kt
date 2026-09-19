@@ -446,7 +446,9 @@ private fun UpForGrabsSection(chores: List<PoolChoreDto>) {
                         // Server sends people most-recent first; longest-ago sinks to the bottom.
                         c.people.forEach { p ->
                             Divider()
-                            val stale = c.intervalDays > 0 && (daysSince(p.lastDoneISO)?.let { it > 2L * c.intervalDays } ?: false)
+                            val since = p.lastDoneISO?.let { daysSince(it) }
+                            val stale = p.lastDoneISO == null ||
+                                (since != null && (since > 90L || (c.intervalDays > 0 && since > 2L * c.intervalDays)))
                             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.size(9.dp).clip(CircleShape).background(parseTallyColor(p.color)))
                                 Spacer(Modifier.width(8.dp))
@@ -454,7 +456,7 @@ private fun UpForGrabsSection(chores: List<PoolChoreDto>) {
                                 Text("\u00d7${p.count}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.width(52.dp))
                                 val staleColor = if (KairosThemeState.dark) Color(0xFFF59E0B) else Color(0xFFB45309)
                                 Text(
-                                    lastDoneLabel(p.lastDoneISO),
+                                    poolLastDoneLabel(p.lastDoneISO),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = if (stale) staleColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.End,
@@ -505,15 +507,16 @@ private fun daysSince(iso: String): Long? =
         null
     }
 
-/** "today" / "1d ago" / "Nd ago" for recent dates; falls back to a short date
- *  once it's far enough back that a day count stops being readable. */
-private fun lastDoneLabel(iso: String): String {
+/** "never" / "today" / "Nd ago" up to 90 days, then "+90d ago" — the table only
+ *  counts the last 90 days, so older than that collapses to a single bucket. */
+private fun poolLastDoneLabel(iso: String?): String {
+    if (iso == null) return "never"
     val d = daysSince(iso) ?: return shortDate(iso)
     return when {
         d <= 0L -> "today"
         d == 1L -> "1d ago"
-        d <= 60L -> "${d}d ago"
-        else -> shortDate(iso)
+        d > 90L -> "+90d ago"
+        else -> "${d}d ago"
     }
 }
 
