@@ -1,4 +1,7 @@
 # Changelog
+## 0.256.0
+- Chores page: the "Up for grabs" heading is now in your theme color, and an open chore shows a green "up for grabs now" pill (paused shows a grey pill). Each up-for-grabs and always-open chore now shows its badge to the right of the name. The Always-open section is now grouped by chore — the chore name (with badge) above a per-person tally for the week — and it's counted from real completions now, so it actually appears (a chore done this week shows up; the section clears each week). Pull down to refresh the Chores page.
+- Home: up-for-grabs chore cards now show "Last done Xd ago" (any person), flagged amber once it's past twice the chore's interval. Needs web 0.450.
 ## 0.255.0
 - Chores page: the shared-chore section is now "Up for grabs" and, on parent/admin phones, moves up to sit right under "This week" and above the weekly rotation. The name+number chips are gone; instead each up-for-grabs chore shows everyone who has done it with how many times (last 90 days) and when they last did it, sorted most-recent first so whoever's overdue to pitch in sinks to the bottom (a stale "last done" is flagged amber). Always-open chores become a simple per-person tally for the current week that clears itself each week. Needs web 0.449. Cumulative; load 0.255.
 ## 0.254.0

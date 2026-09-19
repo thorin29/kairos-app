@@ -709,6 +709,20 @@ private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel)
             if (sub.isNotBlank()) {
                 Text(sub, style = MaterialTheme.typography.bodySmall, color = if (item.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            val last = item.lastDoneISO
+            if (last != null) {
+                val since = homeDaysSince(last)
+                val label = when {
+                    since == null -> "Last done ${homeShortDate(last)}"
+                    since <= 0L -> "Last done today"
+                    since == 1L -> "Last done 1d ago"
+                    else -> "Last done ${since}d ago"
+                }
+                // Same staleness rule as the Chores page: past twice the cadence.
+                val stale = item.intervalDays > 0 && since != null && since > 2L * item.intervalDays
+                val staleColor = if (KairosThemeState.dark) Color(0xFFF59E0B) else Color(0xFFB45309)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = if (stale) staleColor else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         Button(
             onClick = { vm.claimChore(item.id) },
@@ -1052,6 +1066,14 @@ private fun homeShortDate(iso: String): String {
     val d = p[2].toIntOrNull() ?: return iso
     return "$m/$d"
 }
+
+/** Whole days between an ISO date and today, or null if it can't be parsed. */
+private fun homeDaysSince(iso: String): Long? =
+    try {
+        java.time.LocalDate.now().toEpochDay() - java.time.LocalDate.parse(iso).toEpochDay()
+    } catch (_: Exception) {
+        null
+    }
 
 /** A titled section: a small uppercase header above a card holding the rows,
  *  matching the web home so sections read as distinct blocks. */

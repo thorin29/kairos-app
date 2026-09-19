@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,15 +40,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.kairos.app.data.remote.dto.AlwaysOpenChoreDto
+import com.kairos.app.data.remote.dto.AlwaysOpenWeeklyDto
 import com.kairos.app.data.remote.dto.ChorePersonDto
 import com.kairos.app.data.remote.dto.ChoresDto
 import com.kairos.app.data.remote.dto.PoolChoreDto
@@ -82,19 +85,25 @@ fun ChoresScreen(onOpenDrawer: () -> Unit) {
         },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
-            val data = ui.data
-            when {
-                ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(ui.loadError ?: "Couldn't load chores.")
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = { vm.load() }) { Text("Retry") }
+            PullToRefreshBox(
+                isRefreshing = ui.refreshing,
+                onRefresh = vm::refresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                val data = ui.data
+                when {
+                    ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
+                    data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(ui.loadError ?: "Couldn't load chores.")
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = { vm.load() }) { Text("Retry") }
+                        }
+                    }
+                    else -> ChoresContent(data)
                 }
-                else -> ChoresContent(data)
             }
         }
     }
@@ -121,7 +130,7 @@ private fun ChoresContent(data: ChoresDto) {
             if (data.pool.chores.isNotEmpty()) UpForGrabsSection(data.pool.chores)
             if (people.size > 1) RotationGrid(people)
             else if (people.size == 1) RotationCard(people.first())
-            if (data.pool.alwaysOpenTally.isNotEmpty()) AlwaysOpenTallySection(data.pool.alwaysOpenTally)
+            if (data.pool.alwaysOpenWeekly.isNotEmpty()) AlwaysOpenWeeklySection(data.pool.alwaysOpenWeekly)
         } else {
             if (people.size > 1) {
                 ThisWeekTable(people)
@@ -130,7 +139,7 @@ private fun ChoresContent(data: ChoresDto) {
                 FocusedSummary(people.first())
                 RotationCard(people.first())
             }
-            if (data.pool.alwaysOpenTally.isNotEmpty()) AlwaysOpenTallySection(data.pool.alwaysOpenTally)
+            if (data.pool.alwaysOpenWeekly.isNotEmpty()) AlwaysOpenWeeklySection(data.pool.alwaysOpenWeekly)
             if (data.pool.chores.isNotEmpty()) UpForGrabsSection(data.pool.chores)
         }
     }
@@ -322,11 +331,56 @@ private fun RotationCardInner(row: ChorePersonDto) {
     }
 }
 
-// ---- Always open (per-person weekly tally) ----
+// ---- Chore badge glyph (matches the home-page chore badges) ----
+
+private data class ChoreGlyphSpec(val icon: ImageVector, val color: Color)
+
+private val CHORE_GLYPHS: Map<String, ChoreGlyphSpec> = mapOf(
+    "grass" to ChoreGlyphSpec(KairosIcons.Grass, Color(0xFF16A34A)),
+    "water" to ChoreGlyphSpec(KairosIcons.Water, Color(0xFF2563EB)),
+)
+
+@Composable
+private fun ChoreGlyph(icon: String?, size: Dp = 18.dp) {
+    val spec = icon?.let { CHORE_GLYPHS[it] } ?: return
+    Icon(spec.icon, contentDescription = null, tint = spec.color, modifier = Modifier.size(size))
+}
+
+@Composable
+private fun AccentHeading(text: String) {
+    Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = KairosThemeState.accent)
+}
+
+@Composable
+private fun StatusPill(text: String, fg: Color, bg: Color) {
+    Box(
+        Modifier.clip(RoundedCornerShape(999.dp)).background(bg).padding(horizontal = 10.dp, vertical = 3.dp),
+    ) {
+        Text(text, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = fg)
+    }
+}
+
+@Composable
+private fun TallyChip(t: PoolTallyDto) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(parseTallyColor(t.color)))
+        Text(t.name, style = MaterialTheme.typography.labelMedium)
+        Text(t.count.toString(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+// ---- Always open (per-chore weekly participation) ----
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AlwaysOpenTallySection(tally: List<PoolTallyDto>) {
+private fun AlwaysOpenWeeklySection(items: List<AlwaysOpenWeeklyDto>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -336,25 +390,23 @@ private fun AlwaysOpenTallySection(tally: List<PoolTallyDto>) {
                 color = KairosThemeState.accent,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                "this week",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text("this week", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            tally.forEach { t ->
-                Row(
-                    Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+        items.forEach { c ->
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(parseTallyColor(t.color)))
-                    Text(t.name, style = MaterialTheme.typography.labelMedium)
-                    Text(t.count.toString(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    // Chore name, with its badge to the right of the name.
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(c.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        ChoreGlyph(c.icon, size = 16.dp)
+                    }
+                    // Who has done it this week, most first.
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        c.people.forEach { TallyChip(it) }
+                    }
                 }
             }
         }
@@ -366,31 +418,26 @@ private fun AlwaysOpenTallySection(tally: List<PoolTallyDto>) {
 @Composable
 private fun UpForGrabsSection(chores: List<PoolChoreDto>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Heading("Up for grabs")
+        AccentHeading("Up for grabs")
         chores.forEach { c ->
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(c.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                        if (c.isPaused) {
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                            ) {
-                                Text("paused", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(c.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        ChoreGlyph(c.icon)
+                        Spacer(Modifier.weight(1f))
+                        when {
+                            c.isPaused -> StatusPill("paused", MaterialTheme.colorScheme.onSurfaceVariant, MaterialTheme.colorScheme.surfaceVariant)
+                            c.outstanding -> StatusPill("up for grabs now", KairosThemeState.accent, KairosThemeState.accent.copy(alpha = 0.15f))
                         }
                     }
                     Text(
-                        poolStatus(c),
+                        poolCadence(c),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (c.people.isNotEmpty()) {
                         Spacer(Modifier.height(6.dp))
-                        // Column headers.
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("Who", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                             Text("Times", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, modifier = Modifier.width(52.dp))
@@ -422,11 +469,11 @@ private fun UpForGrabsSection(chores: List<PoolChoreDto>) {
     }
 }
 
-private fun poolStatus(c: PoolChoreDto): String {
+private fun poolCadence(c: PoolChoreDto): String {
     val base = "every ${c.intervalDays} days"
     val suffix = when {
         c.isPaused -> ""
-        c.outstanding -> " \u00b7 up for grabs now"
+        c.outstanding -> ""   // shown as the green pill instead
         c.claimedByName != null -> " \u00b7 ${c.claimedByName} is on it"
         c.nextDueISO != null -> " \u00b7 next ${shortDate(c.nextDueISO)}"
         else -> ""

@@ -176,6 +176,8 @@ data class UpForGrabsDto(
     val releasedByName: String = "",
     val isOverdue: Boolean = false,
     val dueDate: String = "",
+    val lastDoneISO: String? = null,
+    val intervalDays: Int = 0,
 )
 
 @Serializable
@@ -862,6 +864,7 @@ data class PoolChoreDto(
     val cooldownMinutes: Int = 0,
     val effort: Int = 0,
     val effortLocked: Boolean = false,
+    val icon: String? = null,
     val people: List<PoolParticipantDto> = emptyList(),
 )
 
@@ -873,10 +876,18 @@ data class PoolTallyDto(
 )
 
 @Serializable
+data class AlwaysOpenWeeklyDto(
+    val id: String = "",
+    val title: String = "",
+    val icon: String? = null,
+    val people: List<PoolTallyDto> = emptyList(),
+)
+
+@Serializable
 data class PoolBlockDto(
     val chores: List<PoolChoreDto> = emptyList(),
     val tally: List<PoolTallyDto> = emptyList(),
-    val alwaysOpenTally: List<PoolTallyDto> = emptyList(),
+    val alwaysOpenWeekly: List<AlwaysOpenWeeklyDto> = emptyList(),
 )
 
 @Serializable

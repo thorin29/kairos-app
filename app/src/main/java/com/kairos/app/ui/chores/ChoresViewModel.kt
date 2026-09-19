@@ -15,6 +15,7 @@ data class ChoresUiState(
     val loading: Boolean = true,
     val loadError: String? = null,
     val data: ChoresDto? = null,
+    val refreshing: Boolean = false,
 )
 
 /**
@@ -39,11 +40,16 @@ class ChoresViewModel(
         viewModelScope.launch {
             try {
                 val data = session.loadChores()
-                _ui.update { it.copy(loading = false, data = data) }
+                _ui.update { it.copy(loading = false, refreshing = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.chores = data
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+                _ui.update { it.copy(loading = false, refreshing = false, loadError = e.error.message) }
             }
         }
+    }
+
+    fun refresh() {
+        _ui.update { it.copy(refreshing = true) }
+        load()
     }
 }
