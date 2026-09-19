@@ -1,4 +1,6 @@
 # Changelog
+## 0.257.0
+- Home: the up-for-grabs "last done" line now reads "You last did this Xd ago" — your own most recent completion of that shared chore, matching the Chores-page table. (The wrong day count came from the server; needs web 0.451.)
 ## 0.256.0
 - Chores page: the "Up for grabs" heading is now in your theme color, and an open chore shows a green "up for grabs now" pill (paused shows a grey pill). Each up-for-grabs and always-open chore now shows its badge to the right of the name. The Always-open section is now grouped by chore — the chore name (with badge) above a per-person tally for the week — and it's counted from real completions now, so it actually appears (a chore done this week shows up; the section clears each week). Pull down to refresh the Chores page.
 - Home: up-for-grabs chore cards now show "Last done Xd ago" (any person), flagged amber once it's past twice the chore's interval. Needs web 0.450.

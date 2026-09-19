@@ -713,10 +713,10 @@ private fun UpForGrabsRow(item: UpForGrabsDto, busy: Boolean, vm: HomeViewModel)
             if (last != null) {
                 val since = homeDaysSince(last)
                 val label = when {
-                    since == null -> "Last done ${homeShortDate(last)}"
-                    since <= 0L -> "Last done today"
-                    since == 1L -> "Last done 1d ago"
-                    else -> "Last done ${since}d ago"
+                    since == null -> "You last did this ${homeShortDate(last)}"
+                    since <= 0L -> "You last did this today"
+                    since == 1L -> "You last did this 1d ago"
+                    else -> "You last did this ${since}d ago"
                 }
                 // Same staleness rule as the Chores page: past twice the cadence.
                 val stale = item.intervalDays > 0 && since != null && since > 2L * item.intervalDays
