@@ -54,8 +54,8 @@ Characters. Beyond parity with the web personal view it adds:
 1. **Setup** — enter your server address; the app runs a `/meta` handshake.
 2. **Enroll** — type the one-time code (QR scan lands next); the app calls
    `/auth/enroll`, stores the token, and fetches `/me`.
-3. **Home** — a placeholder that shows who you're enrolled as, plus sign-out
-   (which revokes the token on the server). The real dashboard lands next.
+3. **Home** — the personal dashboard for whoever you enrolled as, with the full
+   feature set above; sign-out (gear by your name) revokes the token on the server.
 
 ## Tech
 
