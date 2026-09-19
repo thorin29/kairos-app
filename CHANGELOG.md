@@ -1,8 +1,10 @@
 # Changelog
+## 0.254.0
+- Log workout card: reordered the action buttons to Rest / skip, Calculator, Log weight. Calculator's icon and label now use the theme color. Log weight is now a filled button in the theme color with a white icon and label while it's the primary action, and slowly fades to a greyed-out button with theme-color icon and label once the block is logged (or while it's saving it stays filled). Rest / skip is unchanged.
 ## 0.253.0
 - Game time: pull down to refresh, matching the home and calendar screens. Works on the household list and the per-person detail view.
 ## 0.252.0
-- School: a completed assignment now shows a green check in front of it in the student's Today list, so you can see what's done versus still due even when they're not at 100%. The student card shows "Complete for today!" only when everything due today is actually finished (it counts only what's still left, not the day's total), and both the card and the detail hold off on "Complete for today!" while an after-class "did you attend" check-in is still open. Depends on web 0.448 (the `/api/v1/school` `complete` and `needsAttendance` fields) — deploy both.
+- School: a completed assignment now shows a green check in front of it in the student's Today list, so you can see what's done versus still due even when they're not at 100%. The student card shows "Complete for today!" only when everything due today is actually finished (it counts only what's still left, not the day's total), and both the card and the detail hold off on "Complete for today!" while an after-class "did you attend" check-in is still open.
 ## 0.251.0
 - 3-day view: fixed the day names/dates drifting off-center from their columns (a side effect of the 0.250 header fix) — the header row is now pinned to the left so each date sits centered over its day again, while the incoming day still keeps its full width.
 ## 0.250.0

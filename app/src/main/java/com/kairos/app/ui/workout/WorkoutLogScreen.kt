@@ -33,6 +33,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -244,32 +245,68 @@ private fun WorkoutActionTile(
     highlighted: Boolean = false,
     enabled: Boolean = true,
     loading: Boolean = false,
+    filled: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val target =
-        if (highlighted) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurfaceVariant
-    // Slow fade so "Log weight"/"Rest / skip" ease to grey once logged/skipped.
-    val tint by animateColorAsState(target, animationSpec = tween(700), label = "tileTint")
-    OutlinedCard(onClick = onClick, enabled = enabled, modifier = modifier.height(84.dp)) {
-        Column(
-            Modifier.fillMaxSize().padding(8.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (loading) {
-                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-            } else {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                color = tint,
-            )
+    // Icon/text color. A filled tile reads white on the system-color fill while
+    // it's the primary action, then settles to the theme color once it greys out.
+    // An outlined tile is the theme color while actionable and eases to grey after.
+    val contentTarget = when {
+        filled && highlighted -> MaterialTheme.colorScheme.onPrimary
+        filled -> MaterialTheme.colorScheme.primary
+        highlighted -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val tint by animateColorAsState(contentTarget, animationSpec = tween(700), label = "tileTint")
+    if (filled) {
+        // "Log weight": starts as the system color with a white icon/text, then
+        // slowly fades to a greyed-out button carrying theme-color icon/text once
+        // the block is logged. The fill is pinned across the disabled (saving)
+        // state too, so the in-progress button doesn't flash grey.
+        val containerTarget =
+            if (highlighted) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.surfaceVariant
+        val container by animateColorAsState(containerTarget, animationSpec = tween(700), label = "tileFill")
+        Card(
+            onClick = onClick,
+            enabled = enabled,
+            colors = CardDefaults.cardColors(
+                containerColor = container,
+                disabledContainerColor = container,
+            ),
+            modifier = modifier.height(84.dp),
+        ) { WorkoutActionTileBody(icon, label, tint, loading) }
+    } else {
+        OutlinedCard(onClick = onClick, enabled = enabled, modifier = modifier.height(84.dp)) {
+            WorkoutActionTileBody(icon, label, tint, loading)
         }
+    }
+}
+
+@Composable
+private fun WorkoutActionTileBody(
+    icon: ImageVector,
+    label: String,
+    tint: Color,
+    loading: Boolean,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(8.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = tint)
+        } else {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
+            color = tint,
+        )
     }
 }
 
@@ -331,14 +368,6 @@ private fun WorkoutBlockCard(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WorkoutActionTile(
-                    icon = KairosIcons.Dumbbell,
-                    label = logLabel,
-                    modifier = Modifier.weight(1f),
-                    highlighted = !block.logged,
-                    enabled = !block.saving,
-                    loading = block.saving,
-                ) { vm.saveBlock(block.key) }
-                WorkoutActionTile(
                     icon = KairosIcons.Moon,
                     label = if (skipped) "skipped" else "Rest / skip",
                     modifier = Modifier.weight(1f),
@@ -348,13 +377,22 @@ private fun WorkoutBlockCard(
                     icon = KairosIcons.Dumbbell,
                     label = "Calculator",
                     modifier = Modifier.weight(1f),
-                    highlighted = false,
+                    highlighted = true,
                 ) {
                     onOpenCalculatorFor(
                         block.key,
                         block.inputs.firstOrNull()?.poolExerciseId ?: "",
                     )
                 }
+                WorkoutActionTile(
+                    icon = KairosIcons.Dumbbell,
+                    label = logLabel,
+                    modifier = Modifier.weight(1f),
+                    highlighted = !block.logged,
+                    enabled = !block.saving,
+                    loading = block.saving,
+                    filled = true,
+                ) { vm.saveBlock(block.key) }
             }
         }
     }
