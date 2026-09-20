@@ -30,17 +30,18 @@ import com.kairos.app.ui.nav.KairosIcons
  *  offline (with any pending count), or "syncing N changes" once back online.
  *  Screens keep showing their last-synced data behind it. */
 @Composable
-fun OfflineBanner(online: Boolean, pending: Int, syncing: Boolean, modifier: Modifier = Modifier) {
-    val visible = !online || syncing || pending > 0
+fun OfflineBanner(online: Boolean, serverUnavailable: Boolean, pending: Int, syncing: Boolean, modifier: Modifier = Modifier) {
+    val visible = !online || serverUnavailable || syncing || pending > 0
     val changes = if (pending == 1) "1 change" else "$pending changes"
     val message = when {
         syncing -> "Syncing $changes\u2026"
         !online && pending > 0 -> "Offline \u2014 $changes will sync when you reconnect"
         !online -> "You're offline \u2014 showing saved data"
+        serverUnavailable -> "Kairos server unavailable \u2014 showing saved data"
         pending > 0 -> "$changes waiting to sync"
         else -> ""
     }
-    val color = if (!online) Color(0xFF334155) else KairosThemeState.accent
+    val color = if (!online || serverUnavailable) Color(0xFF334155) else KairosThemeState.accent
     val icon = if (syncing) KairosIcons.Repeat else KairosIcons.Globe
 
     AnimatedVisibility(

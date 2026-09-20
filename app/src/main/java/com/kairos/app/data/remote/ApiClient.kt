@@ -114,6 +114,17 @@ object RefreshTracker {
     fun end() { _active.update { (it - 1).coerceAtLeast(0) } }
 }
 
+/** Tracks whether the Kairos server is reachable while the phone itself is
+ *  online. Set when a live GET comes back 502/503/504 (proxy up, upstream down)
+ *  and we serve a cached copy instead; cleared on the next successful live
+ *  response. Lets the UI say "server unavailable" rather than showing an error. */
+object ServerStatusTracker {
+    private val _unavailable = MutableStateFlow(false)
+    val unavailable: StateFlow<Boolean> = _unavailable.asStateFlow()
+    fun markUnavailable() { _unavailable.value = true }
+    fun markReachable() { _unavailable.value = false }
+}
+
 /** Network interceptor (online path only): make GET responses storable in the
  *  disk cache even though the server marks them no-cache. A tiny max-age keeps
  *  data effectively live online while giving offline a copy to fall back on. */
@@ -146,7 +157,26 @@ private class OfflineInterceptor(
             // up but Kairos down) fall back to the cached copy instead of failing.
             RefreshTracker.begin()
             try {
-                return chain.proceed(req)
+                val live = chain.proceed(req)
+                // Proxy answered but the Kairos upstream is down/slow (502/503/504):
+                // treat it like being offline and serve the last cached copy if we
+                // have one, so a rebooting host doesn't blank the screen.
+                if (live.code == 502 || live.code == 503 || live.code == 504) {
+                    val cachedReq = req.newBuilder()
+                        .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")
+                        .build()
+                    val cachedRes = chain.proceed(cachedReq)
+                    if (cachedRes.code == 504) {
+                        // Nothing cached — keep the real server error for the UI.
+                        cachedRes.close()
+                        return live
+                    }
+                    live.close()
+                    ServerStatusTracker.markUnavailable()
+                    return cachedRes
+                }
+                if (live.isSuccessful) ServerStatusTracker.markReachable()
+                return live
             } catch (e: IOException) {
                 val cached = req.newBuilder()
                     .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")

@@ -1,4 +1,6 @@
 # Changelog
+## 0.259.0
+- When the phone has internet but the Kairos server is down (a 502/503/504 from the proxy while the container restarts or a deploy is mid-flight), the app now falls back to the last cached data instead of showing a full-screen "Request failed" error — the same way it already handles airplane mode. A slim bottom banner reads "Kairos server unavailable — showing saved data" and clears once the server answers again. If a screen was never loaded while online, it still shows the real error since there's nothing cached.
 ## 0.258.0
 - Up-for-grabs chores now respect who they're available for (set per chore in the admin web). The Chores-page roster lists everyone a chore is available for — people who've never done it show "never", and anything past 90 days shows "+90d ago". On the home chores card, a shared chore only appears for people it's available for, says "You've never done this" when you haven't, and shows a red "!" badge by the name when you're the one who's gone longest without doing it. Needs web 0.452.
 ## 0.257.0

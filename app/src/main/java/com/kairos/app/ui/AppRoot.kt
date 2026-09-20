@@ -188,6 +188,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val updateInfo by container.updateChecker.available.collectAsState()
     val pendingRoute by container.pendingRoute.collectAsState()
     val refreshing by com.kairos.app.data.remote.RefreshTracker.active.collectAsState()
+    val serverUnavailable by com.kairos.app.data.remote.ServerStatusTracker.unavailable.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
@@ -588,6 +589,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             )
         }
 
-        OfflineBanner(online = online, pending = pendingWrites, syncing = syncing, modifier = Modifier.align(Alignment.BottomCenter))
+        OfflineBanner(online = online, serverUnavailable = serverUnavailable && online, pending = pendingWrites, syncing = syncing, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
