@@ -1,4 +1,6 @@
 # Changelog
+## 0.261.0
+- Updated the UI toolkit toward current while staying on the AGP 8 toolchain: Navigation Compose 2.9.0 to 2.9.8 (includes NavHost/predictive-back fixes) and Compose BOM 2025.06.01 to 2025.08.00 (Compose 1.9). Navigation 2.10 / Compose 1.12 were intentionally skipped — they require Android Gradle Plugin 9.1+ and compileSdk 37, which is a separate toolchain migration.
 ## 0.260.0
 - Diagnostic for the intermittent white screen: removed the app-wide background blur that wrapped the whole navigation host. Modifier.blur() keeps all content in a separate graphics layer even when the menu is closed, which is the leading suspect for the frozen-white-window symptom (navigation and data kept working underneath). The menu still dims the background with its scrim; only the blur is gone. Added drawer open/closed breadcrumbs so a future occurrence shows whether it lines up with the menu animation.
 ## 0.259.0
