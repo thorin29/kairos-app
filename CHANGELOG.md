@@ -1,4 +1,6 @@
 # Changelog
+## 0.262.0
+- Brought the menu's background blur back, the safe way: the blur is now attached only while the drawer is open or animating, so the extra graphics layer it needs exists for that brief moment and is released once the drawer is closed. Previously the blur was attached permanently (a persistent layer even with nothing to blur), which was the leading suspect for the intermittent white screen. Same visual effect, without the always-on layer.
 ## 0.261.0
 - Updated the UI toolkit toward current while staying on the AGP 8 toolchain: Navigation Compose 2.9.0 to 2.9.8 (includes NavHost/predictive-back fixes) and Compose BOM 2025.06.01 to 2025.08.00 (Compose 1.9). Navigation 2.10 / Compose 1.12 were intentionally skipped — they require Android Gradle Plugin 9.1+ and compileSdk 37, which is a separate toolchain migration.
 ## 0.260.0

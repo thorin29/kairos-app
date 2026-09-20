@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -150,7 +151,7 @@ private val EXPANDED_WIDTH = 224.dp
 
 /**
  * The authenticated area. The rail slides straight in from the left (rounded on
- * the top-right, full-height under the status bar); the content behind dims, and a subtle scrim over the status-bar strip keeps the system icons
+ * the top-right, full-height under the status bar); the content behind blurs and dims, and a subtle scrim over the status-bar strip keeps the system icons
  * readable. Opens collapsed; expanding sticks for the session.
  */
 @Composable
@@ -295,13 +296,19 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        // Content — dimmed (via the scrim below) while the menu is open. The
-        // background is intentionally NOT blurred: Modifier.blur() renders the
-        // whole NavHost into a persistent graphics layer even when closed, and
-        // that layer is the prime suspect for the intermittent white screen
-        // (navigation/data keep working underneath a blank window). Removed as a
-        // diagnostic; the scrim still gives the drawer its depth.
-        Box(Modifier.fillMaxSize()) {
+        // Content — blurred and dimmed while the menu is open. The blur modifier
+        // is attached ONLY while the drawer is open or animating (openProgress >
+        // 0), so the extra graphics layer it needs exists just for that ~220ms
+        // and is released the moment the drawer settles closed. The old code kept
+        // blur() attached permanently, which held that layer for the whole
+        // session even with nothing to blur — the prime suspect for the
+        // intermittent white screen (navigation/data kept working under a blank
+        // window). Same look, without the always-on layer.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .then(if (openProgress > 0f) Modifier.blur(radius = (openProgress * 6f).dp) else Modifier),
+        ) {
             NavHost(navController = navController, startDestination = Route.Home) {
                 composable<Route.Home> {
                     HomeScreen(
