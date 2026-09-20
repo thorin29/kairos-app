@@ -1,4 +1,6 @@
 # Changelog
+## 0.260.0
+- Diagnostic for the intermittent white screen: removed the app-wide background blur that wrapped the whole navigation host. Modifier.blur() keeps all content in a separate graphics layer even when the menu is closed, which is the leading suspect for the frozen-white-window symptom (navigation and data kept working underneath). The menu still dims the background with its scrim; only the blur is gone. Added drawer open/closed breadcrumbs so a future occurrence shows whether it lines up with the menu animation.
 ## 0.259.0
 - When the phone has internet but the Kairos server is down (a 502/503/504 from the proxy while the container restarts or a deploy is mid-flight), the app now falls back to the last cached data instead of showing a full-screen "Request failed" error — the same way it already handles airplane mode. A slim bottom banner reads "Kairos server unavailable — showing saved data" and clears once the server answers again. If a screen was never loaded while online, it still shows the real error since there's nothing cached.
 ## 0.258.0

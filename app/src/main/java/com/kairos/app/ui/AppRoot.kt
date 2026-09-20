@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -151,8 +150,7 @@ private val EXPANDED_WIDTH = 224.dp
 
 /**
  * The authenticated area. The rail slides straight in from the left (rounded on
- * the top-right, full-height under the status bar); the content behind blurs and
- * dims, and a subtle scrim over the status-bar strip keeps the system icons
+ * the top-right, full-height under the status bar); the content behind dims, and a subtle scrim over the status-bar strip keeps the system icons
  * readable. Opens collapsed; expanding sticks for the session.
  */
 @Composable
@@ -253,6 +251,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         label = "railWidth",
     )
 
+    // Drawer breadcrumbs: so a future white-screen trail shows whether the freeze
+    // lines up with opening or closing the menu (its animated scrim layer).
+    LaunchedEffect(open) {
+        com.kairos.app.data.diag.Breadcrumbs.drop(if (open) "drawer=open" else "drawer=closed")
+    }
+
     fun go(route: Route, key: String) {
         selectedKey = key
         open = false
@@ -291,8 +295,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        // Content — blurred and dimmed while the menu is open.
-        Box(Modifier.fillMaxSize().blur(radius = (openProgress * 6f).dp)) {
+        // Content — dimmed (via the scrim below) while the menu is open. The
+        // background is intentionally NOT blurred: Modifier.blur() renders the
+        // whole NavHost into a persistent graphics layer even when closed, and
+        // that layer is the prime suspect for the intermittent white screen
+        // (navigation/data keep working underneath a blank window). Removed as a
+        // diagnostic; the scrim still gives the drawer its depth.
+        Box(Modifier.fillMaxSize()) {
             NavHost(navController = navController, startDestination = Route.Home) {
                 composable<Route.Home> {
                     HomeScreen(
@@ -517,7 +526,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         }
 
         if (openProgress > 0.001f) {
-            // Dim scrim over the (blurred) content — tap to close.
+            // Dim scrim over the content — tap to close.
             Box(
                 Modifier
                     .fillMaxSize()
