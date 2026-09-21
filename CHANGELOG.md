@@ -1,4 +1,6 @@
 # Changelog
+## 0.270.0
+- Money screen: the search button now has a white background, and the person tabs at the top are white pill buttons (with an accent border on the selected one) so they stand out against the grey page.
 ## 0.269.0
 - Game time list now shows a divider line between each person, matching the event editor and Default reminders screens.
 ## 0.268.0

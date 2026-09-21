@@ -444,7 +444,12 @@ private fun PeopleSelector(
             Row(
                 Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (active) KairosThemeState.accent.copy(alpha = 0.10f) else Color.Transparent)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(
+                        1.dp,
+                        if (active) KairosThemeState.accent else MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(10.dp),
+                    )
                     .clickable { onSelect(person.id) }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -509,6 +514,7 @@ private fun ActionBar(searching: Boolean, onAdd: () -> Unit, onToggleSearch: () 
         Box(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surface)
                 .border(
                     1.dp,
                     if (searching) KairosThemeState.accent else MaterialTheme.colorScheme.outline,
