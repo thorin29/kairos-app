@@ -1,6 +1,6 @@
 # Changelog
 ## 0.264.0
-- Build-system migration, stage 2 (libraries): Navigation Compose 2.9.8 to 2.10.1 and Compose BOM 2025.08.00 to 2026.09.00 (Jetpack Compose 1.12), on compileSdk 37. This completes the modernization started in 0.263.0 — the app is now on the current AGP 9 toolchain and current-stable Compose/Navigation. No intended behavior changes; the drawer, Chores, Calendar, offline mode and navigation should all work exactly as before.
+- Build-system migration, stage 2 (libraries): Navigation Compose 2.9.8 to 2.10.1 and Compose BOM 2025.08.00 to 2026.09.00 (Jetpack Compose 1.12), on compileSdk 37. This completes the modernization started in 0.263.0 — the app is now on the current AGP 9 toolchain and current-stable Compose/Navigation. Compose 1.12 no longer bundles the Material icons library, so it is now declared explicitly (material-icons-core, pinned at its final 1.7.8 release). No intended behavior changes; the drawer, Chores, Calendar, offline mode and navigation should all work exactly as before.
 ## 0.263.0
 - Build-system migration, stage 1 (toolchain): Android Gradle Plugin 8.13.2 to 9.4.0, Gradle 8.13 to 9.6.0, and the move to AGP 9's built-in Kotlin (dropped the org.jetbrains.kotlin.android plugin; the Compose and serialization compiler plugins stay). compileSdk stays 36 for now. No app behavior changes — same features, newer build system. compileSdk 37, Navigation 2.10 and Compose 1.12 come together in stage 2.
 ## 0.262.0

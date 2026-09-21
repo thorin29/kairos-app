@@ -10,6 +10,9 @@ lifecycle = "2.9.0"
 activityCompose = "1.10.1"
 composeBom = "2026.09.00"
 navigationCompose = "2.10.1"
+# material-icons-core is frozen at its final release (1.7.8); Compose 1.12 no
+# longer ships it transitively, so it is pinned explicitly rather than via the BOM.
+materialIconsCore = "1.7.8"
 datastore = "1.1.1"
 
 # Networking / serialization / coroutines
@@ -36,6 +39,7 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIconsCore" }
 
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
