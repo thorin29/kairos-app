@@ -1,4 +1,7 @@
 # Changelog
+## 0.265.0
+- Added a stroked back-arrow to the KairosIcons set and switched it in on two screens — Settings > Profile and Settings > Diagnostics — as a preview of moving the remaining Material icons into the app's own icon system. Every other back arrow is still the Material one for now, so the two can be compared side by side.
+- Fixed a calendar-icon inconsistency: the Workout Log's date icon now uses the same KairosIcons calendar glyph as the rest of the app (it was the odd one out on the Material icon).
 ## 0.264.0
 - Build-system migration, stage 2 (libraries): Navigation Compose 2.9.8 to 2.10.1 and Compose BOM 2025.08.00 to 2026.09.00 (Jetpack Compose 1.12), on compileSdk 37. This completes the modernization started in 0.263.0 — the app is now on the current AGP 9 toolchain and current-stable Compose/Navigation. Compose 1.12 no longer bundles the Material icons library, so it is now declared explicitly (material-icons-core, pinned at its final 1.7.8 release). No intended behavior changes; the drawer, Chores, Calendar, offline mode and navigation should all work exactly as before.
 ## 0.263.0

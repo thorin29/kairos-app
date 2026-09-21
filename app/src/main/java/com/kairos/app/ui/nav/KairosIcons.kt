@@ -346,4 +346,9 @@ object KairosIcons {
         "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z",
         "M12 8v4l3 2",
     )
+    val ArrowBack = stroked(
+        "ArrowBack",
+        "M19 12H5",
+        "M12 19L5 12L12 5",
+    )
 }

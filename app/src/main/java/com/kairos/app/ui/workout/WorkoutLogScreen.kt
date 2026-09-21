@@ -54,7 +54,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.OutlinedButton
@@ -145,7 +144,7 @@ fun WorkoutLogScreen(
                             ),
                         ) {
                             Icon(
-                                Icons.Default.DateRange,
+                                KairosIcons.DateRange,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )
