@@ -1,4 +1,6 @@
 # Changelog
+## 0.263.0
+- Build-system migration, stage 1 (toolchain): Android Gradle Plugin 8.13.2 to 9.4.0, Gradle 8.13 to 9.6.0, compileSdk 36 to 37, and the move to AGP 9's built-in Kotlin (dropped the org.jetbrains.kotlin.android plugin; the Compose and serialization compiler plugins stay). CI now installs SDK platform 37. No app behavior changes — same features, newer build system. Navigation 2.10 / Compose 1.12 come in stage 2.
 ## 0.262.0
 - Brought the menu's background blur back, the safe way: the blur is now attached only while the drawer is open or animating, so the extra graphics layer it needs exists for that brief moment and is released once the drawer is closed. Previously the blur was attached permanently (a persistent layer even with nothing to blur), which was the leading suspect for the intermittent white screen. Same visual effect, without the always-on layer.
 ## 0.261.0
