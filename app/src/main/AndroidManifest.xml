@@ -6,6 +6,9 @@
          a later increment. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 17 (API 37): reaching a self-hosted server on the LAN needs this
+         runtime permission. Requested only when the configured server is local. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Exact reminders. USE_EXACT_ALARM covers Android 13+ (calendar app);

@@ -1,5 +1,7 @@
 package com.kairos.app.ui.setup
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +35,20 @@ fun SetupScreen() {
         },
     )
     val ui by vm.ui.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Android 17: reaching a LAN server needs a runtime permission. Ask for it
+    // first when the entered address is local, then connect either way.
+    val localNetLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { _ -> vm.connect() }
+
+    fun onConnect() {
+        if (com.kairos.app.data.remote.LocalNetwork.needsPermission(context, ui.url.trim())) {
+            localNetLauncher.launch(com.kairos.app.data.remote.LocalNetwork.PERMISSION)
+        } else {
+            vm.connect()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -73,7 +89,7 @@ fun SetupScreen() {
         }
 
         Button(
-            onClick = vm::connect,
+            onClick = { onConnect() },
             enabled = !ui.connecting,
             modifier = Modifier
                 .fillMaxWidth()

@@ -25,6 +25,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -94,6 +96,24 @@ fun AppRoot(container: AppContainer) {
     val session = container.sessionRepository
     val state by session.state.collectAsState()
     val joinToken by container.pendingJoinToken.collectAsState()
+
+    // Android 17 Local Network Protection: a returning user whose saved server is
+    // a LAN address needs ACCESS_LOCAL_NETWORK before the app can reach it. Ask
+    // once on launch when the stored address is local and we don't have it yet,
+    // then re-run the connection once it's granted. Public servers never match.
+    val localNetCtx = androidx.compose.ui.platform.LocalContext.current
+    val localNetScope = rememberCoroutineScope()
+    val localNetLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) localNetScope.launch { session.bootstrap() }
+    }
+    LaunchedEffect(Unit) {
+        val url = container.settingsStore.currentBaseUrl()
+        if (com.kairos.app.data.remote.LocalNetwork.needsPermission(localNetCtx, url)) {
+            localNetLauncher.launch(com.kairos.app.data.remote.LocalNetwork.PERMISSION)
+        }
+    }
     LaunchedEffect(state) {
         com.kairos.app.data.diag.Breadcrumbs.drop("session=${state::class.simpleName}")
     }
