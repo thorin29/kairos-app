@@ -1,4 +1,6 @@
 # Changelog
+## 0.269.0
+- Game time list now shows a divider line between each person, matching the event editor and Default reminders screens.
 ## 0.268.0
 - UI polish: the Default reminders screen now uses the white, divider-separated layout from the event editor instead of the plain grey list. The Software update screen background is white to match. On the Profile screen, the Change photo and Adjust framing buttons are now white with theme-coloured text. And the Log workout date chip uses a plain calendar icon (the previous one had the date-range underline, which didn't fit a single-day picker).
 ## 0.267.0
