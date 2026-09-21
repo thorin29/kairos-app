@@ -1,4 +1,6 @@
 # Changelog
+## 0.268.0
+- UI polish: the Default reminders screen now uses the white, divider-separated layout from the event editor instead of the plain grey list. The Software update screen background is white to match. On the Profile screen, the Change photo and Adjust framing buttons are now white with theme-coloured text. And the Log workout date chip uses a plain calendar icon (the previous one had the date-range underline, which didn't fit a single-day picker).
 ## 0.267.0
 - Completed the Android 17 migration: targetSdk is now 37. The one Android 17 behavior change that affects Kairos is Local Network Protection — an app targeting API 37 needs a runtime permission to reach a server on the local network. Kairos now declares ACCESS_LOCAL_NETWORK and requests it only when the configured server address is local (a private IP, or a .local/.home/.lan/.internal hostname), both at first setup and on launch for a returning device; once granted, it reconnects automatically. Internet-facing servers are unaffected and never see a prompt. Known gap for a later pass: a normal hostname that resolves to a LAN address via split DNS isn't auto-detected yet (that needs the reactive connection-failure path).
 ## 0.266.0

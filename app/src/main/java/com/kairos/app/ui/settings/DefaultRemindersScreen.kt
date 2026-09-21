@@ -2,7 +2,6 @@ package com.kairos.app.ui.settings
 import com.kairos.app.ui.nav.KairosIcons
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -44,6 +44,7 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
     var editingKind by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Default reminders") },
@@ -60,22 +61,22 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
                 .padding(inner)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = 16.dp),
         ) {
             Text(
                 "New events start with these reminders based on their type. Existing events aren't changed.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(vertical = 16.dp),
             )
             ReminderDefaults.KINDS.forEach { (kind, label) ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 val value = ReminderDefaults.effective(defaults, kind)
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .clickable { editingKind = kind }
-                        .padding(vertical = 14.dp),
+                        .padding(vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

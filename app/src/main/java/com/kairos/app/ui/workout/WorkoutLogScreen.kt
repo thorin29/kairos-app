@@ -141,7 +141,7 @@ fun WorkoutLogScreen(
                             ),
                         ) {
                             Icon(
-                                KairosIcons.DateRange,
+                                KairosIcons.Calendar,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )

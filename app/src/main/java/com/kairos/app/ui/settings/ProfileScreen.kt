@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -200,6 +201,10 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
                             },
                             enabled = !busyPhoto,
                             modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
                         ) { Text("Change photo") }
                         if (person.avatarUrl != null && base != null) {
                             OutlinedButton(
@@ -210,6 +215,10 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
                                 },
                                 enabled = !busyPhoto,
                                 modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                ),
                             ) { Text("Adjust framing") }
                         }
                     }
