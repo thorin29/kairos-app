@@ -34,8 +34,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.HorizontalDivider
 import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.material3.Checkbox
@@ -156,7 +154,7 @@ fun CalendarScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    Icons.Filled.Refresh,
+                                    KairosIcons.Refresh,
                                     contentDescription = "Refresh",
                                 )
                             }

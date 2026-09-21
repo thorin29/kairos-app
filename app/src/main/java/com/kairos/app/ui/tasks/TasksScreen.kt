@@ -48,9 +48,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.ui.graphics.Color
 
@@ -122,7 +119,7 @@ private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewMode
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Icon(
-                    if (ui.showCompleted) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    if (ui.showCompleted) KairosIcons.ChevronDown else KairosIcons.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

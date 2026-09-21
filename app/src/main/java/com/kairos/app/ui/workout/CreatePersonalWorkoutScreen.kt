@@ -19,9 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -101,7 +98,7 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (step > 0) step-- else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(KairosIcons.ArrowBack, "Back")
                     }
                 },
                 actions = {
@@ -278,7 +275,7 @@ private fun ExercisesStep(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(row.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                     if (enabled) {
-                        IconButton(onClick = { vm.removeRow(i) }) { Icon(Icons.Filled.Close, "Remove") }
+                        IconButton(onClick = { vm.removeRow(i) }) { Icon(KairosIcons.Close, "Remove") }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -458,7 +455,7 @@ private fun ManageExercisesDialog(
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    IconButton(onClick = onClose) { Icon(KairosIcons.ArrowBack, "Back") }
                     Text("Custom exercises", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 }
                 if (exercises.isEmpty()) {

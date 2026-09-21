@@ -1,4 +1,5 @@
 package com.kairos.app.ui.character
+import com.kairos.app.ui.nav.KairosIcons
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,8 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -88,7 +87,7 @@ fun GalleryScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("Gallery") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) { Icon(KairosIcons.ArrowBack, "Back") }
                 },
             )
         },

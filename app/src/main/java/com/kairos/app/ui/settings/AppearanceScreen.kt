@@ -1,4 +1,5 @@
 package com.kairos.app.ui.settings
+import com.kairos.app.ui.nav.KairosIcons
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,9 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,7 +61,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                 title = { Text("Appearance") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
@@ -222,7 +220,7 @@ private fun SchemeRow(scheme: ThemeScheme, selected: Boolean, onPick: () -> Unit
         )
         if (selected) {
             Icon(
-                Icons.Filled.Check,
+                KairosIcons.Check,
                 contentDescription = "Selected",
                 tint = scheme.swatch,
             )

@@ -18,10 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import com.kairos.app.ui.nav.KairosIcons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -392,7 +389,7 @@ private fun SwatchGrid(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                Icons.Filled.Add,
+                                KairosIcons.Plus,
                                 contentDescription = "Custom color",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -414,7 +411,7 @@ private fun SwatchGrid(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (isSel) {
-                                Icon(Icons.Filled.Check, contentDescription = "Selected", tint = Color.White)
+                                Icon(KairosIcons.Check, contentDescription = "Selected", tint = Color.White)
                             }
                         }
                     }

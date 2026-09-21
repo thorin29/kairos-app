@@ -351,4 +351,14 @@ object KairosIcons {
         "M19 12H5",
         "M12 19L5 12L12 5",
     )
+    val Close = stroked(
+        "Close",
+        "M18 6L6 18",
+        "M6 6L18 18",
+    )
+    val Refresh = stroked(
+        "Refresh",
+        "M21 12a9 9 0 1 1-3-6.7L21 8",
+        "M21 3v5h-5",
+    )
 }

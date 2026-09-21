@@ -16,8 +16,8 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 317
-        versionName = "0.265.0"
+        versionCode = 318
+        versionName = "0.266.0"
 
         // Baked in at build time so the app can show when this build was made.
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
@@ -100,7 +100,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.datastore.preferences)

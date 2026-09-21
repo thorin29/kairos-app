@@ -1,4 +1,5 @@
 package com.kairos.app.ui.school
+import com.kairos.app.ui.nav.KairosIcons
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,8 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -71,7 +70,7 @@ fun AddSchoolWorkScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Add school work") },
-                navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = onClose) { Icon(KairosIcons.ArrowBack, "Back") } },
             )
         },
     ) { inner ->

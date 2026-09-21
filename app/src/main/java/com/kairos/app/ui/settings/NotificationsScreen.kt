@@ -1,4 +1,5 @@
 package com.kairos.app.ui.settings
+import com.kairos.app.ui.nav.KairosIcons
 
 import android.Manifest
 import android.os.Build
@@ -14,9 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,7 +61,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
                 title = { Text("Notifications") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
@@ -179,7 +177,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
                                     )
                                 }
                                 Icon(
-                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    KairosIcons.ChevronRight,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

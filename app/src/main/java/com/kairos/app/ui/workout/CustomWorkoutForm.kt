@@ -1,4 +1,5 @@
 package com.kairos.app.ui.workout
+import com.kairos.app.ui.nav.KairosIcons
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,9 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -95,7 +93,7 @@ private fun LogSomethingWizard(date: String, onLogged: () -> Unit, onDismiss: ()
                 ) {
                     IconButton(onClick = { if (ui.step == WizardStep.TYPE) onDismiss() else vm.back() }) {
                         Icon(
-                            if (ui.step == WizardStep.TYPE) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            if (ui.step == WizardStep.TYPE) KairosIcons.Close else KairosIcons.ArrowBack,
                             contentDescription = if (ui.step == WizardStep.TYPE) "Close" else "Back",
                         )
                     }

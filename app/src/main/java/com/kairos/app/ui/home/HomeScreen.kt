@@ -24,9 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
@@ -1019,7 +1016,7 @@ private fun WorkDetailScaffold(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = actions,
@@ -1268,7 +1265,7 @@ private fun TaskRow(task: TaskDto, busy: Boolean, vm: HomeViewModel, onLogWorkou
         Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
             when {
                 done -> Icon(
-                    Icons.Filled.Check,
+                    KairosIcons.Check,
                     contentDescription = "Done",
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -1388,7 +1385,7 @@ private fun PersonalReadingRow(reading: com.kairos.app.data.remote.dto.PersonalR
             when {
                 busy -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 done -> Icon(
-                    Icons.Filled.Check,
+                    KairosIcons.Check,
                     contentDescription = "Done",
                     tint = MaterialTheme.colorScheme.primary,
                 )

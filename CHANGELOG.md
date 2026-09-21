@@ -1,4 +1,6 @@
 # Changelog
+## 0.266.0
+- Completed moving all icons onto the app's own KairosIcons set. The last few Material icons (back arrow, close, check, add, refresh, the chevrons, calendar) are now drawn in the same stroked style as the rest of the app, and the material-icons-core dependency has been removed entirely. Every icon in the app now comes from one consistent, self-contained set — no more deprecated icon library, and no visual mismatch between the stroked glyphs and the old solid Material ones.
 ## 0.265.0
 - Added a stroked back-arrow to the KairosIcons set and switched it in on two screens — Settings > Profile and Settings > Diagnostics — as a preview of moving the remaining Material icons into the app's own icon system. Every other back arrow is still the Material one for now, so the two can be compared side by side.
 - Fixed a calendar-icon inconsistency: the Workout Log's date icon now uses the same KairosIcons calendar glyph as the rest of the app (it was the odd one out on the Material icon).

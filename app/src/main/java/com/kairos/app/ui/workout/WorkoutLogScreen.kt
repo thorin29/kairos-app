@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -112,7 +109,7 @@ fun WorkoutLogScreen(
                 title = { Text("Log workout") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
@@ -333,7 +330,7 @@ private fun WorkoutBlockCard(
                 )
                 if (block.logged) {
                     Icon(
-                        Icons.Default.Check,
+                        KairosIcons.Check,
                         contentDescription = "Logged",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
