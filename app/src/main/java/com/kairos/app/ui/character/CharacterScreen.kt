@@ -66,7 +66,7 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(ui.data?.seasonName?.ifBlank { null }?.let { "Season \u00b7 $it" } ?: "Season") },
+                title = { Text(ui.data?.seasonName?.ifBlank { null }?.let { "This month \u00b7 $it" } ?: "This month") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
             )
         },
@@ -206,6 +206,14 @@ private fun CompanionCard(c: CharCompanionDto) {
             )
         }
 
+        // Text-free odds cue: the egg meter glows in the rarity colour the
+        // current streak is unlocking — slate, then blue, purple, gold.
+        val luckColor = when {
+            c.luck >= 0.75 -> Color(0xFFEAB308)
+            c.luck >= 0.5 -> Color(0xFF7C3AED)
+            c.luck >= 0.25 -> Color(0xFF2563EB)
+            else -> Color(0xFF94A3B8)
+        }
         if (c.active && c.speciesName != null) {
             Row {
                 Text(c.speciesName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -215,9 +223,16 @@ private fun CompanionCard(c: CharCompanionDto) {
                 if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = glow)
             }
             XpCells(c.xpCells)
+            // Next-egg progress, always visible so a new egg is earned, not a surprise.
+            if (c.eggReady) {
+                Text("A new egg is ready!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFF047857))
+            } else {
+                Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
+                Text("Next egg ${c.incubationPct}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else {
             Text(if (c.eggReady) "Ready to hatch!" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Bar(c.incubationPct / 100f, glow, Modifier.width(180.dp))
+            Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
             Text("${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -233,7 +248,7 @@ private fun XpCells(cells: List<String>) {
             val filled = hex.isNotBlank()
             Box(
                 Modifier.size(10.dp).clip(RoundedCornerShape(2.dp))
-                    .background(if (filled) parseHex(hex) else MaterialTheme.colorScheme.outlineVariant),
+                    .background(if (filled) parseHex(hex) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
             )
         }
     }
@@ -266,7 +281,7 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
                 )
             }
 
-            // Season tier
+            // This month's tier
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
@@ -275,7 +290,7 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Season \u00b7 Tier ${data.season.tier} / ${data.season.maxTier}",
+                        "This month \u00b7 Tier ${data.season.tier} / ${data.season.maxTier}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.weight(1f),
@@ -316,7 +331,7 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
             // Streak + badges
             val chips = buildList {
                 if (data.currentStreak > 0) add("\uD83D\uDD25 ${data.currentStreak}-day streak")
-                if (data.season.complete) add("\uD83C\uDFC6 Season complete")
+                if (data.season.complete) add("\uD83C\uDFC6 Month complete")
                 if (data.perfectWeeks > 0) add("\u2B50 ${data.perfectWeeks} perfect ${if (data.perfectWeeks == 1) "week" else "weeks"}")
                 data.milestones.forEach { add("\uD83D\uDD25 $it-day streak") }
                 data.bestWeekPct?.let { add("\u2B50 Best week ${it.toInt()}%") }
@@ -363,7 +378,7 @@ private fun Chips(labels: List<String>) {
 private fun Bar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
     val f = fraction.coerceIn(0f, 1f)
     Box(
-        modifier.height(6.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+        modifier.height(6.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
     ) {
         Box(Modifier.fillMaxWidth(f).height(6.dp).clip(RoundedCornerShape(999.dp)).background(color))
     }
