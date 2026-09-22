@@ -1458,6 +1458,8 @@ data class CollectSpeciesDto(
 data class CoopDto(
     val seasonLabel: String = "",
     val floor: Int = 0,
+    val target: Int = 0,
+    val familyPct: Double = 0.0,
     val childrenMeeting: Int = 0,
     val childrenTotal: Int = 0,
     val gateMet: Boolean = false,
@@ -1468,7 +1470,7 @@ data class CoopDto(
 )
 
 @Serializable
-data class CoopChildDto(val name: String = "", val color: String? = null, val tier: Int = 0, val meets: Boolean = false)
+data class CoopChildDto(val name: String = "", val color: String? = null, val tier: Int = 0, val cleanDays: Int = 0, val meets: Boolean = false)
 
 @Serializable
 data class CoopProposalDto(

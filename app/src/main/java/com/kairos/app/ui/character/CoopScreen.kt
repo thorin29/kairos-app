@@ -97,16 +97,15 @@ private fun CoopContent(data: CoopDto, ui: CoopUiState, vm: CoopViewModel) {
         // Progress toward the gate
         OutlinedCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Season \u00b7 ${data.seasonLabel}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("This month \u00b7 ${data.seasonLabel}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    if (data.gateMet) "Everyone reached the goal! \uD83C\uDF89"
-                    else "${data.childrenMeeting}/${data.childrenTotal} kids at Tier ${data.floor}+",
+                    if (data.gateMet) "Everyone finished the month! \uD83C\uDF89"
+                    else "${data.childrenMeeting} of ${data.childrenTotal} finished their month",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                val frac = if (data.childrenTotal > 0) data.childrenMeeting.toFloat() / data.childrenTotal else 0f
-                Bar(frac, if (data.gateMet) Color(0xFF10B981) else KairosThemeState.accent, Modifier.fillMaxWidth())
-                data.children.forEach { c -> ChildRow(c, data.floor) }
+                Bar(data.familyPct.toFloat() / 100f, if (data.gateMet) Color(0xFF10B981) else KairosThemeState.accent, Modifier.fillMaxWidth())
+                data.children.forEach { c -> ChildRow(c, data.target) }
             }
         }
 
@@ -127,12 +126,12 @@ private fun CoopContent(data: CoopDto, ui: CoopUiState, vm: CoopViewModel) {
 }
 
 @Composable
-private fun ChildRow(c: CoopChildDto, floor: Int) {
+private fun ChildRow(c: CoopChildDto, target: Int) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseChildColor(c.color)))
         Text(c.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(
-            if (c.meets) "Tier ${c.tier} \u2713" else "Tier ${c.tier} / $floor",
+            if (c.meets) "\u2713" else "${c.cleanDays} / $target",
             style = MaterialTheme.typography.labelMedium,
             color = if (c.meets) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -230,7 +229,7 @@ private fun StatusPill(label: String, color: Color) {
 @Composable
 private fun Bar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
     val f = fraction.coerceIn(0f, 1f)
-    Box(modifier.height(6.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+    Box(modifier.height(6.dp).clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))) {
         Box(Modifier.fillMaxWidth(f).height(6.dp).clip(RoundedCornerShape(999.dp)).background(color))
     }
 }
