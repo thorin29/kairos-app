@@ -77,6 +77,9 @@ sealed interface Route {
     data object Coop : Route
 
     @Serializable
+    data object ReadingGoals : Route
+
+    @Serializable
     data object AddSchool : Route
 
     @Serializable

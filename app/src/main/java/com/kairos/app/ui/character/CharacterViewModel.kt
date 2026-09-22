@@ -16,6 +16,7 @@ data class CharacterUiState(
     val data: CharacterDto? = null,
     val busy: Boolean = false,
     val message: String? = null,
+    val readingGoalCount: Int = 0,
 )
 
 class CharacterViewModel(private val session: SessionRepository) : ViewModel() {
@@ -32,6 +33,13 @@ class CharacterViewModel(private val session: SessionRepository) : ViewModel() {
                 _ui.update { it.copy(loading = false, data = data) }
             } catch (e: Exception) {
                 _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load your character.") }
+            }
+            // Reading goals are a soft extra — never fail the character screen over them.
+            try {
+                val goals = session.loadReadingGoals()
+                _ui.update { it.copy(readingGoalCount = goals.items.size) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(readingGoalCount = 0) }
             }
         }
     }

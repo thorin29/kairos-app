@@ -65,6 +65,7 @@ import com.kairos.app.ui.groceries.GroceriesScreen
 import com.kairos.app.ui.character.CharacterScreen
 import com.kairos.app.ui.character.GalleryScreen
 import com.kairos.app.ui.character.CoopScreen
+import com.kairos.app.ui.reading.ReadingGoalsScreen
 import com.kairos.app.ui.school.SchoolScreen
 import com.kairos.app.ui.school.AddSchoolWorkScreen
 import com.kairos.app.ui.common.AnimatedDialog
@@ -392,6 +393,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenDrawer = { open = true },
                             onOpenGallery = { navController.navigate(Route.Gallery) },
                             onOpenCoop = { navController.navigate(Route.Coop) },
+                            onOpenReadingGoals = { navController.navigate(Route.ReadingGoals) },
                         )
                     } else if (key == "groceries") {
                         GroceriesScreen(
@@ -496,6 +498,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.Coop> {
                     CoopScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.ReadingGoals> {
+                    ReadingGoalsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.AddSchool> {
                     AddSchoolWorkScreen(

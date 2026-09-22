@@ -1239,6 +1239,24 @@ data class BookDto(
 )
 
 @Serializable
+data class ReadingGoalItemDto(
+    val bookId: String = "",
+    val bookTitle: String = "",
+    val unit: String = "PAGES",
+    val length: Int = 0,
+    val position: Int = 0,
+    val goalId: String = "",
+    val target: Int = 0,
+    val dueDate: String = "",
+    val upcoming: Boolean = false,
+)
+
+@Serializable
+data class ReadingGoalsResponse(
+    val items: List<ReadingGoalItemDto> = emptyList(),
+)
+
+@Serializable
 data class ReadingGoalDto(
     val id: String = "",
     val target: Int = 0,

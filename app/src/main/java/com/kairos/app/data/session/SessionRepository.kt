@@ -625,6 +625,9 @@ class SessionRepository(
     suspend fun loadBooks(): com.kairos.app.data.remote.dto.BooksDto =
         runAuthed { requireService().books() }
 
+    suspend fun loadReadingGoals(): com.kairos.app.data.remote.dto.ReadingGoalsResponse =
+        runAuthed { requireService().readingGoals() }
+
     suspend fun loadGameTime(): com.kairos.app.data.remote.dto.GameTimeResponseDto =
         runAuthed { requireService().gameTime() }
 
@@ -955,6 +958,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 325
+        const val CLIENT_BUILD = 326
     }
 }

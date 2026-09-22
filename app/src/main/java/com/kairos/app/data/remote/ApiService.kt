@@ -379,6 +379,9 @@ interface ApiService {
     @GET("books")
     suspend fun books(): Response<com.kairos.app.data.remote.dto.BooksDto>
 
+    @GET("books/goals")
+    suspend fun readingGoals(): Response<com.kairos.app.data.remote.dto.ReadingGoalsResponse>
+
     @POST("books/add")
     suspend fun addBook(@Body body: com.kairos.app.data.remote.dto.AddBookRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
