@@ -6,6 +6,7 @@ import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.PendingWrite
 import com.kairos.app.data.remote.dto.AddBookRequest
+import com.kairos.app.data.remote.dto.ReadingGoalDto
 import com.kairos.app.data.remote.dto.BookDto
 import com.kairos.app.data.remote.dto.BookFinishRequest
 import com.kairos.app.data.remote.dto.BookIdRequest
@@ -121,6 +122,7 @@ class ReadingViewModel(
             length = length,
             pages = req.pages,
             chapters = req.chapters,
+            goals = req.goals.map { ReadingGoalDto(target = it.target, dueDate = it.dueDate) },
         )
         return data.copy(books = data.books + book)
     }
@@ -136,6 +138,14 @@ class ReadingViewModel(
                     chapters = req.chapters ?: b.chapters,
                     length = req.pages ?: req.chapters ?: b.length,
                     position = req.position ?: b.position,
+                    goals = req.goals?.map { g ->
+                        ReadingGoalDto(
+                            id = g.id ?: "",
+                            target = g.target,
+                            dueDate = g.dueDate,
+                            completed = (req.position ?: b.position) >= g.target,
+                        )
+                    } ?: b.goals,
                 )
             },
         )

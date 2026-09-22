@@ -1,5 +1,6 @@
 package com.kairos.app.ui.reading
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,14 +21,20 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,12 +59,18 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.AddBookRequest
 import com.kairos.app.data.remote.dto.BookDto
 import com.kairos.app.data.remote.dto.BooksDto
+import com.kairos.app.data.remote.dto.GoalInputDto
 import com.kairos.app.data.remote.dto.UpdateBookRequest
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,28 +174,28 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
     }
 
     if (showAdd) {
-        BookFormDialog(
+        BookFormScreen(
             title = "Add a book",
             confirmLabel = "Add book",
             initial = null,
             saving = ui.saving,
             serverError = ui.saveError,
-            onSubmit = { t, a, p, c, _ ->
-                vm.add(AddBookRequest(title = t, author = a, pages = p, chapters = c)) { showAdd = false }
+            onSubmit = { t, a, p, c, _, goals ->
+                vm.add(AddBookRequest(title = t, author = a, pages = p, chapters = c, goals = goals)) { showAdd = false }
             },
             onDismiss = { showAdd = false },
         )
     }
 
     editTarget?.let { b ->
-        BookFormDialog(
+        BookFormScreen(
             title = "Edit book",
             confirmLabel = "Save",
             initial = b,
             saving = ui.saving,
             serverError = ui.saveError,
-            onSubmit = { t, a, p, c, pos ->
-                vm.update(UpdateBookRequest(id = b.id, title = t, author = a, pages = p, chapters = c, position = pos)) { editTarget = null }
+            onSubmit = { t, a, p, c, pos, goals ->
+                vm.update(UpdateBookRequest(id = b.id, title = t, author = a, pages = p, chapters = c, position = pos, goals = goals)) { editTarget = null }
             },
             onDismiss = { editTarget = null },
         )
@@ -353,14 +366,32 @@ private fun ShelfGroup(
     }
 }
 
+private data class GoalDraft(
+    val id: String,
+    val target: Int,
+    val dueDate: String,
+    val completed: Boolean,
+)
+
+private fun isoFromMillis(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+
+private fun prettyDate(iso: String): String =
+    try {
+        LocalDate.parse(iso.take(10)).format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US))
+    } catch (e: Exception) {
+        iso
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BookFormDialog(
+private fun BookFormScreen(
     title: String,
     confirmLabel: String,
     initial: BookDto?,
     saving: Boolean,
     serverError: String?,
-    onSubmit: (title: String, author: String?, pages: Int?, chapters: Int?, position: Int?) -> Unit,
+    onSubmit: (title: String, author: String?, pages: Int?, chapters: Int?, position: Int?, goals: List<GoalInputDto>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var bookTitle by remember { mutableStateOf(initial?.title ?: "") }
@@ -368,57 +399,188 @@ private fun BookFormDialog(
     var pages by remember { mutableStateOf(initial?.pages?.toString() ?: "") }
     var chapters by remember { mutableStateOf(initial?.chapters?.toString() ?: "") }
     var position by remember { mutableStateOf(if ((initial?.position ?: 0) > 0) initial!!.position.toString() else "") }
+    var goals by remember {
+        mutableStateOf(initial?.goals?.map { GoalDraft(it.id, it.target, it.dueDate, it.completed) } ?: emptyList())
+    }
     var localError by remember { mutableStateOf<String?>(null) }
+    var addingGoal by remember { mutableStateOf(false) }
+
+    val goalUnit = if (initial?.unit == "CHAPTERS") "Chapter" else "Page"
+
+    BackHandler(enabled = true) { onDismiss() }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
+            topBar = {
+                TopAppBar(
+                    title = { Text(title) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(KairosIcons.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        TextButton(
+                            enabled = !saving,
+                            onClick = {
+                                val p = pages.toIntOrNull() ?: 0
+                                val c = chapters.toIntOrNull() ?: 0
+                                when {
+                                    bookTitle.trim().isEmpty() -> localError = "Give the book a title."
+                                    p <= 0 && c <= 0 -> localError = "Enter a page or chapter count."
+                                    else -> {
+                                        localError = null
+                                        onSubmit(
+                                            bookTitle.trim(),
+                                            author.trim().ifBlank { null },
+                                            p.takeIf { it > 0 },
+                                            c.takeIf { it > 0 },
+                                            if (initial != null) (position.toIntOrNull() ?: 0) else null,
+                                            goals.map {
+                                                GoalInputDto(
+                                                    id = it.id.ifBlank { null },
+                                                    target = it.target,
+                                                    dueDate = it.dueDate,
+                                                )
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                        ) { Text(if (saving) "Saving\u2026" else confirmLabel) }
+                    },
+                )
+            },
+        ) { pad ->
+            Column(
+                Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                LabeledField("Title", bookTitle, { bookTitle = it }, "Book title")
+                LabeledField("Author (optional)", author, { author = it }, "Author")
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.weight(1f)) { LabeledField("Pages", pages, { s -> pages = s.filter { it.isDigit() }.take(6) }, "0", KeyboardType.Number) }
+                    Box(Modifier.weight(1f)) { LabeledField("Chapters", chapters, { s -> chapters = s.filter { it.isDigit() }.take(6) }, "0", KeyboardType.Number) }
+                }
+                Text("Enter pages and/or chapters \u2014 at least one.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (initial != null) {
+                    LabeledField(
+                        if (initial.unit == "PAGES") "Page you're on" else "Chapter you're on",
+                        position,
+                        { s -> position = s.filter { it.isDigit() }.take(6) },
+                        "0",
+                        KeyboardType.Number,
+                    )
+                }
+
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+
+                Text("Reading goals (optional)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Milestones to aim for \u2014 reach a page by a date. They don't have to cover the whole book, and they arrive one at a time.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                goals.sortedBy { it.dueDate }.forEach { g ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                            .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "$goalUnit ${g.target} \u00b7 ${prettyDate(g.dueDate)}" + if (g.completed) "  \u2713" else "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (g.completed) Color(0xFF047857) else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { goals = goals.filterNot { it === g } }) {
+                            Icon(KairosIcons.Close, contentDescription = "Remove goal", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+                Row(
+                    Modifier.clickable { addingGoal = true }.padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(KairosIcons.Plus, contentDescription = null, tint = KairosThemeState.accent, modifier = Modifier.size(18.dp))
+                    Text("Add reading goal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = KairosThemeState.accent)
+                }
+
+                (localError ?: serverError)?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+    }
+
+    if (addingGoal) {
+        AddGoalOverlay(
+            unitLabel = goalUnit,
+            onAdd = { target, dueDate ->
+                goals = goals + GoalDraft("", target, dueDate, false)
+                addingGoal = false
+            },
+            onDismiss = { addingGoal = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddGoalOverlay(
+    unitLabel: String,
+    onAdd: (target: Int, dueDate: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var target by remember { mutableStateOf("") }
+    var dueMillis by remember { mutableStateOf<Long?>(null) }
+    var showDate by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
 
     AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = title,
+        title = "Add reading goal",
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         confirmButton = {
-            TextButton(
-                enabled = !saving,
-                onClick = {
-                    val p = pages.toIntOrNull() ?: 0
-                    val c = chapters.toIntOrNull() ?: 0
-                    when {
-                        bookTitle.trim().isEmpty() -> localError = "Give the book a title."
-                        p <= 0 && c <= 0 -> localError = "Enter a page or chapter count."
-                        else -> {
-                            localError = null
-                            onSubmit(
-                                bookTitle.trim(),
-                                author.trim().ifBlank { null },
-                                p.takeIf { it > 0 },
-                                c.takeIf { it > 0 },
-                                if (initial != null) (position.toIntOrNull() ?: 0) else null,
-                            )
-                        }
-                    }
-                },
-            ) { Text(if (saving) "Saving\u2026" else confirmLabel) }
+            TextButton(onClick = {
+                val t = target.toIntOrNull() ?: 0
+                val iso = dueMillis?.let { isoFromMillis(it) }
+                when {
+                    t <= 0 -> err = "Enter the ${unitLabel.lowercase()} to reach."
+                    iso == null -> err = "Pick a date."
+                    else -> onAdd(t, iso)
+                }
+            }) { Text("Add") }
         },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            LabeledField("Title", bookTitle, { bookTitle = it }, "Book title")
-            LabeledField("Author (optional)", author, { author = it }, "Author")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.weight(1f)) { LabeledField("Pages", pages, { s -> pages = s.filter { it.isDigit() }.take(6) }, "0", KeyboardType.Number) }
-                Box(Modifier.weight(1f)) { LabeledField("Chapters", chapters, { s -> chapters = s.filter { it.isDigit() }.take(6) }, "0", KeyboardType.Number) }
+            LabeledField("Reach $unitLabel", target, { s -> target = s.filter { it.isDigit() }.take(6) }, "e.g. 100", KeyboardType.Number)
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                    .clickable { showDate = true }.padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(KairosIcons.Calendar, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(dueMillis?.let { prettyDate(isoFromMillis(it)) } ?: "Pick a date", style = MaterialTheme.typography.bodyMedium)
             }
-            if (initial != null) {
-                LabeledField(
-                    if (initial.unit == "PAGES") "Page you're on" else "Chapter you're on",
-                    position,
-                    { s -> position = s.filter { it.isDigit() }.take(6) },
-                    "0",
-                    KeyboardType.Number,
-                )
-            }
-            Text("Enter pages and/or chapters \u2014 at least one.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            (localError ?: serverError)?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
+            err?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
         }
+    }
+
+    if (showDate) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = dueMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDate = false },
+            confirmButton = {
+                TextButton(onClick = { dueMillis = state.selectedDateMillis; showDate = false }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
+        ) { DatePicker(state = state) }
     }
 }
 

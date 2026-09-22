@@ -1235,6 +1235,23 @@ data class BookDto(
     val read: Int = 0,
     val finished: Boolean = false,
     val shelved: Boolean = false,
+    val goals: List<ReadingGoalDto> = emptyList(),
+)
+
+@Serializable
+data class ReadingGoalDto(
+    val id: String = "",
+    val target: Int = 0,
+    val dueDate: String = "", // ISO date to reach it by
+    val completed: Boolean = false,
+)
+
+/** A goal as sent on add/edit: no id creates it, an existing id updates it. */
+@Serializable
+data class GoalInputDto(
+    val id: String? = null,
+    val target: Int = 0,
+    val dueDate: String = "",
 )
 
 @Serializable
@@ -1243,6 +1260,7 @@ data class AddBookRequest(
     val author: String? = null,
     val pages: Int? = null,
     val chapters: Int? = null,
+    val goals: List<GoalInputDto> = emptyList(),
 )
 
 @Serializable
@@ -1259,6 +1277,7 @@ data class UpdateBookRequest(
     val pages: Int? = null,
     val chapters: Int? = null,
     val position: Int? = null,
+    val goals: List<GoalInputDto>? = null,
 )
 
 @Serializable
