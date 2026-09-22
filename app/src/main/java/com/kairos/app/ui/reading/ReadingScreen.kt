@@ -400,7 +400,9 @@ private fun BookFormScreen(
     var chapters by remember { mutableStateOf(initial?.chapters?.toString() ?: "") }
     var position by remember { mutableStateOf(if ((initial?.position ?: 0) > 0) initial!!.position.toString() else "") }
     var goals by remember {
-        mutableStateOf(initial?.goals?.map { GoalDraft(it.id, it.target, it.dueDate, it.completed) } ?: emptyList())
+        mutableStateOf<List<GoalDraft>>(
+            initial?.goals?.map { GoalDraft(it.id, it.target, it.dueDate, it.completed) } ?: emptyList(),
+        )
     }
     var localError by remember { mutableStateOf<String?>(null) }
     var addingGoal by remember { mutableStateOf(false) }
