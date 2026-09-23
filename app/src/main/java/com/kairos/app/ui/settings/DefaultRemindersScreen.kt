@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,13 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
     val defaults by container.settingsStore.reminderDefaults.collectAsState(initial = emptyMap())
     val scope = rememberCoroutineScope()
     var editingKind by remember { mutableStateOf<String?>(null) }
+    var readingLead by remember { mutableStateOf(0) }
+    var editingReading by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        try {
+            readingLead = container.sessionRepository.loadReadingReminder().leadDays
+        } catch (_: Exception) {}
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -92,6 +100,26 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
                     )
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { editingReading = true }
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Reading goals", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(
+                    readingLeadLabel(readingLead),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(
+                    KairosIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 
@@ -129,4 +157,57 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
             },
         )
     }
+
+
+    if (editingReading) {
+        val presets = listOf(0, 1, 3, 7, 14, 30, 60)
+        AlertDialog(
+            onDismissRequest = { editingReading = false },
+            title = { Text("Reading goals") },
+            text = {
+                Column {
+                    Text(
+                        "How far ahead the next reading goal appears on the reading button. Off shows only the current goal.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    presets.forEach { d ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        try {
+                                            readingLead = container.sessionRepository.setReadingReminder(d).leadDays
+                                        } catch (_: Exception) {}
+                                    }
+                                    editingReading = false
+                                }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = readingLead == d, onClick = null)
+                            Text(
+                                readingLeadLabel(d),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { editingReading = false }) { Text("Close") }
+            },
+        )
+    }
+}
+
+private fun readingLeadLabel(days: Int): String = when {
+    days <= 0 -> "Off"
+    days % 30 == 0 -> "${days / 30} month${if (days / 30 > 1) "s" else ""} before"
+    days % 7 == 0 -> "${days / 7} week${if (days / 7 > 1) "s" else ""} before"
+    days == 1 -> "1 day before"
+    else -> "$days days before"
 }

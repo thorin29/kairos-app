@@ -1,4 +1,6 @@
 # Changelog
+## 0.278.0
+- Log workout screen: on overdue cards the Skip/Log buttons now sit at the bottom, aligned with the entry field; the workout name (e.g. "Chest") is the larger bold heading with the exercise (e.g. "bench press") as a smaller subtitle, matching today's cards; and on single-exercise cards the exercise name above the "today's max" field is gone (it's already in the header). Settings > Default reminders now has a Reading goals row to set how far ahead the next reading goal appears (off, days, weeks, or a month). Needs web 0.478.
 ## 0.277.0
 - Home now has a single Workouts card (like Chores and School) instead of a row per workout: it lists today's workout name(s) two per line with a "\u00b7" between them, shows "N overdue" in red on its own line, and reads "Complete for today!" in green when everything's done. The overdue count uses the scheduled-workout rule (a lift you skipped still counts even if you logged a sport that day), and tapping the card opens the full log page. Needs web 0.477.
 ## 0.276.0

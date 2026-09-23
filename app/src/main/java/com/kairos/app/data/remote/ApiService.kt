@@ -382,6 +382,12 @@ interface ApiService {
     @GET("books/goals")
     suspend fun readingGoals(): Response<com.kairos.app.data.remote.dto.ReadingGoalsResponse>
 
+    @GET("settings/reading-reminder")
+    suspend fun readingReminder(): Response<com.kairos.app.data.remote.dto.ReadingReminderDto>
+
+    @POST("settings/reading-reminder")
+    suspend fun setReadingReminder(@Body body: com.kairos.app.data.remote.dto.SetReadingReminderRequest): Response<com.kairos.app.data.remote.dto.ReadingReminderDto>
+
     @POST("books/add")
     suspend fun addBook(@Body body: com.kairos.app.data.remote.dto.AddBookRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 

@@ -628,6 +628,12 @@ class SessionRepository(
     suspend fun loadReadingGoals(): com.kairos.app.data.remote.dto.ReadingGoalsResponse =
         runAuthed { requireService().readingGoals() }
 
+    suspend fun loadReadingReminder(): com.kairos.app.data.remote.dto.ReadingReminderDto =
+        runAuthed { requireService().readingReminder() }
+
+    suspend fun setReadingReminder(leadDays: Int): com.kairos.app.data.remote.dto.ReadingReminderDto =
+        runAuthed { requireService().setReadingReminder(com.kairos.app.data.remote.dto.SetReadingReminderRequest(leadDays)) }
+
     suspend fun loadGameTime(): com.kairos.app.data.remote.dto.GameTimeResponseDto =
         runAuthed { requireService().gameTime() }
 
@@ -958,6 +964,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 329
+        const val CLIENT_BUILD = 330
     }
 }

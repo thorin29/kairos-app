@@ -1240,6 +1240,12 @@ data class BookDto(
 )
 
 @Serializable
+data class ReadingReminderDto(val leadDays: Int = 0)
+
+@Serializable
+data class SetReadingReminderRequest(val leadDays: Int)
+
+@Serializable
 data class ReadingGoalItemDto(
     val bookId: String = "",
     val bookTitle: String = "",

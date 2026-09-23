@@ -352,7 +352,7 @@ private fun WorkoutBlockCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             HorizontalDivider()
-            block.inputs.forEach { m -> MovementRow(block.key, m, vm) }
+            block.inputs.forEach { m -> MovementRow(block.key, m, vm, showName = block.inputs.size > 1) }
 
             val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
             // After a log, flash "logged" briefly, then settle on "edit weight".
@@ -406,11 +406,11 @@ private fun WorkoutBlockCard(
 
 @Composable
 private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
-    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 block.name,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
@@ -418,14 +418,21 @@ private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
                 Icon(KairosIcons.Check, contentDescription = "Logged", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             }
         }
+        Text(
+            block.inputs.joinToString(" \u00b7 ") { it.name },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
         Row(
             Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                block.inputs.forEach { m -> MovementRow(block.key, m, vm, compact = true) }
+                block.inputs.forEach { m ->
+                    MovementRow(block.key, m, vm, compact = true, showName = block.inputs.size > 1)
+                }
             }
             WorkoutActionTile(
                 icon = KairosIcons.Moon,
@@ -480,18 +487,20 @@ private fun utcMillisToIso(millis: Long): String =
         .format(DateTimeFormatter.ISO_DATE)
 
 @Composable
-private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false) {
+private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false, showName: Boolean = true) {
     val maxHint = m.metric == "WEIGHT"
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    m.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
-                )
+        if (showName) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        m.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
+                    )
+                }
             }
         }
         if (!m.skipped) {
