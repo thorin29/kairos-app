@@ -1,4 +1,6 @@
 # Changelog
+## 0.285.0
+- Add/Edit book is now a normal full-screen page like the task and workout forms, instead of a pop-up dialog. This removes the black bar at the bottom for good — the form had been a separate dialog window that didn't inherit the app's edge-to-edge setup, which no other form uses. All the window workarounds are gone with it.
 ## 0.284.0
 - Edit-book screen: removed the dark line along the bottom — the nav-bar contrast scrim is turned off, so the form is white to the very edge.
 - Add-reading-goal: after picking a date, focus moves onto the visible "pick a date" row (and the date picker no longer auto-focuses its own text field), so the cursor doesn't land back in the page field and the keyboard stays closed — same as when the dialog first opens.

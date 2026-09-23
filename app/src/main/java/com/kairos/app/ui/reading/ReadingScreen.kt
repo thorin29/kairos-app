@@ -15,11 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -41,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -77,8 +72,6 @@ import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -96,38 +89,76 @@ fun ReadingScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val ui by vm.ui.collectAsState()
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Reading") },
-                navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+    var showAdd by remember { mutableStateOf(false) }
+    var editTarget by remember { mutableStateOf<BookDto?>(null) }
+
+    when {
+        showAdd -> BookFormScreen(
+            title = "Add a book",
+            confirmLabel = "Add book",
+            initial = null,
+            saving = ui.saving,
+            serverError = ui.saveError,
+            onSubmit = { t, a, p, c, _, goals ->
+                vm.add(AddBookRequest(title = t, author = a, pages = p, chapters = c, goals = goals)) { showAdd = false }
+            },
+            onDismiss = { showAdd = false },
+        )
+        editTarget != null -> {
+            val b = editTarget!!
+            BookFormScreen(
+                title = "Edit book",
+                confirmLabel = "Save",
+                initial = b,
+                saving = ui.saving,
+                serverError = ui.saveError,
+                onSubmit = { t, a, p, c, pos, goals ->
+                    vm.update(UpdateBookRequest(id = b.id, title = t, author = a, pages = p, chapters = c, position = pos, goals = goals)) { editTarget = null }
+                },
+                onDismiss = { editTarget = null },
             )
-        },
-    ) { inner ->
-        Box(Modifier.padding(inner).fillMaxSize()) {
-            val data = ui.data
-            when {
-                ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(ui.loadError ?: "Couldn't load reading.")
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = { vm.load() }) { Text("Retry") }
+        }
+        else -> Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Reading") },
+                    navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+                )
+            },
+        ) { inner ->
+            Box(Modifier.padding(inner).fillMaxSize()) {
+                val data = ui.data
+                when {
+                    ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
+                    data == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(ui.loadError ?: "Couldn't load reading.")
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = { vm.load() }) { Text("Retry") }
+                        }
+                    }
+                    else -> ReadingContent(
+                        vm, ui, data,
+                        onAdd = { vm.clearSaveError(); showAdd = true },
+                        onEdit = { vm.clearSaveError(); editTarget = it },
+                    )
                 }
-                else -> ReadingContent(vm, ui, data)
             }
         }
     }
 }
 
 @Composable
-private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: BooksDto) {
-    var showAdd by remember { mutableStateOf(false) }
+private fun ReadingContent(
+    vm: ReadingViewModel,
+    ui: ReadingUiState,
+    data: BooksDto,
+    onAdd: () -> Unit,
+    onEdit: (BookDto) -> Unit,
+) {
     var showShelf by remember { mutableStateOf(false) }
-    var editTarget by remember { mutableStateOf<BookDto?>(null) }
     var deleteTarget by remember { mutableStateOf<BookDto?>(null) }
 
     val queue = data.books.filter { !it.shelved && !it.finished }
@@ -149,14 +180,14 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
                 onLog = { page -> vm.log(b.id, page) },
                 onShelve = { vm.shelf(b.id, true) },
                 onFinish = { vm.finish(b.id, true) },
-                onEdit = { vm.clearSaveError(); editTarget = b },
+                onEdit = { onEdit(b) },
                 onDelete = { deleteTarget = b },
             )
         }
 
         Row(
             Modifier.clip(RoundedCornerShape(8.dp)).background(KairosThemeState.accent)
-                .clickable { vm.clearSaveError(); showAdd = true }
+                .clickable { onAdd() }
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -184,34 +215,6 @@ private fun ReadingContent(vm: ReadingViewModel, ui: ReadingUiState, data: Books
                 ShelfGroup("Read", read, "read", ui.busy, vm) { deleteTarget = it }
             }
         }
-    }
-
-    if (showAdd) {
-        BookFormScreen(
-            title = "Add a book",
-            confirmLabel = "Add book",
-            initial = null,
-            saving = ui.saving,
-            serverError = ui.saveError,
-            onSubmit = { t, a, p, c, _, goals ->
-                vm.add(AddBookRequest(title = t, author = a, pages = p, chapters = c, goals = goals)) { showAdd = false }
-            },
-            onDismiss = { showAdd = false },
-        )
-    }
-
-    editTarget?.let { b ->
-        BookFormScreen(
-            title = "Edit book",
-            confirmLabel = "Save",
-            initial = b,
-            saving = ui.saving,
-            serverError = ui.saveError,
-            onSubmit = { t, a, p, c, pos, goals ->
-                vm.update(UpdateBookRequest(id = b.id, title = t, author = a, pages = p, chapters = c, position = pos, goals = goals)) { editTarget = null }
-            },
-            onDismiss = { editTarget = null },
-        )
     }
 
     deleteTarget?.let { b ->
@@ -435,29 +438,8 @@ private fun BookFormScreen(
 
     val goalUnit = if (initial?.unit == "CHAPTERS") "Chapter" else "Page"
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        val dialogView = LocalView.current
-        SideEffect {
-            (dialogView.parent as? DialogWindowProvider)?.window?.let { w ->
-                w.setLayout(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-                w.setDimAmount(0f)
-                WindowCompat.setDecorFitsSystemWindows(w, false)
-                w.statusBarColor = android.graphics.Color.TRANSPARENT
-                w.navigationBarColor = android.graphics.Color.TRANSPARENT
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                    w.isNavigationBarContrastEnforced = false
-                }
-            }
-        }
-        BackHandler(enabled = true) { onDismiss() }
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-        Scaffold(
+    BackHandler(enabled = true) { onDismiss() }
+    Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
@@ -558,8 +540,6 @@ private fun BookFormScreen(
                 }
             }
         }
-    }
-    }
 
     if (addingGoal) {
         AddGoalOverlay(
