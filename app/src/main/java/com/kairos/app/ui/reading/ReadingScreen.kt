@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,6 +67,8 @@ import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -295,10 +298,23 @@ private fun BookCard(
             }
 
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 TextLink("Edit") { onEdit() }
                 TextLink("Shelve") { if (!busy) onShelve() }
                 TextLink(if (done) "Mark finished \u2713" else "Mark finished", color = KairosThemeState.accent) { if (!busy) onFinish() }
+                if (book.goals.isNotEmpty()) {
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        KairosIcons.Bookmark,
+                        contentDescription = "Has reading goals",
+                        tint = KairosThemeState.accent,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }
@@ -409,9 +425,12 @@ private fun BookFormScreen(
 
     val goalUnit = if (initial?.unit == "CHAPTERS") "Chapter" else "Page"
 
-    BackHandler(enabled = true) { onDismiss() }
-
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        BackHandler(enabled = true) { onDismiss() }
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
@@ -423,8 +442,10 @@ private fun BookFormScreen(
                         }
                     },
                     actions = {
-                        TextButton(
+                        Button(
                             enabled = !saving,
+                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(end = 8.dp),
                             onClick = {
                                 val p = pages.toIntOrNull() ?: 0
                                 val c = chapters.toIntOrNull() ?: 0
@@ -479,11 +500,6 @@ private fun BookFormScreen(
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
 
                 Text("Reading goals (optional)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Milestones to aim for \u2014 reach a page by a date. They don't have to cover the whole book, and they arrive one at a time.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 goals.sortedBy { it.dueDate }.forEach { g ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
@@ -517,6 +533,7 @@ private fun BookFormScreen(
             }
         }
     }
+    }
 
     if (addingGoal) {
         AddGoalOverlay(
@@ -541,6 +558,7 @@ private fun AddGoalOverlay(
     var dueMillis by remember { mutableStateOf<Long?>(null) }
     var showDate by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     AnimatedDialog(
         onDismissRequest = onDismiss,
@@ -563,7 +581,7 @@ private fun AddGoalOverlay(
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                    .clickable { showDate = true }.padding(horizontal = 12.dp, vertical = 12.dp),
+                    .clickable { focusManager.clearFocus(); showDate = true }.padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {

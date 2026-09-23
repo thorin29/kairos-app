@@ -1,4 +1,6 @@
 # Changelog
+## 0.279.0
+- Reading: the add/edit book screen is now a proper full-screen page (it had been rendering under the Reading header), the Save button is a filled theme-colour pill, and after picking a reading-goal date the keyboard no longer pops back open. Removed the explanatory blurb under "Reading goals (optional)." On the reading list, a bookmark icon in the theme colour now marks any book that has reading goals set.
 ## 0.278.0
 - Log workout screen: on overdue cards the Skip/Log buttons now sit at the bottom, aligned with the entry field; the workout name (e.g. "Chest") is the larger bold heading with the exercise (e.g. "bench press") as a smaller subtitle, matching today's cards; and on single-exercise cards the exercise name above the "today's max" field is gone (it's already in the header). Settings > Default reminders now has a Reading goals row to set how far ahead the next reading goal appears (off, days, weeks, or a month). Needs web 0.478.
 ## 0.277.0
