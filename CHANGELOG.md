@@ -1,4 +1,6 @@
 # Changelog
+## 0.280.0
+- Reading goals now show on the home page: a "Book reading" section under Bible reading lists each book with active goals and a progress bar toward the current goal's page (red when you're behind — past a goal's date without reaching it). Tapping it opens your books to log progress. This replaces the reading button that had been on the character screen. Needs web 0.479-0.481.
 ## 0.279.0
 - Reading: the add/edit book screen is now a proper full-screen page (it had been rendering under the Reading header), the Save button is a filled theme-colour pill, and after picking a reading-goal date the keyboard no longer pops back open. Removed the explanatory blurb under "Reading goals (optional)." On the reading list, a bookmark icon in the theme colour now marks any book that has reading goals set.
 ## 0.278.0

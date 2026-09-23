@@ -125,6 +125,7 @@ data class DashboardDto(
     val categories: List<CategoryBarDto> = emptyList(),
     val overdue: List<TaskDto> = emptyList(),
     val workoutOverdue: Int = 0,
+    val reading: List<ReadingProgressDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
     val upForGrabs: List<UpForGrabsDto> = emptyList(),
@@ -134,6 +135,17 @@ data class DashboardDto(
     val schedule: List<ScheduleItemDto> = emptyList(),
     val sportPrompts: List<SportPromptDto> = emptyList(),
     val choreBadges: List<ChoreBadgeDto> = emptyList(),
+)
+
+@Serializable
+data class ReadingProgressDto(
+    val bookId: String = "",
+    val title: String = "",
+    val unit: String = "PAGES",
+    val pct: Int = 0,
+    val behind: Boolean = false,
+    val target: Int = 0,
+    val dueDate: String = "",
 )
 
 @Serializable

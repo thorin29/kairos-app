@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -68,6 +69,7 @@ import com.kairos.app.data.remote.dto.CategoryBarDto
 import com.kairos.app.data.remote.dto.ChoreBadgeDto
 import com.kairos.app.data.remote.dto.GetAheadChoreDto
 import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.data.remote.dto.ReadingProgressDto
 import com.kairos.app.data.remote.dto.SchoolCardProgressDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.remote.dto.UpForGrabsDto
@@ -91,6 +93,7 @@ fun HomeScreen(
     onOpenMoney: () -> Unit = {},
     onAssignTask: () -> Unit = {},
     onOpenChores: () -> Unit = {},
+    onOpenReading: () -> Unit = {},
     onOpenSchoolWork: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
@@ -143,7 +146,7 @@ fun HomeScreen(
                     }
                 }
                 ui.dashboard == null -> ErrorState(ui.loadError, onRetry = vm::load)
-                else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork, onLogWorkout)
+                else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork, onLogWorkout, onOpenReading)
             }
 
         }
@@ -152,7 +155,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}, onLogWorkout: (String) -> Unit = {}) {
+private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}, onLogWorkout: (String) -> Unit = {}, onOpenReading: () -> Unit = {}) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
     PullToRefreshBox(
@@ -195,6 +198,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 d.overdue.forEach { catOrder.add(it.category) }
                 if (d.personalReading != null) catOrder.add("BIBLE")
                 if (d.workoutOverdue > 0) catOrder.add("EXERCISE")
+                if (d.reading.isNotEmpty()) catOrder.add("READING")
                 if (d.getAhead.isNotEmpty()) catOrder.add("CHORE")
                 if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
                 if (d.upForGrabs.isNotEmpty()) catOrder.add("CHORE")
@@ -202,7 +206,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 // Fixed order, matching the web dashboard: Bible reading, Chores,
                 // School, Workouts, then anything else (in its arrival order).
                 val homeOrder =
-                    listOf("BIBLE", "CHORE", "SCHOOL", "EXERCISE", "WORK", "APPOINTMENT", "OTHER")
+                    listOf("BIBLE", "READING", "CHORE", "SCHOOL", "EXERCISE", "WORK", "APPOINTMENT", "OTHER")
                 catOrder
                     .sortedBy { c ->
                         homeOrder.indexOf(c).let { if (it < 0) Int.MAX_VALUE else it }
@@ -210,6 +214,10 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                     .forEach { cat ->
                     // School work and Chores are interactive, so they open a full
                     // screen (like add-event / create-task) rather than render here.
+                    if (cat == "READING") {
+                        item(key = "reading-card") { ReadingHomeSection(d.reading, onOpenReading) }
+                        return@forEach
+                    }
                     if (cat == "CHORE") {
                         item(key = "chores-card") {
                             WorkSummaryCard(
@@ -575,6 +583,63 @@ private fun WorkoutSummaryCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> Unit) {
+    Column {
+        Row(
+            Modifier.padding(bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(KairosIcons.Book, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(18.dp))
+            Text(
+                "BOOK READING",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                reading.forEach { r ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                r.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                "${r.pct}%",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (r.behind) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (r.behind) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        ReadingBar(r.pct, r.behind)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReadingBar(pct: Int, behind: Boolean) {
+    Box(
+        Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
+    ) {
+        val frac = (if (behind) kotlin.math.abs(pct) else pct).coerceIn(0, 100) / 100f
+        Box(
+            Modifier.fillMaxWidth(frac).fillMaxHeight().clip(RoundedCornerShape(999.dp))
+                .background(if (behind) MaterialTheme.colorScheme.error else KairosThemeState.accent),
+        )
     }
 }
 

@@ -56,7 +56,7 @@ import com.kairos.app.ui.common.LogoMenuButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit, onOpenReadingGoals: () -> Unit) {
+fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit) {
     val container = rememberContainer()
     val vm: CharacterViewModel = viewModel(
         factory = viewModelFactory { initializer { CharacterViewModel(container.sessionRepository) } },
@@ -84,14 +84,14 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: 
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> CharacterContent(person, ui, vm, onOpenGallery, onOpenCoop, onOpenReadingGoals)
+                else -> CharacterContent(person, ui, vm, onOpenGallery, onOpenCoop)
             }
         }
     }
 }
 
 @Composable
-private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit, onOpenReadingGoals: () -> Unit) {
+private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: CharacterViewModel, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit) {
     val data = ui.data ?: return
     val c = data.companion
     Column(
@@ -110,9 +110,6 @@ private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: Charac
                 }
             }
             CharAction(KairosIcons.Trophy, "Gallery", Modifier.weight(1f)) { onOpenGallery() }
-            if (ui.readingGoalCount > 0) {
-                CharAction(KairosIcons.Book, "Reading", Modifier.weight(1f)) { onOpenReadingGoals() }
-            }
         }
 
         ui.message?.let { msg ->

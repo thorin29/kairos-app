@@ -339,6 +339,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenMoney = { go(Route.Section("money"), "money") },
                         onAssignTask = { navController.navigate(Route.AssignTask) },
                         onOpenChores = { navController.navigate(Route.HomeChores) },
+                        onOpenReading = { go(Route.Section("reading"), "reading") },
                         onOpenSchoolWork = { navController.navigate(Route.HomeSchoolWork) },
                         refreshKey = homeRefresh,
                     )
@@ -393,7 +394,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenDrawer = { open = true },
                             onOpenGallery = { navController.navigate(Route.Gallery) },
                             onOpenCoop = { navController.navigate(Route.Coop) },
-                            onOpenReadingGoals = { navController.navigate(Route.ReadingGoals) },
                         )
                     } else if (key == "groceries") {
                         GroceriesScreen(
