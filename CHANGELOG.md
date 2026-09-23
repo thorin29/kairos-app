@@ -1,4 +1,7 @@
 # Changelog
+## 0.281.0
+- Edit-book screen now fills the screen white edge to edge — no more grey band above and below the form.
+- Adding a reading goal: after picking a date, focus no longer jumps back into the page field and reopens the keyboard. The dialog just stays open with the date filled in.
 ## 0.280.0
 - Reading goals now show on the home page: a "Book reading" section under Bible reading lists each book with active goals and a progress bar toward the current goal's page (red when you're behind — past a goal's date without reaching it). Tapping it opens your books to log progress. This replaces the reading button that had been on the character screen. Needs web 0.479-0.481.
 ## 0.279.0

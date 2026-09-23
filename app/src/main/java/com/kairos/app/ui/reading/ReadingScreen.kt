@@ -11,6 +11,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -430,6 +436,12 @@ private fun BookFormScreen(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        val dialogView = LocalView.current
+        SideEffect {
+            (dialogView.parent as? DialogWindowProvider)?.window?.let {
+                WindowCompat.setDecorFitsSystemWindows(it, false)
+            }
+        }
         BackHandler(enabled = true) { onDismiss() }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Scaffold(
@@ -560,6 +572,13 @@ private fun AddGoalOverlay(
     var showDate by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(showDate) {
+        if (!showDate) {
+            focusManager.clearFocus(force = true)
+            keyboard?.hide()
+        }
+    }
 
     AnimatedDialog(
         onDismissRequest = onDismiss,
@@ -598,7 +617,12 @@ private fun AddGoalOverlay(
         DatePickerDialog(
             onDismissRequest = { showDate = false },
             confirmButton = {
-                TextButton(onClick = { dueMillis = state.selectedDateMillis; showDate = false }) { Text("OK") }
+                TextButton(onClick = {
+                    dueMillis = state.selectedDateMillis
+                    showDate = false
+                    focusManager.clearFocus(force = true)
+                    keyboard?.hide()
+                }) { Text("OK") }
             },
             dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
         ) { DatePicker(state = state) }
