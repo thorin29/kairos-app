@@ -4,6 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -445,6 +448,11 @@ private fun BookFormScreen(
                 )
                 w.setDimAmount(0f)
                 WindowCompat.setDecorFitsSystemWindows(w, false)
+                w.statusBarColor = android.graphics.Color.TRANSPARENT
+                w.navigationBarColor = android.graphics.Color.TRANSPARENT
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    w.isNavigationBarContrastEnforced = false
+                }
             }
         }
         BackHandler(enabled = true) { onDismiss() }
@@ -578,13 +586,14 @@ private fun AddGoalOverlay(
     var err by remember { mutableStateOf<String?>(null) }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val dateRowFocus = remember { FocusRequester() }
     LaunchedEffect(showDate) {
         if (!showDate) {
-            // The nested date-picker dialog restores focus to the page field on
-            // close, reopening the keyboard. Let that settle, then clear it.
-            kotlinx.coroutines.delay(60)
-            focusManager.clearFocus(force = true)
+            // The nested date picker restores focus to the last-focused text field
+            // (the goal field) on close, reopening the keyboard. Deterministically
+            // move focus onto the visible, non-editable "pick a date" row instead.
             keyboard?.hide()
+            runCatching { dateRowFocus.requestFocus() }
         }
     }
 
@@ -609,6 +618,7 @@ private fun AddGoalOverlay(
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                    .focusRequester(dateRowFocus).focusable()
                     .clickable { focusManager.clearFocus(); showDate = true }.padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -628,12 +638,10 @@ private fun AddGoalOverlay(
                 TextButton(onClick = {
                     dueMillis = state.selectedDateMillis
                     showDate = false
-                    focusManager.clearFocus(force = true)
-                    keyboard?.hide()
                 }) { Text("OK") }
             },
             dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
-        ) { DatePicker(state = state) }
+        ) { DatePicker(state = state, focusRequester = null) }
     }
 }
 

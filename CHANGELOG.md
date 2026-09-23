@@ -1,4 +1,7 @@
 # Changelog
+## 0.284.0
+- Edit-book screen: removed the dark line along the bottom — the nav-bar contrast scrim is turned off, so the form is white to the very edge.
+- Add-reading-goal: after picking a date, focus moves onto the visible "pick a date" row (and the date picker no longer auto-focuses its own text field), so the cursor doesn't land back in the page field and the keyboard stays closed — same as when the dialog first opens.
 ## 0.282.0
 - Edit-book screen: stronger fix for the grey bands — the dialog now forces itself full-screen and drops the dim, so it's white top to bottom.
 - Add-reading-goal: stronger fix for the keyboard reopening after you pick a date.
