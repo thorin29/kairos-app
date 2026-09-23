@@ -1,4 +1,6 @@
 # Changelog
+## 0.286.0
+- Log workout: the plate calculator's "Use this weight" now loads the calculated weight into the today's-max field of the exact card it was opened from (works with multiple cards). Opening the calculator navigates away and back, which had been wiping the app's record of which card asked for it before the weight returned.
 ## 0.285.0
 - Add/Edit book is now a normal full-screen page like the task and workout forms, instead of a pop-up dialog. This removes the black bar at the bottom for good — the form had been a separate dialog window that didn't inherit the app's edge-to-edge setup, which no other form uses. All the window workarounds are gone with it.
 ## 0.284.0

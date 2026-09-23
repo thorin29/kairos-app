@@ -59,6 +59,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.kairos.app.ui.common.rememberContainer
 import java.time.Instant
@@ -90,7 +92,15 @@ fun WorkoutLogScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     // Which card's movement launched the calculator, so its returned weight goes
     // to the right input.
-    var pendingTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // Survives navigating to the calculator and back (a plain remember is wiped
+    // when this screen is disposed), so the returned weight reaches the card it
+    // came from.
+    var pendingTarget by rememberSaveable(
+        stateSaver = listSaver(
+            save = { pair -> pair?.let { listOf(it.first, it.second) } ?: emptyList() },
+            restore = { if (it.size == 2) it[0] to it[1] else null },
+        ),
+    ) { mutableStateOf<Pair<String, String>?>(null) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
 
