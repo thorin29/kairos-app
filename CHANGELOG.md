@@ -1,4 +1,6 @@
 # Changelog
+## 0.277.0
+- Home now has a single Workouts card (like Chores and School) instead of a row per workout: it lists today's workout name(s) two per line with a "\u00b7" between them, shows "N overdue" in red on its own line, and reads "Complete for today!" in green when everything's done. The overdue count uses the scheduled-workout rule (a lift you skipped still counts even if you logged a sport that day), and tapping the card opens the full log page. Needs web 0.477.
 ## 0.276.0
 - Overdue workout cards now use small icon tile buttons for Skip and Log (matching the full cards, just smaller) instead of pill buttons. Also backfilled this changelog: the update screen's "What's new" reads the top entry of CHANGELOG.md, and releases 0.271-0.275 had shipped without their entries, so it was stuck on an old note.
 ## 0.275.0

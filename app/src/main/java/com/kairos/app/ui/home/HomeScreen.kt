@@ -194,6 +194,7 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                 d.groups.forEach { catOrder.add(it.category) }
                 d.overdue.forEach { catOrder.add(it.category) }
                 if (d.personalReading != null) catOrder.add("BIBLE")
+                if (d.workoutOverdue > 0) catOrder.add("EXERCISE")
                 if (d.getAhead.isNotEmpty()) catOrder.add("CHORE")
                 if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
                 if (d.upForGrabs.isNotEmpty()) catOrder.add("CHORE")
@@ -233,6 +234,16 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                                 today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList(),
                                 getAheadCount = 0,
                                 onOpen = onOpenSchoolWork,
+                            )
+                        }
+                        return@forEach
+                    }
+                    if (cat == "EXERCISE") {
+                        item(key = "workouts-card") {
+                            WorkoutSummaryCard(
+                                today = d.groups.firstOrNull { it.category == "EXERCISE" }?.items ?: emptyList(),
+                                overdueCount = d.workoutOverdue,
+                                onOpen = { onLogWorkout(d.date) },
                             )
                         }
                         return@forEach
@@ -500,6 +511,68 @@ private fun WorkSummaryCard(
                 if (poolText != null) {
                     Text(poolText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutSummaryCard(
+    today: List<TaskDto>,
+    overdueCount: Int,
+    onOpen: () -> Unit,
+) {
+    val todayNames = today.filter { it.status != "COMPLETE" }.map { it.title }
+    val hadWork = today.isNotEmpty() || overdueCount > 0
+    val completeForToday = todayNames.isEmpty() && overdueCount == 0 && hadWork
+    Column {
+        SectionHeader("Workouts", "EXERCISE")
+        Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (completeForToday) {
+                        Text(
+                            "Complete for today!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChoresGreen,
+                        )
+                    } else {
+                        // Today's workout names, up to two per line, "·"-separated.
+                        todayNames.chunked(2).forEach { pair ->
+                            Text(
+                                pair.joinToString(" \u00b7 "),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        if (todayNames.isEmpty() && overdueCount == 0) {
+                            Text(
+                                "No workout today",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        // Overdue on its own line, in red.
+                        if (overdueCount > 0) {
+                            Text(
+                                "$overdueCount overdue",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+                Text(
+                    "Open",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

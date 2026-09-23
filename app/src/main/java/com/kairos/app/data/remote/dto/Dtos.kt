@@ -124,6 +124,7 @@ data class DashboardDto(
     val money: DashboardMoneyDto? = null,
     val categories: List<CategoryBarDto> = emptyList(),
     val overdue: List<TaskDto> = emptyList(),
+    val workoutOverdue: Int = 0,
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
     val upForGrabs: List<UpForGrabsDto> = emptyList(),
