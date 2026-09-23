@@ -1,4 +1,7 @@
 # Changelog
+## 0.282.0
+- Edit-book screen: stronger fix for the grey bands — the dialog now forces itself full-screen and drops the dim, so it's white top to bottom.
+- Add-reading-goal: stronger fix for the keyboard reopening after you pick a date.
 ## 0.281.0
 - Edit-book screen now fills the screen white edge to edge — no more grey band above and below the form.
 - Adding a reading goal: after picking a date, focus no longer jumps back into the page field and reopens the keyboard. The dialog just stays open with the date filled in.

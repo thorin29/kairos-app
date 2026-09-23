@@ -438,8 +438,13 @@ private fun BookFormScreen(
     ) {
         val dialogView = LocalView.current
         SideEffect {
-            (dialogView.parent as? DialogWindowProvider)?.window?.let {
-                WindowCompat.setDecorFitsSystemWindows(it, false)
+            (dialogView.parent as? DialogWindowProvider)?.window?.let { w ->
+                w.setLayout(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+                w.setDimAmount(0f)
+                WindowCompat.setDecorFitsSystemWindows(w, false)
             }
         }
         BackHandler(enabled = true) { onDismiss() }
@@ -575,6 +580,9 @@ private fun AddGoalOverlay(
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(showDate) {
         if (!showDate) {
+            // The nested date-picker dialog restores focus to the page field on
+            // close, reopening the keyboard. Let that settle, then clear it.
+            kotlinx.coroutines.delay(60)
             focusManager.clearFocus(force = true)
             keyboard?.hide()
         }
