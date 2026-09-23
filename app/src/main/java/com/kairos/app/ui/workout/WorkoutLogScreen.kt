@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -159,13 +160,13 @@ fun WorkoutLogScreen(
 
                     if (overdueBlocks.isNotEmpty()) {
                         Text(
-                            "Overdue",
+                            if (overdueBlocks.size == 1) "Overdue workout" else "Overdue workouts",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.error,
                         )
                         overdueBlocks.forEach { block ->
-                            WorkoutBlockCard(block, vm, openCalc)
+                            WorkoutBlockCard(block, vm, openCalc, compact = true)
                         }
                     }
 
@@ -311,6 +312,7 @@ private fun WorkoutBlockCard(
     block: WorkoutBlock,
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
+    compact: Boolean = false,
 ) {
     OutlinedCard(
         Modifier.fillMaxWidth(),
@@ -320,6 +322,9 @@ private fun WorkoutBlockCard(
             CardDefaults.outlinedCardColors()
         },
     ) {
+        if (compact) {
+            CompactBlockBody(block, vm)
+        } else {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -391,6 +396,43 @@ private fun WorkoutBlockCard(
                 ) { vm.saveBlock(block.key) }
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
+    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                block.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            if (block.logged) {
+                Icon(KairosIcons.Check, contentDescription = "Logged", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+            }
+        }
+        val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                block.inputs.forEach { m -> MovementRow(block.key, m, vm, compact = true) }
+            }
+            OutlinedButton(
+                onClick = { vm.setBlockSkipped(block.key, !skipped) },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) { Text(if (skipped) "skipped" else "Skip") }
+            Button(
+                onClick = { vm.saveBlock(block.key) },
+                enabled = !block.saving,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+            ) { Text(if (block.logged) "edit" else "Log") }
+        }
     }
 }
 
@@ -426,7 +468,7 @@ private fun utcMillisToIso(millis: Long): String =
         .format(DateTimeFormatter.ISO_DATE)
 
 @Composable
-private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel) {
+private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false) {
     val maxHint = m.metric == "WEIGHT"
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -438,13 +480,6 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
                 )
-                if (maxHint && !m.skipped) {
-                    Text(
-                        "today's max",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
         if (!m.skipped) {
@@ -455,7 +490,7 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     placeholder = { Text(if (maxHint) "today's max" else "0") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.width(160.dp),
+                    modifier = if (compact) Modifier.weight(1f) else Modifier.width(160.dp),
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
