@@ -243,8 +243,10 @@ private fun WorkoutActionTile(
     enabled: Boolean = true,
     loading: Boolean = false,
     filled: Boolean = false,
+    compact: Boolean = false,
     onClick: () -> Unit,
 ) {
+    val tileHeight = if (compact) 56.dp else 84.dp
     // Icon/text color. A filled tile reads white on the system-color fill while
     // it's the primary action, then settles to the theme color once it greys out.
     // An outlined tile is the theme color while actionable and eases to grey after.
@@ -271,11 +273,11 @@ private fun WorkoutActionTile(
                 containerColor = container,
                 disabledContainerColor = container,
             ),
-            modifier = modifier.height(84.dp),
-        ) { WorkoutActionTileBody(icon, label, tint, loading) }
+            modifier = modifier.height(tileHeight),
+        ) { WorkoutActionTileBody(icon, label, tint, loading, compact) }
     } else {
-        OutlinedCard(onClick = onClick, enabled = enabled, modifier = modifier.height(84.dp)) {
-            WorkoutActionTileBody(icon, label, tint, loading)
+        OutlinedCard(onClick = onClick, enabled = enabled, modifier = modifier.height(tileHeight)) {
+            WorkoutActionTileBody(icon, label, tint, loading, compact)
         }
     }
 }
@@ -286,21 +288,23 @@ private fun WorkoutActionTileBody(
     label: String,
     tint: Color,
     loading: Boolean,
+    compact: Boolean = false,
 ) {
+    val iconSize = if (compact) 16.dp else 22.dp
     Column(
-        Modifier.fillMaxSize().padding(8.dp),
+        Modifier.fillMaxSize().padding(if (compact) 4.dp else 8.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (loading) {
-            CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = tint)
+            CircularProgressIndicator(Modifier.size(iconSize), strokeWidth = 2.dp, color = tint)
         } else {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(iconSize))
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
         Text(
             label,
-            style = MaterialTheme.typography.labelMedium,
+            style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center,
             color = tint,
         )
@@ -423,15 +427,23 @@ private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 block.inputs.forEach { m -> MovementRow(block.key, m, vm, compact = true) }
             }
-            OutlinedButton(
-                onClick = { vm.setBlockSkipped(block.key, !skipped) },
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-            ) { Text(if (skipped) "skipped" else "Skip") }
-            Button(
-                onClick = { vm.saveBlock(block.key) },
+            WorkoutActionTile(
+                icon = KairosIcons.Moon,
+                label = if (skipped) "skipped" else "Skip",
+                modifier = Modifier.width(68.dp),
+                highlighted = !skipped,
+                compact = true,
+            ) { vm.setBlockSkipped(block.key, !skipped) }
+            WorkoutActionTile(
+                icon = KairosIcons.Dumbbell,
+                label = if (block.logged) "edit" else "Log",
+                modifier = Modifier.width(68.dp),
+                highlighted = !block.logged,
                 enabled = !block.saving,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-            ) { Text(if (block.logged) "edit" else "Log") }
+                loading = block.saving,
+                filled = true,
+                compact = true,
+            ) { vm.saveBlock(block.key) }
         }
     }
 }

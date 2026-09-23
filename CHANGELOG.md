@@ -1,4 +1,14 @@
 # Changelog
+## 0.276.0
+- Overdue workout cards now use small icon tile buttons for Skip and Log (matching the full cards, just smaller) instead of pill buttons. Also backfilled this changelog: the update screen's "What's new" reads the top entry of CHANGELOG.md, and releases 0.271-0.275 had shipped without their entries, so it was stuck on an old note.
+## 0.275.0
+- Workout logging: overdue workouts now show above today's plan with a plural-aware "Overdue workout(s)" heading, and each overdue card is compact — the calculator is dropped and small Skip/Log buttons sit beside the entry field. Removed the redundant "today's max" label above the weight field (the placeholder inside already says it), and darkened the progress-bar track and empty XP squares so they're easier to read.
+## 0.274.0
+- Reading goals. Adding or editing a book is now a fullscreen page with an optional reading-goals section — set a page to reach by a date, added one line at a time. A Reading button appears on the character screen when you have live goals; it opens a screen where you type the page you're on to update the book and tick a goal done, with the current goal per book plus any inside its reminder lead. Needs web 0.467.
+## 0.272.0
+- The family-goal (co-op) screen now matches the web's monthly model: "This month," "X of Y finished their month," a smooth family progress bar, and each child's clean-days / target — instead of the old tier/floor language. Needs web 0.465.
+## 0.271.0
+- Character screen: companions now grow through stages and show a "Next egg" meter that glows in the rarity colour your current streak is unlocking (slate, then blue, purple, gold). The progress-bar track and the empty XP squares are darker and easier to read, and "Season" now reads "This month." Needs web 0.466+.
 ## 0.270.0
 - Money screen: the search button now has a white background, and the person tabs at the top are white pill buttons (with an accent border on the selected one) so they stand out against the grey page.
 ## 0.269.0
