@@ -226,14 +226,16 @@ private fun CompanionCard(c: CharCompanionDto) {
             // Next-egg progress, always visible so a new egg is earned, not a surprise.
             if (c.eggReady) {
                 Text("A new egg is ready!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFF047857))
+            } else if (c.eggCapped) {
+                Text("Next egg ready \u2014 hatch it next month!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFFB45309))
             } else {
                 Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
                 Text("Next egg ${c.incubationPct}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            Text(if (c.eggReady) "Ready to hatch!" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(if (c.eggReady) "Ready to hatch!" else if (c.eggCapped) "Ready next month" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
-            Text("${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (c.eggCapped) "Hatch opens next month" else "${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -1474,6 +1474,7 @@ data class CharCompanionDto(
     val shiny: Boolean = false,
     val incubationPct: Int = 0,
     val eggReady: Boolean = false,
+    val eggCapped: Boolean = false,
     val luck: Double = 0.0,
     val image: String = "",
     val color: String = "#94a3b8",

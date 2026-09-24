@@ -1,4 +1,6 @@
 # Changelog
+## 0.287.0
+- Companions: monthly egg limit raised to 3 (was 2). When your egg is full but you've used up this month's hatches, the character now tells you the next egg can be hatched next month, instead of a full bar with no button. Needs web 0.482.
 ## 0.286.0
 - Log workout: the plate calculator's "Use this weight" now loads the calculated weight into the today's-max field of the exact card it was opened from (works with multiple cards). Opening the calculator navigates away and back, which had been wiping the app's record of which card asked for it before the weight returned.
 ## 0.285.0
