@@ -915,3 +915,14 @@ Until sections are separate destinations, the snapshot approach is the way.
   which renderer draws the screen in the screenshot first — there can be two.
 - **Subject dots** read pr.color, which the server (web 0.484) now fills with a stable
   per-subject colour, so no app-side colour change was needed.
+
+## Sept 24 2026 — offline-interceptor crash on server 5xx (app v0.289)
+
+- OfflineInterceptor (ApiClient.kt) crashed the app during a server reboot/migration:
+  on a 502/503/504 it called chain.proceed(cachedReq) for the only-if-cached fallback
+  while the live error response was still open, throwing IllegalStateException ("cannot
+  make a new request because the previous response is still open") uncaught on the OkHttp
+  dispatcher -> FATAL. Fix: buffer the error body (contentType + bytes()) and rebuild the
+  response before the cache lookup, so the live exchange is complete first. The catch(IOException)
+  branch was already safe (no open response). Lesson: any second chain.proceed must follow a
+  fully-consumed/closed prior response.

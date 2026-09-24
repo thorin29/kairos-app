@@ -162,6 +162,16 @@ private class OfflineInterceptor(
                 // treat it like being offline and serve the last cached copy if we
                 // have one, so a rebooting host doesn't blank the screen.
                 if (live.code == 502 || live.code == 503 || live.code == 504) {
+                    // Read the server error fully first: OkHttp refuses to start the
+                    // cache lookup (a second request on this call) while `live` is
+                    // still open — doing so threw an uncaught IllegalStateException and
+                    // hard-crashed the app whenever the host was mid-reboot/migration.
+                    // Buffer the error so we can still return it if nothing is cached.
+                    val ct = live.body?.contentType()
+                    val errorBytes = live.body?.bytes() ?: ByteArray(0)
+                    val serverError = live.newBuilder()
+                        .body(errorBytes.toResponseBody(ct))
+                        .build()
                     val cachedReq = req.newBuilder()
                         .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")
                         .build()
@@ -169,9 +179,9 @@ private class OfflineInterceptor(
                     if (cachedRes.code == 504) {
                         // Nothing cached — keep the real server error for the UI.
                         cachedRes.close()
-                        return live
+                        return serverError
                     }
-                    live.close()
+                    serverError.close()
                     ServerStatusTracker.markUnavailable()
                     return cachedRes
                 }

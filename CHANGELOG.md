@@ -1,4 +1,6 @@
 # Changelog
+## 0.289.0
+- Fixed a crash where the app would close immediately if the server was mid-reboot or running a migration (returning 502/503/504). The offline handler tried to fall back to cached data without closing the server's error response first, which threw an uncaught error and killed the app. Now it reads the error, serves your last cached copy if there is one, and otherwise shows the server error — the app stays open no matter what the server is doing.
 ## 0.288.0
 - School: the catch-up pace note ("Do N a day for the next M school days to finish on time") is back on the home school detail for behind subjects. It existed only on the separate School screen; the home detail view (the one shown when you open a student) had a second progress renderer that was missing the note.
 - School: subject dots now use each subject's consistent color (matching the admin year calendar) instead of grey — driven by web 0.484.
