@@ -1068,36 +1068,52 @@ private fun SchoolCheckRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
 
 @Composable
 private fun SchoolProgressRow(pr: SchoolCardProgressDto) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
         Row(
-            modifier = Modifier.weight(1f),
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseHex(pr.color)))
-            Text(
-                pr.className,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            when (pr.pace) {
-                "behind" -> SchoolPaceTag("falling behind", SchoolAmber)
-                "ahead" -> SchoolPaceTag("getting ahead!", ChoresGreen)
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseHex(pr.color)))
+                Text(
+                    pr.className,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                when (pr.pace) {
+                    "behind" -> SchoolPaceTag("falling behind", SchoolAmber)
+                    "ahead" -> SchoolPaceTag("getting ahead!", ChoresGreen)
+                }
+            }
+            if (pr.finishISO != null) {
+                Text(
+                    "finishes ${homeShortDate(pr.finishISO)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (pr.onTrack) MaterialTheme.colorScheme.onSurfaceVariant else SchoolAmber,
+                    textDecoration = if (!pr.onTrack) androidx.compose.ui.text.style.TextDecoration.Underline else null,
+                )
             }
         }
-        if (pr.finishISO != null) {
+        if (pr.catchUpRate != null) {
+            val note = if (pr.catchUpDays != null) {
+                "Do ${pr.catchUpRate} a day for the next ${pr.catchUpDays} school day" +
+                    (if (pr.catchUpDays == 1) "" else "s") + " to finish on time."
+            } else {
+                "Do ${pr.catchUpRate} a day to finish on time."
+            }
             Text(
-                "finishes ${homeShortDate(pr.finishISO)}",
+                note,
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = if (pr.onTrack) MaterialTheme.colorScheme.onSurfaceVariant else SchoolAmber,
-                textDecoration = if (!pr.onTrack) androidx.compose.ui.text.style.TextDecoration.Underline else null,
+                color = SchoolAmber,
+                modifier = Modifier.padding(start = 18.dp, top = 2.dp),
             )
         }
     }

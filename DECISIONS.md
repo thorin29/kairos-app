@@ -883,3 +883,35 @@ background (the refresh line shows during the fetch). Rollout:
 **Rule for future work:** do **not** reattempt nav-state save/restore for
 instant return without **first giving each section its own nav destination**.
 Until sections are separate destinations, the snapshot approach is the way.
+
+## Sept 23–24 2026 run (app v0.271–0.287)
+
+- **Book form is a full-screen screen, not a Dialog.** BookFormScreen was the only
+  add/edit form wrapped in a Compose `Dialog` (its own window), so it never inherited
+  the Activity's edge-to-edge setup and drew a black nav-bar band no window-poking
+  could fix. Rebuilt as a plain `Scaffold` rendered in place of the reading list
+  (state lifted to ReadingScreen), matching AssignTask/WorkoutLog. All the
+  `setDecorFitsSystemWindows`/`setLayout`/`setDimAmount`/nav-bar-color hacks are gone.
+  Lesson: full-screen forms here are nav destinations, never Dialogs.
+- **Add-goal date picker focus.** After picking a date, the nested DatePickerDialog
+  restored focus to the last text field and reopened the keyboard. Fixed by parking
+  focus on the visible "pick a date" row (a real `FocusRequester` + `.focusable()`)
+  and passing `focusRequester = null` to `DatePicker` — not an invisible focus sink,
+  not a delay hack.
+- **Plate calculator write-back.** Opening the calculator navigates away, disposing
+  WorkoutLogScreen and wiping the plain `remember` that held which card asked for the
+  weight. Made `pendingTarget` a `rememberSaveable` so it survives the round trip; the
+  returned weight (already carried via `savedStateHandle`) then lands in the right card.
+- **Reading + home** — "Book reading" home section under Bible (progress bars, red when
+  behind), reading moved off the character screen. Companion egg cap message
+  ("hatch next month") when `eggCapped`.
+
+## Sept 24 2026 — school note + colours (app v0.288)
+
+- **Catch-up note was missing on the home school detail.** The app has two school
+  progress renderers: SchoolScreen.ProgressRow (had the note) and
+  HomeScreen.SchoolProgressRow (the home detail view users actually open — did NOT).
+  Added the note to HomeScreen.SchoolProgressRow. When a UI element "vanishes," find
+  which renderer draws the screen in the screenshot first — there can be two.
+- **Subject dots** read pr.color, which the server (web 0.484) now fills with a stable
+  per-subject colour, so no app-side colour change was needed.

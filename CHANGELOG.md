@@ -1,4 +1,7 @@
 # Changelog
+## 0.288.0
+- School: the catch-up pace note ("Do N a day for the next M school days to finish on time") is back on the home school detail for behind subjects. It existed only on the separate School screen; the home detail view (the one shown when you open a student) had a second progress renderer that was missing the note.
+- School: subject dots now use each subject's consistent color (matching the admin year calendar) instead of grey — driven by web 0.484.
 ## 0.287.0
 - Companions: monthly egg limit raised to 3 (was 2). When your egg is full but you've used up this month's hatches, the character now tells you the next egg can be hatched next month, instead of a full bar with no button. Needs web 0.482.
 ## 0.286.0
