@@ -926,3 +926,13 @@ Until sections are separate destinations, the snapshot approach is the way.
   response before the cache lookup, so the live exchange is complete first. The catch(IOException)
   branch was already safe (no open response). Lesson: any second chain.proceed must follow a
   fully-consumed/closed prior response.
+
+## Sept 24 2026 — regression test for the offline 5xx fallback (app v0.290)
+
+- Added app/src/test OfflineInterceptorTest with MockWebServer (new test dep,
+  okhttp 4.12 mockwebserver) covering: 502 + cached copy -> cache served; 502 + no
+  cache -> error returned, no crash. To make it testable, OfflineInterceptor is now
+  internal and takes an isOnline: () -> Boolean lambda (decoupled from the Context-bound
+  NetworkMonitor); wiring passes monitor::isOnline. OFFLINE_MAX_STALE is internal.
+  The test uses a real OkHttpClient + Cache so a reintroduced "second chain.proceed
+  while the live response is open" bug re-triggers the real IllegalStateException.

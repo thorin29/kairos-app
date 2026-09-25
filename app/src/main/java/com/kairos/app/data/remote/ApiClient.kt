@@ -60,7 +60,7 @@ object ApiClient {
             // and writes are queued (or fail fast) instead of hanging.
             builder
                 .cache(cache)
-                .addInterceptor(OfflineInterceptor(monitor, queue))
+                .addInterceptor(OfflineInterceptor(monitor::isOnline, queue))
                 .addNetworkInterceptor(CacheableResponseInterceptor())
         }
         val ok = builder
@@ -144,13 +144,13 @@ private class CacheableResponseInterceptor : Interceptor {
  *  age) and capture writes into the [WriteQueue] so they replay on reconnect
  *  (returning a synthetic success so the action isn't lost or shown as an
  *  error). Auth calls are never queued — they only make sense online. */
-private class OfflineInterceptor(
-    private val monitor: NetworkMonitor,
+internal class OfflineInterceptor(
+    private val isOnline: () -> Boolean,
     private val queue: WriteQueue?,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): OkResponse {
         val req = chain.request()
-        if (monitor.isOnline()) {
+        if (isOnline()) {
             if (req.method != "GET") return chain.proceed(req)
             // Online GET: hit the network, but count it so the UI can show a thin
             // refresh line, and if the server is actually unreachable/slow (Wi-Fi
@@ -271,7 +271,7 @@ private class OfflineInterceptor(
             .build()
 }
 
-private const val OFFLINE_MAX_STALE = 60 * 60 * 24 * 30 // 30 days
+internal const val OFFLINE_MAX_STALE = 60 * 60 * 24 * 30 // 30 days
 
 /**
  * Maps a Retrofit [Response] to either its body or a thrown [ApiException].

@@ -1,4 +1,6 @@
 # Changelog
+## 0.290.0
+- Added regression tests for the 0.289 offline-fallback crash fix: "server 502 with a cached copy → serves the cached copy" and "server 502 with nothing cached → returns the error cleanly, no crash." Made the offline interceptor testable. No behavior change from 0.289.
 ## 0.289.0
 - Fixed a crash where the app would close immediately if the server was mid-reboot or running a migration (returning 502/503/504). The offline handler tried to fall back to cached data without closing the server's error response first, which threw an uncaught error and killed the app. Now it reads the error, serves your last cached copy if there is one, and otherwise shows the server error — the app stays open no matter what the server is doing.
 ## 0.288.0
