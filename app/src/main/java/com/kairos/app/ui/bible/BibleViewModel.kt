@@ -56,7 +56,8 @@ class BibleViewModel(
             val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
             if (_ui.value.data == null) {
                 runCatching { cache.readAs("bible", "main", pid, com.kairos.app.data.remote.dto.ReadingDto.serializer()) }
-                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+                    .getOrNull()?.let { applyPending(it, session.pendingWrites()) }
+                    ?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
             }
             try {
                 val data = freshData()

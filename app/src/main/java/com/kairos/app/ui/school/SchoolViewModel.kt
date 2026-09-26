@@ -42,7 +42,8 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
             val reqTerm = _ui.value.term ?: "main"
             if (_ui.value.data == null) {
                 runCatching { cache.readAs("school", reqTerm, pid, com.kairos.app.data.remote.dto.SchoolDto.serializer()) }
-                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+                    .getOrNull()?.let { applyPending(it, session.pendingWrites()) }
+                    ?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
             }
             try {
                 val data = freshData()

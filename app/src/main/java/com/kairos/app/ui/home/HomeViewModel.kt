@@ -61,7 +61,7 @@ class HomeViewModel(
         viewModelScope.launch {
             if (_ui.value.dashboard == null) {
                 val seed = runCatching { cache.read("home", "main", personId()) }
-                    .getOrNull()?.let { decodeDash(it) }
+                    .getOrNull()?.let { decodeDash(it) }?.let { applyPending(it) }
                 if (seed != null) _ui.update {
                     if (it.dashboard == null) it.copy(dashboard = seed, loading = false) else it
                 }
@@ -92,8 +92,12 @@ class HomeViewModel(
 
     /** Load the dashboard and re-apply any still-unsynced task completions, so a
      *  tick made offline stays put even after navigating away and back. */
-    private suspend fun freshDashboard(): DashboardDto {
-        var d = session.loadDashboard()
+    private suspend fun freshDashboard(): DashboardDto = applyPending(session.loadDashboard())
+
+    /** Overlay the offline write queue onto a dashboard (fresh or cached), so an
+     *  offline edit shows on the cold-start seed too, not only after a live fetch. */
+    private fun applyPending(dashboard: DashboardDto): DashboardDto {
+        var d = dashboard
         val me = session.currentPersonId()
         for (w in session.pendingWrites()) {
             val path = w.url.substringAfter("/api/v1/", "")

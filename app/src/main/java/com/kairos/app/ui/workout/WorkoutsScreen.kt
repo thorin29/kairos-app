@@ -75,7 +75,7 @@ fun WorkoutsScreen(
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { WorkoutLogViewModel(container.sessionRepository, null) }
+            initializer { WorkoutLogViewModel(container.sessionRepository, null, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

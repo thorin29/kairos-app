@@ -137,13 +137,14 @@ class CalendarViewModel(
                 val dto = loadCal("day", iso)
                 _pages.update { it + (dto.date to dto) }
                 _unavailable.update { it - iso }
-                launch { runCatching { cache.write("calendar", keyFor(CalTab.DAY, iso), personId(), encodeCal(dto)) } }
+                launch { runCatching { cache.write("calendar-day", keyFor(CalTab.DAY, iso), personId(), encodeCal(dto)) } }
             } catch (_: Exception) {
                 // Offline/server error: show this from the durable cache if it was
                 // opened before; otherwise mark unavailable so the page shows an
                 // offline notice instead of an endless spinner.
-                val saved = runCatching { cache.read("calendar", keyFor(CalTab.DAY, iso), personId()) }
+                val saved = runCatching { cache.read("calendar-day", keyFor(CalTab.DAY, iso), personId()) }
                     .getOrNull()?.let { decodeCal(it) }
+                    ?.let { applyPending(it, session.pendingWrites()) }
                 if (saved != null) _pages.update { it + (iso to saved) }
                 else _unavailable.update { it + iso }
             } finally {
@@ -173,13 +174,14 @@ class CalendarViewModel(
                 val dto = loadCal("month", monthStartIso)
                 _monthPages.update { it + (monthStartIso to dto) }
                 _unavailable.update { it - monthStartIso }
-                launch { runCatching { cache.write("calendar", keyFor(CalTab.MONTH, monthStartIso), personId(), encodeCal(dto)) } }
+                launch { runCatching { cache.write("calendar-month", keyFor(CalTab.MONTH, monthStartIso), personId(), encodeCal(dto)) } }
             } catch (_: Exception) {
                 // Offline/server error: show this from the durable cache if it was
                 // opened before; otherwise mark unavailable so the page shows an
                 // offline notice instead of an endless spinner.
-                val saved = runCatching { cache.read("calendar", keyFor(CalTab.MONTH, monthStartIso), personId()) }
+                val saved = runCatching { cache.read("calendar-month", keyFor(CalTab.MONTH, monthStartIso), personId()) }
                     .getOrNull()?.let { decodeCal(it) }
+                    ?.let { applyPending(it, session.pendingWrites()) }
                 if (saved != null) _monthPages.update { it + (monthStartIso to saved) }
                 else _unavailable.update { it + monthStartIso }
             } finally {
@@ -208,13 +210,14 @@ class CalendarViewModel(
                 val dto = loadCal("week", weekStartIso)
                 _weekPages.update { it + (weekStartIso to dto) }
                 _unavailable.update { it - weekStartIso }
-                launch { runCatching { cache.write("calendar", keyFor(CalTab.WEEK, weekStartIso), personId(), encodeCal(dto)) } }
+                launch { runCatching { cache.write("calendar-week", keyFor(CalTab.WEEK, weekStartIso), personId(), encodeCal(dto)) } }
             } catch (_: Exception) {
                 // Offline/server error: show this from the durable cache if it was
                 // opened before; otherwise mark unavailable so the page shows an
                 // offline notice instead of an endless spinner.
-                val saved = runCatching { cache.read("calendar", keyFor(CalTab.WEEK, weekStartIso), personId()) }
+                val saved = runCatching { cache.read("calendar-week", keyFor(CalTab.WEEK, weekStartIso), personId()) }
                     .getOrNull()?.let { decodeCal(it) }
+                    ?.let { applyPending(it, session.pendingWrites()) }
                 if (saved != null) _weekPages.update { it + (weekStartIso to saved) }
                 else _unavailable.update { it + weekStartIso }
             } finally {
@@ -247,8 +250,8 @@ class CalendarViewModel(
             //    the seed just removes today's spinner when today was cached.
             val snap = if (CalendarSnapshot.tab == startTab) CalendarSnapshot.data else null
             val durable = if (snap == null) runCatching {
-                cache.read("calendar", keyFor(startTab, null), personId())
-            }.getOrNull()?.let { decodeCal(it) } else null
+                cache.read("calendar-${startTab.serverValue}", keyFor(startTab, null), personId())
+            }.getOrNull()?.let { decodeCal(it) }?.let { applyPending(it, session.pendingWrites()) } else null
             val paint = snap ?: durable
             _ui.update {
                 it.copy(
@@ -306,7 +309,7 @@ class CalendarViewModel(
                 cachePages(s.tab, data)
                 // Durable twin of the snapshot: persist this view so a cold start
                 // or a server outage can still paint it. Off the UI path.
-                launch { runCatching { cache.write("calendar", keyFor(s.tab, data.date), personId(), encodeCal(data)) } }
+                launch { runCatching { cache.write("calendar-${s.tab.serverValue}", keyFor(s.tab, data.date), personId(), encodeCal(data)) } }
             } catch (e: ApiException) {
                 // If we already have data (last-seen, or the durable cache), keep
                 // showing it rather than replacing a good calendar with an error.

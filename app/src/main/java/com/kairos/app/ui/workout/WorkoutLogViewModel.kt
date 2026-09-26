@@ -12,6 +12,7 @@ import com.kairos.app.data.remote.dto.WorkoutPlanDto
 import com.kairos.app.data.remote.dto.WorkoutBlockDto
 import com.kairos.app.data.remote.dto.PlannedEntryDto
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,6 +69,7 @@ data class WorkoutLogUiState(
 class WorkoutLogViewModel(
     private val session: SessionRepository,
     private val initialDate: String?,
+    private val cache: PayloadCacheStore,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(WorkoutLogUiState())
@@ -83,45 +85,63 @@ class WorkoutLogViewModel(
     fun load() {
         _ui.update { it.copy(loading = it.blocks.isEmpty(), loadError = null) }
         viewModelScope.launch {
-            try {
-                val plan = freshPlan()
-                date = plan.date
-                val src: List<WorkoutBlockDto> = when {
-                    plan.workouts.isNotEmpty() -> plan.workouts
-                    plan.plannedWorkoutId != null -> listOf(
-                        WorkoutBlockDto(plan.plannedWorkoutId, plan.name ?: "Workout", plan.exercises),
-                    )
-                    else -> emptyList()
-                }
-                fun toBlock(b: WorkoutBlockDto, blockKey: String, day: String?, overdue: Boolean) =
-                    WorkoutBlock(
-                        plannedWorkoutId = b.plannedWorkoutId,
-                        name = b.name,
-                        inputs = b.exercises.map { e ->
-                            MovementInput(
-                                poolExerciseId = e.poolExerciseId,
-                                name = e.name,
-                                metric = e.metric,
-                                unit = e.unit,
-                                value = e.value?.let { fmt(it) } ?: "",
-                            )
-                        },
-                        key = blockKey,
-                        date = day,
-                        isOverdue = overdue,
-                    )
-                val overdueBlocks = plan.overdue.flatMap { od ->
-                    od.workouts.map { b -> toBlock(b, "${b.plannedWorkoutId}@${od.date}", od.date, true) }
-                }
-                val todayBlocks = src.map { b -> toBlock(b, b.plannedWorkoutId, null, false) }
-                val blocks = overdueBlocks + todayBlocks
-                val planName = if (todayBlocks.isEmpty()) null else todayBlocks.joinToString(" \u00b7 ") { it.name }
-                _ui.update {
-                    it.copy(loading = false, loggable = plan.loggable, date = plan.date, blocks = blocks, planName = planName)
-                }
-            } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            val key = requestedDate ?: "today"
+            // Cold-start seed: last plan for this day, with the offline write queue
+            // overlaid so an offline edit isn't briefly lost on restart.
+            if (_ui.value.blocks.isEmpty()) {
+                runCatching { cache.readAs("workout", key, pid, WorkoutPlanDto.serializer()) }.getOrNull()
+                    ?.let { applyPlan(applyPending(it, session.pendingWrites())) }
             }
+            try {
+                val raw = session.loadWorkout(requestedDate)
+                applyPlan(applyPending(raw, session.pendingWrites()))
+                launch { runCatching { cache.writeAs("workout", key, pid, WorkoutPlanDto.serializer(), raw) } }
+            } catch (e: ApiException) {
+                _ui.update {
+                    if (it.blocks.isEmpty()) it.copy(loading = false, loadError = e.error.message)
+                    else it.copy(loading = false)
+                }
+            }
+        }
+    }
+
+    /** Build the UI state (blocks/loggable/planName) from a plan. Shared by the
+     *  Room seed and the live fetch. */
+    private fun applyPlan(plan: WorkoutPlanDto) {
+        date = plan.date
+        val src: List<WorkoutBlockDto> = when {
+            plan.workouts.isNotEmpty() -> plan.workouts
+            plan.plannedWorkoutId != null -> listOf(
+                WorkoutBlockDto(plan.plannedWorkoutId, plan.name ?: "Workout", plan.exercises),
+            )
+            else -> emptyList()
+        }
+        fun toBlock(b: WorkoutBlockDto, blockKey: String, day: String?, overdue: Boolean) =
+            WorkoutBlock(
+                plannedWorkoutId = b.plannedWorkoutId,
+                name = b.name,
+                inputs = b.exercises.map { e ->
+                    MovementInput(
+                        poolExerciseId = e.poolExerciseId,
+                        name = e.name,
+                        metric = e.metric,
+                        unit = e.unit,
+                        value = e.value?.let { fmt(it) } ?: "",
+                    )
+                },
+                key = blockKey,
+                date = day,
+                isOverdue = overdue,
+            )
+        val overdueBlocks = plan.overdue.flatMap { od ->
+            od.workouts.map { b -> toBlock(b, "${b.plannedWorkoutId}@${od.date}", od.date, true) }
+        }
+        val todayBlocks = src.map { b -> toBlock(b, b.plannedWorkoutId, null, false) }
+        val blocks = overdueBlocks + todayBlocks
+        val planName = if (todayBlocks.isEmpty()) null else todayBlocks.joinToString(" \u00b7 ") { it.name }
+        _ui.update {
+            it.copy(loading = false, loggable = plan.loggable, date = plan.date, blocks = blocks, planName = planName)
         }
     }
 
@@ -132,9 +152,6 @@ class WorkoutLogViewModel(
         date = iso
         load()
     }
-
-    private suspend fun freshPlan(): WorkoutPlanDto =
-        applyPending(session.loadWorkout(requestedDate), session.pendingWrites())
 
     private fun <T> parse(body: String?, ser: kotlinx.serialization.KSerializer<T>): T? =
         body?.let { runCatching { ApiClient.json.decodeFromString(ser, it) }.getOrNull() }

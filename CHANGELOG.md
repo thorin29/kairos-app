@@ -1,4 +1,6 @@
 # Changelog
+## 0.301.0
+- The main Workout screen now caches like the others (instant paint on cold start, offline-resilient). Offline edits are now overlaid on the cached data during cold-start recovery on every screen, so a change made offline no longer briefly disappears after a restart. Also: the cache scope now uses the full server origin, calendar day/week/month views cache in separate buckets so heavy browsing can't evict them, and CI now runs the database test.
 ## 0.300.0
 - Extends the on-device cache to Character, Gallery, the Family goal (co-op), Games, and Workout history: these now paint their last-loaded data instantly (including after a full close) and survive a server outage, matching the other screens. (Correction: an earlier note said the cache already covered every screen — these were missed. The main Workout screen is still to come.)
 ## 0.299.0

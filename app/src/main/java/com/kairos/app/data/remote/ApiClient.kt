@@ -96,6 +96,14 @@ object ApiClient {
     fun baseHost(rawBase: String): String? =
         runCatching { normalizeBase(rawBase).toHttpUrlOrNull()?.host }.getOrNull()
 
+    /** Full origin (scheme://host:port) of the configured base. Used as the
+     *  durable-cache scope so the same host on a different scheme or port — or a
+     *  rebuilt install — is a distinct scope. */
+    fun baseOrigin(rawBase: String): String? =
+        runCatching {
+            normalizeBase(rawBase).toHttpUrlOrNull()?.let { "${it.scheme}://${it.host}:${it.port}" }
+        }.getOrNull()
+
     /** Resolve a possibly-relative avatar URL (e.g. "/api/avatars/x.png")
      *  against the configured origin. */
     fun resolveUrl(rawBase: String, path: String): String {

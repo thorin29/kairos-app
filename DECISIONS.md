@@ -1163,3 +1163,26 @@ STILL REMAINING (Room is NOT complete until these are addressed — explicit exc
 Intentionally NOT cached (forms/editors/actions, server-generated or transient): CalendarAddClass,
 CreatePersonalWorkout, CustomWorkout, EditPlan, Browse (picker), Rotation, SchoolApprovals,
 Devices, Reauth, Setup. Revisit Rotation/SchoolApprovals if durable read is wanted.
+
+## Sept 26 2026 — finish Room: WorkoutLog, pending-on-seed, scope, trim, CI (app v0.301)
+
+Addressed the remaining items from the external audit:
+- WorkoutLogViewModel migrated. Extracted the plan->UI-state transform into applyPlan(),
+  called by both the Room seed and the live fetch; caches the RAW WorkoutPlanDto keyed by
+  ("workout", requestedDate ?: "today", personId) and re-applies pending on read.
+- applyPending overlaid on the Room seed everywhere a screen has offline mutations:
+  reading/groceries/bible/tasks/school/money/calendar(init+3 ensure fallbacks)/workout, and
+  Home (extracted freshDashboard's inline pending loop into applyPending(dashboard) used by
+  both). Fixes the cold-start-recovery regression where an offline edit briefly vanished.
+- Cache scope is now the full origin (scheme://host:port) via ApiClient.baseOrigin, not just
+  the hostname. (Invalidates existing cache once; harmless.)
+- Calendar cache split into per-view buckets ("calendar-<view>") so day browsing (many date
+  rows) can't evict the week/month rows; each view trims to 24 independently.
+- CI: added an instrumented-test job (android-emulator-runner) that runs
+  connectedDebugAndroidTest (the PayloadCacheDaoTest) alongside the release build.
+
+Coverage now: every data-bearing read screen routed from AppRoot is Room-backed —
+home, calendar, reading, school, chores, groceries, tasks, bible, money, character,
+collection/gallery, coop, games, workout (log), workout progress. Intentionally NOT cached
+(forms/editors/actions, server-generated or transient): CalendarAddClass, CreatePersonalWorkout,
+CustomWorkout, EditPlan, Browse (picker), Rotation, SchoolApprovals, Devices, Reauth, Setup.

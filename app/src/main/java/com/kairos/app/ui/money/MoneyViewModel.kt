@@ -68,7 +68,8 @@ class MoneyViewModel(
             val reqKey = user ?: "default"
             if (_ui.value.data == null) {
                 runCatching { cache.readAs("money", reqKey, pid, com.kairos.app.data.remote.dto.MoneyDto.serializer()) }
-                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+                    .getOrNull()?.let { applyPending(it, session.pendingWrites()) }
+                    ?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
             }
             try {
                 val data = freshData(user)

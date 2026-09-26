@@ -53,7 +53,8 @@ class GroceriesViewModel(
             val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
             if (_ui.value.data == null) {
                 runCatching { cache.readAs("groceries", "main", pid, com.kairos.app.data.remote.dto.GroceriesDto.serializer()) }
-                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+                    .getOrNull()?.let { applyPending(it, session.pendingWrites()) }
+                    ?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
             }
             try {
                 val data = freshData()
