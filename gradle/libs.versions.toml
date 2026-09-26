@@ -12,6 +12,18 @@ composeBom = "2026.09.00"
 navigationCompose = "2.10.1"
 datastore = "1.1.1"
 
+# Local persistence (Room 3). Room 3 is Kotlin-first and KSP-only. KSP stopped
+# tracking the Kotlin version at 2.3.0 (it's now version-independent), and AGP 9
+# built-in Kotlin requires KSP >= 2.3.1 — 2.3.6 is the recommended AGP-9 line and
+# works with Kotlin 2.2.21. Do NOT drop back to the old Kotlin-coupled KSP line
+# (2.2.21-2.0.x) or add org.jetbrains.kotlin.android: AGP 9 built-in Kotlin makes
+# that plugin incompatible. The DB is a disposable read cache (destructive
+# migration), so a room3 bump never needs a hand-written migration while it holds
+# only regenerable cache data.
+room3 = "3.0.3"
+sqlite = "2.7.0"
+ksp = "2.3.6"
+
 # Networking / serialization / coroutines
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -40,6 +52,10 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3" }
+androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room3" }
+androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
+
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
@@ -55,3 +71,5 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+androidx-room3 = { id = "androidx.room3", version.ref = "room3" }

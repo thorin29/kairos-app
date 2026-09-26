@@ -3,6 +3,9 @@ package com.kairos.app.di
 import android.content.Context
 import coil.ImageLoader
 import com.kairos.app.data.appDataStore
+import com.kairos.app.data.local.KairosDatabase
+import com.kairos.app.data.local.PayloadCacheStore
+import com.kairos.app.data.local.SyncScope
 import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.AuthInterceptor
 import com.kairos.app.data.remote.NetworkMonitor
@@ -106,4 +109,18 @@ class AppContainer(context: Context) {
     /** Nav rail expanded/collapsed, session-scoped: survives navigation and
      *  drawer open/close, resets to collapsed when the app is relaunched. */
     val navExpanded = MutableStateFlow(false)
+
+    /** Local database (the durable read cache). Built lazily so app startup
+     *  never touches SQLite; only the first screen that reads/writes the cache
+     *  opens it. Nothing consumes this yet — it's lit up screen-by-screen. */
+    val database: KairosDatabase by lazy { KairosDatabase.build(appContext) }
+
+    /** Scope-aware read/write over the payload cache. Scope follows the current
+     *  server host, so a server switch can't surface another server's rows. */
+    val payloadCache: PayloadCacheStore by lazy {
+        PayloadCacheStore(
+            dao = database.payloadCacheDao(),
+            scopeProvider = { SyncScope.scopeId(sessionRepository.baseUrlRaw) },
+        )
+    }
 }

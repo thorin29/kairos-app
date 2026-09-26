@@ -1,4 +1,6 @@
 # Changelog
+## 0.291.0
+- Internal groundwork for offline-first (no user-facing change yet): added a local database that will let screens open instantly from their last-loaded data even after the app is fully closed and reopened. Nothing uses it yet — this build just lays the foundation, starting with the calendar next.
 ## 0.290.0
 - Added regression tests for the 0.289 offline-fallback crash fix: "server 502 with a cached copy → serves the cached copy" and "server 502 with nothing cached → returns the error cleanly, no crash." Made the offline interceptor testable. No behavior change from 0.289.
 ## 0.289.0

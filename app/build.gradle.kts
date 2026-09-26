@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room3)
 }
 
 android {
@@ -16,8 +18,8 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 342
-        versionName = "0.290.0"
+        versionCode = 343
+        versionName = "0.291.0"
 
         // Baked in at build time so the app can show when this build was made.
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
@@ -88,6 +90,14 @@ kotlin {
     jvmToolchain(17)
 }
 
+// Room 3 schema export. The generated schema JSON is checked into app/schemas
+// as a record of each version. We use destructive migration for this DB (it's a
+// disposable read cache), so these schemas are documentation, not migration
+// inputs — but the Room Gradle Plugin requires a directory when exportSchema is on.
+room3 {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -103,6 +113,13 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.datastore.preferences)
+
+    // Room 3 (local persistence) + bundled SQLite so the DB uses one consistent
+    // SQLite build across all devices rather than the OS copy. room3-compiler
+    // runs via KSP (Room 3 is KSP-only).
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+    ksp(libs.androidx.room3.compiler)
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.serialization)

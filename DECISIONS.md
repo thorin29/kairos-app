@@ -936,3 +936,68 @@ Until sections are separate destinations, the snapshot approach is the way.
   NetworkMonitor); wiring passes monitor::isOnline. OFFLINE_MAX_STALE is internal.
   The test uses a real OkHttpClient + Cache so a reintroduced "second chain.proceed
   while the live response is open" bug re-triggers the real IllegalStateException.
+
+## Sept 25 2026 — offline-first, step 1: Room foundation (app v0.291)
+
+Committed to Room for cold-start durability (surviving a full app kill/reboot with
+no spinner), the one thing the in-memory ScreenSnapshots (0.209) can't give.
+Incremental, not a big-bang rewrite; this step adds the foundation with **zero
+behavior change** — nothing reads or writes the DB yet.
+
+- **Design: a scoped, keyed payload cache — NOT an entity/DAO per screen.** Kairos
+  screens are rendered server-side (the calendar arrives as a CalendarDto with view,
+  heading, ranges, per-person colors and personal scoping already resolved). Normalizing
+  that into on-device entities would mean re-implementing the web's view logic on the
+  phone — large and bug-prone, and it fights the architecture. Instead one table,
+  payload_cache, stores the last server payload verbatim, keyed by (scopeId, section,
+  viewKey) with a nullable personId. It's the durable twin of ScreenSnapshots and the
+  same table serves every section. Offline *writes* already exist (WriteQueue); on-device
+  filtering isn't needed since the server renders the view — so a durable read cache
+  captures nearly all the benefit at a fraction of the risk. If a screen ever genuinely
+  needs on-device querying, normalize THAT screen then.
+- **It's a cache, not source of truth**, so KairosDatabase uses
+  fallbackToDestructiveMigration(dropAllTables = true): a schema bump drops + refills
+  from the API, and we never hand-write or test a Room migration. If an entity is ever
+  promoted to source-of-truth (e.g. backing offline writes), it must leave destructive
+  migration.
+- **Scope = server host** (SyncScope.scopeId via ApiClient.baseHost). A row is only read
+  back under the scope that wrote it, so pointing at a different server makes old rows
+  unreachable (no stale/foreign render by construction); sign-out calls clearAll().
+  Person separation within a server is at the key level (personId / viewKey), mirroring
+  why money was excluded from the in-memory snapshots.
+- **Versions (all from official docs, Sept 2026):** Room 3 = androidx.room3:room3-runtime
+  3.0.3 (KSP-only, new package androidx.room3.*), sqlite-bundled 2.7.0 (BundledSQLiteDriver,
+  one consistent SQLite across devices), KSP 2.3.6 (version-independent since 2.3.0; AGP 9
+  built-in Kotlin requires KSP >= 2.3.1, so the old Kotlin-coupled line 2.2.21-2.0.x is the
+  WRONG line here). Room Gradle Plugin id "androidx.room3" with
+  room3 { schemaDirectory("$projectDir/schemas") } for exported schema JSON.
+- **Files:** data/local/{PayloadCacheEntity,PayloadCacheDao,KairosDatabase,SyncScope,
+  PayloadCacheStore}.kt; lazy database + payloadCache in AppContainer (lazy so startup never
+  touches SQLite); instrumented app/src/androidTest .../PayloadCacheDaoTest (roundtrip, scope
+  isolation, trim, clear — runs on an emulator: ./gradlew connectedDebugAndroidTest).
+- **Watch at first Gradle sync:** the app has no explicit kotlin-android plugin because
+  AGP 9.4 built-in Kotlin replaces it — and applying org.jetbrains.kotlin.android is
+  INCOMPATIBLE under AGP 9 ("plugin is no longer required for Kotlin support since AGP
+  9.0" / "extension 'kotlin' already registered"). So do NOT add it if KSP fails; instead
+  confirm KSP is on the AGP-9 line (>= 2.3.1; we pin 2.3.6). Known KSP+AGP9 gotcha: it
+  breaks on @Parcelize Room entities (google/ksp#3053) — ours are plain, so we're clear.
+  Primary verification = assembleDebug (KSP generates KairosDatabase_Impl).
+- **Cache ownership (personId is in the primary key).** PK = (scopeId, section, personId,
+  viewKey). personId is a required arg on every PayloadCacheStore call (no default;
+  HOUSEHOLD = "" for shared data) and part of the DB key — so two people enrolled on the
+  same server cannot overwrite or read each other's payload, enforced by the schema rather
+  than by remembering to fold the person into viewKey. Follow-up: scopeId is still the
+  server host; a server-provided stable instanceId/householdId (add to /meta — MetaDto has
+  none today) would be better than host-derived identity if a host is ever rebuilt as a
+  different installation. Until then, sign-out clearAll() + enrollment-change clearScope()
+  cover it.
+- **Destructive migration is scoped to "cache-only".** fallbackToDestructiveMigration is
+  right WHILE this DB holds only regenerable cache/metadata. It has a real cost: a schema
+  bump erases the offline data until the next successful sync, so if the server is down
+  right after an app update the cache is empty. That's acceptable now (server is
+  authoritative, data disposable) but must be reconsidered — with real migrations/
+  auto-migrations off the exported schemas — the moment any entity holds unsynced or
+  user-authored state.
+- **Next (step 2):** wire CalendarViewModel to seed from payloadCache (instant even on cold
+  start), then refresh from the API and write back; fold in / retire the in-memory
+  CalendarSnapshot. Then home, reading, school.
