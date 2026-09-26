@@ -25,6 +25,12 @@ class CharacterViewModel(private val session: SessionRepository, private val cac
 
     init { load() }
 
+    private suspend fun freshCharacter(): CharacterDto {
+        val d = session.loadCharacter()
+        viewModelScope.launch { runCatching { cache.writeAs("character", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.CharacterDto.serializer(), d) } }
+        return d
+    }
+
     fun load() {
         _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
@@ -34,9 +40,8 @@ class CharacterViewModel(private val session: SessionRepository, private val cac
                     .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
             }
             try {
-                val data = session.loadCharacter()
+                val data = freshCharacter()
                 _ui.update { it.copy(loading = false, data = data) }
-                launch { runCatching { cache.writeAs("character", "main", pid, com.kairos.app.data.remote.dto.CharacterDto.serializer(), data) } }
             } catch (e: Exception) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load your character.")
@@ -52,7 +57,7 @@ class CharacterViewModel(private val session: SessionRepository, private val cac
         viewModelScope.launch {
             try {
                 val r = session.hatchCompanion(mode)
-                val data = session.loadCharacter()
+                val data = freshCharacter()
                 _ui.update {
                     it.copy(busy = false, data = data, message = r.hatched?.let { h -> "It's $h!" } ?: "Done!")
                 }

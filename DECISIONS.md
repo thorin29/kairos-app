@@ -1229,3 +1229,24 @@ routes into Room.
 
 Not migrating EditPlan, Rotation, Settings, Approvals or Devices to Room — deliberate: editors
 and authoritative action/security screens stay server-authoritative; preferences stay DataStore.
+
+## Sept 26 2026 — cache consistency after mutations (v0.304)
+
+Cross-cutting fix (external audit): VMs wrote Room only in load(); successful mutation paths
+fetched a fresh DTO into UI without persisting it, so a cold-start-offline after an online
+change could resurface the pre-change payload.
+- Fix: the per-screen fetch helper (freshData()/freshDashboard()) now caches the RAW server
+  DTO itself, so BOTH load() and every mutation refresh persist through one place. Removed
+  each load()'s now-redundant separate write. Caching RAW (not the pending-applied result)
+  also fixes a latent double-apply: the seed re-applies pending, so caching applied then
+  re-applying could duplicate an optimistic insert.
+  Applied to reading/groceries/tasks/bible/home/money(keyed by subject)/school(keyed by term).
+- Character/Coop had no freshData: added freshCharacter()/freshCoop() (cache + return) used by
+  load() and the action reload. RecentWorkouts.delete() now re-fetches authoritative progress
+  and rewrites the cache so a deleted item can't resurface.
+- Chores (refresh -> load), Calendar (actions -> load/ensure*), WorkoutLog (actions -> load)
+  already route post-action refresh through their caching load(), so no change needed.
+- Offline optimistic-to-Room (persisting the optimistic DTO immediately) deliberately NOT done
+  — the write queue carries the change; a later server refresh writes the authoritative copy.
+- Regression test: PayloadCacheStoreTest pins "committed change -> a later read returns the new
+  state" + person-scope isolation, via the typed store the VMs write through.

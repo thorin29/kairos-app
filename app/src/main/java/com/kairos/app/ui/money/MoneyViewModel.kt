@@ -75,7 +75,6 @@ class MoneyViewModel(
                 val data = freshData(user)
                 currentUser = data.selectedId
                 _ui.update { it.copy(loading = false, data = data) }
-                launch { runCatching { cache.writeAs("money", reqKey, pid, com.kairos.app.data.remote.dto.MoneyDto.serializer(), data) } }
             } catch (e: ApiException) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
@@ -85,8 +84,12 @@ class MoneyViewModel(
         }
     }
 
-    private suspend fun freshData(user: String?): MoneyDto =
-        applyPending(session.loadMoney(user), session.pendingWrites())
+    private suspend fun freshData(user: String?): MoneyDto {
+        val raw = session.loadMoney(user)
+        val key = user ?: "default"
+        viewModelScope.launch { runCatching { cache.writeAs("money", key, session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.MoneyDto.serializer(), raw) } }
+        return applyPending(raw, session.pendingWrites())
+    }
 
     fun clearAddError() = _ui.update { it.copy(addError = null) }
 

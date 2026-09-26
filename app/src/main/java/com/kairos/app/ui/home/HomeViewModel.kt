@@ -76,7 +76,6 @@ class HomeViewModel(
             try {
                 val data = freshDashboard()
                 _ui.update { it.copy(loading = false, refreshing = false, dashboard = data, loadError = null) }
-                launch { runCatching { cache.write("home", "main", personId(), encodeDash(data)) } }
             } catch (e: ApiException) {
                 _ui.update {
                     it.copy(
@@ -92,7 +91,13 @@ class HomeViewModel(
 
     /** Load the dashboard and re-apply any still-unsynced task completions, so a
      *  tick made offline stays put even after navigating away and back. */
-    private suspend fun freshDashboard(): DashboardDto = applyPending(session.loadDashboard())
+    private suspend fun freshDashboard(): DashboardDto {
+        // Fetch raw + cache it, so both load() and every post-action refresh keep
+        // Room current (pending is re-applied on the seed).
+        val raw = session.loadDashboard()
+        viewModelScope.launch { runCatching { cache.write("home", "main", personId(), encodeDash(raw)) } }
+        return applyPending(raw)
+    }
 
     /** Overlay the offline write queue onto a dashboard (fresh or cached), so an
      *  offline edit shows on the cold-start seed too, not only after a live fetch. */

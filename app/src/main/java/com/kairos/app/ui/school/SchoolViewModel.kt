@@ -49,7 +49,6 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data, term = it.term ?: data.selectedTermId) }
                 com.kairos.app.ui.common.ScreenSnapshots.school = data
-                launch { runCatching { cache.writeAs("school", reqTerm, pid, com.kairos.app.data.remote.dto.SchoolDto.serializer(), data) } }
             } catch (e: Exception) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load school.")
@@ -59,8 +58,12 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
         }
     }
 
-    private suspend fun freshData(): SchoolDto =
-        applyPending(session.loadSchool(_ui.value.term), session.pendingWrites())
+    private suspend fun freshData(): SchoolDto {
+        val raw = session.loadSchool(_ui.value.term)
+        val key = _ui.value.term ?: "main"
+        viewModelScope.launch { runCatching { cache.writeAs("school", key, session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.SchoolDto.serializer(), raw) } }
+        return applyPending(raw, session.pendingWrites())
+    }
 
     fun setTerm(term: String?) {
         _ui.update { it.copy(term = term) }

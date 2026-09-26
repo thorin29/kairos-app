@@ -50,7 +50,6 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.tasks = data
-                launch { runCatching { cache.writeAs("tasks", "main", pid, com.kairos.app.data.remote.dto.TasksListDto.serializer(), data) } }
             } catch (e: Exception) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load tasks.")
@@ -60,8 +59,16 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
         }
     }
 
-    private suspend fun freshData(): TasksListDto =
-        applyPending(session.loadTasksList(), session.pendingWrites())
+    private suspend fun freshData(): TasksListDto {
+        // Fetch the RAW server DTO and cache it (raw, so the seed can re-apply
+        // pending once). Every caller — load() and every mutation path — persists
+        // through here, so a successful change keeps Room current.
+        val raw = session.loadTasksList()
+        viewModelScope.launch {
+            runCatching { cache.writeAs("tasks", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.TasksListDto.serializer(), raw) }
+        }
+        return applyPending(raw, session.pendingWrites())
+    }
 
     /** Re-apply the still-unsynced writes on top of a load so offline changes stay
      *  visible even after navigating away and back (the optimistic VM state alone

@@ -1,4 +1,6 @@
 # Changelog
+## 0.304.0
+- The on-device cache now stays current after you change something. Previously a screen saved its data to the cache only on load, so a change made online (completing a task, logging reading, hatching a companion, etc.) updated the screen but not the saved copy — after a full close with the server down, the older state could briefly reappear. Now every successful change writes through to the cache, so what you last saw is what comes back offline.
 ## 0.303.0
 - Reading Goals now shows your goal list offline (cached on-device, like Browse Workouts), instead of an error when the server's unreachable. Editing a goal's progress still needs a connection. Also fixed a consistency bug where pulling to refresh Workouts updated the on-screen Progress/This Week but not the saved copy, so a cold start could briefly show older numbers.
 ## 0.302.0

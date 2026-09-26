@@ -25,6 +25,12 @@ class CoopViewModel(private val session: SessionRepository, private val cache: P
 
     init { load() }
 
+    private suspend fun freshCoop(): CoopDto {
+        val d = session.loadCoop()
+        viewModelScope.launch { runCatching { cache.writeAs("coop", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.CoopDto.serializer(), d) } }
+        return d
+    }
+
     fun load() {
         _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
@@ -34,9 +40,8 @@ class CoopViewModel(private val session: SessionRepository, private val cache: P
                     .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
             }
             try {
-                val data = session.loadCoop()
+                val data = freshCoop()
                 _ui.update { it.copy(loading = false, data = data) }
-                launch { runCatching { cache.writeAs("coop", "main", pid, com.kairos.app.data.remote.dto.CoopDto.serializer(), data) } }
             } catch (e: Exception) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load the family goal.")
@@ -52,7 +57,7 @@ class CoopViewModel(private val session: SessionRepository, private val cache: P
         viewModelScope.launch {
             try {
                 block()
-                _ui.update { it.copy(busy = false, data = session.loadCoop()) }
+                _ui.update { it.copy(busy = false, data = freshCoop()) }
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false, message = e.message ?: "Something went wrong.") }
             }

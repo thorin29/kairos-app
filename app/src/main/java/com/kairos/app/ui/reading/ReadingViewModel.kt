@@ -62,7 +62,6 @@ class ReadingViewModel(
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.reading = data
-                launch { runCatching { cache.writeAs("reading", "main", pid, com.kairos.app.data.remote.dto.BooksDto.serializer(), data) } }
             } catch (e: ApiException) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
@@ -72,8 +71,16 @@ class ReadingViewModel(
         }
     }
 
-    private suspend fun freshData(): BooksDto =
-        applyPending(session.loadBooks(), session.pendingWrites())
+    private suspend fun freshData(): BooksDto {
+        // Fetch the RAW server DTO and cache it (raw, so the seed can re-apply
+        // pending once). Every caller — load() and every mutation path — persists
+        // through here, so a successful change keeps Room current.
+        val raw = session.loadBooks()
+        viewModelScope.launch {
+            runCatching { cache.writeAs("reading", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.BooksDto.serializer(), raw) }
+        }
+        return applyPending(raw, session.pendingWrites())
+    }
 
     fun clearSaveError() = _ui.update { it.copy(saveError = null) }
 

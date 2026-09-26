@@ -63,7 +63,6 @@ class BibleViewModel(
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.bible = data
-                launch { runCatching { cache.writeAs("bible", "main", pid, com.kairos.app.data.remote.dto.ReadingDto.serializer(), data) } }
             } catch (e: ApiException) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
@@ -73,8 +72,16 @@ class BibleViewModel(
         }
     }
 
-    private suspend fun freshData(): ReadingDto =
-        applyPending(session.loadReading(), session.pendingWrites())
+    private suspend fun freshData(): ReadingDto {
+        // Fetch the RAW server DTO and cache it (raw, so the seed can re-apply
+        // pending once). Every caller — load() and every mutation path — persists
+        // through here, so a successful change keeps Room current.
+        val raw = session.loadReading()
+        viewModelScope.launch {
+            runCatching { cache.writeAs("bible", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.ReadingDto.serializer(), raw) }
+        }
+        return applyPending(raw, session.pendingWrites())
+    }
 
     fun setTab(tab: BibleTab) = _ui.update { it.copy(tab = tab) }
 

@@ -58,6 +58,14 @@ class RecentWorkoutsViewModel(private val session: SessionRepository, private va
                 _ui.update {
                     it.copy(history = it.history.filterNot { h -> h.id == id }, deletingIds = it.deletingIds - id)
                 }
+                // Re-fetch authoritative progress and refresh the durable cache so
+                // the deleted item can't resurface from Room on a cold start.
+                launch {
+                    runCatching { session.loadWorkoutProgress() }.getOrNull()?.let { p ->
+                        _ui.update { it.copy(history = p.history) }
+                        runCatching { cache.writeAs("workout-progress", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.WorkoutProgressDto.serializer(), p) }
+                    }
+                }
             } catch (e: ApiException) {
                 _ui.update { it.copy(deletingIds = it.deletingIds - id, error = e.error.message) }
             }

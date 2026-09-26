@@ -60,7 +60,6 @@ class GroceriesViewModel(
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.groceries = data
-                launch { runCatching { cache.writeAs("groceries", "main", pid, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), data) } }
             } catch (e: ApiException) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
@@ -70,8 +69,16 @@ class GroceriesViewModel(
         }
     }
 
-    private suspend fun freshData(): GroceriesDto =
-        applyPending(session.loadGroceries(), session.pendingWrites())
+    private suspend fun freshData(): GroceriesDto {
+        // Fetch the RAW server DTO and cache it (raw, so the seed can re-apply
+        // pending once). Every caller — load() and every mutation path — persists
+        // through here, so a successful change keeps Room current.
+        val raw = session.loadGroceries()
+        viewModelScope.launch {
+            runCatching { cache.writeAs("groceries", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), raw) }
+        }
+        return applyPending(raw, session.pendingWrites())
+    }
 
     fun clearMessage() = _ui.update { it.copy(message = null) }
 
