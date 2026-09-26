@@ -1,4 +1,8 @@
 # Changelog
+## 0.297.0
+- Calendar offline behavior: a day, week, or month you've opened before now shows from the on-device database when the server is unreachable, instead of a spinner. For a period you've never opened while offline, the agenda/week/month views now show a short "you're offline — this view isn't saved" note instead of spinning forever. (Nothing preloads in the background; it saves what you actually open.)
+## 0.296.0
+- Money now also paints instantly from the on-device database after a full close, then refreshes, and keeps showing your last data if the server is unreachable. Its cache is keyed to the specific person whose money you're viewing, so switching between people can never briefly show the wrong person's figures. This completes the offline-first coverage across every screen.
 ## 0.295.0
 - Reading, School, Chores, Groceries, Tasks and the Bible plan now paint your last-loaded data instantly — including after a full close — instead of a spinner, reading from the on-device database and refreshing in the background. If the server is unreachable they keep showing your last data instead of an error. These are single/list views, so nothing about what they show or how they navigate changes; they just appear faster and survive a server outage.
 ## 0.294.0

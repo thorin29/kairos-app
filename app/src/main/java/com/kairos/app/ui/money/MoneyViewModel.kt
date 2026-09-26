@@ -14,6 +14,7 @@ import com.kairos.app.data.remote.dto.RewardApproveMonthRequest
 import com.kairos.app.data.remote.dto.StartingFundsRequest
 import com.kairos.app.data.remote.dto.UpdateMoneyRequest
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,7 @@ data class MoneyUiState(
  */
 class MoneyViewModel(
     private val session: SessionRepository,
+    private val cache: PayloadCacheStore,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(MoneyUiState())
@@ -59,12 +61,25 @@ class MoneyViewModel(
         currentUser = user
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            // Key by the SUBJECT being viewed (not the viewer), so one kid's
+            // cached money can never seed another's. Null user = the default
+            // subject the server picks for a bare load; keep it under "default".
+            val reqKey = user ?: "default"
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("money", reqKey, pid, com.kairos.app.data.remote.dto.MoneyDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
                 val data = freshData(user)
                 currentUser = data.selectedId
                 _ui.update { it.copy(loading = false, data = data) }
+                launch { runCatching { cache.writeAs("money", reqKey, pid, com.kairos.app.data.remote.dto.MoneyDto.serializer(), data) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, loadError = e.error.message)
+                    else it.copy(loading = false)
+                }
             }
         }
     }

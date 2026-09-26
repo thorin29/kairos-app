@@ -102,7 +102,7 @@ fun MoneyScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: MoneyViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { MoneyViewModel(container.sessionRepository) }
+            initializer { MoneyViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

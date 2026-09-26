@@ -120,6 +120,12 @@ class CalendarViewModel(
     val pages: StateFlow<Map<String, CalendarDto>> = _pages.asStateFlow()
     private val inFlightDays = mutableSetOf<String>()
 
+    /** Keys (day iso / week-start / month-start) whose fetch failed with nothing
+     *  cached — the pager shows an offline notice instead of spinning forever.
+     *  Cleared when the key later loads. */
+    private val _unavailable = MutableStateFlow<Set<String>>(emptySet())
+    val unavailable: StateFlow<Set<String>> = _unavailable.asStateFlow()
+
     /** Fetch + cache one day for the pager, unless already present or in flight. */
     fun ensureDay(iso: String) {
         if (_pages.value.containsKey(iso) || iso in inFlightDays) return
@@ -128,8 +134,16 @@ class CalendarViewModel(
             try {
                 val dto = loadCal("day", iso)
                 _pages.update { it + (dto.date to dto) }
+                _unavailable.update { it - iso }
+                launch { runCatching { cache.write("calendar", keyFor(CalTab.DAY, iso), personId(), encodeCal(dto)) } }
             } catch (_: Exception) {
-                // Leave uncached; the page shows a spinner and can retry on the next swipe.
+                // Offline/server error: show this from the durable cache if it was
+                // opened before; otherwise mark unavailable so the page shows an
+                // offline notice instead of an endless spinner.
+                val saved = runCatching { cache.read("calendar", keyFor(CalTab.DAY, iso), personId()) }
+                    .getOrNull()?.let { decodeCal(it) }
+                if (saved != null) _pages.update { it + (iso to saved) }
+                else _unavailable.update { it + iso }
             } finally {
                 inFlightDays.remove(iso)
             }
@@ -156,7 +170,16 @@ class CalendarViewModel(
             try {
                 val dto = loadCal("month", monthStartIso)
                 _monthPages.update { it + (monthStartIso to dto) }
+                _unavailable.update { it - monthStartIso }
+                launch { runCatching { cache.write("calendar", keyFor(CalTab.MONTH, monthStartIso), personId(), encodeCal(dto)) } }
             } catch (_: Exception) {
+                // Offline/server error: show this from the durable cache if it was
+                // opened before; otherwise mark unavailable so the page shows an
+                // offline notice instead of an endless spinner.
+                val saved = runCatching { cache.read("calendar", keyFor(CalTab.MONTH, monthStartIso), personId()) }
+                    .getOrNull()?.let { decodeCal(it) }
+                if (saved != null) _monthPages.update { it + (monthStartIso to saved) }
+                else _unavailable.update { it + monthStartIso }
             } finally {
                 inFlightMonths.remove(monthStartIso)
             }
@@ -182,7 +205,16 @@ class CalendarViewModel(
             try {
                 val dto = loadCal("week", weekStartIso)
                 _weekPages.update { it + (weekStartIso to dto) }
+                _unavailable.update { it - weekStartIso }
+                launch { runCatching { cache.write("calendar", keyFor(CalTab.WEEK, weekStartIso), personId(), encodeCal(dto)) } }
             } catch (_: Exception) {
+                // Offline/server error: show this from the durable cache if it was
+                // opened before; otherwise mark unavailable so the page shows an
+                // offline notice instead of an endless spinner.
+                val saved = runCatching { cache.read("calendar", keyFor(CalTab.WEEK, weekStartIso), personId()) }
+                    .getOrNull()?.let { decodeCal(it) }
+                if (saved != null) _weekPages.update { it + (weekStartIso to saved) }
+                else _unavailable.update { it + weekStartIso }
             } finally {
                 inFlightWeeks.remove(weekStartIso)
             }

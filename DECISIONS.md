@@ -1082,3 +1082,29 @@ each screen is just a seed line + a write line.
 Room now covers every snapshot-backed screen. Money remains deliberately excluded (per-user
 flash risk); with personId in the key it could be added later if wanted. The calendar
 day/agenda offline-spinner is still a separate, behavior-changing follow-up.
+
+## Sept 26 2026 — offline-first, step 5: Money (app v0.296)
+
+Money was the last screen and the one held out of the in-memory snapshots (per-user data
+could flash the wrong kid). Safe now because the durable cache keys by the SUBJECT:
+("money", requestedUser ?: "default", viewerPersonId). Seed only on a true cold start
+(data == null), never mid-switch, so selecting a different person can't show a stale one.
+Write on every successful load under the requested-user key; keep-on-error. Wired the one
+MoneyScreen construction site. Room now covers every data screen in the app.
+
+## Sept 26 2026 — Calendar offline pager: no more endless spinner (app v0.297)
+
+The day/agenda/week/month pagers fetch each period via ensureDay/ensureMonth/ensureWeek and
+showed a CircularProgressIndicator whenever the page was null — so offline, a never-opened
+period spun forever (the airplane-mode "click a future day" case).
+- ensure* now cache each fetched period durably (keyFor(view, iso)) and, on failure, fall
+  back to that cache — so any period opened before shows offline instead of spinning.
+- A period that fails with nothing cached is added to _unavailable (StateFlow<Set<String>>);
+  the Agenda, Week and Month pagers render an OfflineDayNotice ("you're offline — this view
+  isn't saved") for those keys instead of a spinner. Keys line up: day/agenda use the iso,
+  week uses week-start, month uses month-start — the same keys ensure* marks.
+- Day and 3-day pagers bury the spinner inside sub-composables (DayGridPage / ThreeDayGrid);
+  left as-is for now to avoid threading state through them — they still spin for a
+  never-opened offline period. Agenda (the reported case) + week + month are covered.
+- Not preloading anything: the cache only holds what the user actually opens.
+This is the behavior-changing calendar piece flagged in 0.293; done on its own version.

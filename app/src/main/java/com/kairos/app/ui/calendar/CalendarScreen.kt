@@ -409,10 +409,13 @@ private fun MonthPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
     ) { page ->
+        val unavailable by vm.unavailable.collectAsState()
         val pd = monthPages[keyFor(page)]
         if (pd != null) {
             val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
             MonthChipsView(pd, evs, vm, onEventClick)
+        } else if (keyFor(page) in unavailable) {
+            OfflineDayNotice()
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 androidx.compose.material3.CircularProgressIndicator()
@@ -601,6 +604,7 @@ private fun WeekPager(
             state = pagerState,
             modifier = Modifier.weight(1f),
         ) { page ->
+            val unavailable by vm.unavailable.collectAsState()
             val pd = weekPages[keyFor(page)]
             if (pd != null) {
                 val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
@@ -612,6 +616,8 @@ private fun WeekPager(
                     scroll = vScroll,
                     onEventClick = onEventClick,
                 )
+            } else if (keyFor(page) in unavailable) {
+                OfflineDayNotice()
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     androidx.compose.material3.CircularProgressIndicator()
@@ -940,14 +946,24 @@ private fun AgendaPager(
     ) { page ->
         val iso = dateFor(page)
         val pd = pages[iso]
+        val unavailable by vm.unavailable.collectAsState()
         if (pd != null) {
             val evs = remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
             AgendaView(evs, iso, today, onEventClick)
+        } else if (iso in unavailable) {
+            OfflineDayNotice()
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 androidx.compose.material3.CircularProgressIndicator()
             }
         }
+    }
+}
+
+@Composable
+private fun OfflineDayNotice() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("You're offline \u2014 this view isn't saved.", modifier = Modifier.padding(24.dp))
     }
 }
 
