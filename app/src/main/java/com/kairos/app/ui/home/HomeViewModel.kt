@@ -19,6 +19,7 @@ import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import com.kairos.app.data.remote.dto.MarkReadingRequest
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,12 +39,34 @@ data class HomeUiState(
     val signingOut: Boolean = false,
 )
 
-class HomeViewModel(private val session: SessionRepository) : ViewModel() {
+class HomeViewModel(
+    private val session: SessionRepository,
+    private val cache: PayloadCacheStore,
+) : ViewModel() {
 
     private val _ui = MutableStateFlow(HomeUiState())
     val ui: StateFlow<HomeUiState> = _ui.asStateFlow()
 
+    private fun personId(): String = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+    private fun encodeDash(d: DashboardDto): String =
+        ApiClient.json.encodeToString(DashboardDto.serializer(), d)
+    private fun decodeDash(s: String): DashboardDto? =
+        runCatching { ApiClient.json.decodeFromString(DashboardDto.serializer(), s) }.getOrNull()
+
     init {
+        // Instant paint from the durable cache (survives a cold start) so Home
+        // shows your last dashboard immediately instead of a spinner; load()
+        // refreshes over it. Home is a single view — no date/tab — so this only
+        // affects how fast it paints, never what it shows first.
+        viewModelScope.launch {
+            if (_ui.value.dashboard == null) {
+                val seed = runCatching { cache.read("home", "main", personId()) }
+                    .getOrNull()?.let { decodeDash(it) }
+                if (seed != null) _ui.update {
+                    if (it.dashboard == null) it.copy(dashboard = seed, loading = false) else it
+                }
+            }
+        }
         viewModelScope.launch { session.tasksChanged.collect { refresh() } }
     }
 
@@ -53,6 +76,7 @@ class HomeViewModel(private val session: SessionRepository) : ViewModel() {
             try {
                 val data = freshDashboard()
                 _ui.update { it.copy(loading = false, refreshing = false, dashboard = data, loadError = null) }
+                launch { runCatching { cache.write("home", "main", personId(), encodeDash(data)) } }
             } catch (e: ApiException) {
                 _ui.update {
                     it.copy(

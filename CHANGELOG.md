@@ -1,4 +1,8 @@
 # Changelog
+## 0.294.0
+- Home now paints your last dashboard instantly — including after a full close — instead of a spinner while it loads, reading from the on-device database, then refreshing in the background. Home is a single view, so nothing about what it shows or how it navigates changes; it just appears faster. If the server is unreachable it keeps showing your last dashboard (as it already did).
+## 0.293.0
+- Calendar always opens on today again after a full close (0.292 had it reopening to the last view/date you'd had open). Returning to the calendar mid-session still restores where you were, as before. The instant-paint/offline-resilience from 0.292 stays — a cold start now seeds today's view specifically, so there's no spinner when today was already loaded, and it never opens on the wrong day.
 ## 0.292.0
 - Calendar now paints instantly from your last-seen data even after the app was fully closed and reopened (a cold start), reading from the on-device database added in 0.291 — no spinner while it refreshes in the background. If the server is unreachable when you open the calendar, it keeps showing your saved calendar instead of an error. Note: after a full close, the calendar reopens to the view/date you last had (same as returning to it mid-session), rather than jumping to today.
 ## 0.291.0

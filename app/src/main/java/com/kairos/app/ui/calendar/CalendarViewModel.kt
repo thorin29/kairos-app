@@ -89,6 +89,20 @@ class CalendarViewModel(
     private fun decodeCal(s: String): CalendarDto? =
         runCatching { ApiClient.json.decodeFromString(CalendarDto.serializer(), s) }.getOrNull()
 
+    /** Cache key for a view: the tab plus its date anchored the way that view is
+     *  addressed (week -> week-start Sunday, month -> first of month, else the
+     *  day). A null date resolves to today, so a cold start reads today's view. */
+    private fun keyFor(tab: CalTab, dateIso: String?): String {
+        val d = dateIso?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+            ?: java.time.LocalDate.now()
+        val anchor = when (tab) {
+            CalTab.WEEK -> d.minusDays((d.dayOfWeek.value % 7).toLong())
+            CalTab.MONTH -> d.withDayOfMonth(1)
+            else -> d
+        }
+        return "${tab.serverValue}|$anchor"
+    }
+
     /** Re-run the reminder scheduler after any event change, so a new/edited/
      *  deleted event's alarms are (re)set right away — not only after the next
      *  app launch or the 2-hour worker. Online event writes don't touch the
@@ -190,19 +204,27 @@ class CalendarViewModel(
             // cold start (process death) fall back to the durable Room cache, so
             // the last-seen calendar for this tab shows immediately instead of a
             // spinner. Tab-keyed, mirroring CalendarSnapshot.
+            // Instant paint without changing where the calendar opens:
+            //  - warm return (same process): the in-memory snapshot restores the
+            //    exact view AND date you left, as it always has.
+            //  - cold start (process death): seed from the durable cache for
+            //    TODAY's view only, and leave the date null so load() opens on
+            //    today. A fresh launch always snaps to today, never your last day;
+            //    the seed just removes today's spinner when today was cached.
             val snap = if (CalendarSnapshot.tab == startTab) CalendarSnapshot.data else null
-            val cached = snap ?: runCatching {
-                cache.read("calendar", startTab.serverValue, personId())
-            }.getOrNull()?.let { decodeCal(it) }
+            val durable = if (snap == null) runCatching {
+                cache.read("calendar", keyFor(startTab, null), personId())
+            }.getOrNull()?.let { decodeCal(it) } else null
+            val paint = snap ?: durable
             _ui.update {
                 it.copy(
                     tab = startTab,
                     defaultView = def,
-                    data = cached ?: it.data,
-                    date = cached?.date ?: it.date,
+                    data = paint ?: it.data,
+                    date = snap?.date ?: it.date,
                 )
             }
-            if (cached != null) cachePages(startTab, cached)
+            if (paint != null) cachePages(startTab, paint)
             load()
         }
     }
@@ -226,7 +248,7 @@ class CalendarViewModel(
                 cachePages(s.tab, data)
                 // Durable twin of the snapshot: persist this view so a cold start
                 // or a server outage can still paint it. Off the UI path.
-                launch { runCatching { cache.write("calendar", s.tab.serverValue, personId(), encodeCal(data)) } }
+                launch { runCatching { cache.write("calendar", keyFor(s.tab, data.date), personId(), encodeCal(data)) } }
             } catch (e: ApiException) {
                 // If we already have data (last-seen, or the durable cache), keep
                 // showing it rather than replacing a good calendar with an error.

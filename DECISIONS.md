@@ -1033,3 +1033,34 @@ the in-memory CalendarSnapshot (kept, not removed).
 - **Next:** once this proves out, apply the same seed/write/keep-on-error pattern to
   home, then reading/school. Optional step 2b: instant paint keyed to today so a cold
   start shows today's cached view specifically.
+
+## Sept 26 2026 — Calendar cold start snaps to today (app v0.293)
+
+Fix on top of 0.292 (not a revert). The 0.292 durable seed was tab-keyed and set the
+opening date from the cached view, so a cold start reopened to the last-seen date. Now:
+- keyFor(tab, date) anchors the cache key by date (week->week-start, month->month-start,
+  else the day); a null date resolves to today.
+- Cold start seeds from keyFor(tab, null) = TODAY's view and leaves ui.date null, so
+  load() opens on today. Fresh launch always snaps to today; the seed only removes today's
+  spinner when today was already cached (no wrong-day flash, since the seed IS today).
+- Warm return (in-memory CalendarSnapshot) still restores the exact view+date left, as
+  before — that mid-session behavior was never in question.
+- Writes now key by keyFor(tab, data.date), so each viewed period is stored under its own
+  anchor (trimmed to 24 per tab/person).
+Lesson stands: the durability layer must not change which view/date the app opens to.
+
+## Sept 26 2026 — offline-first, step 3: Home reads through the cache (app v0.294)
+
+Same pattern as Calendar, and simpler: Home is a single view (no tab/date), so there is
+no "opens to the wrong thing" risk — the seed only changes paint speed.
+- Seed: HomeViewModel.init reads cache ("home","main",personId) and paints the last
+  dashboard if present, before load() refreshes. personId via session.currentPersonId().
+- Write: load() success persists the DashboardDto (ApiClient.json) fire-and-forget.
+- Keep-on-error was already there (loadError only when dashboard == null), so server-down
+  already keeps the last dashboard — no change needed.
+- Wired container.payloadCache into all three HomeViewModel construction sites in
+  HomeScreen. Sign-out already clears the cache (AppRoot, from step 2).
+- Files: HomeViewModel.kt, HomeScreen.kt, app/build.gradle.kts.
+Remaining screens to give the same treatment (each its own version): reading, school,
+then the lighter ones. Deliberately NOT touching the calendar day/agenda pager offline
+spinner here — that's a separate, behavior-changing piece to do on its own.

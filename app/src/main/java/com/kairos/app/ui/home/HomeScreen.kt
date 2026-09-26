@@ -100,7 +100,7 @@ fun HomeScreen(
     val container = rememberContainer()
     val vm: HomeViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { HomeViewModel(container.sessionRepository) }
+            initializer { HomeViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()
@@ -696,7 +696,7 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
     }
     val vm: HomeViewModel = viewModel(
         viewModelStoreOwner = owner,
-        factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
@@ -910,7 +910,7 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
     }
     val vm: HomeViewModel = viewModel(
         viewModelStoreOwner = owner,
-        factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { HomeViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
