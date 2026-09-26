@@ -1,4 +1,6 @@
 # Changelog
+## 0.306.0
+- Closes the last offline-durability edge: on screens that show a change immediately (Reading, Groceries, Bible, Money, Tasks), if the change reaches the server but the follow-up refresh fails (e.g. connectivity drops right after), the app now keeps your change on screen and saves it to the on-device cache, instead of reverting it and later showing the old value after a cold start. A failed change (server never accepted it) still reverts as before.
 ## 0.305.0
 - Calendar: fixed a bug where an event created offline could appear twice after a full close (the cache stored the calendar with the pending change already applied, then applied it again on restore). The calendar now caches the plain server data and overlays pending changes once. Workout Log: logging or expiring a workout now updates the saved copy too, so a completed workout can't revert to un-logged after a cold start with the server down.
 ## 0.304.0

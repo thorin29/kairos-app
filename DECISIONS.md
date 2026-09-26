@@ -1269,3 +1269,25 @@ POST-succeeds-then-GET-fails window — a mutation's follow-up refresh can fail 
 already accepted the change, leaving Room at the prior payload until the next successful load.
 Closing it means persisting the optimistic DTO to Room at mutation time (the deferred
 offline-optimistic-to-Room step). The write queue still carries the change regardless.
+
+## Sept 26 2026 — optimistic-persist on write-ok/refresh-fail (v0.306)
+
+Closes the POST-succeeds-then-refresh-GET-fails window for the screens that optimistically
+show a change before refreshing: Reading, Groceries, Bible, Money, Tasks. Each mutation helper
+now splits its error handling:
+- write() throws (server never accepted) -> revert to `before` (unchanged behavior).
+- write() ok but the follow-up freshData() GET throws -> KEEP the optimistic state on screen
+  AND persist that optimistic DTO to the cache. Safe from the calendar-style double-apply
+  because the write already synced (left pendingWrites()), so a later seed applies nothing on
+  top. Also fixes a pre-existing UX bug where a successful change was reverted on a failed
+  refresh.
+Correction to an earlier claim: "the write queue carries the change regardless" was wrong — a
+synced write leaves the queue, so without this persist Room could stay at the prior payload.
+Home/Character/Coop are NOT affected: they reload on an action (no optimistic UI), so UI and
+cache stay in sync on a failed GET — nothing to persist.
+Narrow residual (accepted): if OTHER unsynced writes are still queued at the moment of the
+persist, a seed could transiently double-apply those until the next successful load. Rare
+(needs concurrent offline + online writes) and self-heals.
+Test note: PayloadCacheStoreTest already pins "committed change -> later read returns new" at
+the store level. A VM-level test of this exact path (mock session: write ok, GET throws ->
+assert cache holds the optimistic DTO) needs a fake SessionRepository; deferred.

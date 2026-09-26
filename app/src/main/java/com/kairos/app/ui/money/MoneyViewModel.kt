@@ -133,21 +133,27 @@ class MoneyViewModel(
         val busy = if (form) _ui.value.adding else _ui.value.approving
         if (busy) return
         val before = _ui.value.data ?: return
+        val optimistic = mutate(before)
         _ui.update {
-            val d = mutate(before)
-            if (form) it.copy(adding = true, addError = null, data = d) else it.copy(approving = true, approveError = null, data = d)
+            if (form) it.copy(adding = true, addError = null, data = optimistic) else it.copy(approving = true, approveError = null, data = optimistic)
         }
         onDone()
         viewModelScope.launch {
             try {
                 write()
-                val data = if (session.isOnline()) freshData(currentUser) else _ui.value.data
-                _ui.update { if (form) it.copy(adding = false, data = data) else it.copy(approving = false, data = data) }
             } catch (e: ApiException) {
                 _ui.update {
                     if (form) it.copy(adding = false, addError = e.error.message, data = before)
                     else it.copy(approving = false, approveError = e.error.message, data = before)
                 }
+                return@launch
+            }
+            try {
+                val data = if (session.isOnline()) freshData(currentUser) else _ui.value.data
+                _ui.update { if (form) it.copy(adding = false, data = data) else it.copy(approving = false, data = data) }
+            } catch (e: ApiException) {
+                _ui.update { if (form) it.copy(adding = false) else it.copy(approving = false) }
+                runCatching { cache.writeAs("money", currentUser ?: "default", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.MoneyDto.serializer(), optimistic) }
             }
         }
     }

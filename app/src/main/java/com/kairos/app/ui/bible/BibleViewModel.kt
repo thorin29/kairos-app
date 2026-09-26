@@ -135,14 +135,21 @@ class BibleViewModel(
     private fun optimistic(mutate: (ReadingDto) -> ReadingDto, write: suspend () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data ?: return
-        _ui.update { it.copy(busy = true, actionError = null, data = mutate(before)) }
+        val optimistic = mutate(before)
+        _ui.update { it.copy(busy = true, actionError = null, data = optimistic) }
         viewModelScope.launch {
             try {
                 write()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busy = false, data = before, actionError = e.error.message) }
+                return@launch
+            }
+            try {
                 val data = if (session.isOnline()) freshData() else _ui.value.data
                 _ui.update { it.copy(busy = false, savedTick = it.savedTick + 1, data = data) }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busy = false, data = before, actionError = e.error.message) }
+                _ui.update { it.copy(busy = false, savedTick = it.savedTick + 1) }
+                runCatching { cache.writeAs("bible", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.ReadingDto.serializer(), optimistic) }
             }
         }
     }

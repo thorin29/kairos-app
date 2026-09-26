@@ -109,21 +109,31 @@ class ReadingViewModel(
         if (form && _ui.value.saving) return
         if (!form && _ui.value.busy) return
         val before = _ui.value.data
+        val optimistic = before?.let(change)
         _ui.update {
-            val d = before?.let(change) ?: it.data
+            val d = optimistic ?: it.data
             if (form) it.copy(saving = true, saveError = null, data = d) else it.copy(busy = true, data = d)
         }
         onDone()
         viewModelScope.launch {
             try {
                 write()
-                val data = if (session.isOnline()) freshData() else _ui.value.data
-                _ui.update { if (form) it.copy(saving = false, data = data) else it.copy(busy = false, data = data) }
             } catch (e: ApiException) {
                 _ui.update {
                     if (form) it.copy(saving = false, saveError = e.error.message, data = before)
                     else it.copy(busy = false, loadError = e.error.message, data = before)
                 }
+                return@launch
+            }
+            // Write accepted. Refresh to authoritative; if the refresh GET fails,
+            // keep the optimistic state and persist it (the write already synced, so
+            // a later cold-start seed won't double-apply it).
+            try {
+                val data = if (session.isOnline()) freshData() else _ui.value.data
+                _ui.update { if (form) it.copy(saving = false, data = data) else it.copy(busy = false, data = data) }
+            } catch (e: ApiException) {
+                _ui.update { if (form) it.copy(saving = false) else it.copy(busy = false) }
+                optimistic?.let { runCatching { cache.writeAs("reading", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.BooksDto.serializer(), it) } }
             }
         }
     }

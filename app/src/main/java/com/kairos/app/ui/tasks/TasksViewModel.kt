@@ -105,17 +105,24 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
     private fun optimisticMove(id: String, toDone: Boolean, write: suspend () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data ?: return
-        _ui.update { it.copy(busy = true, message = null, data = moveTask(before, id, toDone)) }
+        val optimistic = moveTask(before, id, toDone)
+        _ui.update { it.copy(busy = true, message = null, data = optimistic) }
         viewModelScope.launch {
             try {
                 write()
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Something went wrong.") }
+                return@launch
+            }
+            try {
                 if (session.isOnline()) {
                     _ui.update { it.copy(busy = false, data = freshData()) }
                 } else {
                     _ui.update { it.copy(busy = false) }
                 }
             } catch (e: Exception) {
-                _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Something went wrong.") }
+                _ui.update { it.copy(busy = false) }
+                runCatching { cache.writeAs("tasks", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.TasksListDto.serializer(), optimistic) }
             }
         }
     }

@@ -113,14 +113,21 @@ class GroceriesViewModel(
     private fun optimistic(mutate: (GroceriesDto) -> GroceriesDto, write: suspend () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data ?: return
-        _ui.update { it.copy(busy = true, message = null, data = mutate(before)) }
+        val optimistic = mutate(before)
+        _ui.update { it.copy(busy = true, message = null, data = optimistic) }
         viewModelScope.launch {
             try {
                 write()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busy = false, data = before, loadError = e.error.message) }
+                return@launch
+            }
+            try {
                 val data = if (session.isOnline()) freshData() else _ui.value.data
                 _ui.update { it.copy(busy = false, data = data) }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busy = false, data = before, loadError = e.error.message) }
+                _ui.update { it.copy(busy = false) }
+                runCatching { cache.writeAs("groceries", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), optimistic) }
             }
         }
     }
