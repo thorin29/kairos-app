@@ -1,4 +1,6 @@
 # Changelog
+## 0.303.0
+- Reading Goals now shows your goal list offline (cached on-device, like Browse Workouts), instead of an error when the server's unreachable. Editing a goal's progress still needs a connection. Also fixed a consistency bug where pulling to refresh Workouts updated the on-screen Progress/This Week but not the saved copy, so a cold start could briefly show older numbers.
 ## 0.302.0
 - Closes the last cold-start read gaps: the Workouts screen's Progress and This Week panels now paint from the on-device cache offline (like today's plan already did), and Browse Workouts keeps showing the last-loaded catalog when the server's down (sharing/deleting still need a connection). Also, the Reading Goals reminder no longer shows "Off" when offline — its value is now stored on the device and shown even without a connection.
 ## 0.301.0

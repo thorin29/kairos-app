@@ -1212,3 +1212,20 @@ Room boundary (final): durable user-facing READ data -> Room; local prefs/settin
 DataStore; credentials -> secure token store; transient forms/editors -> UI state;
 authoritative security/action state (approvals, devices) -> server. Not chasing 100% of
 routes into Room.
+
+## Sept 26 2026 — Reading Goals cache + Workouts refresh consistency + android.yml fix (v0.303)
+
+- ReadingGoalsViewModel: was network-only. Now caches the goal list (section "reading-goals",
+  List<ReadingGoalItemDto>) with seed -> refresh -> write + keep-on-error, like Browse. The
+  progress-edit action (saveProgress) stays online-only but re-caches the refreshed list.
+- WorkoutsScreen: the refreshKey path fetched Progress/This Week without writing to the cache,
+  so a manual refresh could leave stale rows and a cold start showed older numbers. Extracted a
+  shared refreshProgressWeek() (fetch -> UI -> cache) used by both the initial and refresh paths.
+- android.yml REGRESSION FIX: a stale sandbox copy of android.yml was included in an earlier
+  combined upload, reverting the newer action versions and re-adding the obsolete
+  "platforms;android-36" step. Restored checkout@v7 / setup-java@v6 / setup-android@v4 /
+  setup-gradle@v6 / upload-artifact@v7, removed the manual platform install, kept the
+  instrumented-test job. (release.yml on main was untouched and correct.)
+
+Not migrating EditPlan, Rotation, Settings, Approvals or Devices to Room — deliberate: editors
+and authoritative action/security screens stay server-authoritative; preferences stay DataStore.

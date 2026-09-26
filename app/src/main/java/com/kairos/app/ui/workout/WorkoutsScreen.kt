@@ -86,18 +86,11 @@ fun WorkoutsScreen(
     var progress by remember { mutableStateOf<WorkoutProgressDto?>(null) }
     var week by remember { mutableStateOf<List<WeeklyActivityDto>>(emptyList()) }
 
-    LaunchedEffect(ui.savedTick) {
+    // Fetch Progress + This Week and write both back to the cache. Shared by the
+    // initial load and the manual refresh so every successful fetch updates BOTH
+    // the UI and the cache (the refresh path previously updated only the UI).
+    suspend fun refreshProgressWeek() {
         val pid = container.sessionRepository.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
-        // Cold-start seed so Progress and This Week paint offline too, matching
-        // today's plan (Room-backed via the VM). Same origin+person cache scope.
-        if (progress == null) {
-            runCatching { container.payloadCache.readAs("workout-progress", "main", pid, WorkoutProgressDto.serializer()) }
-                .getOrNull()?.let { progress = it }
-        }
-        if (week.isEmpty()) {
-            runCatching { container.payloadCache.readAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer())) }
-                .getOrNull()?.let { week = it }
-        }
         runCatching { container.sessionRepository.loadWorkoutProgress() }
             .getOrNull()?.let {
                 progress = it
@@ -108,15 +101,26 @@ fun WorkoutsScreen(
                 week = it
                 runCatching { container.payloadCache.writeAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer()), it) }
             }
+    }
+
+    LaunchedEffect(ui.savedTick) {
+        val pid = container.sessionRepository.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+        // Cold-start seed so Progress and This Week paint offline too.
+        if (progress == null) {
+            runCatching { container.payloadCache.readAs("workout-progress", "main", pid, WorkoutProgressDto.serializer()) }
+                .getOrNull()?.let { progress = it }
+        }
+        if (week.isEmpty()) {
+            runCatching { container.payloadCache.readAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer())) }
+                .getOrNull()?.let { week = it }
+        }
+        refreshProgressWeek()
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
     }
     LaunchedEffect(refreshKey) {
         if (refreshKey > 0) {
             vm.load()
-            runCatching { container.sessionRepository.loadWorkoutProgress() }
-                .getOrNull()?.let { progress = it }
-            runCatching { container.sessionRepository.loadWeek() }
-                .getOrNull()?.let { week = it }
+            refreshProgressWeek()
         }
     }
 

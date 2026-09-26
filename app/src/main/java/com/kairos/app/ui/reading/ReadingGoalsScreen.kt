@@ -42,6 +42,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.ReadingGoalItemDto
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
+import kotlinx.serialization.builtins.ListSerializer
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
@@ -61,20 +63,36 @@ data class ReadingGoalsUiState(
     val busy: Boolean = false,
 )
 
-class ReadingGoalsViewModel(private val session: SessionRepository) : ViewModel() {
+class ReadingGoalsViewModel(
+    private val session: SessionRepository,
+    private val cache: PayloadCacheStore,
+) : ViewModel() {
     private val _ui = MutableStateFlow(ReadingGoalsUiState())
     val ui: StateFlow<ReadingGoalsUiState> = _ui.asStateFlow()
 
     init { load() }
 
+    private fun pid(): String = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+
     fun load() {
-        _ui.update { it.copy(loading = true, error = null) }
+        _ui.update { it.copy(loading = it.items.isEmpty(), error = null) }
         viewModelScope.launch {
+            val pid = pid()
+            // Cold-start seed of the goals list so it shows offline (read screen,
+            // like Browse); the progress-edit action stays online-only.
+            if (_ui.value.items.isEmpty()) {
+                runCatching { cache.readAs("reading-goals", "main", pid, ListSerializer(ReadingGoalItemDto.serializer())) }
+                    .getOrNull()?.let { seed -> _ui.update { if (it.items.isEmpty()) it.copy(items = seed, loading = false) else it } }
+            }
             try {
                 val data = session.loadReadingGoals()
                 _ui.update { it.copy(loading = false, items = data.items) }
+                launch { runCatching { cache.writeAs("reading-goals", "main", pid, ListSerializer(ReadingGoalItemDto.serializer()), data.items) } }
             } catch (e: Exception) {
-                _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load your reading goals.") }
+                _ui.update {
+                    if (it.items.isEmpty()) it.copy(loading = false, error = e.message ?: "Couldn't load your reading goals.")
+                    else it.copy(loading = false)
+                }
             }
         }
     }
@@ -87,6 +105,7 @@ class ReadingGoalsViewModel(private val session: SessionRepository) : ViewModel(
                 session.logBook(bookId, page)
                 val data = session.loadReadingGoals()
                 _ui.update { it.copy(busy = false, items = data.items) }
+                launch { runCatching { cache.writeAs("reading-goals", "main", pid(), ListSerializer(ReadingGoalItemDto.serializer()), data.items) } }
                 onDone()
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false, error = e.message ?: "Couldn't save that.") }
@@ -107,7 +126,7 @@ private fun fmtGoalDate(iso: String): String =
 fun ReadingGoalsScreen(onBack: () -> Unit) {
     val container = rememberContainer()
     val vm: ReadingGoalsViewModel = viewModel(
-        factory = viewModelFactory { initializer { ReadingGoalsViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { ReadingGoalsViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     var editing by remember { mutableStateOf<ReadingGoalItemDto?>(null) }
