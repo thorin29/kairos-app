@@ -1,4 +1,6 @@
 # Changelog
+## 0.305.0
+- Calendar: fixed a bug where an event created offline could appear twice after a full close (the cache stored the calendar with the pending change already applied, then applied it again on restore). The calendar now caches the plain server data and overlays pending changes once. Workout Log: logging or expiring a workout now updates the saved copy too, so a completed workout can't revert to un-logged after a cold start with the server down.
 ## 0.304.0
 - The on-device cache now stays current after you change something. Previously a screen saved its data to the cache only on load, so a change made online (completing a task, logging reading, hatching a companion, etc.) updated the screen but not the saved copy — after a full close with the server down, the older state could briefly reappear. Now every successful change writes through to the cache, so what you last saw is what comes back offline.
 ## 0.303.0

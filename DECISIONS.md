@@ -1250,3 +1250,22 @@ change could resurface the pre-change payload.
   — the write queue carries the change; a later server refresh writes the authoritative copy.
 - Regression test: PayloadCacheStoreTest pins "committed change -> a later read returns the new
   state" + person-scope isolation, via the typed store the VMs write through.
+
+## Sept 26 2026 — Calendar raw-cache + WorkoutLog write-through (v0.305)
+
+Two concrete bugs from the follow-up audit:
+- Calendar double-apply: loadCal() returned applyPending(loadCalendar(), pending) and the
+  caches stored THAT (already-overlaid) DTO; the seed then applied pending again -> an
+  offline-created event (insertEvent appends with a fixed temp id, no dedup) appeared twice.
+  Fixed the same way as every other screen: renamed loadCal -> loadCalRaw (returns raw),
+  each site now caches the RAW and applies pending only for display (main load + day/week/
+  month ensure*). Seed/ensure-fallback already re-apply pending, so it's applied exactly once.
+- WorkoutLog write-through hole: restDay() reloaded via load() (cached) but saveBlock() and
+  expire() updated UI without refreshing the "workout" cache. Added cacheCurrentPlan()
+  (re-fetch raw plan + writeAs, no UI disruption) called after saveBlock and expire.
+
+Still open (deliberately, flagged as optional hardening, NOT a missing screen): the
+POST-succeeds-then-GET-fails window — a mutation's follow-up refresh can fail after the server
+already accepted the change, leaving Room at the prior payload until the next successful load.
+Closing it means persisting the optimistic DTO to Room at mutation time (the deferred
+offline-optimistic-to-Room step). The write queue still carries the change regardless.

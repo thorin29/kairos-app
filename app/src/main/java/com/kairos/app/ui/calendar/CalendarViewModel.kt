@@ -134,10 +134,11 @@ class CalendarViewModel(
         inFlightDays.add(iso)
         viewModelScope.launch {
             try {
-                val dto = loadCal("day", iso)
+                val raw = loadCalRaw("day", iso)
+                val dto = applyPending(raw, session.pendingWrites())
                 _pages.update { it + (dto.date to dto) }
                 _unavailable.update { it - iso }
-                launch { runCatching { cache.write("calendar-day", keyFor(CalTab.DAY, iso), personId(), encodeCal(dto)) } }
+                launch { runCatching { cache.write("calendar-day", keyFor(CalTab.DAY, iso), personId(), encodeCal(raw)) } }
             } catch (_: Exception) {
                 // Offline/server error: show this from the durable cache if it was
                 // opened before; otherwise mark unavailable so the page shows an
@@ -171,10 +172,11 @@ class CalendarViewModel(
         inFlightMonths.add(monthStartIso)
         viewModelScope.launch {
             try {
-                val dto = loadCal("month", monthStartIso)
+                val raw = loadCalRaw("month", monthStartIso)
+                val dto = applyPending(raw, session.pendingWrites())
                 _monthPages.update { it + (monthStartIso to dto) }
                 _unavailable.update { it - monthStartIso }
-                launch { runCatching { cache.write("calendar-month", keyFor(CalTab.MONTH, monthStartIso), personId(), encodeCal(dto)) } }
+                launch { runCatching { cache.write("calendar-month", keyFor(CalTab.MONTH, monthStartIso), personId(), encodeCal(raw)) } }
             } catch (_: Exception) {
                 // Offline/server error: show this from the durable cache if it was
                 // opened before; otherwise mark unavailable so the page shows an
@@ -207,10 +209,11 @@ class CalendarViewModel(
         inFlightWeeks.add(weekStartIso)
         viewModelScope.launch {
             try {
-                val dto = loadCal("week", weekStartIso)
+                val raw = loadCalRaw("week", weekStartIso)
+                val dto = applyPending(raw, session.pendingWrites())
                 _weekPages.update { it + (weekStartIso to dto) }
                 _unavailable.update { it - weekStartIso }
-                launch { runCatching { cache.write("calendar-week", keyFor(CalTab.WEEK, weekStartIso), personId(), encodeCal(dto)) } }
+                launch { runCatching { cache.write("calendar-week", keyFor(CalTab.WEEK, weekStartIso), personId(), encodeCal(raw)) } }
             } catch (_: Exception) {
                 // Offline/server error: show this from the durable cache if it was
                 // opened before; otherwise mark unavailable so the page shows an
@@ -302,14 +305,15 @@ class CalendarViewModel(
         }
         viewModelScope.launch {
             try {
-                val data = loadCal(s.tab.serverValue, s.date)
+                val raw = loadCalRaw(s.tab.serverValue, s.date)
+                val data = applyPending(raw, session.pendingWrites())
                 _ui.update { it.copy(loading = false, data = data, date = data.date) }
                 CalendarSnapshot.data = data
                 CalendarSnapshot.tab = s.tab
                 cachePages(s.tab, data)
-                // Durable twin of the snapshot: persist this view so a cold start
-                // or a server outage can still paint it. Off the UI path.
-                launch { runCatching { cache.write("calendar-${s.tab.serverValue}", keyFor(s.tab, data.date), personId(), encodeCal(data)) } }
+                // Persist the RAW server view; the seed overlays pending once, so
+                // an offline-created event can't be applied twice (no duplicates).
+                launch { runCatching { cache.write("calendar-${s.tab.serverValue}", keyFor(s.tab, data.date), personId(), encodeCal(raw)) } }
             } catch (e: ApiException) {
                 // If we already have data (last-seen, or the durable cache), keep
                 // showing it rather than replacing a good calendar with an error.
@@ -533,8 +537,8 @@ class CalendarViewModel(
 
     // ---- offline queue-apply: every load re-applies pending calendar writes ----
 
-    private suspend fun loadCal(view: String, date: String?): CalendarDto =
-        applyPending(session.loadCalendar(view, date), session.pendingWrites())
+    private suspend fun loadCalRaw(view: String, date: String?): CalendarDto =
+        session.loadCalendar(view, date)
 
     private fun parseHHMM(s: String?): Int? {
         val parts = s?.split(":") ?: return null

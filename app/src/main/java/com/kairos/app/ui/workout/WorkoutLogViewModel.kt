@@ -241,6 +241,7 @@ class WorkoutLogViewModel(
                             savedTick = s.savedTick + 1,
                         )
                     }
+                    cacheCurrentPlan()
                 }
             } catch (e: ApiException) {
                 _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.key == key) it.copy(saving = false) else it }, actionError = e.error.message) }
@@ -258,6 +259,18 @@ class WorkoutLogViewModel(
     fun dismissConflict() = _ui.update { it.copy(conflict = null, conflictPlanId = null) }
 
     /** Mark the day a rest day (SKIPPED). Used from the workouts overview. */
+    /** Re-fetch the raw plan for this date and refresh the "workout" cache, so a
+     *  successful log/expire keeps Room current (mirrors what load() does). */
+    private fun cacheCurrentPlan() {
+        viewModelScope.launch {
+            runCatching { session.loadWorkout(requestedDate) }.getOrNull()?.let { raw ->
+                runCatching {
+                    cache.writeAs("workout", requestedDate ?: "today", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, WorkoutPlanDto.serializer(), raw)
+                }
+            }
+        }
+    }
+
     fun restDay() {
         val d = date ?: return
         _ui.update { it.copy(saving = true, actionError = null) }
@@ -280,6 +293,7 @@ class WorkoutLogViewModel(
             try {
                 session.workoutExpire(d)
                 _ui.update { it.copy(expiring = false, done = true, savedTick = it.savedTick + 1) }
+                cacheCurrentPlan()
             } catch (e: ApiException) {
                 _ui.update { it.copy(expiring = false, actionError = e.error.message) }
             }
