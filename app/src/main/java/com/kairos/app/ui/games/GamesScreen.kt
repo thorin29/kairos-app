@@ -63,7 +63,7 @@ private val XboxGreen = Color(0xFF107C10)
 fun GamesScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: GamesViewModel = viewModel(
-        factory = viewModelFactory { initializer { GamesViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { GamesViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }

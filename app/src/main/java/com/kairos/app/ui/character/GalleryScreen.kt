@@ -77,7 +77,7 @@ private fun mysteryDrawable(eraKey: String): Int = when (eraKey) {
 fun GalleryScreen(onBack: () -> Unit) {
     val container = rememberContainer()
     val vm: CollectionViewModel = viewModel(
-        factory = viewModelFactory { initializer { CollectionViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { CollectionViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     var enlarged by remember { mutableStateOf<CollectSpeciesDto?>(null) }

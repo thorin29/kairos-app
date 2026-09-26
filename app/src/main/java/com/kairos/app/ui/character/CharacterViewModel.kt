@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.dto.CharacterDto
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,20 +19,29 @@ data class CharacterUiState(
     val message: String? = null,
 )
 
-class CharacterViewModel(private val session: SessionRepository) : ViewModel() {
+class CharacterViewModel(private val session: SessionRepository, private val cache: PayloadCacheStore) : ViewModel() {
     private val _ui = MutableStateFlow(CharacterUiState())
     val ui: StateFlow<CharacterUiState> = _ui.asStateFlow()
 
     init { load() }
 
     fun load() {
-        _ui.update { it.copy(loading = true, error = null) }
+        _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("character", "main", pid, com.kairos.app.data.remote.dto.CharacterDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
                 val data = session.loadCharacter()
                 _ui.update { it.copy(loading = false, data = data) }
+                launch { runCatching { cache.writeAs("character", "main", pid, com.kairos.app.data.remote.dto.CharacterDto.serializer(), data) } }
             } catch (e: Exception) {
-                _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load your character.") }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load your character.")
+                    else it.copy(loading = false)
+                }
             }
         }
     }

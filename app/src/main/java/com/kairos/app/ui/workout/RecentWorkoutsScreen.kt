@@ -49,7 +49,7 @@ fun RecentWorkoutsScreen(onBack: () -> Unit) {
     val container = rememberContainer()
     val vm: RecentWorkoutsViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { RecentWorkoutsViewModel(container.sessionRepository) }
+            initializer { RecentWorkoutsViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

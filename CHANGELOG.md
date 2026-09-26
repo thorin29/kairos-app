@@ -1,4 +1,6 @@
 # Changelog
+## 0.300.0
+- Extends the on-device cache to Character, Gallery, the Family goal (co-op), Games, and Workout history: these now paint their last-loaded data instantly (including after a full close) and survive a server outage, matching the other screens. (Correction: an earlier note said the cache already covered every screen — these were missed. The main Workout screen is still to come.)
 ## 0.299.0
 - The calendar offline note now reads "You are offline - this day is not synced yet", and it clears itself the moment you're back online — it re-fetches the day you're on instead of leaving the note stuck over the calendar until you restart the app.
 ## 0.298.0

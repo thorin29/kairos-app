@@ -59,7 +59,7 @@ import com.kairos.app.ui.common.LogoMenuButton
 fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: () -> Unit, onOpenCoop: () -> Unit) {
     val container = rememberContainer()
     val vm: CharacterViewModel = viewModel(
-        factory = viewModelFactory { initializer { CharacterViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { CharacterViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
 

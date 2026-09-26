@@ -59,7 +59,7 @@ import com.kairos.app.ui.common.SentenceCaps
 fun CoopScreen(onBack: () -> Unit) {
     val container = rememberContainer()
     val vm: CoopViewModel = viewModel(
-        factory = viewModelFactory { initializer { CoopViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { CoopViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
 

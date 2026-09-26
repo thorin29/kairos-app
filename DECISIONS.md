@@ -1130,3 +1130,36 @@ offline->online transition it clears _unavailable (notes vanish reactively) and 
 reensureAround(date, tab) to re-fetch the current view's pages, so the day reloads.
 Wording: "You are offline - this day is not synced yet" (agenda/day/week/month); the narrow
 3-day column shows "Not synced yet".
+
+## Sept 26 2026 — CORRECTION: Room rollout was incomplete; more screens migrated (app v0.300)
+
+Retraction: the 0.296 note "Room now covers every data screen" was wrong. That audit only
+covered the old ScreenSnapshots screens + Money and assumed that was everything. It was not:
+several data screens routed from AppRoot were still network-first with no PayloadCacheStore.
+
+Now migrated to the seed -> refresh -> write pattern (v0.300): Character (loadCharacter),
+Collection/Gallery (loadCollection), Coop/family goal (loadCoop), Games (loadGameTime),
+RecentWorkouts (loadWorkoutProgress, keyed under section "workout-progress", seeds the
+history list). All single-view, keyed ("section","main",personId).
+
+STILL REMAINING (Room is NOT complete until these are addressed — explicit exclusions):
+- WorkoutLogViewModel (the main workout screen, loadWorkout): NOT yet migrated. It transforms
+  the WorkoutPlanDto into derived UI `blocks` rather than storing the raw DTO, and it's
+  date-keyed with conflict handling — needs the plan->state transform extracted into a
+  reusable function so the Room seed can rebuild the same state. Deferred to do carefully.
+- applyPending overlay on the Room seed: on cold-start recovery, screens seed the RAW Room
+  DTO but apply the offline WriteQueue only around the live session.load*() call. So an
+  offline edit can briefly regress until a refresh. Fix: run each VM's applyPending() against
+  the seeded DTO before displaying (reading/groceries/bible/tasks/school/money/calendar have a
+  standalone applyPending; Home applies pending inline in freshDashboard and needs a small
+  extract). Not the same as full local-first editing.
+- Cache scope is the hostname only (ApiClient.baseHost strips scheme/port). Use full origin or
+  a server-provided instance id. (Changing it invalidates existing cache once — harmless.)
+- Calendar trim keeps 24 rows per (scope, "calendar", person) TOTAL across agenda/day/week/
+  month, so heavy day browsing can evict week/month views. Give each view type its own bucket
+  (e.g. section "cal-<view>") or raise the calendar keep.
+- CI runs assembleRelease only; it does NOT run the instrumented PayloadCacheDaoTest. Add a
+  connectedAndroidTest (or Robolectric) job.
+Intentionally NOT cached (forms/editors/actions, server-generated or transient): CalendarAddClass,
+CreatePersonalWorkout, CustomWorkout, EditPlan, Browse (picker), Rotation, SchoolApprovals,
+Devices, Reauth, Setup. Revisit Rotation/SchoolApprovals if durable read is wanted.

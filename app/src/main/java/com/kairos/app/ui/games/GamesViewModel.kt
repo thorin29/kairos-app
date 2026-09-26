@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.GameTimeResponseDto
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,7 @@ data class GamesUiState(
     val refreshing: Boolean = false,
 )
 
-class GamesViewModel(private val session: SessionRepository) : ViewModel() {
+class GamesViewModel(private val session: SessionRepository, private val cache: PayloadCacheStore) : ViewModel() {
     private val _ui = MutableStateFlow(GamesUiState())
     val ui: StateFlow<GamesUiState> = _ui.asStateFlow()
 
@@ -27,10 +28,20 @@ class GamesViewModel(private val session: SessionRepository) : ViewModel() {
     fun load() {
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("games", "main", pid, com.kairos.app.data.remote.dto.GameTimeResponseDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
-                _ui.update { it.copy(loading = false, refreshing = false, data = session.loadGameTime()) }
+                val data = session.loadGameTime()
+                _ui.update { it.copy(loading = false, refreshing = false, data = data) }
+                launch { runCatching { cache.writeAs("games", "main", pid, com.kairos.app.data.remote.dto.GameTimeResponseDto.serializer(), data) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, refreshing = false, loadError = e.error.message) }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, refreshing = false, loadError = e.error.message)
+                    else it.copy(loading = false, refreshing = false)
+                }
             }
         }
     }
