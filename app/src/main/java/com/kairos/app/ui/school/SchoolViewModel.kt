@@ -75,25 +75,79 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
     private fun optimistic(mutate: (SchoolDto) -> SchoolDto, write: suspend () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data ?: return
-        _ui.update { it.copy(busy = true, message = null, data = mutate(before)) }
+        val optimistic = mutate(before)
+        _ui.update { it.copy(busy = true, message = null, data = optimistic) }
         viewModelScope.launch {
             try {
                 write()
-                if (session.isOnline()) {
-                    _ui.update { it.copy(busy = false, data = freshData()) }
-                } else {
-                    _ui.update { it.copy(busy = false) }
-                }
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Something went wrong.") }
+                return@launch
+            }
+            // Write accepted. Refresh to authoritative; if that GET fails, keep the
+            // optimistic state and persist it rather than reverting a synced change.
+            try {
+                val data = if (session.isOnline()) freshData() else _ui.value.data
+                _ui.update { it.copy(busy = false, data = data) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false) }
+                val key = _ui.value.term ?: "main"
+                runCatching {
+                    cache.writeAs(
+                        "school", key,
+                        session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD,
+                        com.kairos.app.data.remote.dto.SchoolDto.serializer(),
+                        optimistic.copy(people = optimistic.people.map { p -> p.copy(items = p.items.filterNot { it.id.startsWith("temp-") }) }),
+                    )
+                }
             }
         }
     }
 
-    fun add(userId: String, title: String, type: String, dueDate: String, subject: String?, classId: String?) =
-        optimistic({ insertItem(it, userId, title, type, dueDate, classId) }) {
+    /** Create variant of [optimistic]: swaps the temp id for the server id the
+     *  create returns, before the refresh, so a follow-up action targets the real
+     *  id. Refresh-GET failure keeps and persists the real-id row; an old server
+     *  that returns no id drops the still-temp row from screen and cache. */
+    private fun createItem(
+        mutate: (SchoolDto) -> SchoolDto,
+        tempId: String,
+        write: suspend () -> String?,
+    ) {
+        if (_ui.value.busy) return
+        val before = _ui.value.data ?: return
+        val optimistic = mutate(before)
+        _ui.update { it.copy(busy = true, message = null, data = optimistic) }
+        viewModelScope.launch {
+            val realId = try {
+                write()
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Something went wrong.") }
+                return@launch
+            }
+            var eff = optimistic
+            if (realId != null) {
+                eff = optimistic.copy(people = optimistic.people.map { p -> p.copy(items = p.items.map { if (it.id == tempId) it.copy(id = realId) else it }) })
+                _ui.update { if (it.data == optimistic) it.copy(data = eff) else it }
+            }
+            try {
+                val data = if (session.isOnline()) freshData() else _ui.value.data
+                _ui.update { it.copy(busy = false, data = data) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false) }
+                val cleaned = eff.copy(people = eff.people.map { p -> p.copy(items = p.items.filterNot { it.id.startsWith("temp-") }) })
+                if (realId == null) _ui.update { it.copy(data = cleaned) }
+                val key = _ui.value.term ?: "main"
+                runCatching { cache.writeAs("school", key, session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.SchoolDto.serializer(), cleaned) }
+            }
+        }
+    }
+
+    fun add(userId: String, title: String, type: String, dueDate: String, subject: String?, classId: String?) {
+        val tempId = "temp-${UUID.randomUUID()}"
+        createItem({ insertItem(it, userId, title, type, dueDate, classId, tempId) }, tempId) {
             session.addSchool(userId, title, type, dueDate, subject, classId)
         }
+    }
 
     fun complete(taskId: String) = optimistic({ removeItem(it, taskId) }) { session.completeTask(taskId) }
     fun delete(taskId: String) = optimistic({ removeItem(it, taskId) }) { session.deleteSchool(taskId) }

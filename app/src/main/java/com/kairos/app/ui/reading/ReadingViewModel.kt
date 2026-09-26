@@ -84,8 +84,10 @@ class ReadingViewModel(
 
     fun clearSaveError() = _ui.update { it.copy(saveError = null) }
 
-    fun add(req: AddBookRequest, onDone: () -> Unit) =
-        mutate({ insertBook(it, req) }, form = true, onDone) { session.addBook(req) }
+    fun add(req: AddBookRequest, onDone: () -> Unit) {
+        val tempId = "temp-${UUID.randomUUID()}"
+        mutateCreate({ insertBook(it, req, tempId) }, tempId, ::swapBookId, onDone) { session.addBook(req) }
+    }
     fun update(req: UpdateBookRequest, onDone: () -> Unit) =
         mutate({ updateBook(it, req) }, form = true, onDone) { session.updateBook(req) }
 
@@ -137,6 +139,60 @@ class ReadingViewModel(
             }
         }
     }
+
+    /** Create variant of [mutate]. On an online create the server returns the new
+     *  id, so we swap temp->real immediately (before the refresh) — any follow-up
+     *  action then targets the real id, never a temp one the server never had. If
+     *  the refresh GET fails we keep and persist the real-id row; on an old server
+     *  that returns no id we drop the still-temp row from screen and cache so it
+     *  can't be acted on, and it reappears with its real id on the next refresh. */
+    private fun mutateCreate(
+        change: (BooksDto) -> BooksDto,
+        tempId: String,
+        swap: (BooksDto, String, String) -> BooksDto,
+        onDone: () -> Unit,
+        write: suspend () -> String?,
+    ) {
+        if (_ui.value.saving) return
+        val before = _ui.value.data
+        val optimistic = before?.let(change)
+        _ui.update { it.copy(saving = true, saveError = null, data = optimistic ?: it.data) }
+        onDone()
+        viewModelScope.launch {
+            val realId = try {
+                write()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(saving = false, saveError = e.error.message, data = before) }
+                return@launch
+            }
+            var eff = optimistic
+            if (realId != null && optimistic != null) {
+                eff = swap(optimistic, tempId, realId)
+                _ui.update { if (it.data == optimistic) it.copy(data = eff) else it }
+            }
+            try {
+                val data = if (session.isOnline()) freshData() else _ui.value.data
+                _ui.update { it.copy(saving = false, data = data) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(saving = false) }
+                eff?.let { o ->
+                    val cleaned = o.copy(books = o.books.filterNot { it.id.startsWith("temp-") })
+                    if (realId == null) _ui.update { it.copy(data = cleaned) }
+                    runCatching {
+                        cache.writeAs(
+                            "reading", "main",
+                            session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD,
+                            com.kairos.app.data.remote.dto.BooksDto.serializer(),
+                            cleaned,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun swapBookId(data: BooksDto, tempId: String, realId: String): BooksDto =
+        data.copy(books = data.books.map { if (it.id == tempId) it.copy(id = realId) else it })
 
     // ---- transforms, also used to re-apply the offline queue on load ----
 

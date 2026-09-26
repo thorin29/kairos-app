@@ -610,7 +610,7 @@ data class MovementIdRequest(val movementId: String)
 data class AddMovementResponse(val status: String = "", val id: String? = null)
 
 @Serializable
-data class OkStatusDto(val status: String = "")
+data class OkStatusDto(val status: String = "", val id: String? = null)
 
 @Serializable
 data class DeleteAckDto(

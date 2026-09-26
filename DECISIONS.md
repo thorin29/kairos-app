@@ -3,6 +3,22 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Temp ids are swapped for real ids on create-success, before the refresh
+
+The create APIs return the new row's id (server 0.495.0). Each optimistic create generates its
+temp id once; on an online create-success the ViewModel swaps temp->real in the visible state
+BEFORE the refresh GET, so a follow-up action taken between the write and the refresh (or after
+a refresh failure) targets the real id, never a temp one the server never had. On refresh-GET
+failure the real-id row is persisted. Against an older server that returns no id, the still-temp
+row is dropped from BOTH screen and cache (it returns with its real id on the next successful
+load) rather than left where a later action could reference it. Implemented as a per-screen
+`create*` variant of the shared optimistic helper (reading/groceries/money/tasks/school), so the
+many non-create mutations are untouched. Recurring task creates are excluded — they can fan out
+to several rows, so the server returns no single id. Defense-in-depth: `WriteQueue.remove` now
+reports whether it actually dropped a matching entry, and the offline interceptor only fakes
+success for a temp-id delete when a queued create was really cancelled — otherwise it fails the
+delete (surfaced for retry) instead of silently losing it.
+
 ## Only a genuine Kairos "unauthenticated" (or explicit removal) may clear enrollment
 
 Three separate paths could silently turn a still-enrolled phone into

@@ -93,8 +93,10 @@ class MoneyViewModel(
 
     fun clearAddError() = _ui.update { it.copy(addError = null) }
 
-    fun addEntry(req: AddMoneyRequest, onDone: () -> Unit) =
-        optimistic(form = true, onDone, { insertRow(it, req) }) { session.addMoneyEntry(req) }
+    fun addEntry(req: AddMoneyRequest, onDone: () -> Unit) {
+        val tempId = "temp-${UUID.randomUUID()}"
+        createEntry(onDone, { insertRow(it, req, tempId) }, tempId) { session.addMoneyEntry(req) }
+    }
     fun updateEntry(req: UpdateMoneyRequest, onDone: () -> Unit) =
         optimistic(form = true, onDone, { updateRow(it, req) }) { session.updateMoney(req) }
 
@@ -154,6 +156,45 @@ class MoneyViewModel(
             } catch (e: ApiException) {
                 _ui.update { if (form) it.copy(adding = false) else it.copy(approving = false) }
                 runCatching { cache.writeAs("money", currentUser ?: "default", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.MoneyDto.serializer(), optimistic.copy(rows = optimistic.rows.filterNot { it.id.startsWith("temp-") })) }
+            }
+        }
+    }
+
+    /** Create variant of [optimistic]: swaps the temp id for the server id the
+     *  create returns, before the refresh, so a follow-up action targets the real
+     *  id. Refresh-GET failure keeps and persists the real-id row; an old server
+     *  that returns no id drops the still-temp row from screen and cache. */
+    private fun createEntry(
+        onDone: () -> Unit,
+        mutate: (MoneyDto) -> MoneyDto,
+        tempId: String,
+        write: suspend () -> String?,
+    ) {
+        if (_ui.value.adding) return
+        val before = _ui.value.data ?: return
+        val optimistic = mutate(before)
+        _ui.update { it.copy(adding = true, addError = null, data = optimistic) }
+        onDone()
+        viewModelScope.launch {
+            val realId = try {
+                write()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(adding = false, addError = e.error.message, data = before) }
+                return@launch
+            }
+            var eff = optimistic
+            if (realId != null) {
+                eff = optimistic.copy(rows = optimistic.rows.map { if (it.id == tempId) it.copy(id = realId) else it })
+                _ui.update { if (it.data == optimistic) it.copy(data = eff) else it }
+            }
+            try {
+                val data = if (session.isOnline()) freshData(currentUser) else _ui.value.data
+                _ui.update { it.copy(adding = false, data = data) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(adding = false) }
+                val cleaned = eff.copy(rows = eff.rows.filterNot { it.id.startsWith("temp-") })
+                if (realId == null) _ui.update { it.copy(data = cleaned) }
+                runCatching { cache.writeAs("money", currentUser ?: "default", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.MoneyDto.serializer(), cleaned) }
             }
         }
     }

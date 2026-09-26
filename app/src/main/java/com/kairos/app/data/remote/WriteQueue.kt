@@ -55,10 +55,18 @@ class WriteQueue(
         }
     }
 
-    suspend fun remove(id: String) {
+    /** Remove a queued write by its queue id. Returns true only if an entry
+     *  actually matched and was dropped, so a caller can tell a real cancel from
+     *  a no-op instead of assuming success. */
+    suspend fun remove(id: String): Boolean {
+        var removed = false
         dataStore.edit { prefs ->
-            prefs[key] = json.encodeToString(listSerializer, decode(prefs[key]).filterNot { it.id == id })
+            val before = decode(prefs[key])
+            val after = before.filterNot { it.id == id }
+            removed = after.size != before.size
+            prefs[key] = json.encodeToString(listSerializer, after)
         }
+        return removed
     }
 
     /** Drop every pending write. Called on sign-out, server change, or a dead

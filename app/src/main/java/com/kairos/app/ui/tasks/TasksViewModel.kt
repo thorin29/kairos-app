@@ -151,19 +151,36 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
     fun add(userId: String, title: String, dueDate: String?, recur: com.kairos.app.data.remote.dto.RecurRequest? = null, notifyMinutes: Int? = null, onDone: () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data
-        val optimistic = before?.let { insertTask(it, userId, title, dueDate) }
+        val tempId = "temp-${UUID.randomUUID()}"
+        val optimistic = before?.let { insertTask(it, userId, title, dueDate, tempId) }
         _ui.update { it.copy(busy = true, message = null, data = optimistic ?: it.data) }
         onDone() // close the wizard right away; the task already shows on the list
         viewModelScope.launch {
-            try {
+            val realId = try {
                 session.addTask(userId, title, dueDate, recur, notifyMinutes)
-                if (session.isOnline()) {
-                    _ui.update { it.copy(busy = false, data = freshData()) }
-                } else {
-                    _ui.update { it.copy(busy = false) }
-                }
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Couldn't add the task.") }
+                return@launch
+            }
+            // Non-recurring creates return the new id; swap temp->real before the
+            // refresh so a follow-up action targets the real id. (Recurring creates
+            // can fan out to several rows, so the server returns no id.)
+            var eff = optimistic
+            if (realId != null && optimistic != null) {
+                eff = optimistic.copy(groups = optimistic.groups.map { g -> g.copy(open = g.open.map { if (it.id == tempId) it.copy(id = realId) else it }) })
+                _ui.update { if (it.data == optimistic) it.copy(data = eff) else it }
+            }
+            try {
+                val data = if (session.isOnline()) freshData() else _ui.value.data
+                _ui.update { it.copy(busy = false, data = data) }
+            } catch (e: Exception) {
+                // Write already synced; keep the optimistic row rather than reverting.
+                _ui.update { it.copy(busy = false) }
+                eff?.let { o ->
+                    val cleaned = o.copy(groups = o.groups.map { g -> g.copy(open = g.open.filterNot { it.id.startsWith("temp-") }) })
+                    if (realId == null) _ui.update { it.copy(data = cleaned) }
+                    runCatching { cache.writeAs("tasks", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.TasksListDto.serializer(), cleaned) }
+                }
             }
         }
     }

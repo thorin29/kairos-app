@@ -234,8 +234,14 @@ internal class OfflineInterceptor(
                     null
                 }
                 if (cancelId != null) {
-                    runBlocking { queue!!.remove(cancelId) }
-                    return synthetic(req)
+                    // Only fake success if a matching queued create was actually
+                    // dropped. A temp-id delete that cancels nothing means the create
+                    // already synced (under its real id) or was never queued; faking
+                    // success there would silently lose the delete, so surface it as an
+                    // offline failure the user can retry once reconnected.
+                    val cancelled = runBlocking { queue!!.remove(cancelId) }
+                    if (cancelled) return synthetic(req)
+                    throw IOException("You're offline. Reconnect to make changes.")
                 }
                 runBlocking {
                     queue!!.enqueue(

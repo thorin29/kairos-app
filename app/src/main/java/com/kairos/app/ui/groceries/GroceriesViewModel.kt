@@ -82,10 +82,14 @@ class GroceriesViewModel(
 
     fun clearMessage() = _ui.update { it.copy(message = null) }
 
-    fun add(name: String, storeId: String) =
-        optimistic({ insertLine(it, name, storeId, "") }) { session.addGrocery(name, storeId, null) }
-    fun addFromCatalog(catalogId: String, storeId: String?) =
-        optimistic({ insertFromCatalog(it, catalogId, storeId) }) { session.addGroceryFromCatalog(catalogId, storeId) }
+    fun add(name: String, storeId: String) {
+        val tempId = "temp-${UUID.randomUUID()}"
+        createLine({ insertLine(it, name, storeId, "", tempId) }, tempId) { session.addGrocery(name, storeId, null) }
+    }
+    fun addFromCatalog(catalogId: String, storeId: String?) {
+        val tempId = "temp-${UUID.randomUUID()}"
+        createLine({ insertFromCatalog(it, catalogId, storeId, tempId) }, tempId) { session.addGroceryFromCatalog(catalogId, storeId) }
+    }
     fun remove(id: String) = optimistic({ removeLine(it, id) }) { session.removeGrocery(id) }
     fun move(id: String, storeId: String) = optimistic({ moveLine(it, id, storeId) }) { session.moveGrocery(id, storeId) }
     fun setPurchased(id: String, purchased: Boolean) =
@@ -128,6 +132,43 @@ class GroceriesViewModel(
             } catch (e: ApiException) {
                 _ui.update { it.copy(busy = false) }
                 runCatching { cache.writeAs("groceries", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), optimistic.copy(saved = optimistic.saved.filterNot { it.id.startsWith("temp-") })) }
+            }
+        }
+    }
+
+    /** Create variant of [optimistic]: swaps the temp id for the server id the
+     *  create returns, before the refresh, so a follow-up action targets the real
+     *  id. Refresh-GET failure keeps and persists the real-id row; an old server
+     *  that returns no id drops the still-temp row from screen and cache. */
+    private fun createLine(
+        mutate: (GroceriesDto) -> GroceriesDto,
+        tempId: String,
+        write: suspend () -> String?,
+    ) {
+        if (_ui.value.busy) return
+        val before = _ui.value.data ?: return
+        val optimistic = mutate(before)
+        _ui.update { it.copy(busy = true, message = null, data = optimistic) }
+        viewModelScope.launch {
+            val realId = try {
+                write()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busy = false, data = before, loadError = e.error.message) }
+                return@launch
+            }
+            var eff = optimistic
+            if (realId != null) {
+                eff = optimistic.copy(saved = optimistic.saved.map { if (it.id == tempId) it.copy(id = realId) else it })
+                _ui.update { if (it.data == optimistic) it.copy(data = eff) else it }
+            }
+            try {
+                val data = if (session.isOnline()) freshData() else _ui.value.data
+                _ui.update { it.copy(busy = false, data = data) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busy = false) }
+                val cleaned = eff.copy(saved = eff.saved.filterNot { it.id.startsWith("temp-") })
+                if (realId == null) _ui.update { it.copy(data = cleaned) }
+                runCatching { cache.writeAs("groceries", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), cleaned) }
             }
         }
     }
