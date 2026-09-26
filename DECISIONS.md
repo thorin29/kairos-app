@@ -1291,3 +1291,19 @@ persist, a seed could transiently double-apply those until the next successful l
 Test note: PayloadCacheStoreTest already pins "committed change -> later read returns new" at
 the store level. A VM-level test of this exact path (mock session: write ok, GET throws ->
 assert cache holds the optimistic DTO) needs a fake SessionRepository; deferred.
+
+## Sept 26 2026 — idempotent applyPending inserts (v0.307)
+
+Robust second layer over the 0.305 raw-cache fix: every applyPending insert that appends a new
+item now guards on its temp id, so re-applying the pending queue can never duplicate a create
+regardless of cache state. Guarded (deterministic temp-${w.id} from the queue): reading
+insertBook (data.books), calendar insertEvent (data.events + skips its month-dot too), money
+insertRow (data.rows), groceries insertLine/insertFromCatalog (data.saved), school insertItem
+(people[].items), tasks insertTask (groups[].open) — tasks also switched from a random id to
+temp-${w.id} so it can be deduped.
+Home NOT guarded, deliberately: it caches RAW and applies pending exactly once (never double-
+applies), and its schedule items carry no id to dedup on; its task inserts use random ids. Left
+as-is with this note rather than adding a hacky content-match. If Home ever moves to a
+cache-applied model, revisit.
+This makes the double-apply class structurally impossible for every deterministic-id create,
+independent of the raw-vs-applied caching discipline.

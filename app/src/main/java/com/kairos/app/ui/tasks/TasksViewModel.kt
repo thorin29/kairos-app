@@ -84,7 +84,7 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
                     val req = runCatching {
                         ApiClient.json.decodeFromString(AddTaskRequest.serializer(), body)
                     }.getOrNull() ?: continue
-                    d = insertTask(d, req.userId, req.title, req.dueDate)
+                    d = insertTask(d, req.userId, req.title, req.dueDate, "temp-${w.id}")
                 }
                 path.startsWith("tasks/") && path.endsWith("/complete") ->
                     d = moveTask(d, path.removePrefix("tasks/").removeSuffix("/complete"), toDone = true)
@@ -168,10 +168,11 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
         }
     }
 
-    private fun insertTask(data: TasksListDto, userId: String, title: String, dueDate: String?): TasksListDto {
+    private fun insertTask(data: TasksListDto, userId: String, title: String, dueDate: String?, id: String = "temp-${UUID.randomUUID()}"): TasksListDto {
+        if (data.groups.any { g -> g.open.any { it.id == id } }) return data
         val due = dueDate ?: LocalDate.now().toString()
         val overdue = try { LocalDate.parse(due).isBefore(LocalDate.now()) } catch (_: Exception) { false }
-        val temp = TaskOpenDto("temp-${UUID.randomUUID()}", title, due, overdue)
+        val temp = TaskOpenDto(id, title, due, overdue)
         val groups = data.groups.map { g -> if (g.userId == userId) g.copy(open = g.open + temp) else g }
         return data.copy(groups = groups)
     }

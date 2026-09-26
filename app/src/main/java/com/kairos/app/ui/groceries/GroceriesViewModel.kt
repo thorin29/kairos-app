@@ -135,9 +135,11 @@ class GroceriesViewModel(
     // ---- transforms, also used to re-apply the offline queue on load ----
 
     private fun insertLine(data: GroceriesDto, name: String, storeId: String, icon: String, id: String = "temp-${UUID.randomUUID()}"): GroceriesDto =
-        data.copy(saved = data.saved + GroceryLineDto(id = id, name = name, icon = icon, storeId = storeId))
+        if (data.saved.any { it.id == id }) data
+        else data.copy(saved = data.saved + GroceryLineDto(id = id, name = name, icon = icon, storeId = storeId))
 
     private fun insertFromCatalog(data: GroceriesDto, catalogId: String, storeId: String?, id: String = "temp-${UUID.randomUUID()}"): GroceriesDto {
+        if (data.saved.any { it.id == id }) return data
         val c = data.catalog.firstOrNull { it.id == catalogId } ?: return data
         val sid = storeId ?: c.defaultStoreId ?: ""
         return data.copy(

@@ -562,6 +562,7 @@ class CalendarViewModel(
         else fmtTime(startMin)
 
     private fun insertEvent(data: CalendarDto, req: CreateEventRequest, id: String = "temp-${UUID.randomUUID()}"): CalendarDto {
+        if (data.events.any { it.id == id }) return data
         if (req.date !in data.rangeDays) return data
         val startMin = parseHHMM(req.start) ?: 0
         val endMin = parseHHMM(req.end) ?: startMin

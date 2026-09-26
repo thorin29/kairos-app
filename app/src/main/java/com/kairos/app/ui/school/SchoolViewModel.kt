@@ -137,6 +137,7 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
         classId: String?,
         id: String = "temp-${UUID.randomUUID()}",
     ): SchoolDto {
+        if (data.people.any { p -> p.items.any { it.id == id } }) return data
         val overdue = try { LocalDate.parse(dueDate).isBefore(LocalDate.now()) } catch (_: Exception) { false }
         val typeLabel = data.types.firstOrNull { it.key == type }?.label ?: type
         val cls = if (classId.isNullOrBlank()) null

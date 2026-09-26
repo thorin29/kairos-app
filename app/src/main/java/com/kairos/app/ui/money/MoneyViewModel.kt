@@ -161,6 +161,7 @@ class MoneyViewModel(
     // ---- transforms, also used to re-apply the offline queue on load ----
 
     private fun insertRow(data: MoneyDto, req: AddMoneyRequest, id: String = "temp-${UUID.randomUUID()}"): MoneyDto {
+        if (data.rows.any { it.id == id }) return data
         if (req.userId != data.selectedId) return data
         val row = MoneyRowDto(
             id = id,

@@ -141,6 +141,7 @@ class ReadingViewModel(
     // ---- transforms, also used to re-apply the offline queue on load ----
 
     private fun insertBook(data: BooksDto, req: AddBookRequest, id: String = "temp-${UUID.randomUUID()}"): BooksDto {
+        if (data.books.any { it.id == id }) return data
         val unit = if (req.chapters != null) "CHAPTERS" else "PAGES"
         val length = req.pages ?: req.chapters ?: 0
         val book = BookDto(

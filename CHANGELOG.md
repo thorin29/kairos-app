@@ -1,4 +1,6 @@
 # Changelog
+## 0.307.0
+- Belt-and-suspenders on offline creates: the code that re-applies your queued offline changes now skips anything already present, so a create can never be added twice regardless of how the cache is restored. Internal robustness only; no visible change.
 ## 0.306.0
 - Closes the last offline-durability edge: on screens that show a change immediately (Reading, Groceries, Bible, Money, Tasks), if the change reaches the server but the follow-up refresh fails (e.g. connectivity drops right after), the app now keeps your change on screen and saves it to the on-device cache, instead of reverting it and later showing the old value after a cold start. A failed change (server never accepted it) still reverts as before.
 ## 0.305.0
