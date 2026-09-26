@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.settings.ReminderDefaults
 import com.kairos.app.ui.common.rememberContainer
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,8 +47,12 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
     var readingLead by remember { mutableStateOf(0) }
     var editingReading by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
+        // Show the last-known value even offline, instead of defaulting to "Off".
+        container.settingsStore.readingReminderLead.first().let { if (it >= 0) readingLead = it }
         try {
-            readingLead = container.sessionRepository.loadReadingReminder().leadDays
+            val v = container.sessionRepository.loadReadingReminder().leadDays
+            readingLead = v
+            container.settingsStore.setReadingReminderLead(v)
         } catch (_: Exception) {}
     }
 
@@ -180,6 +185,7 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
                                     scope.launch {
                                         try {
                                             readingLead = container.sessionRepository.setReadingReminder(d).leadDays
+                                            container.settingsStore.setReadingReminderLead(readingLead)
                                         } catch (_: Exception) {}
                                     }
                                     editingReading = false

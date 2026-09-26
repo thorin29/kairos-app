@@ -51,6 +51,8 @@ import com.kairos.app.data.remote.dto.ProgressSeriesDto
 import com.kairos.app.data.remote.dto.WorkoutProgressDto
 import com.kairos.app.data.remote.dto.WeeklyActivityDto
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.data.local.PayloadCacheStore
+import kotlinx.serialization.builtins.ListSerializer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
 
@@ -85,10 +87,27 @@ fun WorkoutsScreen(
     var week by remember { mutableStateOf<List<WeeklyActivityDto>>(emptyList()) }
 
     LaunchedEffect(ui.savedTick) {
+        val pid = container.sessionRepository.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+        // Cold-start seed so Progress and This Week paint offline too, matching
+        // today's plan (Room-backed via the VM). Same origin+person cache scope.
+        if (progress == null) {
+            runCatching { container.payloadCache.readAs("workout-progress", "main", pid, WorkoutProgressDto.serializer()) }
+                .getOrNull()?.let { progress = it }
+        }
+        if (week.isEmpty()) {
+            runCatching { container.payloadCache.readAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer())) }
+                .getOrNull()?.let { week = it }
+        }
         runCatching { container.sessionRepository.loadWorkoutProgress() }
-            .getOrNull()?.let { progress = it }
+            .getOrNull()?.let {
+                progress = it
+                runCatching { container.payloadCache.writeAs("workout-progress", "main", pid, WorkoutProgressDto.serializer(), it) }
+            }
         runCatching { container.sessionRepository.loadWeek() }
-            .getOrNull()?.let { week = it }
+            .getOrNull()?.let {
+                week = it
+                runCatching { container.payloadCache.writeAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer()), it) }
+            }
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
     }
     LaunchedEffect(refreshKey) {

@@ -48,7 +48,7 @@ fun BrowseWorkoutsScreen(onBack: () -> Unit) {
     val container = rememberContainer()
     val vm: BrowseWorkoutsViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { BrowseWorkoutsViewModel(container.sessionRepository) }
+            initializer { BrowseWorkoutsViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

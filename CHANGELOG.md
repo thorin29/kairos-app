@@ -1,4 +1,6 @@
 # Changelog
+## 0.302.0
+- Closes the last cold-start read gaps: the Workouts screen's Progress and This Week panels now paint from the on-device cache offline (like today's plan already did), and Browse Workouts keeps showing the last-loaded catalog when the server's down (sharing/deleting still need a connection). Also, the Reading Goals reminder no longer shows "Off" when offline — its value is now stored on the device and shown even without a connection.
 ## 0.301.0
 - The main Workout screen now caches like the others (instant paint on cold start, offline-resilient). Offline edits are now overlaid on the cached data during cold-start recovery on every screen, so a change made offline no longer briefly disappears after a restart. Also: the cache scope now uses the full server origin, calendar day/week/month views cache in separate buckets so heavy browsing can't evict them, and CI now runs the database test.
 ## 0.300.0

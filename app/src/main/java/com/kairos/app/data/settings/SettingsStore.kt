@@ -116,6 +116,15 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /** Last-known reading-goals reminder lead (days); -1 = never loaded. Persisted
+     *  so an offline load shows the real value instead of defaulting to "Off". */
+    val readingReminderLead: Flow<Int> =
+        dataStore.data.map { it[KEY_READING_LEAD] ?: -1 }
+
+    suspend fun setReadingReminderLead(days: Int) {
+        dataStore.edit { it[KEY_READING_LEAD] = days }
+    }
+
     private fun decodeReminderDefaults(raw: String?): Map<String, Int> =
         raw?.split(",")?.mapNotNull { part ->
             val kv = part.split("=")
@@ -207,5 +216,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_CODES = stringPreferencesKey("notif.scheduledCodes")
         val KEY_DELIVERED = stringPreferencesKey("notif.deliveredCodes")
         val KEY_REM_DEFAULTS = stringPreferencesKey("reminder_defaults")
+        val KEY_READING_LEAD = intPreferencesKey("reading_reminder_lead")
     }
 }

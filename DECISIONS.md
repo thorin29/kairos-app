@@ -1186,3 +1186,29 @@ home, calendar, reading, school, chores, groceries, tasks, bible, money, charact
 collection/gallery, coop, games, workout (log), workout progress. Intentionally NOT cached
 (forms/editors/actions, server-generated or transient): CalendarAddClass, CreatePersonalWorkout,
 CustomWorkout, EditPlan, Browse (picker), Rotation, SchoolApprovals, Devices, Reauth, Setup.
+
+## Sept 26 2026 — final Room gaps + reminder pref + CI (app v0.302)
+
+Addressed the follow-up audit (all verified in-repo first):
+- Workouts screen Progress + This Week: were Compose `remember` state fetched directly.
+  Now seed from the cache and write back (sections "workout-progress" [shared with
+  RecentWorkouts] and "workout-week"), so they survive a cold-start outage like the plan.
+- Browse Workouts: was fully network-first. VM now takes PayloadCacheStore; seeds and caches
+  the catalog ("workout-browse") + share people ("workout-browse-people"); keep-on-error so
+  a previously-loaded catalog stays visible offline. Share/delete remain online-only — the
+  intended boundary.
+- Reading Goals reminder: was a DataStore gap, not Room. readingLead defaulted to 0 and only
+  changed on a live loadReadingReminder(); offline it read "Off". Now persisted in
+  SettingsStore (readingReminderLead / setReadingReminderLead), seeded from prefs on open and
+  saved on every server load/set. (DataStore, not Room — correct tool.)
+All new payloads use the same origin + personId cache scope (PayloadCacheStore), no new
+keying pattern.
+
+CI: the instrumented-test job (android-emulator-runner -> connectedDebugAndroidTest) is in
+.github/workflows/android.yml but was reported missing from main — likely the .github folder
+wasn't uploaded. This zip includes android.yml explicitly; confirm it lands on main.
+
+Room boundary (final): durable user-facing READ data -> Room; local prefs/settings ->
+DataStore; credentials -> secure token store; transient forms/editors -> UI state;
+authoritative security/action state (approvals, devices) -> server. Not chasing 100% of
+routes into Room.
