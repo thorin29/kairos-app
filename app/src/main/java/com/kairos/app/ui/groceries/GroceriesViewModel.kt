@@ -14,6 +14,7 @@ import com.kairos.app.data.remote.dto.GroceryLineDto
 import com.kairos.app.data.remote.dto.GroceryPurchasedRequest
 import com.kairos.app.data.remote.dto.MoveGroceryRequest
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,7 @@ data class GroceriesUiState(
  */
 class GroceriesViewModel(
     private val session: SessionRepository,
+    private val cache: PayloadCacheStore,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(GroceriesUiState())
@@ -48,12 +50,21 @@ class GroceriesViewModel(
         if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.groceries?.let { c -> _ui.update { it.copy(data = c) } }
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("groceries", "main", pid, com.kairos.app.data.remote.dto.GroceriesDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.groceries = data
+                launch { runCatching { cache.writeAs("groceries", "main", pid, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), data) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, loadError = e.error.message)
+                    else it.copy(loading = false)
+                }
             }
         }
     }

@@ -105,7 +105,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: BibleViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { BibleViewModel(container.sessionRepository) }
+            initializer { BibleViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

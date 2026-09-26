@@ -1,4 +1,6 @@
 # Changelog
+## 0.295.0
+- Reading, School, Chores, Groceries, Tasks and the Bible plan now paint your last-loaded data instantly — including after a full close — instead of a spinner, reading from the on-device database and refreshing in the background. If the server is unreachable they keep showing your last data instead of an error. These are single/list views, so nothing about what they show or how they navigate changes; they just appear faster and survive a server outage.
 ## 0.294.0
 - Home now paints your last dashboard instantly — including after a full close — instead of a spinner while it loads, reading from the on-device database, then refreshing in the background. Home is a single view, so nothing about what it shows or how it navigates changes; it just appears faster. If the server is unreachable it keeps showing your last dashboard (as it already did).
 ## 0.293.0

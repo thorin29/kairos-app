@@ -60,7 +60,7 @@ private val Amber = Color(0xFFD97706)
 fun SchoolScreen(onOpenDrawer: () -> Unit, onOpenAdd: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: SchoolViewModel = viewModel(
-        factory = viewModelFactory { initializer { SchoolViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { SchoolViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }

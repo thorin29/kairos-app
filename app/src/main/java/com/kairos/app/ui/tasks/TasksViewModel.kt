@@ -11,6 +11,7 @@ import com.kairos.app.data.remote.dto.TasksListDto
 import java.time.LocalDate
 import java.util.UUID
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +27,7 @@ data class TasksUiState(
     val showCompleted: Boolean = false,
 )
 
-class TasksViewModel(private val session: SessionRepository) : ViewModel() {
+class TasksViewModel(private val session: SessionRepository, private val cache: PayloadCacheStore) : ViewModel() {
     private val _ui = MutableStateFlow(TasksUiState())
     val ui: StateFlow<TasksUiState> = _ui.asStateFlow()
 
@@ -39,12 +40,21 @@ class TasksViewModel(private val session: SessionRepository) : ViewModel() {
         if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.tasks?.let { c -> _ui.update { it.copy(data = c) } }
         _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("tasks", "main", pid, com.kairos.app.data.remote.dto.TasksListDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.tasks = data
+                launch { runCatching { cache.writeAs("tasks", "main", pid, com.kairos.app.data.remote.dto.TasksListDto.serializer(), data) } }
             } catch (e: Exception) {
-                _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load tasks.") }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load tasks.")
+                    else it.copy(loading = false)
+                }
             }
         }
     }

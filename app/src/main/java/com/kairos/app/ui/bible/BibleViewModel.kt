@@ -11,6 +11,7 @@ import com.kairos.app.data.remote.dto.ReadingDto
 import com.kairos.app.data.remote.dto.SaveBookRequest
 import com.kairos.app.data.remote.dto.SaveBooksRequest
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,7 @@ data class BibleUiState(
  */
 class BibleViewModel(
     private val session: SessionRepository,
+    private val cache: PayloadCacheStore,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(BibleUiState())
@@ -51,12 +53,21 @@ class BibleViewModel(
         if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.bible?.let { c -> _ui.update { it.copy(data = c) } }
         _ui.update { it.copy(loading = it.data == null, loadError = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("bible", "main", pid, com.kairos.app.data.remote.dto.ReadingDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data) }
                 com.kairos.app.ui.common.ScreenSnapshots.bible = data
+                launch { runCatching { cache.writeAs("bible", "main", pid, com.kairos.app.data.remote.dto.ReadingDto.serializer(), data) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, loadError = e.error.message)
+                    else it.copy(loading = false)
+                }
             }
         }
     }

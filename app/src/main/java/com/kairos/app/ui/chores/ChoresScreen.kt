@@ -71,7 +71,7 @@ fun ChoresScreen(onOpenDrawer: () -> Unit) {
     val container = rememberContainer()
     val vm: ChoresViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { ChoresViewModel(container.sessionRepository) }
+            initializer { ChoresViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

@@ -79,7 +79,7 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
     val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
     val vm: TasksViewModel = viewModel(
         viewModelStoreOwner = owner,
-        factory = viewModelFactory { initializer { TasksViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { TasksViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     val scope = rememberCoroutineScope()

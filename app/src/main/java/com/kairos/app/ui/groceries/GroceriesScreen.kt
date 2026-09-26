@@ -64,7 +64,7 @@ import com.kairos.app.ui.nav.KairosIcons
 fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: String, canDeleteAny: Boolean, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: GroceriesViewModel = viewModel(
-        factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }

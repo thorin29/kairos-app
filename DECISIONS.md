@@ -1064,3 +1064,21 @@ no "opens to the wrong thing" risk — the seed only changes paint speed.
 Remaining screens to give the same treatment (each its own version): reading, school,
 then the lighter ones. Deliberately NOT touching the calendar day/agenda pager offline
 spinner here — that's a separate, behavior-changing piece to do on its own.
+
+## Sept 26 2026 — offline-first, step 4: reading/school/chores/groceries/tasks/bible (app v0.295)
+
+Applied the proven seed+write pattern to the six remaining snapshot-backed screens in one
+version (the pattern was validated on Calendar+Home; these have no tab/date navigation, so
+no "opens to the wrong thing" risk). Added typed PayloadCacheStore.readAs/writeAs helpers so
+each screen is just a seed line + a write line.
+- Each VM: inject cache, capture pid = session.currentPersonId() ?: HOUSEHOLD at load; if
+  data == null seed from cache (section per screen, viewKey "main"); on success write the
+  DTO; keep-on-error (only surface the error when there is no data to show).
+- School keys by term (reqTerm = _ui.value.term ?: "main") so it can't seed the wrong term.
+- Sections: reading/school/chores/groceries/tasks/bible. DTOs: Books/School/Chores/
+  Groceries/TasksList/Reading (all @Serializable). Wired all 9 construction sites.
+- refresh()/action paths still update the in-memory snapshot only; the durable cache
+  re-warms on the next load() — same as Calendar/Home.
+Room now covers every snapshot-backed screen. Money remains deliberately excluded (per-user
+flash risk); with personId in the key it could be added later if wanted. The calendar
+day/agenda offline-spinner is still a separate, behavior-changing follow-up.

@@ -56,7 +56,7 @@ import androidx.compose.ui.graphics.Color
 fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: (String) -> Unit = {}, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: TasksViewModel = viewModel(
-        factory = viewModelFactory { initializer { TasksViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { TasksViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     var editMode by remember { mutableStateOf(false) }

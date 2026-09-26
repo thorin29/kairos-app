@@ -84,7 +84,7 @@ import java.util.Locale
 fun ReadingScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val container = rememberContainer()
     val vm: ReadingViewModel = viewModel(
-        factory = viewModelFactory { initializer { ReadingViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { ReadingViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }

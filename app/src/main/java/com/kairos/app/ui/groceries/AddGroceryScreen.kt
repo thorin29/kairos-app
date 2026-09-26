@@ -67,7 +67,7 @@ fun AddGroceryScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
     val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
     val vm: GroceriesViewModel = viewModel(
         viewModelStoreOwner = owner,
-        factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { GroceriesViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     val data = ui.data

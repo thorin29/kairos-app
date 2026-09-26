@@ -10,6 +10,7 @@ import com.kairos.app.data.remote.dto.SchoolItemDto
 import com.kairos.app.data.remote.dto.SchoolRenameRequest
 import com.kairos.app.data.remote.dto.SchoolTaskIdRequest
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +28,7 @@ data class SchoolUiState(
     val term: String? = null, // term id, "all", or null (current)
 )
 
-class SchoolViewModel(private val session: SessionRepository) : ViewModel() {
+class SchoolViewModel(private val session: SessionRepository, private val cache: PayloadCacheStore) : ViewModel() {
     private val _ui = MutableStateFlow(SchoolUiState())
     val ui: StateFlow<SchoolUiState> = _ui.asStateFlow()
 
@@ -37,12 +38,22 @@ class SchoolViewModel(private val session: SessionRepository) : ViewModel() {
         if (_ui.value.data == null) com.kairos.app.ui.common.ScreenSnapshots.school?.let { c -> _ui.update { it.copy(data = c) } }
         _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            val reqTerm = _ui.value.term ?: "main"
+            if (_ui.value.data == null) {
+                runCatching { cache.readAs("school", reqTerm, pid, com.kairos.app.data.remote.dto.SchoolDto.serializer()) }
+                    .getOrNull()?.let { d -> _ui.update { if (it.data == null) it.copy(data = d, loading = false) else it } }
+            }
             try {
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data, term = it.term ?: data.selectedTermId) }
                 com.kairos.app.ui.common.ScreenSnapshots.school = data
+                launch { runCatching { cache.writeAs("school", reqTerm, pid, com.kairos.app.data.remote.dto.SchoolDto.serializer(), data) } }
             } catch (e: Exception) {
-                _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load school.") }
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, error = e.message ?: "Couldn't load school.")
+                    else it.copy(loading = false)
+                }
             }
         }
     }

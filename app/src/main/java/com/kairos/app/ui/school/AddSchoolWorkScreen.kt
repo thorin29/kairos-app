@@ -61,7 +61,7 @@ fun AddSchoolWorkScreen(parentEntry: NavBackStackEntry?, onClose: () -> Unit) {
     val owner = parentEntry ?: LocalViewModelStoreOwner.current!!
     val vm: SchoolViewModel = viewModel(
         viewModelStoreOwner = owner,
-        factory = viewModelFactory { initializer { SchoolViewModel(container.sessionRepository) } },
+        factory = viewModelFactory { initializer { SchoolViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
     val data = ui.data

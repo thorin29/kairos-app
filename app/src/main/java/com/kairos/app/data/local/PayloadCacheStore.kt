@@ -61,6 +61,26 @@ class PayloadCacheStore(
     /** Drop the current scope's rows (leaving/switching a server). */
     suspend fun clearScope() = dao.deleteScope(scopeProvider())
 
+    /** Typed read: decode the cached payload for a key with [deser], or null. */
+    suspend fun <T> readAs(
+        section: String,
+        viewKey: String,
+        personId: String,
+        deser: kotlinx.serialization.DeserializationStrategy<T>,
+    ): T? = read(section, viewKey, personId)?.let {
+        runCatching { com.kairos.app.data.remote.ApiClient.json.decodeFromString(deser, it) }.getOrNull()
+    }
+
+    /** Typed write: serialize [value] with [ser] and store it under the key. */
+    suspend fun <T> writeAs(
+        section: String,
+        viewKey: String,
+        personId: String,
+        ser: kotlinx.serialization.SerializationStrategy<T>,
+        value: T,
+        keep: Int = DEFAULT_KEEP,
+    ) = write(section, viewKey, personId, com.kairos.app.data.remote.ApiClient.json.encodeToString(ser, value), keep)
+
     /** Wipe everything (sign-out). */
     suspend fun clearAll() = dao.clearAll()
 
