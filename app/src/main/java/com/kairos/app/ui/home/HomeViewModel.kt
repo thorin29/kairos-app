@@ -96,7 +96,7 @@ class HomeViewModel(
 
     /** Overlay the offline write queue onto a dashboard (fresh or cached), so an
      *  offline edit shows on the cold-start seed too, not only after a live fetch. */
-    private fun applyPending(dashboard: DashboardDto): DashboardDto {
+    private suspend fun applyPending(dashboard: DashboardDto): DashboardDto {
         var d = dashboard
         val me = session.currentPersonId()
         for (w in session.pendingWrites()) {
