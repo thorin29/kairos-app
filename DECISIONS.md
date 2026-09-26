@@ -1119,3 +1119,14 @@ composables, so 0.297 left them out. Now:
   column shows a short "Offline" note. ThreeDayPager passes { it in vm.unavailable }.
 All five calendar views (agenda/day/3-day/week/month) now show an offline notice for a
 never-opened period instead of spinning. Still no preloading — only opened periods cache.
+
+## Sept 26 2026 — offline note wording + clears on reconnect (app v0.299)
+
+Bug: the _unavailable set only shrank on a successful ensure* re-fetch, which didn't
+reliably re-trigger while the user sat on the day, so the offline note persisted over the
+calendar (even switching day and back) until an app restart.
+Fix (VM-only): CalendarViewModel now takes NetworkMonitor and observes online. On an
+offline->online transition it clears _unavailable (notes vanish reactively) and calls
+reensureAround(date, tab) to re-fetch the current view's pages, so the day reloads.
+Wording: "You are offline - this day is not synced yet" (agenda/day/week/month); the narrow
+3-day column shows "Not synced yet".

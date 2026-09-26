@@ -399,7 +399,7 @@ fun DayGridPage(
             if (offline) {
                 Box(Modifier.fillMaxWidth().height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
                     Text(
-                        "You're offline \u2014 this day isn't saved.",
+                        "You are offline - this day is not synced yet",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -625,7 +625,7 @@ fun ThreeDayGrid(
                             } else if (unavailable(iso)) {
                                 Box(Modifier.width(dayWidth).height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
                                     Text(
-                                        "Offline",
+                                        "Not synced yet",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )

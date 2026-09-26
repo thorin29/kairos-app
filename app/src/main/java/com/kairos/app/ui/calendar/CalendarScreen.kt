@@ -103,7 +103,7 @@ fun CalendarScreen(
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore, container.appContext, container.payloadCache) }
+            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore, container.appContext, container.payloadCache, container.networkMonitor) }
         },
     )
     val ui by vm.ui.collectAsState()
@@ -967,7 +967,7 @@ private fun AgendaPager(
 @Composable
 private fun OfflineDayNotice() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("You're offline \u2014 this view isn't saved.", modifier = Modifier.padding(24.dp))
+        Text("You are offline - this day is not synced yet", modifier = Modifier.padding(24.dp))
     }
 }
 

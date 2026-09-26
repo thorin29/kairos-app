@@ -3,6 +3,7 @@ package com.kairos.app.ui.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.app.data.remote.ApiException
+import com.kairos.app.data.remote.NetworkMonitor
 import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.PendingWrite
 import com.kairos.app.data.remote.dto.CalEventDto
@@ -75,6 +76,7 @@ class CalendarViewModel(
     private val settings: SettingsStore,
     private val appContext: android.content.Context,
     private val cache: PayloadCacheStore,
+    private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     /** The person these cached calendar rows belong to (the calendar is a
@@ -258,6 +260,30 @@ class CalendarViewModel(
             }
             if (paint != null) cachePages(startTab, paint)
             load()
+        }
+        // When connectivity returns, drop the "offline / not synced" notices and
+        // re-fetch around the current date, so a day that failed while offline
+        // reloads instead of showing a stale note until the app is restarted.
+        viewModelScope.launch {
+            var wasOnline = networkMonitor.isOnline()
+            networkMonitor.online.collect { online ->
+                if (online && !wasOnline) {
+                    _unavailable.value = emptySet()
+                    reensureAround(_ui.value.date, _ui.value.tab)
+                }
+                wasOnline = online
+            }
+        }
+    }
+
+    /** After reconnecting, re-fetch the pages around [date] for [tab]; ensure*
+     *  skips anything already cached, so only the failed ones actually reload. */
+    private fun reensureAround(date: String?, tab: CalTab) {
+        val d = date?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() } ?: return
+        when (tab) {
+            CalTab.MONTH -> ensureMonth(d.withDayOfMonth(1).toString())
+            CalTab.WEEK -> ensureWeek(d.minusDays((d.dayOfWeek.value % 7).toLong()).toString())
+            else -> for (o in -2..2) ensureDay(d.plusDays(o.toLong()).toString())
         }
     }
 

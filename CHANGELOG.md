@@ -1,4 +1,6 @@
 # Changelog
+## 0.299.0
+- The calendar offline note now reads "You are offline - this day is not synced yet", and it clears itself the moment you're back online — it re-fetches the day you're on instead of leaving the note stuck over the calendar until you restart the app.
 ## 0.298.0
 - Extends the 0.297 calendar offline behavior to the Day and 3-day views: opening a day you've never opened while offline now shows a short offline note instead of an endless spinner, matching agenda/week/month. Days you've opened before still show from the on-device database.
 ## 0.297.0
