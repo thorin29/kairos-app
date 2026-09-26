@@ -368,6 +368,7 @@ fun DayGridPage(
     today: String,
     nowColor: String,
     loading: Boolean,
+    offline: Boolean = false,
     scroll: androidx.compose.foundation.ScrollState,
     onEventClick: (CalEventDto) -> Unit,
     modifier: Modifier = Modifier,
@@ -395,7 +396,15 @@ fun DayGridPage(
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
         Box(Modifier.weight(1f).verticalScroll(scroll)) {
-            if (loading) {
+            if (offline) {
+                Box(Modifier.fillMaxWidth().height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
+                    Text(
+                        "You're offline \u2014 this day isn't saved.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else if (loading) {
                 Box(Modifier.fillMaxWidth().height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
                     androidx.compose.material3.CircularProgressIndicator()
                 }
@@ -522,6 +531,7 @@ fun ThreeDayGrid(
     itemCount: Int,
     dateFor: (Int) -> String,
     dayData: (String) -> ThreeDayData?,
+    unavailable: (String) -> Boolean = { false },
     onEventClick: (CalEventDto) -> Unit,
 ) {
     val gridColor = MaterialTheme.colorScheme.outline
@@ -612,6 +622,14 @@ fun ThreeDayGrid(
                                     onEventClick = onEventClick,
                                     modifier = Modifier.width(dayWidth),
                                 )
+                            } else if (unavailable(iso)) {
+                                Box(Modifier.width(dayWidth).height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        "Offline",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             } else {
                                 Box(Modifier.width(dayWidth).height(HOUR_H * HOURS), contentAlignment = Alignment.Center) {
                                     androidx.compose.material3.CircularProgressIndicator()

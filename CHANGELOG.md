@@ -1,4 +1,6 @@
 # Changelog
+## 0.298.0
+- Extends the 0.297 calendar offline behavior to the Day and 3-day views: opening a day you've never opened while offline now shows a short offline note instead of an endless spinner, matching agenda/week/month. Days you've opened before still show from the on-device database.
 ## 0.297.0
 - Calendar offline behavior: a day, week, or month you've opened before now shows from the on-device database when the server is unreachable, instead of a spinner. For a period you've never opened while offline, the agenda/week/month views now show a short "you're offline — this view isn't saved" note instead of spinning forever. (Nothing preloads in the background; it saves what you actually open.)
 ## 0.296.0

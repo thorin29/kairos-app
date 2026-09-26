@@ -476,6 +476,7 @@ private fun DayPager(
             modifier = Modifier.weight(1f),
         ) { page ->
             val iso = dateFor(page)
+            val unavailable by vm.unavailable.collectAsState()
             val pd = pages[iso]
             val evs = if (pd != null) {
                 remember(pd.events, pd.timezone) { localizeEvents(pd.events, pd.timezone) }
@@ -488,6 +489,7 @@ private fun DayPager(
                 today = today,
                 nowColor = pd?.nowColor ?: "",
                 loading = pd == null,
+                offline = iso in unavailable,
                 scroll = vScroll,
                 onEventClick = onEventClick,
             )
@@ -538,6 +540,7 @@ private fun ThreeDayPager(
         }
     }
 
+    val unavailable by vm.unavailable.collectAsState()
     ThreeDayGrid(
         listState = listState,
         snapFling = snapFling,
@@ -553,6 +556,7 @@ private fun ThreeDayPager(
                 )
             }
         },
+        unavailable = { it in unavailable },
         onEventClick = onEventClick,
     )
 }

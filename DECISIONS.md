@@ -1108,3 +1108,14 @@ period spun forever (the airplane-mode "click a future day" case).
   never-opened offline period. Agenda (the reported case) + week + month are covered.
 - Not preloading anything: the cache only holds what the user actually opens.
 This is the behavior-changing calendar piece flagged in 0.293; done on its own version.
+
+## Sept 26 2026 — Day + 3-day offline notice (app v0.298)
+
+Completes the calendar offline coverage. Day and 3-day buried their spinner in sub-
+composables, so 0.297 left them out. Now:
+- DayGridPage takes an `offline: Boolean`; when set it shows "you're offline — this day
+  isn't saved" instead of the spinner. DayPager passes offline = iso in vm.unavailable.
+- ThreeDayGrid takes an `unavailable: (String) -> Boolean`; a never-opened offline day
+  column shows a short "Offline" note. ThreeDayPager passes { it in vm.unavailable }.
+All five calendar views (agenda/day/3-day/week/month) now show an offline notice for a
+never-opened period instead of spinning. Still no preloading — only opened periods cache.
