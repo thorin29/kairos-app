@@ -127,7 +127,7 @@ class GroceriesViewModel(
                 _ui.update { it.copy(busy = false, data = data) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busy = false) }
-                runCatching { cache.writeAs("groceries", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), optimistic) }
+                runCatching { cache.writeAs("groceries", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.GroceriesDto.serializer(), optimistic.copy(saved = optimistic.saved.filterNot { it.id.startsWith("temp-") })) }
             }
         }
     }

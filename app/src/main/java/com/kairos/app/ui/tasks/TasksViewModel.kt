@@ -122,7 +122,7 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
                 }
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false) }
-                runCatching { cache.writeAs("tasks", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.TasksListDto.serializer(), optimistic) }
+                runCatching { cache.writeAs("tasks", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.TasksListDto.serializer(), optimistic.copy(groups = optimistic.groups.map { g -> g.copy(open = g.open.filterNot { it.id.startsWith("temp-") }) })) }
             }
         }
     }

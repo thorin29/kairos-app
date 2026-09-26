@@ -133,7 +133,7 @@ class ReadingViewModel(
                 _ui.update { if (form) it.copy(saving = false, data = data) else it.copy(busy = false, data = data) }
             } catch (e: ApiException) {
                 _ui.update { if (form) it.copy(saving = false) else it.copy(busy = false) }
-                optimistic?.let { runCatching { cache.writeAs("reading", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.BooksDto.serializer(), it) } }
+                optimistic?.let { o -> runCatching { cache.writeAs("reading", "main", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.BooksDto.serializer(), o.copy(books = o.books.filterNot { it.id.startsWith("temp-") })) } }
             }
         }
     }

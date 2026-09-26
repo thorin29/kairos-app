@@ -1330,3 +1330,21 @@ REMAINING architectural item — temp-id reconciliation (NOT done here, needs th
 Regression tests ChatGPT asked for (applyPending-create idempotent; POST-ok/GET-fail keeps the
   mutation with a usable id): need SessionRepository to be mockable (it's a concrete class) via
   an interface or a mocking lib. Deferred as a test-infra step.
+
+
+## Sept 26 2026 — temp-id stranding: app-only fix chosen over cross-repo (v0.309)
+
+Chose the low-risk app-only fix over the server-returns-id approach. On the online
+write-ok/refresh-GET-fail persist path (0.306), the optimistic DTO can carry a temp-<uuid>
+create; persisting it durably meant a later action could reference an id the server (which
+assigned a real id) never had -> lost action. Fix: filter out temp- ids before that persist
+(reading/groceries/money/tasks). Updates/toggles/deletes act on real ids and still persist;
+only unconfirmed creates are dropped. The create is safe on the server and returns with its
+real id on the next load. Cost: the just-created item isn't durable in Room during that narrow
+window (reappears on next load) — acceptable and strictly better than stranding.
+Why NOT the server-returns-id + temp->real swap (ChatGPT's ideal): tried it; the create result
+types are shared with the update paths (e.g. BookResult used by add AND update), so it's a
+delicate ~25-file cross-repo change, uncompilable here on both sides. Higher risk for the
+marginal gain of keeping the create durable in that window. Left as a documented option if that
+extra durability is ever wanted; the harm (data loss) is already eliminated.
+CLIENT_BUILD bumped to 361 with versionCode (per the rule).

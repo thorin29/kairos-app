@@ -1,4 +1,6 @@
 # Changelog
+## 0.309.0
+- Fixes the temp-id stranding edge: when you create something online and the follow-up refresh fails, the unconfirmed new item (which still has a temporary id) is no longer written to the on-device cache. It's already saved on the server and reappears with its real id on the next successful load, so a later action can never reference an id the server never had. Includes everything from 0.305-0.308 (cumulative).
 ## 0.308.0
 - Cumulative release: re-includes every source change from 0.305-0.307 (a run of partial uploads had left the live branch a mix of versions). Also fixes CLIENT_BUILD, the number the app reports to the server for the minimum-version check, which had been left at 342 while the app was on build 360 — a stale value could make a current app look out-of-date to the server. No behavior change beyond that.
 ## 0.307.0

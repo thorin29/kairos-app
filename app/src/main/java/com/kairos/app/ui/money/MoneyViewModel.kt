@@ -153,7 +153,7 @@ class MoneyViewModel(
                 _ui.update { if (form) it.copy(adding = false, data = data) else it.copy(approving = false, data = data) }
             } catch (e: ApiException) {
                 _ui.update { if (form) it.copy(adding = false) else it.copy(approving = false) }
-                runCatching { cache.writeAs("money", currentUser ?: "default", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.MoneyDto.serializer(), optimistic) }
+                runCatching { cache.writeAs("money", currentUser ?: "default", session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD, com.kairos.app.data.remote.dto.MoneyDto.serializer(), optimistic.copy(rows = optimistic.rows.filterNot { it.id.startsWith("temp-") })) }
             }
         }
     }
