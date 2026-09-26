@@ -103,7 +103,7 @@ fun CalendarScreen(
     val container = rememberContainer()
     val vm: CalendarViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore, container.appContext) }
+            initializer { CalendarViewModel(container.sessionRepository, container.settingsStore, container.appContext, container.payloadCache) }
         },
     )
     val ui by vm.ui.collectAsState()

@@ -613,7 +613,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         open = false
                         com.kairos.app.ui.calendar.CalendarSnapshot.clear()
                         com.kairos.app.ui.common.ScreenSnapshots.clearAll()
-                        scope.launch { container.sessionRepository.signOut() }
+                        scope.launch {
+                            runCatching { container.payloadCache.clearAll() }
+                            container.sessionRepository.signOut()
+                        }
                     }) { Text("Sign out") }
                 },
                 dismissButton = {

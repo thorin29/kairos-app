@@ -11,7 +11,9 @@ import com.kairos.app.data.remote.dto.CreateEventRequest
 import com.kairos.app.data.remote.dto.DeleteEventRequest
 import com.kairos.app.data.remote.dto.UpdateEventRequest
 import com.kairos.app.data.session.SessionRepository
+import com.kairos.app.data.session.SessionState
 import com.kairos.app.data.settings.SettingsStore
+import com.kairos.app.data.local.PayloadCacheStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,7 +74,20 @@ class CalendarViewModel(
     private val session: SessionRepository,
     private val settings: SettingsStore,
     private val appContext: android.content.Context,
+    private val cache: PayloadCacheStore,
 ) : ViewModel() {
+
+    /** The person these cached calendar rows belong to (the calendar is a
+     *  personal, per-viewer view). Keeps one person's saved calendar from ever
+     *  seeding another's on a shared/re-enrolled device. */
+    private fun personId(): String =
+        (session.state.value as? SessionState.Ready)?.person?.id ?: PayloadCacheStore.HOUSEHOLD
+
+    private fun encodeCal(d: CalendarDto): String =
+        ApiClient.json.encodeToString(CalendarDto.serializer(), d)
+
+    private fun decodeCal(s: String): CalendarDto? =
+        runCatching { ApiClient.json.decodeFromString(CalendarDto.serializer(), s) }.getOrNull()
 
     /** Re-run the reminder scheduler after any event change, so a new/edited/
      *  deleted event's alarms are (re)set right away — not only after the next
@@ -171,7 +186,14 @@ class CalendarViewModel(
             val def = settings.currentCalendarDefaultView()
             val start = if (def == "last") settings.currentCalendarLastView() else def
             val startTab = CalTab.fromServer(start)
-            val cached = if (CalendarSnapshot.tab == startTab) CalendarSnapshot.data else null
+            // Instant paint: the in-memory snapshot (same process) first; on a
+            // cold start (process death) fall back to the durable Room cache, so
+            // the last-seen calendar for this tab shows immediately instead of a
+            // spinner. Tab-keyed, mirroring CalendarSnapshot.
+            val snap = if (CalendarSnapshot.tab == startTab) CalendarSnapshot.data else null
+            val cached = snap ?: runCatching {
+                cache.read("calendar", startTab.serverValue, personId())
+            }.getOrNull()?.let { decodeCal(it) }
             _ui.update {
                 it.copy(
                     tab = startTab,
@@ -202,8 +224,16 @@ class CalendarViewModel(
                 CalendarSnapshot.data = data
                 CalendarSnapshot.tab = s.tab
                 cachePages(s.tab, data)
+                // Durable twin of the snapshot: persist this view so a cold start
+                // or a server outage can still paint it. Off the UI path.
+                launch { runCatching { cache.write("calendar", s.tab.serverValue, personId(), encodeCal(data)) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(loading = false, loadError = e.error.message) }
+                // If we already have data (last-seen, or the durable cache), keep
+                // showing it rather than replacing a good calendar with an error.
+                _ui.update {
+                    if (it.data == null) it.copy(loading = false, loadError = e.error.message)
+                    else it.copy(loading = false)
+                }
             }
         }
     }

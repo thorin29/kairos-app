@@ -1001,3 +1001,35 @@ behavior change** — nothing reads or writes the DB yet.
 - **Next (step 2):** wire CalendarViewModel to seed from payloadCache (instant even on cold
   start), then refresh from the API and write back; fold in / retire the in-memory
   CalendarSnapshot. Then home, reading, school.
+
+## Sept 26 2026 — offline-first, step 2: Calendar reads through the cache (app v0.292)
+
+Wired CalendarViewModel to the payload cache from step 1, as the durable twin of
+the in-memory CalendarSnapshot (kept, not removed).
+
+- **Seed order on open:** in-memory CalendarSnapshot (same process) → durable Room
+  cache (survives process death) → API refresh. So a cold start paints the last-seen
+  calendar for that tab immediately instead of a spinner. Key = ("calendar",
+  tab.serverValue, personId) — tab-keyed, mirroring CalendarSnapshot; personId from
+  the Ready session (HOUSEHOLD fallback), keeping one viewer's calendar off another's
+  on a shared/re-enrolled device.
+- **Write:** on every successful load, fire-and-forget cache.write of the fetched
+  CalendarDto (serialized with ApiClient.json) under the tab key. At most 5 rows per
+  person (one per tab), so no growth concern.
+- **Server-down resilience:** the load() catch no longer replaces good data with an
+  error — if we already have data (last-seen or durable cache), a failed refresh keeps
+  showing it. Only a cold, dataless failure surfaces the error. This is the "502 →
+  saved calendar" win, and it changes behavior only in the had-data-but-refresh-failed
+  case (previously an error banner).
+- **Behavior nuance to watch on test:** after a full app close, the calendar reopens to
+  the last-seen tab/date (consistent with mid-session return) rather than snapping to
+  today. If we'd rather fresh-launch always start on today, that's a one-line follow-up
+  (seed data for instant paint but force date=null on cold start).
+- **Sign-out** now also clears the payload cache (AppRoot sign-out block), alongside the
+  in-memory snapshots.
+- **Files:** CalendarViewModel.kt (inject cache, personId/encode/decode helpers, init
+  seed, load write + keep-on-error), CalendarScreen.kt (pass container.payloadCache),
+  AppRoot.kt (clearAll on sign-out), app/build.gradle.kts (0.292.0).
+- **Next:** once this proves out, apply the same seed/write/keep-on-error pattern to
+  home, then reading/school. Optional step 2b: instant paint keyed to today so a cold
+  start shows today's cached view specifically.

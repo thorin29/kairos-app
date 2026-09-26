@@ -1,4 +1,6 @@
 # Changelog
+## 0.292.0
+- Calendar now paints instantly from your last-seen data even after the app was fully closed and reopened (a cold start), reading from the on-device database added in 0.291 — no spinner while it refreshes in the background. If the server is unreachable when you open the calendar, it keeps showing your saved calendar instead of an error. Note: after a full close, the calendar reopens to the view/date you last had (same as returning to it mid-session), rather than jumping to today.
 ## 0.291.0
 - Internal groundwork for offline-first (no user-facing change yet): added a local database that will let screens open instantly from their last-loaded data even after the app is fully closed and reopened. Nothing uses it yet — this build just lays the foundation, starting with the calendar next.
 ## 0.290.0
