@@ -1307,3 +1307,26 @@ as-is with this note rather than adding a hacky content-match. If Home ever move
 cache-applied model, revisit.
 This makes the double-apply class structurally impossible for every deterministic-id create,
 independent of the raw-vs-applied caching discipline.
+
+## Sept 26 2026 — cumulative fix + CLIENT_BUILD; temp-id reconciliation flagged (v0.308)
+
+- CLIENT_BUILD had drifted: it was 342 while versionCode climbed to 360. CLIENT_BUILD is
+  compared to the server's minClient, so a stale value can wrongly gate a current app. Set to
+  360. RULE (re-affirmed): bump CLIENT_BUILD with versionCode every release.
+- Delivery: several 0.305-0.307 source files never reached main (partial GitHub uploads), so
+  main was a version mixture (0.307 build number, 0.305 behavior in Calendar/Reading/Groceries/
+  Money/Tasks/Bible). Shipped 0.308 as a CUMULATIVE package = diff vs the 0.304 commit, so every
+  0.305-0.308 file is re-included regardless of what partially landed. Lesson: when uploads may
+  be lossy, deliver cumulatively from a known-good baseline, not just the last version's diff.
+
+REMAINING architectural item — temp-id reconciliation (NOT done here, needs the server repo):
+  Create endpoints (addBook/addGrocery/addMoneyEntry/addTask) return OkStatusDto and the app
+  discards it, so the optimistic object keeps its temp-<uuid> id. If POST succeeds but the
+  refresh GET fails, 0.306 persists that temp-id object to Room; a later user action on it queues
+  a request referencing an id the server never had -> that action can be lost (worse than a
+  transient duplicate). Clean fix (cross-repo): create endpoints RETURN the created id; the app
+  captures it and swaps temp-><real> before persisting. Do NOT paper over it with temp-id
+  heuristics. Blocked on the kairos (server) repo.
+Regression tests ChatGPT asked for (applyPending-create idempotent; POST-ok/GET-fail keeps the
+  mutation with a usable id): need SessionRepository to be mockable (it's a concrete class) via
+  an interface or a mocking lib. Deferred as a test-infra step.
