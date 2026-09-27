@@ -959,6 +959,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 365
+        const val CLIENT_BUILD = 366
     }
 }

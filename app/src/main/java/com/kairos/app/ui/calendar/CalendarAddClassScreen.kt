@@ -532,7 +532,10 @@ private fun CustomReminderDialog(onAdd: (Int) -> Unit, onDismiss: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberTimePickerState(initialHour = initialMin / 60, initialMinute = initialMin % 60, is24Hour = false)
+    // Clamp into a valid clock range so an out-of-range minute value (>= 24:00)
+    // can't crash rememberTimePickerState.
+    val safeMin = initialMin.coerceIn(0, 23 * 60 + 59)
+    val state = rememberTimePickerState(initialHour = safeMin / 60, initialMinute = safeMin % 60, is24Hour = false)
     AnimatedDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text("OK") } },

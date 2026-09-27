@@ -3,6 +3,16 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Calendar time picker clamps to a valid clock range (crash fix)
+
+rememberTimePickerState requires initialHour in 0..23. The event editor's endMin falls back to
+startMin + 60 when the parsed end isn't after the start, which for a start at/after 23:00 is >= 24:00
+(initialHour >= 24) and crashed the app on tapping the end time — reproducible on any device, present
+since well before 0.290. TimePickerDialog (both the event editor and the add-class screen) now clamps
+its input to 0..23:59 before building the state, and the endMin initializer is coerced the same way so
+a 24:00 value can't be held in state or saved as "24:00". Clamping rather than wrapping to 00:00 keeps
+a late end at 23:59, the sensible end-of-day value.
+
 ## Calendar creates join the clientId correlation (the last offline create outside it)
 
 CalendarViewModel.createEvent now stamps a durable clientId onto CreateEventRequest, closing the

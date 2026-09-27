@@ -1,4 +1,6 @@
 # Changelog
+## 0.314.0
+- Fixes a crash when editing a calendar event and tapping the end time. Events whose end time worked out to midnight or later (for example a late-evening event, or one where the end wasn't after the start) pushed the time picker past 24:00 and crashed it. The picker now clamps to a valid time, and an end time can no longer be held or saved past 23:59. Cumulative (0.305-0.314).
 ## 0.313.0
 - Brings calendar events into the offline-sync identity system that reading, groceries, money, tasks, and school already use. A calendar event created offline now carries a durable client id, so on reconnect it's de-duplicated server-side (a retried create whose response was lost no longer makes a second event) and it correlates through the same temp-id remapping as everything else — editing or deleting an offline-created event before reconnecting now resolves to the real event. Pairs with server 0.497. Cumulative (0.305-0.313).
 ## 0.312.0

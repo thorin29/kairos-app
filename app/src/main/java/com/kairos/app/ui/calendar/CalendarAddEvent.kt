@@ -103,7 +103,7 @@ fun AddEventOverlay(
         (((now.hour * 60 + now.minute + 14) / 15) * 15).coerceIn(0, 22 * 60)
     }
     var startMin by remember { mutableStateOf(editEvent?.startMin ?: defaultStart) }
-    var endMin by remember { mutableStateOf(editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))) }
+    var endMin by remember { mutableStateOf((editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))).coerceIn(0, 23 * 60 + 59)) }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var addressSearchOpen by remember { mutableStateOf(false) }
     var repeat by remember { mutableStateOf("NONE") }
@@ -786,7 +786,11 @@ private fun SelectOptionRow(label: String, selected: Boolean, onClick: () -> Uni
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(initialMin: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberTimePickerState(initialHour = initialMin / 60, initialMinute = initialMin % 60, is24Hour = TimeFmt.military)
+    // Clamp into a valid clock range: an event's end can fall back to start+60,
+    // which for a late start (>= 23:00) is >= 24:00, and an initialHour >= 24
+    // crashes rememberTimePickerState. Never hand it an out-of-range value.
+    val safeMin = initialMin.coerceIn(0, 23 * 60 + 59)
+    val state = rememberTimePickerState(initialHour = safeMin / 60, initialMinute = safeMin % 60, is24Hour = TimeFmt.military)
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
