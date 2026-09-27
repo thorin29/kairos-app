@@ -155,9 +155,18 @@ class SyncManager(
                         Outcome.DONE -> {
                             val real = createdRealId
                             if (w.clientId != null && real != null) {
-                                idMap["temp-${w.clientId}"] = real
+                                val tempId = "temp-${w.clientId}"
+                                // Keep the mapping for the rest of THIS pass — the
+                                // in-memory snapshot still holds the temp id — and
+                                // durably rewrite the queue so a later pass (after a
+                                // dropped connection or a restart) no longer depends
+                                // on it. Removing the create without this rewrite is
+                                // what stranded dependent ops in 0.311.
+                                idMap[tempId] = real
+                                queue.resolveCreate(w.id, tempId, real)
+                            } else {
+                                queue.remove(w.id)
                             }
-                            queue.remove(w.id)
                             changedAny = true
                         }
                         Outcome.DROP -> {

@@ -3,6 +3,24 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Resolving a synced create rewrites the durable queue, not just the in-memory replay map
+
+0.311 recorded temp->real in an in-memory map during a single replay pass and removed the synced
+create from the durable queue, but left the remaining dependent writes in the queue still holding
+the temp id. If the connection dropped (or the process died) after the create landed but before a
+dependent replayed, the next pass started with an empty map and no create to recover the mapping,
+so the dependent went out under the stale temp id, got a 404, and was dropped as a permanent 4xx.
+Fix: WriteQueue.resolveCreate does the removal and the temp->real rewrite of every remaining
+queued write as one atomic DataStore update, so the invariant holds across passes/restarts: once
+the server has assigned a real id, no durable queued op still depends on the temp id. The in-memory
+idMap stays as a same-pass optimization (the current snapshot still holds temp ids). A regression
+test asserts a fresh snapshot after resolveCreate contains only the rewritten dependent with no
+temp id left. Also added a testDebugUnitTest job to Android CI: the JVM unit tests under src/test
+were not previously run (CI did only assembleRelease + connectedDebugAndroidTest), so the
+offline-queue tests were guarding nothing. Still open by design: server-side clientId idempotency
+(a create whose response is lost re-POSTs and can duplicate) — the clientId is already on the wire,
+so it is a server-only change when wanted.
+
 ## Offline creates carry a durable clientId that correlates the whole edit chain
 
 A create's optimistic temp id (`temp-<uuid>`) is sent to the server as a `clientId` in the body,

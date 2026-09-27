@@ -76,6 +76,28 @@ class WriteQueueTest {
         assertTrue(queue.snapshot().isEmpty())
     }
 
+    @Test fun resolveCreate_durably_rewrites_dependents_and_survives_a_new_pass() = runBlocking {
+        queue.enqueue(create("A")) // CREATE clientId=A, queue id q-A
+        queue.enqueue(
+            PendingWrite(
+                id = "q-move",
+                method = "POST",
+                url = "/grocery/temp-A/move",
+                body = """{"id":"temp-A","storeId":"s2"}""",
+                createdAt = 1L,
+            ),
+        )
+        queue.resolveCreate(createQueueId = "q-A", tempId = "temp-A", realId = "real-X")
+        // A fresh snapshot is exactly what the *next* replay pass reads from the
+        // durable store — the temp->real mapping is no longer in any in-memory map.
+        val items = queue.snapshot()
+        assertEquals(1, items.size)
+        assertEquals("q-move", items[0].id)
+        assertEquals("/grocery/real-X/move", items[0].url)
+        assertEquals("""{"id":"real-X","storeId":"s2"}""", items[0].body)
+        assertFalse(items.any { it.url.contains("temp-A") || it.body?.contains("temp-A") == true })
+    }
+
     @Test fun remove_by_queue_id_still_works() = runBlocking {
         queue.enqueue(create("A"))
         assertTrue(queue.remove("q-A"))

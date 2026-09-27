@@ -88,6 +88,21 @@ class WriteQueue(
         return removed
     }
 
+    /** A synced create resolved its temp id to a real server id. Atomically drop
+     *  the create and rewrite that temp id -> real id into the path/body of every
+     *  remaining queued write, so once the server has assigned a real id no durable
+     *  queued op still depends on the temp id. This is what makes an offline
+     *  create-then-edit chain survive a dropped connection, process death, or reboot
+     *  between the create landing and its dependents replaying: the in-memory replay
+     *  map alone would be gone on the next pass. */
+    suspend fun resolveCreate(createQueueId: String, tempId: String, realId: String) {
+        dataStore.edit { prefs ->
+            val remaining = decode(prefs[key]).filterNot { it.id == createQueueId }
+            val rewritten = remaining.map { OfflineSync.rewrite(it, mapOf(tempId to realId)) }
+            prefs[key] = json.encodeToString(listSerializer, rewritten)
+        }
+    }
+
     /** Drop every pending write. Called on sign-out, server change, or a dead
      *  token, so one identity's queued writes can never replay under another. */
     suspend fun clear() {
