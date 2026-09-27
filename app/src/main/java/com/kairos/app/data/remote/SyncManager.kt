@@ -95,12 +95,17 @@ class SyncManager(
             if (items.isEmpty() || !monitor.isOnline()) return
             _syncing.value = true
             var changedAny = false
+            // As each queued create replays and returns its real id, record
+            // "temp-<clientId>" -> realId so later ops in this same pass that were
+            // queued offline against the temp id can be rewritten onto the real one.
+            val idMap = HashMap<String, String>()
             try {
                 val base = baseUrlProvider()
                 for (w in items) {
                     if (!monitor.isOnline()) break
 
-                    val target = resolveReplayUrl(base, w.url)
+                    val rw = OfflineSync.rewrite(w, idMap)
+                    val target = resolveReplayUrl(base, rw.url)
                     if (target == null) {
                         // Can't be resolved to the current server — a stale write
                         // from a different host. Drop it rather than missend it.
@@ -113,13 +118,23 @@ class SyncManager(
 
                     val req = Request.Builder()
                         .url(target)
-                        .method(w.method, (w.body ?: "").toRequestBody(jsonType))
+                        .method(w.method, (rw.body ?: "").toRequestBody(jsonType))
                         .build()
 
+                    var createdRealId: String? = null
                     val outcome = try {
                         client.newCall(req).execute().use { resp ->
                             when {
-                                resp.isSuccessful -> Outcome.DONE
+                                resp.isSuccessful -> {
+                                    // A create returns the new row's id; capture it so
+                                    // later ops in this pass can be remapped onto it.
+                                    if (w.clientId != null) {
+                                        createdRealId = resp.body?.string()?.let {
+                                            Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1)
+                                        }
+                                    }
+                                    Outcome.DONE
+                                }
                                 resp.code in RETRYABLE -> Outcome.RETRY
                                 resp.code in 500..599 -> Outcome.RETRY
                                 resp.code in 400..499 -> {
@@ -138,6 +153,10 @@ class SyncManager(
 
                     when (outcome) {
                         Outcome.DONE -> {
+                            val real = createdRealId
+                            if (w.clientId != null && real != null) {
+                                idMap["temp-${w.clientId}"] = real
+                            }
                             queue.remove(w.id)
                             changedAny = true
                         }

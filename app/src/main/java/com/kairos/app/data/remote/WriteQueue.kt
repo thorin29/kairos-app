@@ -26,6 +26,11 @@ data class PendingWrite(
     val url: String,
     val body: String?,
     val createdAt: Long,
+    /** For an offline *create*, the durable client identity of the new item
+     *  (the bare uuid of its `temp-<uuid>` id). Null for non-creates. Lets a
+     *  create be correlated with the follow-up ops that reference its temp id,
+     *  and rebuilt with the same id by applyPending across restarts. */
+    val clientId: String? = null,
 )
 
 /**
@@ -63,6 +68,20 @@ class WriteQueue(
         dataStore.edit { prefs ->
             val before = decode(prefs[key])
             val after = before.filterNot { it.id == id }
+            removed = after.size != before.size
+            prefs[key] = json.encodeToString(listSerializer, after)
+        }
+        return removed
+    }
+
+    /** Remove a queued *create* by its client identity (the temp uuid). Returns
+     *  true only if one actually matched, so the interceptor can tell a real
+     *  add-then-delete collapse from a delete with nothing to cancel. */
+    suspend fun removeByClientId(clientId: String): Boolean {
+        var removed = false
+        dataStore.edit { prefs ->
+            val before = decode(prefs[key])
+            val after = before.filterNot { it.clientId == clientId }
             removed = after.size != before.size
             prefs[key] = json.encodeToString(listSerializer, after)
         }

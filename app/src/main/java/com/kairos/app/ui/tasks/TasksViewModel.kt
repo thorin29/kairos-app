@@ -84,7 +84,7 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
                     val req = runCatching {
                         ApiClient.json.decodeFromString(AddTaskRequest.serializer(), body)
                     }.getOrNull() ?: continue
-                    d = insertTask(d, req.userId, req.title, req.dueDate, "temp-${w.id}")
+                    d = insertTask(d, req.userId, req.title, req.dueDate, "temp-${w.clientId ?: w.id}")
                 }
                 path.startsWith("tasks/") && path.endsWith("/complete") ->
                     d = moveTask(d, path.removePrefix("tasks/").removeSuffix("/complete"), toDone = true)
@@ -151,13 +151,14 @@ class TasksViewModel(private val session: SessionRepository, private val cache: 
     fun add(userId: String, title: String, dueDate: String?, recur: com.kairos.app.data.remote.dto.RecurRequest? = null, notifyMinutes: Int? = null, onDone: () -> Unit) {
         if (_ui.value.busy) return
         val before = _ui.value.data
-        val tempId = "temp-${UUID.randomUUID()}"
+        val clientId = UUID.randomUUID().toString()
+        val tempId = "temp-$clientId"
         val optimistic = before?.let { insertTask(it, userId, title, dueDate, tempId) }
         _ui.update { it.copy(busy = true, message = null, data = optimistic ?: it.data) }
         onDone() // close the wizard right away; the task already shows on the list
         viewModelScope.launch {
             val realId = try {
-                session.addTask(userId, title, dueDate, recur, notifyMinutes)
+                session.addTask(userId, title, dueDate, recur, notifyMinutes, clientId)
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false, data = before, message = e.message ?: "Couldn't add the task.") }
                 return@launch

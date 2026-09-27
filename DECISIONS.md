@@ -3,6 +3,24 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Offline creates carry a durable clientId that correlates the whole edit chain
+
+A create's optimistic temp id (`temp-<uuid>`) is sent to the server as a `clientId` in the body,
+and that uuid becomes the create's durable client identity everywhere: the queued PendingWrite is
+tagged with it (interceptor), applyPending rebuilds the item under the same `temp-<uuid>` after a
+restart (so the optimistic id and the rebuilt id finally match, instead of being two independent
+random ids), and the SyncManager — once the create replays and the server returns the real id —
+rewrites `temp-<uuid>` -> realId in every later queued op's path and body before replay. An
+add-then-delete done offline collapses, because the delete's temp id is the create's clientId, so
+removeByClientId drops the exact queued create. This replaces the per-operation guard approach:
+one correlation key instead of special-casing each follow-up. The temp-id substitution and
+clientId parsing live in a pure `OfflineSync` object with unit tests; queue integrity/collapse has
+DataStore-backed tests. The server ignores unknown body keys, so this shipped app-only (works
+against server 0.494+); the clientId is already on the wire for a future server-side idempotency
+key (a retried create whose response was lost is recognized as the same create) with no further app
+change. Recurring task creates are excluded — they fan out to several rows, so there is no single
+id to correlate.
+
 ## Temp ids are swapped for real ids on create-success, before the refresh
 
 The create APIs return the new row's id (server 0.495.0). Each optimistic create generates its

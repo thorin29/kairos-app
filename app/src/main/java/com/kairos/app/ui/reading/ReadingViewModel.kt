@@ -85,8 +85,9 @@ class ReadingViewModel(
     fun clearSaveError() = _ui.update { it.copy(saveError = null) }
 
     fun add(req: AddBookRequest, onDone: () -> Unit) {
-        val tempId = "temp-${UUID.randomUUID()}"
-        mutateCreate({ insertBook(it, req, tempId) }, tempId, ::swapBookId, onDone) { session.addBook(req) }
+        val clientId = UUID.randomUUID().toString()
+        val tempId = "temp-$clientId"
+        mutateCreate({ insertBook(it, req, tempId) }, tempId, ::swapBookId, onDone) { session.addBook(req, clientId) }
     }
     fun update(req: UpdateBookRequest, onDone: () -> Unit) =
         mutate({ updateBook(it, req) }, form = true, onDone) { session.updateBook(req) }
@@ -255,7 +256,7 @@ class ReadingViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "books/add" -> parse(w.body, AddBookRequest.serializer())?.let { d = insertBook(d, it, "temp-${w.id}") }
+                "books/add" -> parse(w.body, AddBookRequest.serializer())?.let { d = insertBook(d, it, "temp-${w.clientId ?: w.id}") }
                 "books/update" -> parse(w.body, UpdateBookRequest.serializer())?.let { d = updateBook(d, it) }
                 "books/log" -> parse(w.body, LogBookRequest.serializer())?.let { d = setRead(d, it.id, it.page) }
                 "books/finish" -> parse(w.body, BookFinishRequest.serializer())?.let { d = setFinished(d, it.id, it.finished) }

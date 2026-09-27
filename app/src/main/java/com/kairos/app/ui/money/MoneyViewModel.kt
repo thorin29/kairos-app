@@ -94,8 +94,9 @@ class MoneyViewModel(
     fun clearAddError() = _ui.update { it.copy(addError = null) }
 
     fun addEntry(req: AddMoneyRequest, onDone: () -> Unit) {
-        val tempId = "temp-${UUID.randomUUID()}"
-        createEntry(onDone, { insertRow(it, req, tempId) }, tempId) { session.addMoneyEntry(req) }
+        val clientId = UUID.randomUUID().toString()
+        val tempId = "temp-$clientId"
+        createEntry(onDone, { insertRow(it, req, tempId) }, tempId) { session.addMoneyEntry(req, clientId) }
     }
     fun updateEntry(req: UpdateMoneyRequest, onDone: () -> Unit) =
         optimistic(form = true, onDone, { updateRow(it, req) }) { session.updateMoney(req) }
@@ -258,7 +259,7 @@ class MoneyViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "money/entry" -> parse(w.body, AddMoneyRequest.serializer())?.let { d = insertRow(d, it, "temp-${w.id}") }
+                "money/entry" -> parse(w.body, AddMoneyRequest.serializer())?.let { d = insertRow(d, it, "temp-${w.clientId ?: w.id}") }
                 "money/update" -> parse(w.body, UpdateMoneyRequest.serializer())?.let { d = updateRow(d, it) }
                 "money/delete" -> parse(w.body, MoneyIdRequest.serializer())?.let { d = removeRow(d, it.id) }
                 "money/approve" -> parse(w.body, MoneyIdRequest.serializer())?.let { d = setApproved(d, it.id, true) }

@@ -578,8 +578,8 @@ class SessionRepository(
     suspend fun loadMoney(user: String?): com.kairos.app.data.remote.dto.MoneyDto =
         runAuthed { requireService().money(user) }
 
-    suspend fun addMoneyEntry(body: com.kairos.app.data.remote.dto.AddMoneyRequest): String? =
-        runAuthed { requireService().addMoneyEntry(body) }.id
+    suspend fun addMoneyEntry(body: com.kairos.app.data.remote.dto.AddMoneyRequest, clientId: String? = null): String? =
+        runAuthed { requireService().addMoneyEntry(body.copy(clientId = clientId)) }.id
 
     suspend fun approveRewardMonth(periodKey: String) {
         runAuthed {
@@ -636,8 +636,8 @@ class SessionRepository(
     suspend fun loadGameTime(): com.kairos.app.data.remote.dto.GameTimeResponseDto =
         runAuthed { requireService().gameTime() }
 
-    suspend fun addBook(body: com.kairos.app.data.remote.dto.AddBookRequest): String? =
-        runAuthed { requireService().addBook(body) }.id
+    suspend fun addBook(body: com.kairos.app.data.remote.dto.AddBookRequest, clientId: String? = null): String? =
+        runAuthed { requireService().addBook(body.copy(clientId = clientId)) }.id
 
     suspend fun logBook(id: String, page: Int) {
         runAuthed { requireService().logBook(com.kairos.app.data.remote.dto.LogBookRequest(id, page)) }
@@ -663,11 +663,11 @@ class SessionRepository(
     suspend fun loadGroceries(): com.kairos.app.data.remote.dto.GroceriesDto =
         runAuthed { requireService().groceries() }
 
-    suspend fun addGrocery(name: String, storeId: String, note: String? = null): String? =
-        runAuthed { requireService().addGrocery(com.kairos.app.data.remote.dto.AddGroceryRequest(name, storeId, note)) }.id
+    suspend fun addGrocery(name: String, storeId: String, note: String? = null, clientId: String? = null): String? =
+        runAuthed { requireService().addGrocery(com.kairos.app.data.remote.dto.AddGroceryRequest(name, storeId, note, clientId)) }.id
 
-    suspend fun addGroceryFromCatalog(catalogId: String, storeId: String? = null): String? =
-        runAuthed { requireService().addGroceryFromCatalog(com.kairos.app.data.remote.dto.AddCatalogRequest(catalogId, storeId)) }.id
+    suspend fun addGroceryFromCatalog(catalogId: String, storeId: String? = null, clientId: String? = null): String? =
+        runAuthed { requireService().addGroceryFromCatalog(com.kairos.app.data.remote.dto.AddCatalogRequest(catalogId, storeId, clientId)) }.id
 
     suspend fun removeGrocery(id: String) {
         runAuthed { requireService().removeGrocery(com.kairos.app.data.remote.dto.GroceryIdRequest(id)) }
@@ -717,8 +717,8 @@ class SessionRepository(
 
     suspend fun loadSchool(term: String?): com.kairos.app.data.remote.dto.SchoolDto =
         runAuthed { requireService().school(term) }
-    suspend fun addSchool(userId: String, title: String, type: String, dueDate: String, subject: String?, classId: String?): String? =
-        runAuthed { requireService().addSchool(com.kairos.app.data.remote.dto.AddSchoolRequest(userId, title, type, dueDate, subject, classId)) }.id
+    suspend fun addSchool(userId: String, title: String, type: String, dueDate: String, subject: String?, classId: String?, clientId: String? = null): String? =
+        runAuthed { requireService().addSchool(com.kairos.app.data.remote.dto.AddSchoolRequest(userId, title, type, dueDate, subject, classId, clientId)) }.id
     suspend fun deleteSchool(taskId: String) {
         runAuthed { requireService().deleteSchool(com.kairos.app.data.remote.dto.SchoolTaskIdRequest(taskId)) }
     }
@@ -733,8 +733,9 @@ class SessionRepository(
         dueDate: String?,
         recur: com.kairos.app.data.remote.dto.RecurRequest? = null,
         notifyMinutes: Int? = null,
+        clientId: String? = null,
     ): String? =
-        runAuthed { requireService().addTask(com.kairos.app.data.remote.dto.AddTaskRequest(userId, title, dueDate, recur, notifyMinutes)) }.id
+        runAuthed { requireService().addTask(com.kairos.app.data.remote.dto.AddTaskRequest(userId, title, dueDate, recur, notifyMinutes, clientId)) }.id
 
     suspend fun loadTaskEdit(id: String): com.kairos.app.data.remote.dto.TaskEditDataDto =
         runAuthed { requireService().taskEditData(id) }
@@ -958,6 +959,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 362
+        const val CLIENT_BUILD = 363
     }
 }

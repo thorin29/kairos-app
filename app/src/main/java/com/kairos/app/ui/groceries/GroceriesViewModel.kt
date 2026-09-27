@@ -83,12 +83,14 @@ class GroceriesViewModel(
     fun clearMessage() = _ui.update { it.copy(message = null) }
 
     fun add(name: String, storeId: String) {
-        val tempId = "temp-${UUID.randomUUID()}"
-        createLine({ insertLine(it, name, storeId, "", tempId) }, tempId) { session.addGrocery(name, storeId, null) }
+        val clientId = UUID.randomUUID().toString()
+        val tempId = "temp-$clientId"
+        createLine({ insertLine(it, name, storeId, "", tempId) }, tempId) { session.addGrocery(name, storeId, null, clientId) }
     }
     fun addFromCatalog(catalogId: String, storeId: String?) {
-        val tempId = "temp-${UUID.randomUUID()}"
-        createLine({ insertFromCatalog(it, catalogId, storeId, tempId) }, tempId) { session.addGroceryFromCatalog(catalogId, storeId) }
+        val clientId = UUID.randomUUID().toString()
+        val tempId = "temp-$clientId"
+        createLine({ insertFromCatalog(it, catalogId, storeId, tempId) }, tempId) { session.addGroceryFromCatalog(catalogId, storeId, clientId) }
     }
     fun remove(id: String) = optimistic({ removeLine(it, id) }) { session.removeGrocery(id) }
     fun move(id: String, storeId: String) = optimistic({ moveLine(it, id, storeId) }) { session.moveGrocery(id, storeId) }
@@ -210,8 +212,8 @@ class GroceriesViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "groceries/add" -> parse(w.body, AddGroceryRequest.serializer())?.let { d = insertLine(d, it.name, it.storeId, "", "temp-${w.id}") }
-                "groceries/add-catalog" -> parse(w.body, AddCatalogRequest.serializer())?.let { d = insertFromCatalog(d, it.catalogId, it.storeId, "temp-${w.id}") }
+                "groceries/add" -> parse(w.body, AddGroceryRequest.serializer())?.let { d = insertLine(d, it.name, it.storeId, "", "temp-${w.clientId ?: w.id}") }
+                "groceries/add-catalog" -> parse(w.body, AddCatalogRequest.serializer())?.let { d = insertFromCatalog(d, it.catalogId, it.storeId, "temp-${w.clientId ?: w.id}") }
                 "groceries/remove" -> parse(w.body, GroceryIdRequest.serializer())?.let { d = removeLine(d, it.id) }
                 "groceries/move" -> parse(w.body, MoveGroceryRequest.serializer())?.let { d = moveLine(d, it.id, it.storeId) }
                 "groceries/purchased" -> parse(w.body, GroceryPurchasedRequest.serializer())?.let { d = setPurchasedLine(d, it.id, it.purchased) }

@@ -234,15 +234,22 @@ internal class OfflineInterceptor(
                     null
                 }
                 if (cancelId != null) {
-                    // Only fake success if a matching queued create was actually
-                    // dropped. A temp-id delete that cancels nothing means the create
-                    // already synced (under its real id) or was never queued; faking
-                    // success there would silently lose the delete, so surface it as an
-                    // offline failure the user can retry once reconnected.
-                    val cancelled = runBlocking { queue!!.remove(cancelId) }
+                    // add-then-delete collapse: the temp id in the delete is the
+                    // create's clientId, so we can drop the exact queued create.
+                    // Only fake success if one was actually dropped — a temp-id
+                    // delete that cancels nothing means the create already synced
+                    // (under its real id) or was never queued; faking success there
+                    // would silently lose the delete, so surface it as an offline
+                    // failure the user can retry once reconnected.
+                    val cancelled = runBlocking { queue!!.removeByClientId(cancelId) }
                     if (cancelled) return synthetic(req)
                     throw IOException("You're offline. Reconnect to make changes.")
                 }
+                // A create carries a clientId in its body (the bare uuid of the
+                // item's temp id). Persist it on the queue entry so the create can
+                // be correlated with the follow-up ops that reference its temp id,
+                // and rebuilt with the same id by applyPending across restarts.
+                val clientId = OfflineSync.clientIdOf(bodyStr)
                 runBlocking {
                     queue!!.enqueue(
                         PendingWrite(
@@ -255,6 +262,7 @@ internal class OfflineInterceptor(
                                 (req.url.encodedQuery?.let { "?$it" } ?: ""),
                             body = bodyStr,
                             createdAt = System.currentTimeMillis(),
+                            clientId = clientId,
                         ),
                     )
                 }

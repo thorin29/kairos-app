@@ -143,9 +143,10 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
     }
 
     fun add(userId: String, title: String, type: String, dueDate: String, subject: String?, classId: String?) {
-        val tempId = "temp-${UUID.randomUUID()}"
+        val clientId = UUID.randomUUID().toString()
+        val tempId = "temp-$clientId"
         createItem({ insertItem(it, userId, title, type, dueDate, classId, tempId) }, tempId) {
-            session.addSchool(userId, title, type, dueDate, subject, classId)
+            session.addSchool(userId, title, type, dueDate, subject, classId, clientId)
         }
     }
 
@@ -231,7 +232,7 @@ class SchoolViewModel(private val session: SessionRepository, private val cache:
                     val req = w.body?.let {
                         runCatching { ApiClient.json.decodeFromString(AddSchoolRequest.serializer(), it) }.getOrNull()
                     } ?: continue
-                    d = insertItem(d, req.userId, req.title, req.type, req.dueDate, req.classId, "temp-${w.id}")
+                    d = insertItem(d, req.userId, req.title, req.type, req.dueDate, req.classId, "temp-${w.clientId ?: w.id}")
                 }
                 path == "school/delete" -> {
                     val req = w.body?.let {

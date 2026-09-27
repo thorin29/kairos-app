@@ -1193,6 +1193,7 @@ data class AddMoneyRequest(
     val category: String? = null,
     val detail: String? = null,
     val date: String? = null,
+    val clientId: String? = null,
 )
 
 @Serializable
@@ -1298,6 +1299,7 @@ data class AddBookRequest(
     val pages: Int? = null,
     val chapters: Int? = null,
     val goals: List<GoalInputDto> = emptyList(),
+    val clientId: String? = null,
 )
 
 @Serializable
@@ -1395,12 +1397,14 @@ data class AddGroceryRequest(
     val name: String,
     val storeId: String,
     val note: String? = null,
+    val clientId: String? = null,
 )
 
 @Serializable
 data class AddCatalogRequest(
     val catalogId: String,
     val storeId: String? = null,
+    val clientId: String? = null,
 )
 
 @Serializable
@@ -1661,6 +1665,7 @@ data class AddSchoolRequest(
     val dueDate: String,
     val subject: String? = null,
     val classId: String? = null,
+    val clientId: String? = null,
 )
 
 @Serializable
@@ -1714,6 +1719,7 @@ data class AddTaskRequest(
     val dueDate: String? = null,
     val recur: RecurRequest? = null,
     val notifyMinutes: Int? = null,
+    val clientId: String? = null,
 )
 
 @Serializable

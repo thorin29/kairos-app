@@ -614,7 +614,7 @@ class CalendarViewModel(
         var d = data
         for (w in pending) {
             when (w.url.substringAfter("/api/v1/", "")) {
-                "calendar/event" -> parse(w.body, CreateEventRequest.serializer())?.let { d = insertEvent(d, it, "temp-${w.id}") }
+                "calendar/event" -> parse(w.body, CreateEventRequest.serializer())?.let { d = insertEvent(d, it, "temp-${w.clientId ?: w.id}") }
                 "calendar/event/update" -> parse(w.body, UpdateEventRequest.serializer())?.let { d = updateEventIn(d, it) }
                 "calendar/event/delete" -> parse(w.body, DeleteEventRequest.serializer())?.let { d = removeEvent(d, it.eventId, it.scope, it.occurrenceISO) }
             }
