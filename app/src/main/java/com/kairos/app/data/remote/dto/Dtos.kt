@@ -1086,6 +1086,7 @@ data class CreateEventRequest(
     val participants: List<String>? = null,
     val reminders: List<Int>? = null,
     val reminderUserIds: List<String>? = null,
+    val clientId: String? = null,
 )
 
 @Serializable

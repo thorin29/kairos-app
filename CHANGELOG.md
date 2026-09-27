@@ -1,4 +1,6 @@
 # Changelog
+## 0.313.0
+- Brings calendar events into the offline-sync identity system that reading, groceries, money, tasks, and school already use. A calendar event created offline now carries a durable client id, so on reconnect it's de-duplicated server-side (a retried create whose response was lost no longer makes a second event) and it correlates through the same temp-id remapping as everything else — editing or deleting an offline-created event before reconnecting now resolves to the real event. Pairs with server 0.497. Cumulative (0.305-0.313).
 ## 0.312.0
 - Fixes a real gap in the 0.311 offline-sync work: when an item created offline finally syncs, its temporary id is now rewritten to the server's real id *in the saved queue itself*, not just in memory for that one sync attempt. Before this, if the connection dropped between the create landing and a follow-up change (move/edit/complete) replaying, that follow-up could be sent under the old temporary id, rejected, and lost. The fix now survives a dropped connection, an app restart, or a reboot. Also wires the offline-queue unit tests into CI so this can't silently regress. App-only; cumulative (0.305-0.312).
 ## 0.311.0

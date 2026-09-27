@@ -418,9 +418,16 @@ class CalendarViewModel(
     fun createEvent(req: com.kairos.app.data.remote.dto.CreateEventRequest, onDone: () -> Unit) {
         if (_ui.value.creating) return
         _ui.update { it.copy(creating = true, createError = null) }
+        // Tag the create with a durable client id so an offline-queued event is
+        // de-duplicated server-side on a retried/lost-response create and joins
+        // the same temp->real correlation as every other offline create. The
+        // calendar create refreshes rather than optimistic-inserting online, so
+        // there is no visible temp row to swap here — the id lives only in the
+        // offline queue path, where applyPending rebuilds it as temp-<clientId>.
+        val tagged = req.copy(clientId = req.clientId ?: java.util.UUID.randomUUID().toString())
         viewModelScope.launch {
             try {
-                session.createCalendarEvent(req)
+                session.createCalendarEvent(tagged)
                 rescheduleReminders()
                 _ui.update { it.copy(creating = false) }
                 onDone()

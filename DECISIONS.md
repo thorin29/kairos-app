@@ -3,6 +3,20 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Calendar creates join the clientId correlation (the last offline create outside it)
+
+CalendarViewModel.createEvent now stamps a durable clientId onto CreateEventRequest, closing the
+one offline create that never joined the 0.311/0.312 identity work. Unlike the other create VMs,
+the calendar create refreshes (load()) rather than optimistic-inserting online, so there is no
+visible temp row to swap and createCalendarEvent intentionally does NOT return/consume a real id
+here; the clientId matters only in the offline queue path, where the interceptor tags the queued
+create, applyPending rebuilds it as temp-<clientId>, add-then-delete collapses by clientId, and
+SyncManager durably remaps temp-><realId> once the create replays (the server returns the event id
+as of server 0.497). Server-side idempotency (Event.clientId) de-duplicates a retried lost-response
+create. Recurring tasks needed no app change — they already send clientId on the same AddTask
+request; the server dedups the series without returning an id (a RecurringTask id must not reach
+SyncManager as a Task real-id).
+
 ## Resolving a synced create rewrites the durable queue, not just the in-memory replay map
 
 0.311 recorded temp->real in an in-memory map during a single replay pass and removed the synced
