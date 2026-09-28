@@ -497,7 +497,10 @@ data class PlanDayDto(
 )
 
 @Serializable
-data class PlanResponse(val days: List<PlanDayDto> = emptyList())
+data class PlanResponse(
+    val days: List<PlanDayDto> = emptyList(),
+    val weeklyStart: String = "",
+)
 
 @Serializable
 data class PlanRestRequest(val day: Int)

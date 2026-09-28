@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class EditPlanUiState(
     val loading: Boolean = true,
     val days: List<PlanDayDto> = emptyList(),
+    val weeklyStart: String = "",
     val options: com.kairos.app.data.remote.dto.PlanOptionsDto? = null,
     val busy: Boolean = false,
     val error: String? = null,
@@ -33,7 +34,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
             try {
                 val plan = session.loadPlan()
                 val opts = if (_ui.value.options == null) runCatching { session.loadPlanOptions() }.getOrNull() else _ui.value.options
-                _ui.update { it.copy(loading = false, busy = false, days = plan, options = opts, error = null) }
+                _ui.update { it.copy(loading = false, busy = false, days = plan.days, weeklyStart = plan.weeklyStart, options = opts, error = null) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, busy = false, error = e.error.message) }
             }
@@ -53,6 +54,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
         }
     }
 
+    fun setStartDate(iso: String) = act { session.setWeeklyStart(iso) }
     fun markRest(day: Int) = act { session.planMarkRest(day) }
     fun copyDay(from: Int, to: Int) = act { session.planCopyDay(from, to) }
     fun remove(id: String) = act { session.planRemove(id) }

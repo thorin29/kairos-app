@@ -25,6 +25,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
@@ -58,6 +65,7 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
     val ui by vm.ui.collectAsState()
     val todayDow = remember { LocalDate.now().dayOfWeek.value % 7 }
     var addingDay by remember { mutableStateOf<Int?>(null) }
+    var showStart by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -75,6 +83,13 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
         },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
+            if (showStart) {
+                PlanDatePick(
+                    iso = ui.weeklyStart,
+                    onPick = { vm.setStartDate(it); showStart = false },
+                    onDismiss = { showStart = false },
+                )
+            }
             when {
                 ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -88,6 +103,33 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                     Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    item(key = "starts-on") {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "Starts on",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                OutlinedButton(onClick = { showStart = true }, enabled = !ui.busy) {
+                                    Text(if (ui.weeklyStart.isNotEmpty()) ui.weeklyStart else "Active now")
+                                }
+                                if (ui.weeklyStart.isNotEmpty()) {
+                                    TextButton(onClick = { vm.setStartDate("") }, enabled = !ui.busy) {
+                                        Text("Clear")
+                                    }
+                                }
+                            }
+                            Text(
+                                "Pick a future day to start this plan; blank starts now.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     items(ui.days, key = { it.day }) { d ->
                         DayCard(
                             day = d,
@@ -226,3 +268,29 @@ private fun CopyFromMenu(others: List<PlanDayDto>, onCopyFrom: (Int) -> Unit) {
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlanDatePick(iso: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = planIsoToMillis(iso))
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onPick(state.selectedDateMillis?.let { planMillisToIso(it) } ?: iso)
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) { DatePicker(state = state) }
+}
+
+private fun planIsoToMillis(iso: String): Long =
+    try {
+        LocalDate.parse(iso, DateTimeFormatter.ISO_DATE).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    } catch (_: Exception) {
+        Instant.now().toEpochMilli()
+    }
+
+private fun planMillisToIso(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().format(DateTimeFormatter.ISO_DATE)
+
