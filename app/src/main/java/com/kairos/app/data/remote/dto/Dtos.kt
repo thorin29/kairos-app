@@ -500,7 +500,11 @@ data class PlanDayDto(
 data class PlanResponse(
     val days: List<PlanDayDto> = emptyList(),
     val weeklyStart: String = "",
+    val weeklyActive: Boolean = true,
 )
+
+@Serializable
+data class WeeklyActiveRequest(val active: Boolean)
 
 @Serializable
 data class PlanRestRequest(val day: Int)

@@ -128,6 +128,19 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            TextButton(
+                                onClick = { vm.setWeeklyActive(!ui.weeklyActive) },
+                                enabled = !ui.busy,
+                            ) {
+                                Text(if (ui.weeklyActive) "Pause weekly plan" else "Resume weekly plan")
+                            }
+                            if (!ui.weeklyActive) {
+                                Text(
+                                    "Paused \u2014 no weekly prompts. A rotation, if any, still runs.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                     items(ui.days, key = { it.day }) { d ->
