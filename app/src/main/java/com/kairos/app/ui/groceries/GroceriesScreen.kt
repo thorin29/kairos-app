@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -93,6 +94,11 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: Strin
         },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
+            PullToRefreshBox(
+                isRefreshing = ui.refreshing,
+                onRefresh = vm::refresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
             val data = ui.data
             when {
                 ui.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -106,6 +112,7 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: Strin
                     }
                 }
                 else -> GroceriesContent(vm, ui, data, onAddItem, editMode, meId, canDeleteAny)
+            }
             }
         }
     }

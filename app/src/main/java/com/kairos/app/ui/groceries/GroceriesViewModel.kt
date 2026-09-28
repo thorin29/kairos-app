@@ -28,6 +28,7 @@ data class GroceriesUiState(
     val data: GroceriesDto? = null,
     val busy: Boolean = false,
     val message: String? = null,
+    val refreshing: Boolean = false,
 )
 
 /**
@@ -65,6 +66,19 @@ class GroceriesViewModel(
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
                     else it.copy(loading = false)
                 }
+            }
+        }
+    }
+
+    fun refresh() {
+        _ui.update { it.copy(refreshing = true) }
+        viewModelScope.launch {
+            try {
+                val data = freshData()
+                _ui.update { it.copy(refreshing = false, loading = false, loadError = null, data = data) }
+                com.kairos.app.ui.common.ScreenSnapshots.groceries = data
+            } catch (e: ApiException) {
+                _ui.update { it.copy(refreshing = false, loadError = e.error.message) }
             }
         }
     }
