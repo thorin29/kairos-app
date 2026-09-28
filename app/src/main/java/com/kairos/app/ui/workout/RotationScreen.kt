@@ -66,6 +66,7 @@ fun RotationScreen(onBack: () -> Unit) {
     val ui by vm.ui.collectAsState()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Rotation") },
