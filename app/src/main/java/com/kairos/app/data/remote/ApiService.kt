@@ -263,6 +263,9 @@ interface ApiService {
     @POST("workouts/rotation/move-slot")
     suspend fun rotationMoveSlot(@Body body: MoveSlotRequest): Response<TaskStatusDto>
 
+    @POST("workouts/rotation/anchor")
+    suspend fun rotationSetAnchor(@Body body: com.kairos.app.data.remote.dto.AnchorRequest): Response<TaskStatusDto>
+
     @POST("workouts/log-custom")
     suspend fun logCustom(@Body body: CustomLogRequest): Response<WorkoutAckDto>
 

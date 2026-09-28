@@ -56,4 +56,5 @@ class RotationViewModel(private val session: SessionRepository) : ViewModel() {
     }
     fun removeSlot(id: String) = act { session.rotationRemoveSlot(id) }
     fun moveSlot(id: String, dir: Int) = act { session.rotationMoveSlot(id, dir) }
+    fun setStartDate(iso: String) = act { session.rotationSetAnchor(iso) }
 }

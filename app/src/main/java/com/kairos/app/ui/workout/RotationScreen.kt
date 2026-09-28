@@ -22,6 +22,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -98,6 +106,7 @@ private fun StartRotation(onStart: () -> Unit, enabled: Boolean) {
 private fun RotationBody(r: RotationDto, busy: Boolean, error: String?, vm: RotationViewModel) {
     var name by remember { mutableStateOf("") }
     var rest by remember { mutableStateOf(false) }
+    var showStart by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -121,6 +130,24 @@ private fun RotationBody(r: RotationDto, busy: Boolean, error: String?, vm: Rota
                     )
                 }
             }
+        }
+
+        val startIso = r.anchorISO ?: ""
+        Text("Cycle starts on", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = { showStart = true }, enabled = !busy) {
+            Text(if (startIso.isNotEmpty()) shortDate(startIso) else "Set start date")
+        }
+        Text(
+            "Day 1 of the cycle falls here. Set it to today to start an edited plan fresh.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (showStart) {
+            RotationDatePick(
+                iso = startIso,
+                onPick = { picked -> vm.setStartDate(picked); showStart = false },
+                onDismiss = { showStart = false },
+            )
         }
 
         Text("Rest weekdays (pause the cycle)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -213,3 +240,29 @@ private fun RotationBody(r: RotationDto, busy: Boolean, error: String?, vm: Rota
 private fun shortDate(iso: String): String = try {
     val p = iso.split("-"); "${p[1].toInt()}/${p[2].toInt()}"
 } catch (e: Exception) { iso }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RotationDatePick(iso: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = isoToMillis(iso))
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onPick(state.selectedDateMillis?.let { millisToIso(it) } ?: iso)
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) { DatePicker(state = state) }
+}
+
+private fun isoToMillis(iso: String): Long =
+    try {
+        LocalDate.parse(iso, DateTimeFormatter.ISO_DATE).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    } catch (_: Exception) {
+        Instant.now().toEpochMilli()
+    }
+
+private fun millisToIso(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().format(DateTimeFormatter.ISO_DATE)
+

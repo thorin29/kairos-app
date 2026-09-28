@@ -414,6 +414,9 @@ data class RotationDto(
 data class RestDaysRequest(val mask: Int)
 
 @Serializable
+data class AnchorRequest(val date: String)
+
+@Serializable
 data class AddSlotRequest(
     val name: String,
     val category: String? = null,

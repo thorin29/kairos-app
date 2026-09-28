@@ -524,6 +524,9 @@ class SessionRepository(
     suspend fun rotationMoveSlot(slotId: String, dir: Int) {
         runAuthed { requireService().rotationMoveSlot(com.kairos.app.data.remote.dto.MoveSlotRequest(slotId, dir)) }
     }
+    suspend fun rotationSetAnchor(dateISO: String) {
+        runAuthed { requireService().rotationSetAnchor(com.kairos.app.data.remote.dto.AnchorRequest(dateISO)) }
+    }
 
     suspend fun logCustom(body: com.kairos.app.data.remote.dto.CustomLogRequest): WorkoutAckDto =
         runAuthed { requireService().logCustom(body) }
@@ -959,6 +962,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 367
+        const val CLIENT_BUILD = 368
     }
 }
