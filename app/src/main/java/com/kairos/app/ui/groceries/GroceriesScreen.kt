@@ -252,7 +252,9 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("${store.icon}  ${store.name}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                GroceryGlyph(store.icon, emojiStyle = MaterialTheme.typography.titleSmall, size = 20.dp)
+                Spacer(Modifier.width(6.dp))
+                Text(store.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 Text("${trip.got}/${trip.total}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             trip.shopper.name.takeIf { it.isNotBlank() }?.let {
@@ -305,7 +307,9 @@ private fun SavedStoreCard(
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("${store.icon}  ${store.name}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                GroceryGlyph(store.icon, emojiStyle = MaterialTheme.typography.titleSmall, size = 20.dp)
+                Spacer(Modifier.width(6.dp))
+                Text(store.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 Text("${items.size}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
@@ -404,7 +408,7 @@ private fun MoveStoreDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(store.icon, style = MaterialTheme.typography.bodyMedium)
+                    GroceryGlyph(store.icon, emojiStyle = MaterialTheme.typography.bodyMedium, size = 16.dp)
                     Text(store.name, style = MaterialTheme.typography.labelLarge, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
                 }
             }
@@ -435,7 +439,7 @@ private fun ShopPickerDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text(store.icon, style = MaterialTheme.typography.titleMedium)
+                        GroceryGlyph(store.icon, emojiStyle = MaterialTheme.typography.titleMedium, size = 20.dp)
                         Text(store.name, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
