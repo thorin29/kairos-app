@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -114,7 +115,14 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                OutlinedButton(onClick = { showStart = true }, enabled = !ui.busy) {
+                                OutlinedButton(
+                                    onClick = { showStart = true },
+                                    enabled = !ui.busy,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                ) {
                                     Text(if (ui.weeklyStart.isNotEmpty()) ui.weeklyStart else "Active now")
                                 }
                                 if (ui.weeklyStart.isNotEmpty()) {

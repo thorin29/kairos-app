@@ -99,7 +99,7 @@ private fun StartRotation(onStart: () -> Unit, enabled: Boolean) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = onStart, enabled = enabled) { Text("Start a rotation") }
+        Button(onClick = onStart, enabled = enabled) { Text("Add a rotation") }
     }
 }
 
@@ -233,7 +233,7 @@ private fun RotationBody(r: RotationDto, busy: Boolean, error: String?, vm: Rota
         }
 
         OutlinedButton(onClick = vm::stop, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Stop rotation (back to weekly plan)")
+            Text("Stop rotation")
         }
     }
 }
