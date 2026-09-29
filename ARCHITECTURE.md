@@ -93,8 +93,63 @@ so avatar requests carry the device token). Reach it in composables with
 
 ## Theme
 
-Light only (`darkTheme = false` always) — the web has one design; dark mode is
-deliberately off. Status-bar icons forced dark via `WindowCompat` in MainActivity.
+**Eight colour schemes plus dark mode, per device** (`ui/theme/Theme.kt`).
+`ThemeScheme` is the enum — TEAL (default), OLIVE, GREEN, BLUE, PURPLE, PINK,
+ORANGE, RED — resolved from a stored key with `ThemeScheme.fromKey`, and
+`KairosTheme(scheme, darkTheme)` picks `lightScheme(p)` / `darkScheme(p)` and
+publishes `KairosThemeState.accent` / `.sidebar` / `.dark` for non-Material
+surfaces. `MainActivity` reads both from `SettingsStore` and passes them in.
+Settings → Appearance also holds the 24-hour clock option. (The "light only,
+dark mode deliberately off" rule this file used to carry was superseded when the
+Settings epic shipped; the web has the same eight themes household-wide from
+Admin → Appearance.)
+
+## Grocery and store icons
+
+Items and stores store a short **icon token**, rendered by `GroceryGlyph`
+(`ui/groceries/GroceryGlyph.kt`) — the single renderer for both:
+
+- a bare **emoji** → drawn as text;
+- **`ic:<name>`** → `GLYPH_DRAWABLES` (five legacy PNGs);
+- **`kairos:<slug>`** → `KAIROS_DRAWABLES` → `R.drawable.grocery_<slug>` in
+  `res/drawable-nodpi/`. **Hyphens in the slug become underscores** in the
+  resource name (`kairos:baby-wipes` → `grocery_baby_wipes`).
+- anything else that looks prefixed (`^[a-z]+:`) → **📦**, never the raw token.
+
+Two rules that follow from this: the web server must ship **before** the app when
+a new token is introduced (a phone can only draw art it has bundled — otherwise
+the user sees 📦), and every entry added to `KAIROS_DRAWABLES` must have a real
+PNG bundled or the build fails on an unresolved resource. The web repo's
+`DECISIONS.md` holds the token contract and the icon-sheet slicing pipeline.
+
+## Calendar time model (shared with the server — don't improvise here)
+
+The server sends per-day **segments** for layout (`dayISO`, `startMin`, `endMin`,
+where `1440` means end-of-day and is *not* a clock value) plus the event's **true
+bounds** (`startDayISO`, `startMinExact`, `endDayISO`, `endMinExact`).
+`CalendarAddEvent.kt` initialises the editor from the exact bounds when they are
+present and falls back to the segment (rolling a `1440` end forward to 00:00 of
+the next day) when they aren't — so an overnight event opens whole regardless of
+which day was tapped.
+
+- **Midnight is 00:00 on the next day, never 23:59.** Clock state stays 0–1439.
+- `TimePickerDialog` clamps input to 0..23:59 as a **crash guard only**
+  (`rememberTimePickerState` throws on hour ≥ 24); it is not the time model.
+- **All-day is inclusive in the UI, exclusive on the wire**: the editor shows
+  Starts and Ends as the first and last covered day, and sends
+  `endDate = endDateIso + 1 day` for `allDay`. A timed event sends its real end
+  day. Reverse the conversion when loading.
+- Save is disabled and the offending field reddens while the end is at or before
+  the start; the All-day switch normalises the dates/times rather than leaving a
+  zero-length span.
+
+## Docs that must stay current
+
+`CHANGELOG.md` every release (it becomes the in-app release notes), `DECISIONS.md`
+whenever a guardrail or a model is settled, and this file whenever the stack,
+theming, or a cross-cutting model changes. Doc upkeep is part of the release, not
+an afterthought — this file claiming "light only" months after dark mode shipped
+is what that rule exists to prevent.
 
 ## Where things live
 

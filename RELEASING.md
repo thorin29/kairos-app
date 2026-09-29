@@ -16,8 +16,12 @@ is unchanged and is still just for your own testing.
    Also bump `CLIENT_BUILD` in `SessionRepository.kt`.
 2. **Update `CHANGELOG.md`** — add a `## <versionName>` section at the top. Its
    bullets become the release notes the household sees in the update prompt.
-3. **Commit.**
-4. **Publish**, either:
+3. **Update the docs that changed with the code** — `DECISIONS.md` for a new
+   guardrail or a settled model, `ARCHITECTURE.md` for anything cross-cutting
+   (stack, theming, navigation, a shared data model), and the web repo's
+   `docs/API.md` if the contract moved. Treat this as part of the release.
+4. **Commit.**
+5. **Publish**, either:
    - `git tag v0.126.0 && git push origin v0.126.0`, or
    - Actions → **Release** → *Run workflow*.
 

@@ -3,6 +3,50 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Calendar: edit from the event's exact bounds, never from the tapped segment (v0.332–0.335)
+
+The server flattens an event into per-day segments for layout (`dayISO`, `startMin`, `endMin`) and
+separately sends its true bounds (`startDayISO`, `startMinExact`, `endDayISO`, `endMinExact`).
+CalendarAddEvent initialises from the bounds when present, so tapping the second day of an overnight
+or multi-day event opens the WHOLE event rather than that day's slice, and a title-only save can no
+longer rewrite the end. The segment path is kept only as the fallback for a cached/legacy event, and
+there a stored end of `1440` is rolled forward to 00:00 of the next day — `1440` is a same-day layout
+edge, never a clock value. Clock state stays 0–1439 everywhere; midnight is 00:00 tomorrow, never
+23:59. The TimePickerDialog 0..23:59 clamp (previous entry) is a crash guard sitting *under* this
+model, not the model itself.
+
+Validation lives in one derived flag: the interval is invalid when the end instant
+(`endDay * 1440 + endMin`) is at or before the start, which disables Save and reddens the offending
+field instead of letting the server reject it. The All-day switch normalises the dates/times as it
+flips (v0.335) rather than leaving a zero-length timed event or gaining a day at the midnight
+boundary.
+
+**All-day is inclusive in the UI and exclusive on the wire.** The editor's Starts and Ends fields are
+the first and last covered day (a one-day event shows the same date both sides); on save the app
+sends `endDate = endDateIso.plusDays(1)` when `allDay`, and subtracts a day when loading. A *timed*
+event sends its real end day, unconverted. Getting this backwards is what made one-day all-day events
+read as two days (fixed v0.333) and a cached legacy event show tomorrow as its end (v0.334).
+
+## Grocery/store icons: one renderer, drawables keyed by token, 📦 as the only fallback
+
+Icons arrive from the server as short tokens and are drawn by `GroceryGlyph` alone — items *and*
+stores, every surface. `GLYPH_DRAWABLES` maps the five legacy `ic:*` tokens; `KAIROS_DRAWABLES` maps
+the ~230 `kairos:<slug>` tokens of the custom colourful set to `R.drawable.grocery_<slug>` in
+`res/drawable-nodpi/`, where the slug's hyphens become underscores. Anything matching `^[a-z]+:` that
+resolves to no drawable renders **📦**; a raw token string must never reach the screen.
+
+Consequences worth holding on to:
+
+- **Server ships first, app second.** The phone can only draw art it has bundled, so a token the
+  server starts emitting before the matching APK is installed shows 📦 for everyone. Deploy order is
+  web → app, always.
+- **Every map entry needs a real PNG** in the same release — an unresolved `R.drawable.*` is a
+  compile error, and this repo can't be built in the sandbox, so new icon batches are verified by
+  checking each entry against the bundled file list before packaging.
+- The monochrome `mdi:` family is **retired** (server v0.516); don't reintroduce a monochrome set.
+  The token contract, the picker pools, and the icon-sheet slicing pipeline live in the web repo's
+  DECISIONS.md, which is the source of truth for both clients.
+
 ## Calendar time picker clamps to a valid clock range (crash fix)
 
 rememberTimePickerState requires initialHour in 0..23. The event editor's endMin falls back to
@@ -741,7 +785,7 @@ SettingsStore (local) or a server field. Phases: (2) app themes, (2b) web themes
 admin, (3) profile editing (needs new device endpoints: avatar upload, position, ring
 color), (4) calendar/birthday notifications (settings model + Android scheduling).
 
-## App: Appearance / themes (0.115.0) - Phase 2 (per-device, per Marco)
+## App: Appearance / themes (0.115.0) - Phase 2 (per-device, by decision)
 Theme.kt: ThemeScheme enum (8: teal/olive/green/blue/purple/pink/orange/red),
 light+dark Material colorScheme per scheme + complete dark neutrals. KairosThemeState
 (snapshot object: accent, sidebar, onSidebar, dark) written by KairosTheme via SideEffect
@@ -756,13 +800,13 @@ screen (dark Switch + scheme picker). Known minor: AppSections home tile colour 
 teal (section-identity colour system, separate); revisit if it clashes. Next: web themes
 (admin), then profile (needs device endpoints), then notifications.
 
-## App 0.119.0: military time + notifications redesign (per Marco)
+## App 0.119.0: military time + notifications redesign (by decision)
 Military time: per-device SettingsStore.militaryTime; TimeFmt snapshot object (ui/common)
 holds `military`, set from MainActivity; the four calendar formatters (hourLabel side axis,
 clock, formatTime, hhmmLabel) delegate to TimeFmt so the hour axis + times flip to 24h and
 re-compose live. Toggle in Appearance. NOTE: event blocks that use the server-provided
 timeLabel still read 12h - a follow-up can reformat from startMin/endMin. Notifications
-REDESIGN (Marco): drop per-type toggles from settings. New model = per-EVENT reminders
+REDESIGN (the owner): drop per-type toggles from settings. New model = per-EVENT reminders
 (Proton/Google-style): each event carries its own reminder(s), multiple allowed, with a
 default per event-type at creation. Settings keep only master + scope (MINE/ALL/FAMILY) +
 birthday. EventKind = CLASS/WORK/APPOINTMENT/BIRTHDAY/EXTERNAL/OTHER; EventType.defaultMinutes
@@ -780,12 +824,12 @@ notification" row (bell hidden via alpha when reminders already listed) opens th
 SelectorOverlay (0/10/15/30/60/1440/10080 presets + "Custom..."). Custom -> AnimatedDialog:
 number field + unit chips (min/hr/day/week), coerced <=40320, deduped+sorted. Sent as
 reminders in Create/UpdateEventRequest. New events pre-fill ct.defaultReminder when a custom
-type is picked and reminders is empty. Settings blurbs updated per Marco. NEXT: web event
+type is picked and reminders is empty. Settings blurbs updated by decision. NEXT: web event
 form reminder section (mirror), then the firing engine (WorkManager + exact alarms reading
 per-event reminders + birthdays).
 
 ## App 0.122.0: notification sound/vibration via Android channel settings
-Per Marco: NO web event editor (reminders are app-only); NO per-type default UI - default
+Per the owner: NO web event editor (reminders are app-only); NO per-type default UI - default
 reminder stays none so nothing auto-notifies (two off-by-default gates: master toggle off +
 no event reminder). Sound/vibration handled the Android way: Notifications.openChannelSettings
 deep-links to ACTION_CHANNEL_NOTIFICATION_SETTINGS (EXTRA_APP_PACKAGE + EXTRA_CHANNEL_ID;
