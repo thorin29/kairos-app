@@ -114,6 +114,10 @@ fun AddEventOverlay(
                 hasBounds && editEvent!!.allDay ->
                     LocalDate.parse(editEvent.endDayISO).minusDays(1).toString()
                 hasBounds -> editEvent!!.endDayISO
+                // Legacy cached payload (no exact bounds): an all-day segment fills
+                // its day (endMin 1440) but stays on its own date — only a timed
+                // midnight end rolls to the next day.
+                editEvent?.allDay == true -> initDate
                 endAtMidnight -> LocalDate.parse(initDate).plusDays(1).toString()
                 else -> initDate
             },
