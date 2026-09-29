@@ -236,6 +236,18 @@ private val KAIROS_DRAWABLES: Map<String, Int> = mapOf(
     "kairos:fish-sticks" to R.drawable.grocery_fish_sticks,
     "kairos:canned-tuna" to R.drawable.grocery_canned_tuna,
     "kairos:imitation-crab" to R.drawable.grocery_imitation_crab,
+    "kairos:orange-juice" to R.drawable.grocery_orange_juice,
+    "kairos:apple-juice" to R.drawable.grocery_apple_juice,
+    "kairos:grape-juice" to R.drawable.grocery_grape_juice,
+    "kairos:cranberry-juice" to R.drawable.grocery_cranberry_juice,
+    "kairos:lemonade" to R.drawable.grocery_lemonade,
+    "kairos:sweet-tea" to R.drawable.grocery_sweet_tea,
+    "kairos:iced-tea" to R.drawable.grocery_iced_tea,
+    "kairos:kombucha" to R.drawable.grocery_kombucha,
+    "kairos:hot-chocolate" to R.drawable.grocery_hot_chocolate,
+    "kairos:chocolate-milk" to R.drawable.grocery_chocolate_milk,
+    "kairos:apple-cider" to R.drawable.grocery_apple_cider,
+    "kairos:coconut-water" to R.drawable.grocery_coconut_water,
 )
 
 
