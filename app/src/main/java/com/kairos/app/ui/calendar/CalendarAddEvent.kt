@@ -109,6 +109,10 @@ fun AddEventOverlay(
     var endDateIso by remember {
         mutableStateOf(
             when {
+                // All-day ends are stored exclusive (day after the last day);
+                // show the inclusive last day.
+                hasBounds && editEvent!!.allDay ->
+                    LocalDate.parse(editEvent.endDayISO).minusDays(1).toString()
                 hasBounds -> editEvent!!.endDayISO
                 endAtMidnight -> LocalDate.parse(initDate).plusDays(1).toString()
                 else -> initDate
@@ -135,10 +139,11 @@ fun AddEventOverlay(
         )
     }
     // Single validity check used by both the red highlight and the Save button.
-    val timeInvalid = !allDay && run {
-        val s = LocalDate.parse(startDateIso).toEpochDay() * 1440L + startMin
-        val e = LocalDate.parse(endDateIso).toEpochDay() * 1440L + endMin
-        e <= s
+    val timeInvalid = run {
+        val sd = LocalDate.parse(startDateIso).toEpochDay()
+        val ed = LocalDate.parse(endDateIso).toEpochDay()
+        if (allDay) ed < sd
+        else (ed * 1440L + endMin) <= (sd * 1440L + startMin)
     }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var addressSearchOpen by remember { mutableStateOf(false) }
@@ -249,7 +254,7 @@ fun AddEventOverlay(
                 date = startDateIso,
                 start = start,
                 end = end,
-                endDate = endDateIso,
+                endDate = if (allDay) LocalDate.parse(endDateIso).plusDays(1).toString() else endDateIso,
                 location = location.trim().ifBlank { null },
                 timezone = zone,
                 scope = scope,
@@ -316,7 +321,7 @@ fun AddEventOverlay(
                                     date = startDateIso,
                                     start = start,
                                     end = end,
-                                    endDate = endDateIso,
+                                    endDate = if (allDay) LocalDate.parse(endDateIso).plusDays(1).toString() else endDateIso,
                                     location = location.trim().ifBlank { null },
                                     timezone = zone,
                                     repeat = if (repeat == "NONE") null else repeat,
@@ -480,17 +485,10 @@ fun AddEventOverlay(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let {
                         val iso = utcMillisToIso(it)
-                        // Changing the end is allowed; if it moves before the start,
-                        // carry the start back with it so the event keeps its length
-                        // instead of snapping shut.
-                        if (iso < startDateIso) {
-                            val gap = java.time.temporal.ChronoUnit.DAYS.between(
-                                LocalDate.parse(startDateIso),
-                                LocalDate.parse(endDateIso),
-                            )
-                            startDateIso = LocalDate.parse(iso).minusDays(gap).toString()
-                        }
+                        // Changing the end changes only the end. If it lands before
+                        // the start, the interval check turns it red and blocks Save.
                         endDateIso = iso
+                        lastEditedStart = false
                     }
                     showEndDate = false
                 }) { Text("OK") }
