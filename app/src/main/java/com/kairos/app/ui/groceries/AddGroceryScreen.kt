@@ -221,7 +221,7 @@ private fun StoreStep(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(store.icon, style = MaterialTheme.typography.titleMedium)
+                GroceryGlyph(store.icon, emojiStyle = MaterialTheme.typography.titleMedium, size = 20.dp)
                 Text(store.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                 if (usual) Text("usual", style = MaterialTheme.typography.labelSmall, color = KairosThemeState.accent)
             }
