@@ -359,7 +359,23 @@ fun AddEventOverlay(
 
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("All day", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Switch(checked = allDay, onCheckedChange = { allDay = it })
+                    Switch(checked = allDay, onCheckedChange = { on ->
+                        if (on && !allDay) {
+                            // timed -> all-day: use the covered calendar days. A
+                            // midnight end (00:00) is the boundary after the prior
+                            // day, so it does not add a day.
+                            if (endMin == 0 && endDateIso > startDateIso) {
+                                endDateIso = LocalDate.parse(endDateIso).minusDays(1).toString()
+                            }
+                            if (endDateIso < startDateIso) endDateIso = startDateIso
+                        } else if (!on && allDay) {
+                            // all-day -> timed: give it a real time span, keeping the
+                            // dates, instead of leaving an invalid 00:00 -> 00:00.
+                            startMin = defaultStart
+                            endMin = (defaultStart + 60).coerceAtMost(23 * 60 + 59)
+                        }
+                        allDay = on
+                    })
                 }
 
                 // Start / end: date opens the calendar, time opens the clock. No

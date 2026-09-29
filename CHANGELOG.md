@@ -1,4 +1,46 @@
 # Changelog
+## 0.335.0
+- Calendar: switching the All-day toggle now tidies the dates/times — no invalid 00:00–00:00 timed event, and a midnight-boundary end no longer adds a day when converting to all-day.
+## 0.334.0
+- Calendar: a legacy cached all-day event (restored offline before the first refresh) no longer shows the next day as its end.
+## 0.333.0
+- Calendar: all-day events show inclusive dates (a one-day event reads the same start and end); editing the end date no longer moves the start; Save is blocked while the end is before the start.
+## 0.332.0
+- Calendar: the editor loads the event's true start and end, so an overnight event (e.g. 10 PM → 1 AM) opens as the whole event instead of a single day's slice; Save is disabled on an invalid interval.
+## 0.331.0
+- Calendar: an event ending at midnight now edits as 12:00 AM the next day instead of 11:59 PM; the offending time turns red when the end is before the start.
+## 0.330.0
+- Store icons render as pictures (not raw token text) in the “Which store?” picker.
+## 0.329.0
+- Groceries: bottled-water icon updated to a clean transparent version.
+## 0.328.0
+- Groceries: removed the white box around the bottled-water icon.
+## 0.327.0
+- Groceries: added 12 juice & drink icons (orange/apple/grape/cranberry juice, lemonade, sweet & iced tea, kombucha, hot chocolate, chocolate milk, apple cider, coconut water).
+## 0.326.0
+- Groceries: retired the old monochrome (MDI) icons and removed their drawables.
+## 0.325.0
+- Groceries: fixed the 12 store icons (removed baked-in names) and added 29 drink & seafood icons.
+## 0.324.0
+- Groceries: fixed six prepared-meal icons that had a word baked into the picture.
+## 0.323.0
+- Groceries: store icons render as pictures across the groceries screen.
+## 0.322.0
+- Groceries: added 185 colorful custom grocery icons plus the renderer for them.
+## 0.321.0
+- Groceries: pull-to-refresh on the groceries screen.
+## 0.320.0
+- Workouts: rotation controls relabeled (Add a rotation / Stop rotation); the weekly “Active now” button restyled white with accent text.
+## 0.319.0
+- Workouts: pause/resume toggle for the weekly plan.
+## 0.318.0
+- Workouts: “Starts on” date control for the weekly plan.
+## 0.317.0
+- Workouts: the rotation screen uses a white background.
+## 0.316.0
+- Workouts: “Cycle starts on” date picker for rotations.
+## 0.315.0
+- Groceries: colorful MDI grocery icons (superseded by the custom icon set in 0.322+).
 ## 0.314.0
 - Fixes a crash when editing a calendar event and tapping the end time. Events whose end time worked out to midnight or later (for example a late-evening event, or one where the end wasn't after the start) pushed the time picker past 24:00 and crashed it. The picker now clamps to a valid time, and an end time can no longer be held or saved past 23:59. Cumulative (0.305-0.314).
 ## 0.313.0
