@@ -94,16 +94,52 @@ fun AddEventOverlay(
     }
     var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
     val initDate = editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }
-    var startDateIso by remember { mutableStateOf(initDate) }
-    var endDateIso by remember { mutableStateOf(initDate) }
+    // A stored end of 1440 means midnight = 00:00 on the NEXT day (the calendar
+    // keeps 1440 only as a same-day layout edge). Roll the end date forward and
+    // show a real 00:00 instead of clamping the clock to 23:59.
+    // Prefer the event's true bounds (start/end day + minute) sent for editing;
+    // fall back to the flattened segment (+ the 1440 = midnight convention) for
+    // older payloads. This makes an overnight event (e.g. 10 PM -> 1 AM next day)
+    // open as the whole event, not one day's slice.
+    val hasBounds = !editEvent?.startDayISO.isNullOrBlank()
+    val endAtMidnight = (editEvent?.endMin ?: 0) >= 1440
+    var startDateIso by remember {
+        mutableStateOf(if (hasBounds) editEvent!!.startDayISO else initDate)
+    }
+    var endDateIso by remember {
+        mutableStateOf(
+            when {
+                hasBounds -> editEvent!!.endDayISO
+                endAtMidnight -> LocalDate.parse(initDate).plusDays(1).toString()
+                else -> initDate
+            },
+        )
+    }
+    var lastEditedStart by remember { mutableStateOf(false) }
     val defaultStart = remember {
         // Round the current time UP to the next 15-minute slot, so a new event
         // never defaults to a time that's already passed.
         val now = java.time.LocalTime.now()
         (((now.hour * 60 + now.minute + 14) / 15) * 15).coerceIn(0, 22 * 60)
     }
-    var startMin by remember { mutableStateOf(editEvent?.startMin ?: defaultStart) }
-    var endMin by remember { mutableStateOf((editEvent?.endMin?.takeIf { it > (editEvent.startMin) } ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60))).coerceIn(0, 23 * 60 + 59)) }
+    var startMin by remember { mutableStateOf(if (hasBounds) editEvent!!.startMinExact else (editEvent?.startMin ?: defaultStart)) }
+    var endMin by remember {
+        mutableStateOf(
+            if (hasBounds) {
+                editEvent!!.endMinExact
+            } else {
+                (editEvent?.endMin?.takeIf { it > editEvent.startMin }
+                    ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60)))
+                    .let { if (it >= 1440) it - 1440 else it }
+            },
+        )
+    }
+    // Single validity check used by both the red highlight and the Save button.
+    val timeInvalid = !allDay && run {
+        val s = LocalDate.parse(startDateIso).toEpochDay() * 1440L + startMin
+        val e = LocalDate.parse(endDateIso).toEpochDay() * 1440L + endMin
+        e <= s
+    }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var addressSearchOpen by remember { mutableStateOf(false) }
     var repeat by remember { mutableStateOf("NONE") }
@@ -261,7 +297,7 @@ fun AddEventOverlay(
                 }
                 Text(if (editing) "Edit event" else "New event", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
                 TextButton(
-                    enabled = !ui.creating && title.trim().length >= 2,
+                    enabled = !ui.creating && title.trim().length >= 2 && !timeInvalid,
                     onClick = {
                         val start = if (allDay) null else hhmm(startMin)
                         val end = if (allDay) null else hhmm(endMin)
@@ -322,13 +358,15 @@ fun AddEventOverlay(
                 PlainDateTimeRow(
                     dateText = formatDate(startDateIso),
                     timeText = if (allDay) null else hhmmLabel(startMin),
-                    onDate = { showStartDate = true },
+                    timeError = timeInvalid && lastEditedStart,
+                    onDate = { lastEditedStart = true; showStartDate = true },
                     onTime = { showStart = true },
                 )
                 PlainDateTimeRow(
                     dateText = formatDate(endDateIso),
                     timeText = if (allDay) null else hhmmLabel(endMin),
-                    onDate = { showEndDate = true },
+                    timeError = timeInvalid && !lastEditedStart,
+                    onDate = { lastEditedStart = false; showEndDate = true },
                     onTime = { showEnd = true },
                 )
 
@@ -465,12 +503,19 @@ fun AddEventOverlay(
         TimePickerDialog(startMin, onConfirm = { m ->
             val delta = m - startMin
             startMin = m
-            endMin = (endMin + delta).coerceIn(0, 23 * 60 + 59)
+            lastEditedStart = true
+            // Preserve duration; roll the end date across midnight instead of clamping.
+            var e = endMin + delta
+            var ed = LocalDate.parse(endDateIso)
+            while (e >= 1440) { e -= 1440; ed = ed.plusDays(1) }
+            while (e < 0) { e += 1440; ed = ed.minusDays(1) }
+            endMin = e
+            endDateIso = ed.toString()
             showStart = false
         }, onDismiss = { showStart = false })
     }
     if (showEnd) {
-        TimePickerDialog(endMin, onConfirm = { m -> endMin = m; showEnd = false }, onDismiss = { showEnd = false })
+        TimePickerDialog(endMin, onConfirm = { m -> endMin = m; lastEditedStart = false; showEnd = false }, onDismiss = { showEnd = false })
     }
 
     if (showClassPrompt) {
@@ -710,7 +755,7 @@ private fun SectionLine() {
 }
 
 @Composable
-private fun PlainDateTimeRow(dateText: String, timeText: String?, onDate: () -> Unit, onTime: () -> Unit) {
+private fun PlainDateTimeRow(dateText: String, timeText: String?, onDate: () -> Unit, onTime: () -> Unit, timeError: Boolean = false) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             dateText,
@@ -721,6 +766,7 @@ private fun PlainDateTimeRow(dateText: String, timeText: String?, onDate: () -> 
             Text(
                 timeText,
                 style = MaterialTheme.typography.bodyLarge,
+                color = if (timeError) MaterialTheme.colorScheme.error else Color.Unspecified,
                 modifier = Modifier.clickable { onTime() }.padding(vertical = 12.dp, horizontal = 8.dp),
             )
         }
