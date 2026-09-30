@@ -1,4 +1,6 @@
 # Changelog
+## 0.340.0
+- Fixes grocery icons that were cut off at the bottom (juices, milk/creams, oils, nuts, jerky, seafood and more re-cut from source so the whole item shows) and strips the leftover white card + label text from the household icons. Pairs with web 0.530.
 ## 0.339.0
 - Groceries: tap Edit and each item gets a small box for a quantity (1-99). Leave it blank for none; otherwise the line reads "Distilled water × 10" once you tap Done — on the list, in the cart and on the web. Needs web 0.529.
 ## 0.338.0
