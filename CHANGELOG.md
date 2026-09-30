@@ -1,4 +1,6 @@
 # Changelog
+## 0.337.0
+- Adds 30 more grocery icons (chocolate chips, coffee filters, k-cups, plums, pomegranate, cannoli, doritos, sunflower seeds, almonds/cashews/walnuts/pistachios, beef & turkey jerky, protein bar, granola, cornmeal, heavy cream, whipped cream can & tub, sliced cheese, black olives, distilled water, motor/avocado oil, car oil & air filters, birthday candles, iceberg lettuce, backpacking food). Pairs with web 0.527.
 ## 0.336.0
 - Reading: tap a book to open its own page — title, author, size, progress and reading goals, laid out to read rather than edit. Edit and delete moved there (pencil and bin, top right); the card itself keeps the page box, Save, Shelve and Mark finished.
 ## 0.335.0
