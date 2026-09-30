@@ -1,4 +1,7 @@
 # Changelog
+## 0.338.0
+- Add an item now lists every item Kairos has a custom icon for (244), not just what the household has bought before — pick it with the right spelling instead of typing it. Items already in your catalog show once, as before.
+- Reading: a book on the bookshelf opens the same book page as one you're reading; delete now lives only on that page (the small bin on each shelf row is gone).
 ## 0.337.0
 - Adds 30 more grocery icons (chocolate chips, coffee filters, k-cups, plums, pomegranate, cannoli, doritos, sunflower seeds, almonds/cashews/walnuts/pistachios, beef & turkey jerky, protein bar, granola, cornmeal, heavy cream, whipped cream can & tub, sliced cheese, black olives, distilled water, motor/avocado oil, car oil & air filters, birthday candles, iceberg lettuce, backpacking food). Pairs with web 0.527.
 ## 0.336.0

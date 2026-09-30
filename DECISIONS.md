@@ -3,6 +3,31 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Add-an-item offers the shipped icon set as suggestions, not catalog rows (v0.338.0)
+
+The add list was the household's catalog alone, so an item nobody had bought yet had to be typed —
+and a typo ("rotisserie chicken" vs "rotiserie chicken") produces a new catalog entry with a guessed
+icon rather than the custom art. `GrocerySuggestions.kt` bundles all 244 `kairos:` items with their
+canonical names; the list shows catalog ∪ suggestions, deduped by lower-cased name with the catalog
+row winning, so nothing appears twice.
+
+A suggestion carries **no catalogId**: picking it takes the add-by-name path, the server creates the
+catalog row and guesses the icon, and that guess lands on the icon the row displayed — every name in
+the list was round-trip checked against the server's matcher, and the seven that didn't resolve were
+fixed in the matcher (web 0.528), not papered over by renaming them. Because suggestions are never
+rows, **"Re-sync catalog" has nothing extra to merge** — that was the reason not to seed them into
+the database with a migration.
+
+Bundled rather than fetched so the list is complete offline. The cost is that a new icon batch has to
+update `catalog.ts`, `suggestions.ts` and this file together, the same web-then-app order icons
+already follow.
+
+## Reading: delete lives on the book page only (v0.338.0)
+
+Bookshelf rows (To read / Read) now open the same read-only book page as a reading card, and their
+small bin is gone with it. Delete exists in exactly one place for every book — the bin on that page,
+behind the same confirmation — instead of two bins on two row shapes.
+
 ## Reading: a read-only book page, in the calendar-detail shape (v0.336.0)
 
 The reading list card was carrying three jobs at once — log your page, act on the book (shelve,

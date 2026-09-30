@@ -176,7 +176,6 @@ private fun ReadingContent(
     onOpen: (BookDto) -> Unit,
 ) {
     var showShelf by remember { mutableStateOf(false) }
-    var deleteTarget by remember { mutableStateOf<BookDto?>(null) }
 
     val queue = data.books.filter { !it.shelved && !it.finished }
     val toRead = data.books.filter { it.shelved && !it.finished }
@@ -227,24 +226,9 @@ private fun ReadingContent(
                 )
             }
             if (showShelf) {
-                ShelfGroup("To read", toRead, "toRead", ui.busy, vm) { deleteTarget = it }
-                ShelfGroup("Read", read, "read", ui.busy, vm) { deleteTarget = it }
+                ShelfGroup("To read", toRead, "toRead", ui.busy, vm, onOpen)
+                ShelfGroup("Read", read, "read", ui.busy, vm, onOpen)
             }
-        }
-    }
-
-    deleteTarget?.let { b ->
-        AnimatedDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = "Remove book?",
-            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancel") } },
-            confirmButton = {
-                TextButton(enabled = !ui.busy, onClick = { vm.delete(b.id) { deleteTarget = null } }) {
-                    Text("Remove")
-                }
-            },
-        ) {
-            Text("Remove \u201c${b.title}\u201d? This can't be undone.", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -353,7 +337,7 @@ private fun ShelfGroup(
     kind: String,
     busy: Boolean,
     vm: ReadingViewModel,
-    onDelete: (BookDto) -> Unit,
+    onOpen: (BookDto) -> Unit,
 ) {
     if (books.isEmpty()) return
     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -364,7 +348,7 @@ private fun ShelfGroup(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         books.forEach { b ->
-            OutlinedCard(Modifier.fillMaxWidth()) {
+            OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen(b) }) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -398,9 +382,6 @@ private fun ShelfGroup(
                         if (!busy) {
                             if (kind == "read") vm.finish(b.id, false) else vm.shelf(b.id, false)
                         }
-                    }
-                    Box(Modifier.clickable { onDelete(b) }.padding(2.dp)) {
-                        Icon(KairosIcons.Trash, contentDescription = "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                 }
             }

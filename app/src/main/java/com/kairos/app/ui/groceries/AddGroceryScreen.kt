@@ -52,6 +52,16 @@ import com.kairos.app.ui.common.SentenceCaps
 
 internal data class PendingAdd(val label: String, val catalogId: String?, val defaultStoreId: String?)
 
+/** One row of the add list: a catalog item (catalogId set) or a shipped
+ *  suggestion (catalogId null, added by name). */
+private data class ItemRow(
+    val key: String,
+    val name: String,
+    val icon: String,
+    val catalogId: String?,
+    val defaultStoreId: String?,
+)
+
 /**
  * Full-screen add wizard. Step one is a searchable list of everything in the
  * catalog (so you reuse an item instead of making a duplicate) with a row to
@@ -138,9 +148,23 @@ private fun ItemStep(
     contentPadding: PaddingValues,
 ) {
     val q = query.trim().lowercase()
-    val list = (if (q.isEmpty()) data.catalog else data.catalog.filter { it.name.lowercase().contains(q) })
-        .sortedBy { it.name.lowercase() }
-    val exact = data.catalog.any { it.name.lowercase() == q }
+    // The household's catalog, plus every item Kairos ships a custom icon for that
+    // isn't in it yet, so the whole set is pickable with the right spelling. A
+    // suggestion carries no catalogId: picking it adds by name, and the server
+    // creates the catalog entry and guesses the icon shown here.
+    val list = remember(data.catalog, q) {
+        val have = data.catalog.map { it.name.lowercase() }.toSet()
+        val fromCatalog = data.catalog.map {
+            ItemRow(key = it.id, name = it.name, icon = it.icon, catalogId = it.id, defaultStoreId = it.defaultStoreId)
+        }
+        val fromSuggestions = GROCERY_SUGGESTIONS
+            .filter { it.name.lowercase() !in have }
+            .map { ItemRow(key = it.icon, name = it.name, icon = it.icon, catalogId = null, defaultStoreId = null) }
+        (fromCatalog + fromSuggestions)
+            .filter { q.isEmpty() || it.name.lowercase().contains(q) }
+            .sortedBy { it.name.lowercase() }
+    }
+    val exact = list.any { it.name.lowercase() == q }
 
     Column(Modifier.padding(contentPadding).fillMaxSize().padding(16.dp)) {
         Box(
@@ -178,10 +202,10 @@ private fun ItemStep(
                     }
                 }
             }
-            items(list, key = { it.id }) { c ->
+            items(list, key = { it.key }) { c ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                        .clickable(enabled = !busy) { onPick(PendingAdd(c.name, c.id, c.defaultStoreId)) }
+                        .clickable(enabled = !busy) { onPick(PendingAdd(c.name, c.catalogId, c.defaultStoreId)) }
                         .padding(horizontal = 10.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
