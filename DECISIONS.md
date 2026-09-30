@@ -3,6 +3,19 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Grocery quantity: commit on focus loss, replay it offline (v0.339.0)
+
+The quantity box appears beside an item only in edit mode (left of the move/delete icons) and takes
+two digits. It commits **when the field loses focus**, not per keystroke — typing "10" would otherwise
+fire a write for 1 and another for 10, and each write bounces through `optimistic()` with its own
+refresh. Empty, or anything outside 1-99, commits null, which is the server's "no quantity" and makes
+the line render as a plain name again.
+
+`setQuantity` uses the same `optimistic()` path as move and purchase, and `groceries/quantity` is
+registered in `applyPending` so a change made offline is re-applied over the cached payload on the
+next load instead of flickering away. Any new grocery write needs that pair — the ViewModel transform
+AND the `applyPending` branch — or it silently disappears offline.
+
 ## Add-an-item offers the shipped icon set as suggestions, not catalog rows (v0.338.0)
 
 The add list was the household's catalog alone, so an item nobody had bought yet had to be typed —

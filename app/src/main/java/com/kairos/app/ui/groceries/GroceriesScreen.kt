@@ -1,5 +1,9 @@
 package com.kairos.app.ui.groceries
 
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -190,6 +194,7 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
                 store, savedByStore[store.id].orEmpty(), ui.busy, editMode,
                 canDelete = canDelete,
                 onChangeStore = { movingItem = it },
+                onQuantity = { item, q -> vm.setQuantity(item.id, q) },
                 onDelete = { deletingItem = it },
             )
         }
@@ -278,6 +283,7 @@ private fun TripCard(trip: GroceryTripDto, store: GroceryStoreDto, busy: Boolean
                             canDelete = canDelete(item),
                             onToggle = { vm.setPurchased(item.id, !item.purchased) },
                             onChangeStore = {},
+                            onQuantity = { q -> vm.setQuantity(item.id, q) },
                             onDelete = { onDelete(item) },
                         )
                     }
@@ -302,6 +308,7 @@ private fun SavedStoreCard(
     editMode: Boolean,
     canDelete: (GroceryLineDto) -> Boolean,
     onChangeStore: (GroceryLineDto) -> Unit,
+    onQuantity: (GroceryLineDto, Int?) -> Unit,
     onDelete: (GroceryLineDto) -> Unit,
 ) {
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -324,6 +331,7 @@ private fun SavedStoreCard(
                         canDelete = canDelete(item),
                         onToggle = {},
                         onChangeStore = { onChangeStore(item) },
+                        onQuantity = { q -> onQuantity(item, q) },
                         onDelete = { onDelete(item) },
                     )
                 }
@@ -342,6 +350,7 @@ private fun ItemRow(
     canDelete: Boolean,
     onToggle: () -> Unit,
     onChangeStore: () -> Unit,
+    onQuantity: (Int?) -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(
@@ -360,7 +369,7 @@ private fun ItemRow(
         }
         GroceryGlyph(item.icon, emojiStyle = MaterialTheme.typography.bodyLarge, size = 20.dp)
         Text(
-            item.name,
+            if (!editMode && item.quantity != null) "${item.name} \u00d7 ${item.quantity}" else item.name,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
             maxLines = 1,
@@ -369,6 +378,7 @@ private fun ItemRow(
             color = if (item.purchased) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         )
         if (editMode) {
+            QuantityBox(item.quantity, busy) { onQuantity(it) }
             if (canMove) {
                 Box(Modifier.clip(RoundedCornerShape(999.dp)).clickable(enabled = !busy) { onChangeStore() }.padding(6.dp)) {
                     Icon(KairosIcons.Swap, contentDescription = "Change store", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
@@ -380,6 +390,62 @@ private fun ItemRow(
                 }
             }
         }
+    }
+}
+
+/**
+ * The two-digit quantity box shown beside an item while editing. Empty means no
+ * quantity, and the line then reads as a plain name once editing is done. The
+ * value is committed when the box loses focus rather than on every keystroke, so
+ * typing "10" is one write, not two.
+ */
+@Composable
+private fun QuantityBox(quantity: Int?, busy: Boolean, onCommit: (Int?) -> Unit) {
+    var text by remember(quantity) { mutableStateOf(quantity?.toString() ?: "") }
+    var focused by remember { mutableStateOf(false) }
+
+    Box(
+        Modifier.width(44.dp).clip(RoundedCornerShape(6.dp))
+            .border(
+                1.dp,
+                if (focused) KairosThemeState.accent else MaterialTheme.colorScheme.outline,
+                RoundedCornerShape(6.dp),
+            )
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicTextField(
+            value = text,
+            onValueChange = { s -> text = s.filter { it.isDigit() }.take(2) },
+            enabled = !busy,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth().onFocusChanged { state ->
+                if (focused && !state.isFocused) {
+                    val next = text.toIntOrNull()?.takeIf { it in 1..99 }
+                    text = next?.toString() ?: ""
+                    if (next != quantity) onCommit(next)
+                }
+                focused = state.isFocused
+            },
+            decorationBox = { inner ->
+                if (text.isEmpty()) {
+                    Text(
+                        "\u2013",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                inner()
+            },
+        )
     }
 }
 

@@ -1376,6 +1376,8 @@ data class GroceryLineDto(
     val icon: String = "",
     val storeId: String = "",
     val note: String? = null,
+    /** 1-99, or null for no quantity — the line then reads as a plain name. */
+    val quantity: Int? = null,
     val purchased: Boolean = false,
     val assignee: GroceryPersonDto? = null,
 )
@@ -1454,6 +1456,13 @@ data class CompleteTripRequest(
 data class MoveGroceryRequest(
     val id: String,
     val storeId: String,
+)
+
+@Serializable
+data class GroceryQuantityRequest(
+    val id: String,
+    /** null clears the quantity. */
+    val quantity: Int? = null,
 )
 
 @Serializable

@@ -697,6 +697,14 @@ class SessionRepository(
         runAuthed { requireService().moveGrocery(com.kairos.app.data.remote.dto.MoveGroceryRequest(id, storeId)) }
     }
 
+    suspend fun setGroceryQuantity(id: String, quantity: Int?) {
+        runAuthed {
+            requireService().setGroceryQuantity(
+                com.kairos.app.data.remote.dto.GroceryQuantityRequest(id, quantity),
+            )
+        }
+    }
+
     suspend fun loadCharacter(): com.kairos.app.data.remote.dto.CharacterDto =
         runAuthed { requireService().character() }
 
@@ -968,6 +976,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 390
+        const val CLIENT_BUILD = 391
     }
 }

@@ -1,4 +1,6 @@
 # Changelog
+## 0.339.0
+- Groceries: tap Edit and each item gets a small box for a quantity (1-99). Leave it blank for none; otherwise the line reads "Distilled water × 10" once you tap Done — on the list, in the cart and on the web. Needs web 0.529.
 ## 0.338.0
 - Add an item now lists every item Kairos has a custom icon for (244), not just what the household has bought before — pick it with the right spelling instead of typing it. Items already in your catalog show once, as before.
 - Reading: a book on the bookshelf opens the same book page as one you're reading; delete now lives only on that page (the small bin on each shelf row is gone).

@@ -12,6 +12,7 @@ import com.kairos.app.data.remote.dto.GroceriesDto
 import com.kairos.app.data.remote.dto.GroceryIdRequest
 import com.kairos.app.data.remote.dto.GroceryLineDto
 import com.kairos.app.data.remote.dto.GroceryPurchasedRequest
+import com.kairos.app.data.remote.dto.GroceryQuantityRequest
 import com.kairos.app.data.remote.dto.MoveGroceryRequest
 import com.kairos.app.data.session.SessionRepository
 import com.kairos.app.data.local.PayloadCacheStore
@@ -108,6 +109,9 @@ class GroceriesViewModel(
     }
     fun remove(id: String) = optimistic({ removeLine(it, id) }) { session.removeGrocery(id) }
     fun move(id: String, storeId: String) = optimistic({ moveLine(it, id, storeId) }) { session.moveGrocery(id, storeId) }
+    /** Set a line's quantity (1-99); null clears it. */
+    fun setQuantity(id: String, quantity: Int?) =
+        optimistic({ setQuantityLine(it, id, quantity) }) { session.setGroceryQuantity(id, quantity) }
     fun setPurchased(id: String, purchased: Boolean) =
         optimistic({ setPurchasedLine(it, id, purchased) }) { session.setGroceryPurchased(id, purchased) }
     fun completeTrip(tripId: String) =
@@ -213,6 +217,14 @@ class GroceriesViewModel(
     private fun moveLine(data: GroceriesDto, id: String, storeId: String): GroceriesDto =
         data.copy(saved = data.saved.map { if (it.id == id) it.copy(storeId = storeId) else it })
 
+    private fun setQuantityLine(data: GroceriesDto, id: String, quantity: Int?): GroceriesDto {
+        val q = quantity?.takeIf { it in 1..99 }
+        return data.copy(
+            saved = data.saved.map { if (it.id == id) it.copy(quantity = q) else it },
+            trips = data.trips.map { t -> t.copy(items = t.items.map { if (it.id == id) it.copy(quantity = q) else it }) },
+        )
+    }
+
     private fun setPurchasedLine(data: GroceriesDto, id: String, purchased: Boolean): GroceriesDto =
         data.copy(
             saved = data.saved.map { if (it.id == id) it.copy(purchased = purchased) else it },
@@ -231,6 +243,7 @@ class GroceriesViewModel(
                 "groceries/remove" -> parse(w.body, GroceryIdRequest.serializer())?.let { d = removeLine(d, it.id) }
                 "groceries/move" -> parse(w.body, MoveGroceryRequest.serializer())?.let { d = moveLine(d, it.id, it.storeId) }
                 "groceries/purchased" -> parse(w.body, GroceryPurchasedRequest.serializer())?.let { d = setPurchasedLine(d, it.id, it.purchased) }
+                "groceries/quantity" -> parse(w.body, GroceryQuantityRequest.serializer())?.let { d = setQuantityLine(d, it.id, it.quantity) }
                 "groceries/trip/complete" -> parse(w.body, CompleteTripRequest.serializer())?.let { req -> d = d.copy(trips = d.trips.filterNot { it.id == req.tripId }) }
             }
         }
