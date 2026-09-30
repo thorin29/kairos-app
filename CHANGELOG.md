@@ -1,4 +1,6 @@
 # Changelog
+## 0.336.0
+- Reading: tap a book to open its own page — title, author, size, progress and reading goals, laid out to read rather than edit. Edit and delete moved there (pencil and bin, top right); the card itself keeps the page box, Save, Shelve and Mark finished.
 ## 0.335.0
 - Calendar: switching the All-day toggle now tidies the dates/times — no invalid 00:00–00:00 timed event, and a midnight-boundary end no longer adds a day when converting to all-day.
 ## 0.334.0

@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -91,6 +94,10 @@ fun ReadingScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
 
     var showAdd by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<BookDto?>(null) }
+    // The read-only detail page. Held as an id, not a snapshot, so it re-reads the
+    // book from the loaded list after an edit or a page save instead of going stale.
+    var detailId by remember { mutableStateOf<String?>(null) }
+    val detailBook = detailId?.let { id -> ui.data?.books?.firstOrNull { it.id == id } }
 
     when {
         showAdd -> BookFormScreen(
@@ -118,6 +125,16 @@ fun ReadingScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                 onDismiss = { editTarget = null },
             )
         }
+        detailBook != null -> {
+            val b = detailBook
+            BookDetailScreen(
+                book = b,
+                busy = ui.busy,
+                onEdit = { vm.clearSaveError(); editTarget = b },
+                onDelete = { vm.delete(b.id) { detailId = null } },
+                onClose = { detailId = null },
+            )
+        }
         else -> Scaffold(
             topBar = {
                 TopAppBar(
@@ -142,7 +159,7 @@ fun ReadingScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                     else -> ReadingContent(
                         vm, ui, data,
                         onAdd = { vm.clearSaveError(); showAdd = true },
-                        onEdit = { vm.clearSaveError(); editTarget = it },
+                        onOpen = { detailId = it.id },
                     )
                 }
             }
@@ -156,7 +173,7 @@ private fun ReadingContent(
     ui: ReadingUiState,
     data: BooksDto,
     onAdd: () -> Unit,
-    onEdit: (BookDto) -> Unit,
+    onOpen: (BookDto) -> Unit,
 ) {
     var showShelf by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<BookDto?>(null) }
@@ -180,8 +197,7 @@ private fun ReadingContent(
                 onLog = { page -> vm.log(b.id, page) },
                 onShelve = { vm.shelf(b.id, true) },
                 onFinish = { vm.finish(b.id, true) },
-                onEdit = { onEdit(b) },
-                onDelete = { deleteTarget = b },
+                onOpen = { onOpen(b) },
             )
         }
 
@@ -240,8 +256,7 @@ private fun BookCard(
     onLog: (Int) -> Unit,
     onShelve: () -> Unit,
     onFinish: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     var page by remember(book.id, book.position) { mutableStateOf(if (book.position > 0) book.position.toString() else "") }
     var saved by remember(book.id) { mutableStateOf(false) }
@@ -249,7 +264,9 @@ private fun BookCard(
     val pct = if (book.length > 0) (book.read * 100 / book.length) else 0
     val done = if (book.length > 0) (book.read >= book.length) else false
 
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    // Tapping the card body opens the read-only detail page; the page field, Save
+    // and the links below own their taps and never fall through to it.
+    OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
@@ -257,9 +274,6 @@ private fun BookCard(
                     book.author?.takeIf { it.isNotBlank() }?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                }
-                Box(Modifier.clickable { onDelete() }.padding(4.dp)) {
-                    Icon(KairosIcons.Trash, contentDescription = "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -316,7 +330,6 @@ private fun BookCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextLink("Edit") { onEdit() }
                 TextLink("Shelve") { if (!busy) onShelve() }
                 TextLink(if (done) "Mark finished \u2713" else "Mark finished", color = KairosThemeState.accent) { if (!busy) onFinish() }
                 if (book.goals.isNotEmpty()) {
@@ -622,6 +635,129 @@ private fun AddGoalOverlay(
             },
             dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
         ) { DatePicker(state = state, focusRequester = null) }
+    }
+}
+
+/**
+ * The read-only book page, opened by tapping a card on the reading list. Same
+ * shape as the calendar's event detail: a white (surface) full-screen page with
+ * close on the left and edit + delete on the right, the book's facts up top, a
+ * single rule, and the reading goals below. No entry fields live here — the
+ * pencil opens the existing edit form unchanged.
+ */
+@Composable
+private fun BookDetailScreen(
+    book: BookDto,
+    busy: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onClose: () -> Unit,
+) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    val pct = if (book.length > 0) (book.read * 100 / book.length) else 0
+
+    BackHandler(enabled = true) { onClose() }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(44.dp).clip(CircleShape).clickable { onClose() }, contentAlignment = Alignment.Center) {
+                    Text("\u2715", style = MaterialTheme.typography.titleMedium)
+                }
+                Spacer(Modifier.weight(1f))
+                Box(Modifier.size(44.dp).clip(CircleShape).clickable { onEdit() }, contentAlignment = Alignment.Center) {
+                    Icon(KairosIcons.Pencil, contentDescription = "Edit")
+                }
+                Box(Modifier.size(44.dp).clip(CircleShape).clickable { confirmDelete = true }, contentAlignment = Alignment.Center) {
+                    Icon(KairosIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(Modifier.width(5.dp).height(64.dp).clip(RoundedCornerShape(3.dp)).background(KairosThemeState.accent))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(book.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        book.author?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        Text(
+                            "${book.read} / ${book.length} ${unitLabel(book.unit, book.length)} ($pct%)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        sizeLabel(book).takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        val state = when {
+                            book.finished -> "Finished"
+                            book.shelved -> "On the bookshelf"
+                            else -> "Reading now"
+                        }
+                        Text(
+                            state,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
+
+                ProgressBar(pct)
+
+                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Icon(
+                            KairosIcons.Bookmark,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text("Reading goals", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    if (book.goals.isEmpty()) {
+                        Text(
+                            "No reading goals set.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        val goalUnit = if (book.unit == "CHAPTERS") "Chapter" else "Page"
+                        book.goals.sortedBy { it.dueDate }.forEach { g ->
+                            Text(
+                                "$goalUnit ${g.target} \u00b7 ${prettyDate(g.dueDate)}" + if (g.completed) "  \u2713" else "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (g.completed) Color(0xFF047857) else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+
+    if (confirmDelete) {
+        AnimatedDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = "Remove book?",
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            confirmButton = {
+                TextButton(enabled = !busy, onClick = { confirmDelete = false; onDelete() }) { Text("Remove") }
+            },
+        ) {
+            Text("Remove \u201c${book.title}\u201d? This can't be undone.", style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 

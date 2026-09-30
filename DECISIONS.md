@@ -3,6 +3,28 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Reading: a read-only book page, in the calendar-detail shape (v0.336.0)
+
+The reading list card was carrying three jobs at once — log your page, act on the book (shelve,
+finish), and administer it (edit, delete) — which is why edit and a bin lived on every row. Tapping
+the card now opens a read-only page instead, built to the same shape as the calendar's event detail:
+a full-screen `Surface` in `colorScheme.surface` (white in light, dark-mode safe, so the page reads
+as its own place rather than another list row), close at the top left, pencil and bin at the top
+right, the book's facts and progress above a single rule, and its reading goals below it. The card
+keeps only what is used every day (page box, Save, Shelve, Mark finished) and its bin is gone; the
+pencil opens the existing edit form untouched, so there is one editor, not two.
+
+Two details that matter if this is extended:
+
+- The page is held as a **book id**, not a `BookDto` snapshot — it re-reads from the loaded list on
+  every recomposition, so a page save or an edit is reflected when you come back to it instead of
+  showing a stale copy. Taking a snapshot here is the bug this avoided.
+- **No server or cache work was needed.** `/api/v1/books` already returns title, author, unit,
+  length, pages, chapters, position, read, finished, shelved and the goals array, and the Room
+  payload cache stores the whole books payload by section key, so the detail page works offline from
+  the same cached response with no new entity, DAO or migration. A new screen over existing data
+  should never grow the cache schema.
+
 ## Calendar: edit from the event's exact bounds, never from the tapped segment (v0.332–0.335)
 
 The server flattens an event into per-day segments for layout (`dayISO`, `startMin`, `endMin`) and
