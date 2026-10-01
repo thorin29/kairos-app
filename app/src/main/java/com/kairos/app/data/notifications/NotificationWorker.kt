@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
@@ -32,26 +33,40 @@ class NotificationWorker(
         // triggers cover a running app; this covers the app being killed with
         // writes still waiting.
         runCatching { container?.syncManager?.replayAll() }
-        // Keep TODAY's Home page on the phone while the server is reachable, so an
-        // outage later in the day doesn't leave Home with nothing for today. The
-        // day is the phone's own date and is both the request parameter and the
-        // cache key, so this also handles the midnight rollover: the first run
-        // after midnight fetches and stores the new day.
+        // Keep Home on the phone while the server is reachable, so an outage later
+        // doesn't leave Home with nothing to show.
+        //
+        // TODAY **and TOMORROW**: this job runs about every two hours, so "the next
+        // run picks up the new day" leaves a gap of up to two hours after midnight
+        // in which the server could go down and the phone would hold no page for
+        // the new day at all. Caching tomorrow alongside today closes that gap —
+        // the 11pm run already has the new day stored before it begins.
+        //
+        // Tomorrow's page is a real server-built day for that date, but the server
+        // only fills the today-only sections (get-ahead, school progress) when the
+        // requested day IS its today, so a prefetched tomorrow is thinner until the
+        // first live load of the day replaces it. Thinner-but-correct beats empty.
         runCatching {
             val session = container?.sessionRepository
             val cache = container?.payloadCache
             if (session != null && cache != null && session.isOnline()) {
-                val day = java.time.LocalDate.now().toString()
                 val person = session.currentPersonId()
                     ?: com.kairos.app.data.local.PayloadCacheStore.HOUSEHOLD
-                val dash = session.loadDashboard(day)
-                cache.writeAs(
-                    "home",
-                    day,
-                    person,
-                    com.kairos.app.data.remote.dto.DashboardDto.serializer(),
-                    dash,
-                )
+                val today = java.time.LocalDate.now()
+                for (day in listOf(today, today.plusDays(1))) {
+                    val iso = day.toString()
+                    // Per-day so a failure on tomorrow can't discard today.
+                    runCatching {
+                        val dash = session.loadDashboard(iso)
+                        cache.writeAs(
+                            "home",
+                            iso,
+                            person,
+                            com.kairos.app.data.remote.dto.DashboardDto.serializer(),
+                            dash,
+                        )
+                    }
+                }
             }
         }
         runCatching {
@@ -66,11 +81,15 @@ class NotificationWorker(
                 settings.setLastUpdateNotified(avail.versionCode)
             }
         }
+        // Re-arm the just-after-midnight run. Scheduling from inside the worker
+        // keeps it rolling night after night without a separate always-on alarm.
+        runCatching { enqueueAfterMidnight(applicationContext) }
         return Result.success()
     }
 
     companion object {
         private const val PERIODIC = "notif-refresh-periodic"
+        private const val MIDNIGHT = "notif-refresh-midnight"
 
         /** A safety-net periodic refresh (WorkManager's minimum granularity is
          *  coarse; exact alarms do the actual firing). */
@@ -87,6 +106,27 @@ class NotificationWorker(
         fun enqueueOnce(context: Context) {
             WorkManager.getInstance(context)
                 .enqueue(OneTimeWorkRequestBuilder<NotificationWorker>().build())
+        }
+
+        /**
+         * A run shortly after the next local midnight, so the new day is fetched
+         * and cached as the day turns rather than up to two hours later. Unique
+         * and REPLACEd, so re-arming it (every run, every launch) keeps exactly
+         * one pending. WorkManager may run it late if the phone is dozing; the
+         * today+tomorrow prefetch above is what makes a late run harmless.
+         */
+        fun enqueueAfterMidnight(context: Context) {
+            val now = java.time.LocalDateTime.now()
+            val fireAt = now.toLocalDate().plusDays(1).atStartOfDay().plusMinutes(2)
+            val delayMs = java.time.Duration.between(now, fireAt).toMillis().coerceAtLeast(60_000L)
+            val req = OneTimeWorkRequestBuilder<NotificationWorker>()
+                .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                .setConstraints(
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
+                )
+                .build()
+            WorkManager.getInstance(context)
+                .enqueueUniqueWork(MIDNIGHT, ExistingWorkPolicy.REPLACE, req)
         }
     }
 }

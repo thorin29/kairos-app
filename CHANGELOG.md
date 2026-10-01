@@ -1,4 +1,7 @@
 # Changelog
+## 0.344.0
+- Tomorrow's Home page is cached alongside today's, and a refresh runs just after midnight, so the new day is already on the phone if Kairos is unreachable when you wake up.
+- If the app was left open across midnight and the server can't be reached, Home now switches to the cached new day instead of leaving yesterday on screen.
 ## 0.343.0
 - Changes made while Kairos was unreachable now send themselves as soon as the server is back, even if the phone's connection never changed. Previously they could sit as "waiting to sync" until the network flapped or the app was reopened.
 ## 0.342.0

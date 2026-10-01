@@ -86,6 +86,23 @@ class HomeViewModel(
                 val data = freshDashboard()
                 _ui.update { it.copy(loading = false, refreshing = false, dashboard = data, loadError = null) }
             } catch (e: ApiException) {
+                // The fetch failed. If what's on screen is some OTHER day — the app
+                // sat open across midnight, or this is a cold start seeded before
+                // the date turned — fall back to the cached page for today, which
+                // the background prefetch will usually have. Never leave a
+                // different day sitting there as if it were today.
+                val day = todayISO()
+                val shown = _ui.value.dashboard
+                if (shown == null || shown.date != day) {
+                    val cached = runCatching { cache.read("home", day, personId()) }
+                        .getOrNull()?.let { decodeDash(it) }?.let { applyPending(it) }
+                    if (cached != null) {
+                        _ui.update {
+                            it.copy(loading = false, refreshing = false, dashboard = cached, loadError = null)
+                        }
+                        return@launch
+                    }
+                }
                 _ui.update {
                     it.copy(
                         loading = false,

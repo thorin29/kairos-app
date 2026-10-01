@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
         com.kairos.app.data.notifications.Notifications.ensureChannel(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueuePeriodic(this)
+        com.kairos.app.data.notifications.NotificationWorker.enqueueAfterMidnight(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(this)
         val settings = container.settingsStore
         setContent {

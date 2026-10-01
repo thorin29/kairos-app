@@ -3,6 +3,30 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## The midnight rollover is covered by prefetching tomorrow, not by timing (v0.344.0)
+
+Prefetching only today left a hole every night: the worker runs about every two hours, so between
+00:00 and the first run of the new day the phone held no page for today at all — exactly the window
+in which the original bug was reported.
+
+Three overlapping defences, deliberately none of them timing-critical:
+
+1. **The worker caches today AND tomorrow** each run, each under its own date key. The 11pm run
+   therefore stores the new day before it starts, so a server that dies at 00:05 is harmless. Each
+   day is fetched in its own `runCatching` so a failure on tomorrow can't discard today.
+2. **A unique one-time run is armed for 00:02**, re-armed by each worker pass and at every launch
+   (the worker's early `Result.retry()` during session bootstrap returns before the re-arm, so launch
+   has to do it too). WorkManager may fire it late while dozing; defence 1 is what makes late
+   harmless, which is why this is the weakest of the three and not the mechanism.
+3. **Home falls back to today's cache when a load fails on a different day** — the app left open
+   across midnight, or a cold start seeded before the date turned. Without this the VM kept the
+   previous day's in-memory dashboard even though the right one was sitting in Room.
+
+Tomorrow's prefetch is a real server-built page for that date, but `loadApiDashboard` only fills the
+today-only sections (get-ahead, school progress) when the requested day is the server's today, so a
+prefetched tomorrow is thinner until the first live load replaces it. Thinner-but-correct beats
+empty, and it is never presented as something it isn't — the date on it is the date asked for.
+
 ## Queue replay is triggered by SERVER recovery, not just connectivity (v0.343.0)
 
 0.341 made writes queue when Kairos was unreachable but the phone had signal. The other half was
