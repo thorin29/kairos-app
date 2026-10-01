@@ -105,9 +105,19 @@ private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: Charac
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (c.eggReady) {
                 CharAction(KairosIcons.Egg, "Hatch", Modifier.weight(1f), highlighted = true, enabled = !ui.busy) { vm.hatch("new") }
-                if (c.active) {
-                    CharAction(KairosIcons.Palette, "Deepen", Modifier.weight(1f), enabled = !ui.busy) { vm.hatch("deepen") }
-                }
+            }
+            // Deepening costs the egg but not one of the month's three hatches, so
+            // it is offered while capped too — then it is the only thing on offer.
+            // Hidden when the companion is already shiny: it would spend the egg
+            // and change nothing.
+            if ((c.eggReady || c.eggCapped) && c.active && !c.shiny) {
+                CharAction(
+                    KairosIcons.Palette,
+                    if (c.eggCapped) "Shiny" else "Deepen",
+                    Modifier.weight(1f),
+                    highlighted = c.eggCapped,
+                    enabled = !ui.busy,
+                ) { vm.hatch("deepen") }
             }
             CharAction(KairosIcons.Trophy, "Gallery", Modifier.weight(1f)) { onOpenGallery() }
         }
@@ -187,12 +197,31 @@ private fun CompanionCard(c: CharCompanionDto) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (base != null && c.image.isNotBlank()) {
+            // A shiny companion is lit from behind, so it reads as rare without
+            // having to spot the star. The egg itself is never shiny.
+            val gild = c.shiny && c.active
             SubcomposeAsyncImage(
                 model = ApiClient.resolveUrl(base, c.image),
                 imageLoader = container.imageLoader,
                 contentDescription = c.speciesName ?: "Companion egg",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth().height(120.dp),
+                colorFilter = if (gild) {
+                    androidx.compose.ui.graphics.ColorFilter.tint(SHINY, androidx.compose.ui.graphics.BlendMode.Overlay)
+                } else {
+                    null
+                },
+                modifier = Modifier.fillMaxWidth().height(120.dp)
+                    .then(
+                        if (gild) {
+                            Modifier.background(
+                                androidx.compose.ui.graphics.Brush.radialGradient(
+                                    listOf(SHINY.copy(alpha = 0.34f), Color.Transparent),
+                                ),
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
                 loading = {
                     Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -216,18 +245,32 @@ private fun CompanionCard(c: CharCompanionDto) {
         }
         if (c.active && c.speciesName != null) {
             Row {
-                Text(c.speciesName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    c.speciesName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (c.shiny) SHINY else MaterialTheme.colorScheme.onSurface,
+                )
                 if (c.stageName != null) {
                     Text("  \u00b7 ${c.stageName}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = glow)
+                if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = SHINY)
             }
             XpCells(c.xpCells)
             // Next-egg progress, always visible so a new egg is earned, not a surprise.
             if (c.eggReady) {
                 Text("A new egg is ready!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFF047857))
             } else if (c.eggCapped) {
-                Text("Next egg ready \u2014 hatch it next month!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFFB45309))
+                Text(
+                    if (c.active && !c.shiny) {
+                        "All three hatched this month \u2014 a shiny doesn't cost one."
+                    } else {
+                        "Next egg ready \u2014 hatch it next month!"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFB45309),
+                )
             } else {
                 Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
                 Text("Next egg ${c.incubationPct}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

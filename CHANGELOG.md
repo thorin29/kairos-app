@@ -1,4 +1,7 @@
 # Changelog
+## 0.347.0
+- A shiny companion now looks shiny: gold glow behind it, gilded sprite, name in gold — and it keeps a gold frame and star in the gallery for good.
+- Making your companion shiny no longer uses up one of the month's three hatches — it costs the egg only, and is now offered once those three are gone. The button is hidden when your companion is already shiny. Needs web 0.534.
 ## 0.346.0
 - Internal: regression test for queued changes sending themselves when Kairos comes back, with no manual trigger. Pairs with web 0.532.
 

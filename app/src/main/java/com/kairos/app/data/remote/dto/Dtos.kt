@@ -1537,6 +1537,8 @@ data class CollectSpeciesDto(
     val owned: Boolean = false,
     val name: String? = null,
     val image: String? = null,
+    /** Deepened at some point — permanent, and shown wherever the creature is. */
+    val shiny: Boolean = false,
 )
 
 @Serializable

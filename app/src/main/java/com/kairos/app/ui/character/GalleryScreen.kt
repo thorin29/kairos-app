@@ -54,6 +54,9 @@ import com.kairos.app.data.remote.dto.EraDto
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.rememberContainer
 
+/** The one shiny gold, shared with the character card and the web. */
+internal val SHINY = Color(0xFFF5B400)
+
 private fun rarityColor(rarity: String): Color = when (rarity) {
     "legendary" -> Color(0xFFF59E0B)
     "rare" -> Color(0xFF3B82F6)
@@ -141,15 +144,34 @@ private fun Slot(sp: CollectSpeciesDto, eraKey: String, onOpen: (CollectSpeciesD
     val ring = rarityColor(sp.rarity)
     val placeholder = mysteryDrawable(eraKey)
 
+    // A shiny creature keeps its gilding on the shelf: gold frame, lit cell and a
+    // star, so the gallery shows what was deepened long after the fact.
+    val shiny = sp.owned && sp.shiny
     Box(
         Modifier.size(72.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(2.dp, if (sp.owned) ring else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+            .background(if (shiny) SHINY.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface)
+            .border(
+                if (shiny) 2.5.dp else 2.dp,
+                when {
+                    shiny -> SHINY
+                    sp.owned -> ring
+                    else -> MaterialTheme.colorScheme.outlineVariant
+                },
+                RoundedCornerShape(14.dp),
+            )
             .then(if (sp.owned) Modifier.clickable { onOpen(sp) } else Modifier)
             .padding(6.dp),
         contentAlignment = Alignment.Center,
     ) {
+        if (shiny) {
+            Text(
+                "\u2726",
+                style = MaterialTheme.typography.labelSmall,
+                color = SHINY,
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
+        }
         if (sp.owned && base != null && sp.image != null) {
             SubcomposeAsyncImage(
                 model = ApiClient.resolveUrl(base, sp.image),
@@ -179,10 +201,14 @@ private fun EnlargeDialog(sp: CollectSpeciesDto, onDismiss: () -> Unit) {
     val base = container.sessionRepository.baseUrlRaw
     AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = sp.name ?: "",
+        title = if (sp.shiny) "${sp.name ?: ""} \u2726" else (sp.name ?: ""),
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     ) {
-        Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.fillMaxWidth().height(220.dp)
+                .then(if (sp.shiny) Modifier.background(SHINY.copy(alpha = 0.14f), RoundedCornerShape(16.dp)) else Modifier),
+            contentAlignment = Alignment.Center,
+        ) {
             if (base != null && sp.image != null) {
                 SubcomposeAsyncImage(
                     model = ApiClient.resolveUrl(base, sp.image),
