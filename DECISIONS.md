@@ -3,6 +3,42 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Queue replay is triggered by SERVER recovery, not just connectivity (v0.343.0)
+
+0.341 made writes queue when Kairos was unreachable but the phone had signal. The other half was
+missed: `SyncManager` only replayed on a `NetworkMonitor.online` edge, and in exactly that outage the
+phone never goes offline — so a queued write could sit as "1 change waiting to sync" until the radio
+happened to flap or the app was relaunched. Queueing a write without a matching recovery trigger is
+half a feature; the pair is the rule.
+
+Three triggers now, all converging on the same mutex-guarded `replayAll()`:
+
+1. connectivity false → true (edge only);
+2. `ServerStatusTracker` unavailable → reachable, which the interceptor flips on the first live
+   success — this is the one that covers server-down-while-online;
+3. a 60s watchdog that runs only while the queue is non-empty, because if every write is queued and
+   the user isn't opening screens, nothing issues the GET that would notice the server returning.
+
+Both collectors are **edge-triggered** and a single explicit pass runs at startup, rather than each
+collector firing on its current value — that also stops two redundant passes racing on launch.
+`NotificationWorker` drains the queue too, for the app-killed-with-writes-pending case.
+
+`SyncManagerServerRecoveryTest` pins the case that was broken: phone online throughout, 502 keeps the
+write, server returns with no connectivity change, queue drains.
+
+## 502 is "very likely not applied", not "provably not applied"
+
+The 0.341 comment claimed a 502 means the write definitely never ran. A gateway can also return 502
+after the upstream processed a request and the response was lost, so automatic replay rests on the
+replayed writes being idempotent, not on the status code. Today's queued writes are state-setters
+(complete/uncomplete, purchased, quantity, move, sport confirm/decline — `confirmSportCore` checks for
+an existing session, decline upserts) or creates carrying a `clientId` the server de-duplicates on:
+`groceries/add`, `groceries/add-catalog`, `money/entry`, `school/add`, `tasks/add`, `calendar/event`,
+`books/add`. **Creates outside that list have no idempotency key** — `coop/propose`,
+`workouts/log-custom` and the workout personal/movement creates are the ones to extend next if their
+replay ever matters. Transport failures stay narrow (`ConnectException`, `UnknownHostException`,
+`NoRouteToHostException` only); an ambiguous mid-flight failure is still surfaced, not replayed.
+
 ## Home is a request for a specific day, and the cache key IS that day (v0.342.0)
 
 Home used to call `loadDashboard()` with no date and cache the result under a single slot,

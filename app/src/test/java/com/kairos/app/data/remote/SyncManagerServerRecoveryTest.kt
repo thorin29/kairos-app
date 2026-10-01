@@ -1,0 +1,116 @@
+package com.kairos.app.data.remote
+
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.Test
+import java.io.File
+import java.nio.file.Files
+
+/**
+ * The outage this app actually hits: the phone keeps full signal while Kairos
+ * goes DOWN and later comes back. There is no connectivity transition to ride,
+ * so a queued write must still replay — that was the hole in 0.342, where
+ * replay only ran on a NetworkMonitor online edge.
+ */
+class SyncManagerServerRecoveryTest {
+    private lateinit var scope: CoroutineScope
+    private lateinit var dir: File
+    private lateinit var queue: WriteQueue
+    private lateinit var server: MockWebServer
+
+    @Before fun setUp() {
+        scope = CoroutineScope(Dispatchers.IO + Job())
+        dir = Files.createTempDirectory("kairos-sync").toFile()
+        val ds = PreferenceDataStoreFactory.create(scope = scope) { File(dir, "q.preferences_pb") }
+        queue = WriteQueue(ds, Json { ignoreUnknownKeys = true })
+        server = MockWebServer()
+        server.start()
+    }
+
+    @After fun tearDown() {
+        server.shutdown()
+        scope.cancel()
+        dir.deleteRecursively()
+    }
+
+    private fun manager(online: MutableStateFlow<Boolean>) = SyncManager(
+        queue = queue,
+        online = online,
+        isOnline = { online.value },
+        cache = null,
+        tokenProvider = { "token" },
+        baseUrlProvider = { server.url("/api/v1").toString() },
+        scope = scope,
+    )
+
+    private fun queuedWrite() = PendingWrite(
+        id = "q-1",
+        method = "POST",
+        url = "/api/v1/sport/confirm",
+        body = """{"eventId":"e1","dateISO":"2026-10-01"}""",
+        createdAt = 0L,
+        clientId = null,
+    )
+
+    /**
+     * Phone stays online throughout. The server is unavailable (502), the write
+     * is already queued, and then the server returns — with no change to the
+     * connectivity flow. The queue must drain.
+     */
+    @Test fun replays_when_server_returns_without_any_connectivity_change() = runBlocking {
+        val online = MutableStateFlow(true)
+        // Construct first, with the queue empty: the startup pass then no-ops and
+        // can't race this test for a mock response.
+        val sync = manager(online)
+        queue.enqueue(queuedWrite())
+
+        // Still down: the pass runs, gets a 502, and keeps the write.
+        server.enqueue(MockResponse().setResponseCode(502).setBody("bad gateway"))
+        sync.replayAll()
+        assertEquals(1, queue.snapshot().size)
+
+        // The server comes back. This is the signal a live GET produces; the
+        // phone's connectivity never changed.
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"status":"ok"}"""))
+        ServerStatusTracker.markUnavailable()
+        ServerStatusTracker.markReachable()
+        sync.replayAll()
+
+        assertEquals(0, queue.snapshot().size)
+    }
+
+    /** A 4xx is a real answer, not an outage: drop it instead of retrying forever. */
+    @Test fun drops_a_write_the_server_rejects() = runBlocking {
+        val online = MutableStateFlow(true)
+        val sync = manager(online)
+        queue.enqueue(queuedWrite())
+
+        server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"validation"}"""))
+        sync.replayAll()
+
+        assertEquals(0, queue.snapshot().size)
+        assertEquals(1, sync.droppedCount.value)
+    }
+
+    /** Offline means nothing is sent at all — the queue is left intact. */
+    @Test fun does_not_send_while_the_phone_is_offline() = runBlocking {
+        val online = MutableStateFlow(false)
+        val sync = manager(online)
+        queue.enqueue(queuedWrite())
+        sync.replayAll()
+
+        assertEquals(1, queue.snapshot().size)
+        assertEquals(0, server.requestCount)
+    }
+}

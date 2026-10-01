@@ -85,7 +85,8 @@ class AppContainer(context: Context) {
      *  or different server. */
     val syncManager = SyncManager(
         queue = writeQueue,
-        monitor = networkMonitor,
+        online = networkMonitor.online,
+        isOnline = { networkMonitor.isOnline() },
         cache = httpCache,
         tokenProvider = { tokenStore.current() },
         baseUrlProvider = { sessionRepository.baseUrlRaw },

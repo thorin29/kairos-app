@@ -1,4 +1,6 @@
 # Changelog
+## 0.343.0
+- Changes made while Kairos was unreachable now send themselves as soon as the server is back, even if the phone's connection never changed. Previously they could sit as "waiting to sync" until the network flapped or the app was reopened.
 ## 0.342.0
 - Home now asks for the phone's date explicitly and keeps one cached page per day, so a cached dashboard can never be shown as a different day. If today's page was never loaded, Home says so instead of painting yesterday.
 - Today's Home page is refreshed in the background while Kairos is reachable (and again after midnight), so an outage later in the day finds today's data already on the phone.

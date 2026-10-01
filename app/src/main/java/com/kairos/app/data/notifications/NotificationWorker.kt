@@ -28,6 +28,10 @@ class NotificationWorker(
             return Result.retry()
         }
         runCatching { NotificationScheduler.refresh(applicationContext) }
+        // Drain anything queued while Kairos was unreachable. The in-process
+        // triggers cover a running app; this covers the app being killed with
+        // writes still waiting.
+        runCatching { container?.syncManager?.replayAll() }
         // Keep TODAY's Home page on the phone while the server is reachable, so an
         // outage later in the day doesn't leave Home with nothing for today. The
         // day is the phone's own date and is both the request parameter and the

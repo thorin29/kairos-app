@@ -36,7 +36,10 @@ import java.io.IOException
  */
 class SyncManager(
     private val queue: WriteQueue,
-    private val monitor: NetworkMonitor,
+    /** Device connectivity. Taken as a flow + probe rather than the monitor
+     *  itself so the replay triggers can be exercised without a Context. */
+    private val online: kotlinx.coroutines.flow.Flow<Boolean>,
+    private val isOnline: () -> Boolean,
     private val cache: Cache?,
     tokenProvider: () -> String?,
     private val baseUrlProvider: () -> String?,
@@ -66,8 +69,39 @@ class SyncManager(
     private val mutex = Mutex()
 
     init {
+        // 0. One pass at startup: the app may have been killed with writes still
+        //    queued. Explicit and once, so the collectors below can be strictly
+        //    edge-triggered rather than each firing on their current value.
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) { replayAll() }
+        // 1. Device connectivity returned (edge only: false -> true).
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            monitor.online.collect { online -> if (online) replayAll() }
+            var wasOffline = false
+            online.collect { up ->
+                if (up && wasOffline) replayAll()
+                wasOffline = !up
+            }
+        }
+        // 2. The SERVER returned. The outage this app is most often in is Kairos
+        //    being down while the phone keeps full signal, so there is no
+        //    connectivity transition to ride: a write queued at 502 would sit
+        //    there until the radio happened to flap. ServerStatusTracker flips
+        //    back to reachable on the first live success, which is the signal.
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            var wasUnavailable = false
+            ServerStatusTracker.unavailable.collect { unavailable ->
+                if (wasUnavailable && !unavailable) replayAll()
+                wasUnavailable = unavailable
+            }
+        }
+        // 3. Nothing is watching. If every write is queued and the user isn't
+        //    loading screens, no GET ever notices the server came back, so poll
+        //    while — and only while — something is actually waiting. A pass
+        //    against a still-dead server costs one request and keeps the queue.
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            while (true) {
+                kotlinx.coroutines.delay(RETRY_INTERVAL_MS)
+                if (isOnline() && queue.snapshot().isNotEmpty()) replayAll()
+            }
         }
     }
 
@@ -92,7 +126,7 @@ class SyncManager(
     suspend fun replayAll() {
         mutex.withLock {
             val items = queue.snapshot()
-            if (items.isEmpty() || !monitor.isOnline()) return
+            if (items.isEmpty() || !isOnline()) return
             _syncing.value = true
             var changedAny = false
             // As each queued create replays and returns its real id, record
@@ -102,7 +136,7 @@ class SyncManager(
             try {
                 val base = baseUrlProvider()
                 for (w in items) {
-                    if (!monitor.isOnline()) break
+                    if (!isOnline()) break
 
                     val rw = OfflineSync.rewrite(w, idMap)
                     val target = resolveReplayUrl(base, rw.url)
@@ -192,5 +226,9 @@ class SyncManager(
         // Codes worth retrying rather than dropping: auth (may recover after a
         // re-auth), request timeout, and rate-limit/throttle.
         val RETRYABLE = setOf(401, 403, 408, 425, 429)
+
+        /** How often to re-attempt a non-empty queue when nothing else has
+         *  signalled recovery. */
+        const val RETRY_INTERVAL_MS = 60_000L
     }
 }

@@ -179,11 +179,18 @@ internal class OfflineInterceptor(
                     ServerStatusTracker.markUnavailable()
                     return queueWrite(req) ?: throw e
                 }
-                // 502/503/504 come from the reverse proxy: it answered, the Kairos
-                // upstream did not, so the write was definitely not applied and is
-                // safe to replay. A 500 is the app itself failing and is NOT queued,
-                // nor is any 4xx (validation, auth, conflict) — those are real
-                // answers the user needs to see.
+                // 502/503/504 mean the reverse proxy answered and the Kairos
+                // upstream did not. In this deployment that is almost always a
+                // refused connection — the request never reached the app — but a
+                // gateway CAN also return 502 after the upstream processed a
+                // request and the response was lost, so a replay is "very likely
+                // not applied twice", not "provably not". That is tolerable
+                // because the replayed writes are state-setters (complete,
+                // purchased, quantity, move) or creates carrying a clientId the
+                // server de-duplicates on; see DECISIONS.md for the creates that
+                // do NOT yet carry one. A 500 is the app itself failing and is
+                // NOT queued, nor is any 4xx (validation, auth, conflict) —
+                // those are real answers the user needs to see.
                 if (live.code == 502 || live.code == 503 || live.code == 504) {
                     val queued = queueWrite(req)
                     if (queued != null) {
