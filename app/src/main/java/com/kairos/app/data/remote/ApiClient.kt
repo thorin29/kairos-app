@@ -159,7 +159,43 @@ internal class OfflineInterceptor(
     override fun intercept(chain: Interceptor.Chain): OkResponse {
         val req = chain.request()
         if (isOnline()) {
-            if (req.method != "GET") return chain.proceed(req)
+            if (req.method != "GET") {
+                // The phone has a network, but that says nothing about Kairos being
+                // up. A write sent into a dead upstream used to come back 502 and
+                // surface as an error the user had to redo later; queue it instead,
+                // exactly as if the phone itself were offline.
+                val live = try {
+                    chain.proceed(req)
+                } catch (e: IOException) {
+                    // Only queue when the request demonstrably never reached the
+                    // server: no route to the host, or DNS didn't resolve. A read
+                    // timeout or a connection dropped mid-flight is ambiguous — the
+                    // server may have processed it — so that still surfaces as a
+                    // failure rather than being replayed into a possible duplicate.
+                    val neverSent = e is java.net.ConnectException ||
+                        e is java.net.UnknownHostException ||
+                        e is java.net.NoRouteToHostException
+                    if (!neverSent) throw e
+                    ServerStatusTracker.markUnavailable()
+                    return queueWrite(req) ?: throw e
+                }
+                // 502/503/504 come from the reverse proxy: it answered, the Kairos
+                // upstream did not, so the write was definitely not applied and is
+                // safe to replay. A 500 is the app itself failing and is NOT queued,
+                // nor is any 4xx (validation, auth, conflict) — those are real
+                // answers the user needs to see.
+                if (live.code == 502 || live.code == 503 || live.code == 504) {
+                    val queued = queueWrite(req)
+                    if (queued != null) {
+                        live.close()
+                        ServerStatusTracker.markUnavailable()
+                        return queued
+                    }
+                    return live
+                }
+                if (live.isSuccessful) ServerStatusTracker.markReachable()
+                return live
+            }
             // Online GET: hit the network, but count it so the UI can show a thin
             // refresh line, and if the server is actually unreachable/slow (Wi-Fi
             // up but Kairos down) fall back to the cached copy instead of failing.
@@ -211,6 +247,27 @@ internal class OfflineInterceptor(
         }
 
         if (req.method != "GET") {
+            return queueWrite(req) ?: throw IOException("You're offline. Reconnect to make changes.")
+        }
+        val offline = req.newBuilder()
+            .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")
+            .build()
+        val res = chain.proceed(offline)
+        if (res.code == 504) {
+            // only-if-cached with nothing stored: this page was never loaded online.
+            res.close()
+            throw IOException("You're offline \u2014 this page hasn't been cached yet.")
+        }
+        return res
+    }
+
+    /**
+     * Put a write on the durable queue and answer it with a synthetic success, so
+     * the action isn't lost or shown as an error. Returns null when the request
+     * can't be queued (auth calls, multipart uploads, or a temp-id delete that
+     * cancels nothing) — the caller then surfaces the real failure.
+     */
+    private fun queueWrite(req: okhttp3.Request): OkResponse? {
             val path = req.url.encodedPath
             // Multipart uploads (avatar photo) carry binary bytes that can't be
             // stored in the text queue without corruption, so they need a live
@@ -242,8 +299,7 @@ internal class OfflineInterceptor(
                     // would silently lose the delete, so surface it as an offline
                     // failure the user can retry once reconnected.
                     val cancelled = runBlocking { queue!!.removeByClientId(cancelId) }
-                    if (cancelled) return synthetic(req)
-                    throw IOException("You're offline. Reconnect to make changes.")
+                    return if (cancelled) synthetic(req) else null
                 }
                 // A create carries a clientId in its body (the bare uuid of the
                 // item's temp id). Persist it on the queue entry so the create can
@@ -268,18 +324,7 @@ internal class OfflineInterceptor(
                 }
                 return synthetic(req)
             }
-            throw IOException("You're offline. Reconnect to make changes.")
-        }
-        val offline = req.newBuilder()
-            .header("Cache-Control", "public, only-if-cached, max-stale=$OFFLINE_MAX_STALE")
-            .build()
-        val res = chain.proceed(offline)
-        if (res.code == 504) {
-            // only-if-cached with nothing stored: this page was never loaded online.
-            res.close()
-            throw IOException("You're offline \u2014 this page hasn't been cached yet.")
-        }
-        return res
+            return null
     }
 
     /** A 200 {} response so a queued (or cancelled) offline write looks successful. */

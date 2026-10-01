@@ -3,6 +3,56 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Home is a request for a specific day, and the cache key IS that day (v0.342.0)
+
+Home used to call `loadDashboard()` with no date and cache the result under a single slot,
+`home/main/<person>`. Two bugs fell out of that, and both showed up in one session with the server
+stopped: the cold-start seed painted whatever day was in the slot (September 30 on October 1), and
+because the request URL was identical every day, OkHttp's disk cache answered an October request
+with a September body — a 200 in 1ms that nothing above the interceptor could tell from a live one.
+
+The server has always accepted `/api/v1/dashboard?date=YYYY-MM-DD` and `SessionRepository.loadDashboard`
+has always taken a date; Home simply never passed one. It now passes `LocalDate.now()` and caches
+under that date (`PayloadCacheStore` already trims to the newest N per section, so several days cost
+nothing). The seed reads **today's key only** — a missing entry stays missing and Home says
+"today's page hasn't been loaded yet" rather than showing another day. Stale data can be useful;
+stale data must never be presented as today's.
+
+`NotificationWorker` (the existing 2-hour, network-constrained job) now also fetches and caches
+today's dashboard, so an outage at 07:00 finds today already on the phone, and the first run after
+midnight fetches the new day. This is prefetch, not derivation: the phone still cannot *construct* a
+day it has never been given — that needs a local schedule/recurrence model and remains the offline
+epic — but "make sure today is cached before I need it" needed none of that.
+
+## "Online" means the phone has a network, NOT that Kairos is up (v0.341.0)
+
+`OfflineInterceptor` branched on `NetworkMonitor.isOnline()`, so with Wi-Fi up and the server down
+every write went straight at the dead upstream, came back 502 from the reverse proxy and surfaced as
+an error the user had to redo later — while GETs in the same state quietly fell back to the HTTP
+cache. The two halves disagreed about what "offline" meant.
+
+Writes now queue on **502/503/504 or an IOException**, whatever the phone's radio says, and return
+the same synthetic success as the no-signal path. The queueing body was pulled out of the offline
+branch into `queueWrite(req)`, which returns null when a request can't be queued (auth, multipart,
+a temp-id delete that cancels nothing) so the caller can surface the real failure instead of faking
+one. Any future branch on connectivity should ask "can I reach Kairos", not "does the phone have
+bars".
+
+Two consequences of the GET side worth holding on to:
+
+- A cached GET comes back as a **200 in ~1ms** and is indistinguishable from a live response to
+  everything above the interceptor. `ServerStatusTracker` is the only signal that it was stale.
+- **The dashboard is computed per day on the server**, so a cached copy is a specific day's page, not
+  "the home screen". With the server down the app painted yesterday's day — chores, schedule and a
+  "Did you go?" prompt for the night before — with nothing saying so. Home now compares the payload's
+  `date` to the device date and shows `StaleDayNotice` when they differ. The app cannot compute
+  today's page offline; it has no local model of chores, schedule or school, only cached payloads.
+  Showing the right day offline is the offline epic in ROADMAP, not a banner fix.
+
+An answered sport prompt is replayed over the cached day in `applyPending` (`sport/confirm` /
+`sport/decline` drop the prompt), the same pairing every offline write needs: the VM transform AND
+the `applyPending` branch, or the tap reappears on the next load.
+
 ## Grocery quantity: commit on focus loss, replay it offline (v0.339.0)
 
 The quantity box appears beside an item only in edit mode (left of the move/delete icons) and takes

@@ -17,6 +17,7 @@ import com.kairos.app.data.remote.dto.ScheduleItemDto
 import com.kairos.app.data.remote.dto.DashboardDto
 import com.kairos.app.data.remote.dto.WorkoutDateRequest
 import com.kairos.app.data.remote.dto.MarkReadingRequest
+import com.kairos.app.data.remote.dto.SportAnswerRequest
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.session.SessionRepository
 import com.kairos.app.data.local.PayloadCacheStore
@@ -48,6 +49,11 @@ class HomeViewModel(
     val ui: StateFlow<HomeUiState> = _ui.asStateFlow()
 
     private fun personId(): String = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+
+    /** The phone's own date. Home is always a request for THIS day: the day is
+     *  sent to the server explicitly and is the cache key, so a cached dashboard
+     *  can never be served as a different day than the one it was built for. */
+    private fun todayISO(): String = java.time.LocalDate.now().toString()
     private fun encodeDash(d: DashboardDto): String =
         ApiClient.json.encodeToString(DashboardDto.serializer(), d)
     private fun decodeDash(s: String): DashboardDto? =
@@ -60,7 +66,10 @@ class HomeViewModel(
         // affects how fast it paints, never what it shows first.
         viewModelScope.launch {
             if (_ui.value.dashboard == null) {
-                val seed = runCatching { cache.read("home", "main", personId()) }
+                // Seed from TODAY's cache entry only. Reading a single "main" slot
+                // is what let yesterday's dashboard paint as today's after a date
+                // rollover; a missing entry for today must stay missing.
+                val seed = runCatching { cache.read("home", todayISO(), personId()) }
                     .getOrNull()?.let { decodeDash(it) }?.let { applyPending(it) }
                 if (seed != null) _ui.update {
                     if (it.dashboard == null) it.copy(dashboard = seed, loading = false) else it
@@ -81,7 +90,12 @@ class HomeViewModel(
                     it.copy(
                         loading = false,
                         refreshing = false,
-                        loadError = if (it.dashboard == null) e.error.message else it.loadError,
+                        loadError = if (it.dashboard == null) {
+                            "Today's page hasn't been loaded yet, and Kairos can't be reached. " +
+                                "It'll load as soon as the server is back."
+                        } else {
+                            it.loadError
+                        },
                         actionError = if (it.dashboard != null) e.error.message else null,
                     )
                 }
@@ -94,8 +108,12 @@ class HomeViewModel(
     private suspend fun freshDashboard(): DashboardDto {
         // Fetch raw + cache it, so both load() and every post-action refresh keep
         // Room current (pending is re-applied on the seed).
-        val raw = session.loadDashboard()
-        viewModelScope.launch { runCatching { cache.write("home", "main", personId(), encodeDash(raw)) } }
+        val day = todayISO()
+        // Ask for the phone's day explicitly. Two things follow: the URL differs
+        // per day, so OkHttp's disk cache can't answer an October request with a
+        // September body; and the payload we store is unambiguously that day's.
+        val raw = session.loadDashboard(day)
+        viewModelScope.launch { runCatching { cache.write("home", day, personId(), encodeDash(raw)) } }
         return applyPending(raw)
     }
 
@@ -136,6 +154,15 @@ class HomeViewModel(
                         runCatching { ApiClient.json.decodeFromString(AlwaysOpenRequest.serializer(), it) }.getOrNull()
                     } ?: continue
                     d = bumpAlwaysOpen(d, req.choreId)
+                }
+                path == "sport/confirm" || path == "sport/decline" -> {
+                    // The prompt was answered while the server was unreachable, so
+                    // drop it from the cached day — otherwise "Did you go?" comes
+                    // straight back on the next load and looks like the tap was lost.
+                    val req = w.body?.let {
+                        runCatching { ApiClient.json.decodeFromString(SportAnswerRequest.serializer(), it) }.getOrNull()
+                    } ?: continue
+                    d = d.copy(sportPrompts = d.sportPrompts.filterNot { it.eventId == req.eventId })
                 }
                 path == "reading/mark" -> {
                     val req = w.body?.let {

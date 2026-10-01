@@ -1,6 +1,15 @@
 # Changelog
+## 0.342.0
+- Home now asks for the phone's date explicitly and keeps one cached page per day, so a cached dashboard can never be shown as a different day. If today's page was never loaded, Home says so instead of painting yesterday.
+- Today's Home page is refreshed in the background while Kairos is reachable (and again after midnight), so an outage later in the day finds today's data already on the phone.
+- Writes are queued only when the request demonstrably never reached the server; a dropped connection mid-request still reports a failure rather than risking a duplicate.
+
+## 0.341.0
+- When the server is down but the phone has a network, taps are now saved and sent when it's back, instead of failing with an error. Previously only a phone with no signal queued changes.
+- Home says when it is showing an earlier day's page because the server couldn't be reached, rather than letting yesterday pass for today.
+- Answering a "Did you go?" prompt while the server is unreachable now sticks instead of reappearing on the next load.
 ## 0.340.0
-- Fixes grocery icons that were cut off at the bottom (juices, milk/creams, oils, nuts, jerky, seafood and more re-cut from source so the whole item shows) and strips the leftover white card + label text from the household icons. Pairs with web 0.530.
+- Fixes 13 grocery icons that carried the icon sheet's white card and caption behind the picture (sunscreen, sponges, plastic cutlery, paper plates, pain reliever, lotion, hand soap, light bulbs, batteries, allergy medicine, air freshener, first aid, dryer sheets). Pairs with web 0.530.
 ## 0.339.0
 - Groceries: tap Edit and each item gets a small box for a quantity (1-99). Leave it blank for none; otherwise the line reads "Distilled water × 10" once you tap Done — on the list, in the cart and on the web. Needs web 0.529.
 ## 0.338.0

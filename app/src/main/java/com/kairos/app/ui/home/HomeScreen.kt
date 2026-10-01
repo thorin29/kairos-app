@@ -158,6 +158,16 @@ fun HomeScreen(
 private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}, onLogWorkout: (String) -> Unit = {}, onOpenReading: () -> Unit = {}) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
+    // The dashboard is computed per day on the server. When it can't be reached we
+    // paint the last cached copy, which may be an earlier day — say so plainly
+    // instead of letting yesterday pass for today. (Computed here: `remember` is
+    // not legal inside the LazyColumn's LazyListScope.)
+    val staleDay = remember(d.date) {
+        runCatching {
+            val shown = java.time.LocalDate.parse(d.date)
+            if (shown == java.time.LocalDate.now()) null else shown
+        }.getOrNull()
+    }
     PullToRefreshBox(
         isRefreshing = ui.refreshing,
         onRefresh = vm::refresh,
@@ -169,6 +179,10 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(key = "header") { HeaderCard(person.name, d.percent) }
+
+            if (staleDay != null) {
+                item(key = "stale-day") { StaleDayNotice(staleDay) }
+            }
 
             d.money?.let { m ->
                 if (m.pendingApprovals > 0 || m.rewardMonths > 0) {
@@ -361,6 +375,33 @@ private fun sportDayLabel(iso: String): String = try {
     java.time.LocalDate.parse(iso)
         .dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
 } catch (e: Exception) { "" }
+
+/** Shown when Home is painting a cached day that isn't today — the server was
+ *  unreachable, so there is no way to compute today's page on the phone. */
+@Composable
+private fun StaleDayNotice(shown: java.time.LocalDate) {
+    val label = shown.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMM d"))
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            KairosIcons.Clock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            "Showing $label \u2014 the server is unreachable, so today's page hasn't loaded. " +
+                "Anything you tap is saved and sent when it's back.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 private fun SportPromptCard(

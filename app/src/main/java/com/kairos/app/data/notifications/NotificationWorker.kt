@@ -28,6 +28,28 @@ class NotificationWorker(
             return Result.retry()
         }
         runCatching { NotificationScheduler.refresh(applicationContext) }
+        // Keep TODAY's Home page on the phone while the server is reachable, so an
+        // outage later in the day doesn't leave Home with nothing for today. The
+        // day is the phone's own date and is both the request parameter and the
+        // cache key, so this also handles the midnight rollover: the first run
+        // after midnight fetches and stores the new day.
+        runCatching {
+            val session = container?.sessionRepository
+            val cache = container?.payloadCache
+            if (session != null && cache != null && session.isOnline()) {
+                val day = java.time.LocalDate.now().toString()
+                val person = session.currentPersonId()
+                    ?: com.kairos.app.data.local.PayloadCacheStore.HOUSEHOLD
+                val dash = session.loadDashboard(day)
+                cache.writeAs(
+                    "home",
+                    day,
+                    person,
+                    com.kairos.app.data.remote.dto.DashboardDto.serializer(),
+                    dash,
+                )
+            }
+        }
         runCatching {
             val checker = container?.updateChecker
             checker?.check()
