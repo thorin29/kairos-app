@@ -1,4 +1,7 @@
 # Changelog
+## 0.346.0
+- Internal: regression test for queued changes sending themselves when Kairos comes back, with no manual trigger. Pairs with web 0.532.
+
 ## 0.345.0
 - The page cached for tomorrow now carries that day's schedule, chore badges and reading progress, so a morning with Kairos down shows a real page rather than a bare one. Needs web 0.531.
 - Internal: the just-after-midnight refresh no longer re-schedules (and so cancel) itself while running.

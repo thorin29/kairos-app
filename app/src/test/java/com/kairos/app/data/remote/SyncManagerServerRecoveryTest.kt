@@ -5,8 +5,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -30,6 +32,9 @@ class SyncManagerServerRecoveryTest {
     private lateinit var server: MockWebServer
 
     @Before fun setUp() {
+        // Shared global: start every test from "server reachable" so the
+        // unavailable -> reachable edge below is a real transition.
+        ServerStatusTracker.markReachable()
         scope = CoroutineScope(Dispatchers.IO + Job())
         dir = Files.createTempDirectory("kairos-sync").toFile()
         val ds = PreferenceDataStoreFactory.create(scope = scope) { File(dir, "q.preferences_pb") }
@@ -101,6 +106,30 @@ class SyncManagerServerRecoveryTest {
 
         assertEquals(0, queue.snapshot().size)
         assertEquals(1, sync.droppedCount.value)
+    }
+
+    /**
+     * The actual 0.342 bug: nobody calls replayAll(). The write is queued, the
+     * server comes back, and the SyncManager's own collector has to notice —
+     * with no connectivity change and no manual drain.
+     */
+    @Test fun recovery_collector_drains_the_queue_with_no_manual_replay() = runBlocking {
+        val online = MutableStateFlow(true)
+        manager(online)
+        queue.enqueue(queuedWrite())
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"status":"ok"}"""))
+
+        // What the interceptor does: 502 marks it unavailable, a later live
+        // success marks it reachable. The pause matters — StateFlow conflates,
+        // and two instant flips would collapse into no observed change.
+        ServerStatusTracker.markUnavailable()
+        delay(150)
+        ServerStatusTracker.markReachable()
+
+        withTimeout(5_000) {
+            while (queue.snapshot().isNotEmpty()) delay(50)
+        }
+        assertEquals(1, server.requestCount)
     }
 
     /** Offline means nothing is sent at all — the queue is left intact. */

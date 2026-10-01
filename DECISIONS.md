@@ -3,6 +3,19 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A test that calls the thing under test by hand isn't a regression test (v0.346.0)
+
+`SyncManagerServerRecoveryTest` was named for the 0.342 bug but flipped `ServerStatusTracker` and
+then called `replayAll()` itself — which proves replay works, not that anything *triggers* it. The
+bug was precisely that nothing triggered it. `recovery_collector_drains_the_queue_with_no_manual_replay`
+now queues a write, flips unavailable → reachable, calls nothing, and waits for the queue to drain.
+
+Two details it depends on: `ServerStatusTracker` is a global, so every test resets it to reachable in
+`@Before` or the edge isn't an edge; and the two flips need a gap between them, because `StateFlow`
+conflates and an instant unavailable-then-reachable collapses into no observed change. In production
+the flips are seconds or minutes apart, so this is a test artefact, not a product weakness — but it is
+the kind of thing that makes a flaky test look like a flaky feature.
+
 ## A unique one-time job must not re-arm itself (v0.345.0)
 
 `enqueueAfterMidnight` uses `enqueueUniqueWork(..., REPLACE)`, and the midnight run was calling it at

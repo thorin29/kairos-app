@@ -42,10 +42,13 @@ class NotificationWorker(
         // the new day at all. Caching tomorrow alongside today closes that gap —
         // the 11pm run already has the new day stored before it begins.
         //
-        // Tomorrow's page is a real server-built day for that date, but the server
-        // only fills the today-only sections (get-ahead, school progress) when the
-        // requested day IS its today, so a prefetched tomorrow is thinner until the
-        // first live load of the day replaces it. Thinner-but-correct beats empty.
+        // Tomorrow's page is a real server-built day for that date: from web 0.531
+        // the schedule, chore badges, reading progress and the admin reward banner
+        // are all computed for the day that was ASKED for. What a future day still
+        // omits is the handful of sections that only mean something "now" —
+        // get-ahead, school progress/get-ahead, up-for-grabs, always-open chores
+        // and the overdue-workout count — which fill in on the first live load of
+        // the day. Nothing on the page is another day's data wearing this date.
         runCatching {
             val session = container?.sessionRepository
             val cache = container?.payloadCache
