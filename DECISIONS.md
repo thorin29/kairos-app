@@ -26,6 +26,13 @@ collector firing on its current value — that also stops two redundant passes r
 `SyncManagerServerRecoveryTest` pins the case that was broken: phone online throughout, 502 keeps the
 write, server returns with no connectivity change, queue drains.
 
+One build-level prerequisite came out of writing it: JVM unit tests run against a stubbed
+`android.jar`, so every `android.*` call throws `RuntimeException("Stub!")`. `SyncManager` logs a
+rejected write with `Log.w`, which meant the 4xx-drop path blew up under test while the identical
+success path passed — the code was fine, the harness wasn't. `android { testOptions {
+unitTests.isReturnDefaultValues = true } }` makes those stubs return defaults. Any future test that
+touches a production path which logs, or reads `SystemClock`/`TextUtils`, needs it.
+
 ## 502 is "very likely not applied", not "provably not applied"
 
 The 0.341 comment claimed a 502 means the write definitely never ran. A gateway can also return 502

@@ -82,6 +82,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        // JVM unit tests run against a stubbed android.jar, where every android.*
+        // call throws RuntimeException("Stub!"). Production code that logs with
+        // android.util.Log is therefore untestable without this — it is what made
+        // SyncManager's drop path (Log.w on a rejected write) fail under test while
+        // the identical success path passed. Stubs return defaults instead.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 // Kotlin toolchain is a top-level extension (not nested in android {}). This
