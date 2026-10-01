@@ -81,15 +81,23 @@ class NotificationWorker(
                 settings.setLastUpdateNotified(avail.versionCode)
             }
         }
-        // Re-arm the just-after-midnight run. Scheduling from inside the worker
-        // keeps it rolling night after night without a separate always-on alarm.
-        runCatching { enqueueAfterMidnight(applicationContext) }
+        // Re-arm the just-after-midnight run — but never from the midnight run
+        // itself. enqueueUniqueWork(REPLACE) cancels whatever currently holds that
+        // unique name, and when this IS that work, it would be cancelling itself
+        // mid-execution. The periodic job (every ~2h) and app launch re-arm it, so
+        // it is always re-armed within a couple of hours of firing.
+        if (!tags.contains(MIDNIGHT_TAG)) {
+            runCatching { enqueueAfterMidnight(applicationContext) }
+        }
         return Result.success()
     }
 
     companion object {
         private const val PERIODIC = "notif-refresh-periodic"
         private const val MIDNIGHT = "notif-refresh-midnight"
+        /** Tag on the midnight request so a run can tell it IS the midnight work
+         *  and not re-arm (and so cancel) itself. */
+        internal const val MIDNIGHT_TAG = "notif-midnight-run"
 
         /** A safety-net periodic refresh (WorkManager's minimum granularity is
          *  coarse; exact alarms do the actual firing). */
@@ -120,6 +128,7 @@ class NotificationWorker(
             val fireAt = now.toLocalDate().plusDays(1).atStartOfDay().plusMinutes(2)
             val delayMs = java.time.Duration.between(now, fireAt).toMillis().coerceAtLeast(60_000L)
             val req = OneTimeWorkRequestBuilder<NotificationWorker>()
+                .addTag(MIDNIGHT_TAG)
                 .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
                 .setConstraints(
                     Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),

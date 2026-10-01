@@ -1,4 +1,7 @@
 # Changelog
+## 0.345.0
+- The page cached for tomorrow now carries that day's schedule, chore badges and reading progress, so a morning with Kairos down shows a real page rather than a bare one. Needs web 0.531.
+- Internal: the just-after-midnight refresh no longer re-schedules (and so cancel) itself while running.
 ## 0.344.0
 - Tomorrow's Home page is cached alongside today's, and a refresh runs just after midnight, so the new day is already on the phone if Kairos is unreachable when you wake up.
 - If the app was left open across midnight and the server can't be reached, Home now switches to the cached new day instead of leaving yesterday on screen.

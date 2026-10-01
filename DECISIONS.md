@@ -3,6 +3,16 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A unique one-time job must not re-arm itself (v0.345.0)
+
+`enqueueAfterMidnight` uses `enqueueUniqueWork(..., REPLACE)`, and the midnight run was calling it at
+the end of its own `doWork` — REPLACE cancels whatever holds that unique name, which at that moment
+was the running job itself. It happened last in the method so the damage was limited, but a job
+cancelling itself to schedule itself is not something to leave in. The request now carries a tag and
+a run re-arms only when it is NOT the midnight run; the periodic job and app launch re-arm it, so it
+is always back within a couple of hours. The today+tomorrow prefetch is what provides the actual
+guarantee — the midnight job is an optimisation, and is treated as one.
+
 ## The midnight rollover is covered by prefetching tomorrow, not by timing (v0.344.0)
 
 Prefetching only today left a hole every night: the worker runs about every two hours, so between
