@@ -1,4 +1,6 @@
 # Changelog
+## 0.348.0
+- Diagnostics: if the screen ever freezes again, the app now records whether the UI thread was actually stuck — and if it was, what it was stuck on — into Settings → Diagnostics. A crash on any thread is recorded there too. Nothing else changes; this only adds lines to the existing trail.
 ## 0.347.0
 - A shiny companion now looks shiny: gold glow behind it, gilded sprite, name in gold — and it keeps a gold frame and star in the gallery for good.
 - Making your companion shiny no longer uses up one of the month's three hatches — it costs the egg only, and is now offered once those three are gone. The button is hidden when your companion is already shiny. Needs web 0.534.

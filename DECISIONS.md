@@ -3,6 +3,29 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Freeze diagnostics: separate "UI thread stuck" from "window drawing blank" (v0.348.0)
+
+The Sept 2026 white screen was diagnosed by what the breadcrumbs showed *continuing* underneath the
+blank window — navigation and a 200 response — which made it a render-layer problem rather than a
+hang. The Oct 1 recurrence on 0.347 had no such evidence, because the breadcrumbs only record events
+and a frozen UI produces none.
+
+`StallWatchdog` pings the main looper every 2s from a daemon thread and, if an ack takes longer than
+5s, drops `MAIN THREAD STALLED Ns :: <main-thread stack>` into the trail — one line per stall, plus
+one on recovery, so a long freeze can't flood the 30-entry ring. `CrashTrail` installs a default
+uncaught-exception handler that appends the thread, type and top frames before delegating to the
+previous handler, so a background-thread crash stops looking like a freeze on the next launch.
+
+The point is attribution, not a fix: **watchdog fires → the UI thread was blocked and the stack names
+the call; watchdog silent during a blank screen → the UI thread was alive, so it is the render layer
+again.** Either answer removes a whole branch of guesswork.
+
+Also recorded from that investigation, because it cost time: a logcat capture taken *after* a force
+restart can show `--------- beginning of main` partway through, meaning the main buffer was rolled
+before capture. Absence of app log lines before that marker is a capture artefact, not evidence that
+the app logged nothing. Read the events/system buffers for the freeze window instead, and check for
+`am_anr` — its absence means the system never considered the app unresponsive.
+
 ## A test that calls the thing under test by hand isn't a regression test (v0.346.0)
 
 `SyncManagerServerRecoveryTest` was named for the 0.342 bug but flipped `ServerStatusTracker` and
