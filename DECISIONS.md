@@ -3,6 +3,36 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## The drawer is the stock ModalNavigationDrawer now (v0.350.0)
+
+The hand-rolled drawer — a `var open` boolean, an `animateFloatAsState`, a scrim drawn by hand and
+the rail positioned with `translationX` — is replaced by `ModalNavigationDrawer` + `rememberDrawerState`.
+`KairosRail` itself is unchanged; it is simply the drawer's panel instead of a Box we placed. No
+screen changed, and nothing server-side is involved.
+
+What the swap buys, beyond the swipe-to-open that prompted it: **Back closes the menu** (there was no
+`BackHandler` on the drawer at all, so Back navigated the screen behind it), focus/TalkBack
+containment over the content, and velocity-based settling. It also deletes a hand-written state
+machine from the file the white-screen investigation keeps returning to.
+
+**Gestures are on everywhere except the calendar.** Every calendar view — agenda, day, 3-day, week,
+month — is a full-width `HorizontalPager`, and on agenda a right-swipe means "previous day", the same
+motion as opening the drawer. An edge strip was considered and rejected for exactly that reason: it
+would have hijacked the back-a-day swipe whenever a thumb started near the bezel. Bible needs no
+special case — its pager is a 176dp card strip inset 28dp, so swiping the cards pages them and
+swiping anywhere else on that screen opens the menu, which is the wanted behaviour for free.
+
+**The blur follows `drawerState.targetValue`, not the panel's live offset.** `currentOffset` is
+experimental in Material3 and has moved between releases; driving a 220ms `animateFloatAsState` from
+the target compiles against any version and is indistinguishable on a tap. On a slow drag the blur
+runs on its own timer rather than tracking the finger — the one deliberate compromise here. If the
+offset API is confirmed present, switching is a two-line change.
+
+Two fixes rode along, both in the same file: `selectedKey` is now derived from the current back-stack
+entry rather than only being set inside `go()`, so a back swipe no longer leaves the section you left
+highlighted while you sit on Home; and `navExpanded` is persisted in `SettingsStore` instead of
+living in an in-memory `MutableStateFlow` that reset to collapsed on every relaunch.
+
 ## Skip on an overdue workout must name the overdue DAY (v0.349.0)
 
 Two separate "skip"s had collapsed into one word, and neither did what a user tapping it on an

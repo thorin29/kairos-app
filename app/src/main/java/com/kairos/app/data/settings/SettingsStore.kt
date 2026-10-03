@@ -76,6 +76,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_THEME] = v }
     }
 
+    /** Nav rail expanded (labels) or collapsed (icons only), per device. Was
+     *  session-only and reset to collapsed on every relaunch. */
+    val navExpanded: Flow<Boolean> = dataStore.data.map { it[KEY_NAV_EXPANDED] ?: false }
+
+    suspend fun setNavExpanded(on: Boolean) {
+        dataStore.edit { it[KEY_NAV_EXPANDED] = on }
+    }
+
     /** Dark mode, per device; off by default. */
     val darkMode: Flow<Boolean> = dataStore.data.map { it[KEY_DARK] ?: false }
 
@@ -205,6 +213,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
         val KEY_THEME = stringPreferencesKey("theme_scheme")
         val KEY_DARK = booleanPreferencesKey("dark_mode")
+        val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
         val KEY_MILITARY = booleanPreferencesKey("military_time")
         val KEY_TIME_FMT = stringPreferencesKey("time_format")
         val KEY_SEEN_RECUR_NODUE = booleanPreferencesKey("seen_recur_nodue")

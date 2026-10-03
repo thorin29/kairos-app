@@ -23,6 +23,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 /**
  * Manual dependency container, built once in [com.kairos.app.KairosApp]. Chosen
@@ -52,6 +54,8 @@ class AppContainer(context: Context) {
     init {
         // Wire the persisted UI breadcrumb trail (Settings -> Diagnostics).
         com.kairos.app.data.diag.Breadcrumbs.init(settingsStore, appScope)
+        // Seed the rail's expanded state from disk.
+        appScope.launch { navExpanded.value = settingsStore.navExpanded.first() }
     }
 
     /** Tracks connectivity; drives the offline banner and the read-through cache. */
@@ -107,9 +111,15 @@ class AppContainer(context: Context) {
         )
         .build()
 
-    /** Nav rail expanded/collapsed, session-scoped: survives navigation and
-     *  drawer open/close, resets to collapsed when the app is relaunched. */
+    /** Nav rail expanded/collapsed, per device and persisted: the choice now
+     *  survives a relaunch instead of resetting to collapsed. Kept as a hot
+     *  StateFlow so the drawer can read it synchronously while composing. */
     val navExpanded = MutableStateFlow(false)
+
+    fun setNavExpanded(on: Boolean) {
+        navExpanded.value = on
+        appScope.launch { settingsStore.setNavExpanded(on) }
+    }
 
     /** Local database (the durable read cache). Built lazily so app startup
      *  never touches SQLite; only the first screen that reads/writes the cache

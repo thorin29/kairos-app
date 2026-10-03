@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -32,8 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -198,7 +195,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val scope = rememberCoroutineScope()
     val container = rememberContainer()
 
-    var open by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
     val expanded by container.navExpanded.collectAsState()
     val online by container.networkMonitor.online.collectAsState()
@@ -210,6 +206,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val refreshing by com.kairos.app.data.remote.RefreshTracker.active.collectAsState()
     val serverUnavailable by com.kairos.app.data.remote.ServerStatusTracker.unavailable.collectAsState()
     var selectedKey by remember { mutableStateOf("home") }
+    val drawerState = androidx.compose.material3.rememberDrawerState(
+        androidx.compose.material3.DrawerValue.Closed,
+    )
+    val drawerScope = rememberCoroutineScope()
+    fun openDrawer() { drawerScope.launch { drawerState.open() } }
+    fun closeDrawer() { drawerScope.launch { drawerState.close() } }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
     val isAdmin = person.role == "ADMIN"
@@ -228,6 +230,29 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     var homeRefresh by remember { mutableStateOf(0) }
     var wasAwayFromHome by remember { mutableStateOf(false) }
     val homeRouteName = remember { Route.Home::class.qualifiedName }
+    // The rail's highlight is derived from where we actually ARE, not from the
+    // last sidebar tap. Back (gesture or button) pops the stack without going
+    // through go(), which used to leave the section you left still highlighted
+    // while you sat on Home.
+    val sectionRouteName = remember { Route.Section::class.qualifiedName }
+    LaunchedEffect(currentEntry) {
+        when {
+            currentEntry?.destination?.route == homeRouteName -> selectedKey = "home"
+            sectionRouteName != null &&
+                currentEntry?.destination?.route?.startsWith(sectionRouteName) == true ->
+                currentEntry?.arguments?.getString("key")?.let { selectedKey = it }
+        }
+    }
+
+    // Swiping anywhere opens the menu — except on the calendar, where every view
+    // is a horizontal pager and the swipe belongs to day/week paging. There the
+    // logo button opens it, as before.
+    val gesturesEnabled = !(
+        sectionRouteName != null &&
+            currentEntry?.destination?.route?.startsWith(sectionRouteName) == true &&
+            currentEntry?.arguments?.getString("key") == "calendar"
+        )
+
     LaunchedEffect(currentEntry) {
         val isHome = currentEntry?.destination?.route == homeRouteName
         if (isHome) {
@@ -262,8 +287,14 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         if (syncRevision > 0) container.sessionRepository.refreshPerson()
     }
 
+    // The blur needs a 0..1 "how open is it". The stock drawer owns the panel's
+    // real position, but that property is experimental and has moved between
+    // Material3 releases, so this follows the drawer's TARGET on the same 220ms
+    // curve the panel uses. Identical on a tap; on a slow drag the blur runs on
+    // its own timer rather than tracking the finger exactly.
+    val drawerOpen = drawerState.targetValue == androidx.compose.material3.DrawerValue.Open
     val openProgress by animateFloatAsState(
-        targetValue = if (open) 1f else 0f,
+        targetValue = if (drawerOpen) 1f else 0f,
         animationSpec = tween(durationMillis = 220),
         label = "navOpen",
     )
@@ -275,13 +306,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
 
     // Drawer breadcrumbs: so a future white-screen trail shows whether the freeze
     // lines up with opening or closing the menu (its animated scrim layer).
-    LaunchedEffect(open) {
-        com.kairos.app.data.diag.Breadcrumbs.drop(if (open) "drawer=open" else "drawer=closed")
+    LaunchedEffect(drawerOpen) {
+        com.kairos.app.data.diag.Breadcrumbs.drop(if (drawerOpen) "drawer=open" else "drawer=closed")
     }
 
     fun go(route: Route, key: String) {
         selectedKey = key
-        open = false
+        closeDrawer()
         navController.navigate(route) {
             // NOTE: do NOT add saveState/restoreState here. Every sidebar section
             // shares one Route.Section destination (differing only by argument),
@@ -317,14 +348,46 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        // Content — blurred and dimmed while the menu is open. The blur modifier
-        // is attached ONLY while the drawer is open or animating (openProgress >
-        // 0), so the extra graphics layer it needs exists just for that ~220ms
-        // and is released the moment the drawer settles closed. The old code kept
-        // blur() attached permanently, which held that layer for the whole
-        // session even with nothing to blur — the prime suspect for the
-        // intermittent white screen (navigation/data kept working under a blank
-        // window). Same look, without the always-on layer.
+        // The stock drawer owns open/close, the drag, the scrim, Back, and focus
+        // containment. The rail composable itself is unchanged — it is simply the
+        // drawer's panel now instead of a Box we positioned by hand.
+        androidx.compose.material3.ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = gesturesEnabled,
+            scrimColor = Color.Black.copy(alpha = 0.28f),
+            drawerContent = {
+                KairosRail(
+                    modifier = Modifier.fillMaxHeight().width(railWidth),
+                    expanded = expanded,
+                    person = person,
+                    selectedKey = selectedKey,
+                    activeLabel = sectionFor(selectedKey).label,
+                    onSection = { section ->
+                        if (section.key == "home") go(Route.Home, "home")
+                        else go(Route.Section(section.key), section.key)
+                    },
+                    onToggleExpanded = { container.setNavExpanded(!expanded) },
+                    onLogoClick = { closeDrawer() },
+                    onSignOut = { confirmSignOut = true },
+                    onOpenSettings = {
+                        closeDrawer()
+                        navController.navigate(Route.Settings)
+                    },
+                    updateAvailable = updateInfo != null,
+                    approvalsBadge = approvalsCount > 0,
+                    onOpenUpdate = {
+                        closeDrawer()
+                        navController.navigate(Route.SettingsUpdate)
+                    },
+                )
+            },
+        ) {
+        // Content — blurred while the menu is open. The blur modifier is attached
+        // ONLY while the drawer is open or animating (openProgress > 0), so the
+        // extra graphics layer exists for that ~220ms and is released the moment
+        // the drawer settles closed. It used to be attached permanently, which
+        // held the layer for the whole session with nothing to blur — the prime
+        // suspect for the intermittent white screen.
         Box(
             Modifier
                 .fillMaxSize()
@@ -334,7 +397,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 composable<Route.Home> {
                     HomeScreen(
                         person = person,
-                        onOpenDrawer = { open = true },
+                        onOpenDrawer = { openDrawer() },
                         onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
                         onOpenMoney = { go(Route.Section("money"), "money") },
                         onAssignTask = { navController.navigate(Route.AssignTask) },
@@ -348,7 +411,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     val key = entry.toRoute<Route.Section>().key
                     if (key == "workouts") {
                         WorkoutsScreen(
-                            onOpenDrawer = { open = true },
+                            onOpenDrawer = { openDrawer() },
                             onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
                             onOpenRecent = { navController.navigate(Route.RecentWorkouts) },
                             onOpenCalculator = { navController.navigate(Route.WeightCalculator()) },
@@ -358,53 +421,53 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             refreshKey = dataRevision,
                         )
                     } else if (key == "bible") {
-                        BibleScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
+                        BibleScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
                     } else if (key == "chores") {
-                        ChoresScreen(onOpenDrawer = { open = true })
+                        ChoresScreen(onOpenDrawer = { openDrawer() })
                     } else if (key == "calendar") {
                         CalendarScreen(
-                            onOpenDrawer = { open = true },
+                            onOpenDrawer = { openDrawer() },
                             refreshKey = dataRevision,
                             onAddClass = { rid, subj, sm, em, day, loc, sw ->
                                 navController.navigate(Route.AddClass(rid, subj, sm, em, day, loc, sw))
                             },
                         )
                     } else if (key == "money") {
-                        MoneyScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
+                        MoneyScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
                     } else if (key == "reading") {
-                        ReadingScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
+                        ReadingScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
                     } else if (key == "games") {
-                        GamesScreen(onOpenDrawer = { open = true }, refreshKey = dataRevision)
+                        GamesScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
                     } else if (key == "tasks") {
                         TasksScreen(
-                            onOpenDrawer = { open = true },
+                            onOpenDrawer = { openDrawer() },
                             onOpenAssign = { navController.navigate(Route.AssignTask) },
                             onEditTask = { id -> navController.navigate(Route.EditTask(id)) },
                             refreshKey = dataRevision,
                         )
                     } else if (key == "school") {
                         SchoolScreen(
-                            onOpenDrawer = { open = true },
+                            onOpenDrawer = { openDrawer() },
                             onOpenAdd = { navController.navigate(Route.AddSchool) },
                             refreshKey = dataRevision,
                         )
                     } else if (key == "characters") {
                         CharacterScreen(
                             person = person,
-                            onOpenDrawer = { open = true },
+                            onOpenDrawer = { openDrawer() },
                             onOpenGallery = { navController.navigate(Route.Gallery) },
                             onOpenCoop = { navController.navigate(Route.Coop) },
                         )
                     } else if (key == "groceries") {
                         GroceriesScreen(
-                            onOpenDrawer = { open = true },
+                            onOpenDrawer = { openDrawer() },
                             onAddItem = { navController.navigate(Route.AddGrocery) },
                             meId = person.id,
                             canDeleteAny = person.kind == "PARENT" || person.role == "ADMIN",
                             refreshKey = dataRevision,
                         )
                     } else {
-                        PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { open = true })
+                        PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { openDrawer() })
                     }
                 }
                 composable<Route.RecentWorkouts> {
@@ -556,45 +619,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
             }
         }
+        }
 
+        // Subtle darker shade over the status-bar strip while the menu is open,
+        // for icon readability over the blurred content. Sits above the drawer.
         if (openProgress > 0.001f) {
-            // Dim scrim over the content — tap to close.
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = openProgress }
-                    .background(Color.Black.copy(alpha = 0.28f))
-                    .pointerInput(Unit) { detectTapGestures { open = false } },
-            )
-            // The rail: slides in from the left, rounded on the top-right.
-            KairosRail(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(railWidth)
-                    .graphicsLayer { translationX = (openProgress - 1f) * size.width },
-                expanded = expanded,
-                person = person,
-                selectedKey = selectedKey,
-                activeLabel = sectionFor(selectedKey).label,
-                onSection = { section ->
-                    if (section.key == "home") go(Route.Home, "home")
-                    else go(Route.Section(section.key), section.key)
-                },
-                onToggleExpanded = { container.navExpanded.value = !container.navExpanded.value },
-                onLogoClick = { open = false },
-                onSignOut = { confirmSignOut = true },
-                onOpenSettings = {
-                    open = false
-                    navController.navigate(Route.Settings)
-                },
-                updateAvailable = updateInfo != null,
-                approvalsBadge = approvalsCount > 0,
-                onOpenUpdate = {
-                    open = false
-                    navController.navigate(Route.SettingsUpdate)
-                },
-            )
-            // Subtle darker shade over the status-bar strip for icon readability.
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -610,7 +639,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 confirmButton = {
                     TextButton(onClick = {
                         confirmSignOut = false
-                        open = false
+                        closeDrawer()
                         com.kairos.app.ui.calendar.CalendarSnapshot.clear()
                         com.kairos.app.ui.common.ScreenSnapshots.clearAll()
                         scope.launch {

@@ -1,4 +1,9 @@
 # Changelog
+## 0.350.0
+- Swipe right from anywhere to open the menu, instead of reaching for the logo. The calendar keeps its swipes for changing day/week, so there the logo still opens it.
+- Back now closes the menu instead of navigating behind it, and the menu traps focus properly for screen readers.
+- The sidebar highlight follows where you actually are: coming back to Home with a back swipe no longer leaves the previous section lit up.
+- Expanded/collapsed menu is remembered between launches.
 ## 0.349.0
 - Skipping an overdue workout now actually clears it. The Skip button on an overdue card used to only grey out the movements on screen; the day stayed pending, so the late count and the card came back on the next load. It now rests that day on the server.
 - Workouts screen shows an overdue count with a "Skip overdue" action that clears every late day at once. "Rest / skip" there still applies to today only, which is what it was always doing.
