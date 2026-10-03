@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -202,6 +203,39 @@ fun WorkoutsScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
                             )
+                        }
+                    }
+
+                    // Overdue days are a different thing from today, and "Rest /
+                    // skip" below only ever clears TODAY. Without this, skipping
+                    // from here looked like it did nothing: the late count is for
+                    // an earlier date and stayed pending.
+                    val overdueDays = ui.blocks.filter { it.isOverdue }.mapNotNull { it.date }.distinct()
+                    if (overdueDays.isNotEmpty()) {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        if (overdueDays.size == 1) "1 overdue workout" else "${overdueDays.size} overdue workouts",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                    Text(
+                                        "Log them, or skip to clear them for good.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                ActionCard(
+                                    KairosIcons.Moon, "Skip overdue", Modifier.width(110.dp),
+                                    enabled = !ui.saving,
+                                ) { vm.restOverdue() }
+                            }
                         }
                     }
 

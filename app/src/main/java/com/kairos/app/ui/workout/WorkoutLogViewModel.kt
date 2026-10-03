@@ -145,6 +145,23 @@ class WorkoutLogViewModel(
         }
     }
 
+    /** Clear every still-pending overdue day in one go: the user is declaring
+     *  they are not going back to do them. Today is untouched. */
+    fun restOverdue() {
+        val days = _ui.value.blocks.filter { it.isOverdue }.mapNotNull { it.date }.distinct()
+        if (days.isEmpty()) return
+        _ui.update { it.copy(saving = true, actionError = null) }
+        viewModelScope.launch {
+            try {
+                days.forEach { session.workoutRest(it) }
+                _ui.update { it.copy(saving = false, savedTick = it.savedTick + 1) }
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(saving = false, actionError = e.error.message) }
+            }
+        }
+    }
+
     /** Switch the day being logged (from the date picker) and reload its plan. */
     fun setDate(iso: String) {
         if (iso == date) return
@@ -271,8 +288,14 @@ class WorkoutLogViewModel(
         }
     }
 
-    fun restDay() {
-        val d = date ?: return
+    /**
+     * Mark a day rest/skip. [day] names the day to clear; null means the screen's
+     * own day. An overdue workout lives on an EARLIER date, so resting it has to
+     * send that date — resting "today" left the overdue task PENDING, which is
+     * why the late count and the overdue entry survived a skip.
+     */
+    fun restDay(day: String? = null) {
+        val d = day ?: date ?: return
         _ui.update { it.copy(saving = true, actionError = null) }
         viewModelScope.launch {
             try {

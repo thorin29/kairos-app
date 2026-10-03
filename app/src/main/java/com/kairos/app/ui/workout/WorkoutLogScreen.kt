@@ -444,13 +444,19 @@ private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
                     MovementRow(block.key, m, vm, compact = true, showName = block.inputs.size > 1)
                 }
             }
+            // On an OVERDUE card, Skip means "I'm not doing that day" — it has to
+            // clear the day on the server (rest), not just grey the movements
+            // locally the way the per-movement skip does on today's card. The
+            // local toggle left the task PENDING, so the late count and the card
+            // itself came straight back on the next load.
             WorkoutActionTile(
                 icon = KairosIcons.Moon,
-                label = if (skipped) "skipped" else "Skip",
+                label = "Skip",
                 modifier = Modifier.width(68.dp),
-                highlighted = !skipped,
+                highlighted = true,
+                enabled = !block.saving,
                 compact = true,
-            ) { vm.setBlockSkipped(block.key, !skipped) }
+            ) { block.date?.let { vm.restDay(it) } }
             WorkoutActionTile(
                 icon = KairosIcons.Dumbbell,
                 label = if (block.logged) "edit" else "Log",

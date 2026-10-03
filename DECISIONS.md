@@ -3,6 +3,30 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Skip on an overdue workout must name the overdue DAY (v0.349.0)
+
+Two separate "skip"s had collapsed into one word, and neither did what a user tapping it on an
+overdue card expects:
+
+- The **Skip tile on a block card** called `setBlockSkipped`, a local flag meaning "I'm doing the rest
+  of the workout but not this movement". It greys the inputs and is only persisted if you then press
+  Log. On an overdue card that is nearly always wrong: nothing was sent, the EXERCISE task stayed
+  PENDING, and the late count plus the card itself returned on the next load.
+- **`restDay()` on the Workouts screen** sent `date`, which `applyPlan` sets to the server-resolved
+  **today**. An overdue workout lives on an earlier date, so resting it created a rest marker for
+  today and skipped today's task, leaving the overdue one untouched. From the user's side the button
+  did nothing at all.
+
+`restDay(day: String? = null)` now takes the day to clear, the overdue card's Skip passes
+`block.date`, and `restOverdue()` clears every pending overdue day at once behind a "Skip overdue"
+card on the Workouts screen (which also now surfaces the count — it previously showed no sign that
+anything was late). Today's per-movement skip is unchanged; that one is genuinely about part of a
+workout.
+
+The general shape: any action that can apply to more than one day has to carry the day explicitly.
+`WorkoutLogViewModel` holds a single `date`, so "the current day" is ambiguous the moment overdue
+blocks are in the same list.
+
 ## Freeze diagnostics: separate "UI thread stuck" from "window drawing blank" (v0.348.0)
 
 The Sept 2026 white screen was diagnosed by what the breadcrumbs showed *continuing* underneath the

@@ -1,4 +1,7 @@
 # Changelog
+## 0.349.0
+- Skipping an overdue workout now actually clears it. The Skip button on an overdue card used to only grey out the movements on screen; the day stayed pending, so the late count and the card came back on the next load. It now rests that day on the server.
+- Workouts screen shows an overdue count with a "Skip overdue" action that clears every late day at once. "Rest / skip" there still applies to today only, which is what it was always doing.
 ## 0.348.0
 - Diagnostics: if the screen ever freezes again, the app now records whether the UI thread was actually stuck — and if it was, what it was stuck on — into Settings → Diagnostics. A crash on any thread is recorded there too. Nothing else changes; this only adds lines to the existing trail.
 ## 0.347.0
