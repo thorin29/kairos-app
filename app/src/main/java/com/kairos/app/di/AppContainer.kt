@@ -54,8 +54,6 @@ class AppContainer(context: Context) {
     init {
         // Wire the persisted UI breadcrumb trail (Settings -> Diagnostics).
         com.kairos.app.data.diag.Breadcrumbs.init(settingsStore, appScope)
-        // Seed the rail's expanded state from disk.
-        appScope.launch { navExpanded.value = settingsStore.navExpanded.first() }
     }
 
     /** Tracks connectivity; drives the offline banner and the read-through cache. */
@@ -115,6 +113,15 @@ class AppContainer(context: Context) {
      *  survives a relaunch instead of resetting to collapsed. Kept as a hot
      *  StateFlow so the drawer can read it synchronously while composing. */
     val navExpanded = MutableStateFlow(false)
+
+    // Seeded from disk HERE, not in the init block above: Kotlin runs property
+    // initialisers and init blocks in declaration order, so a coroutine launched
+    // before `navExpanded` is assigned can resume while the field is still null
+    // and crash on first touch (NPE on MutableStateFlow.setValue, 0.350.0). An
+    // init block placed after the property it touches cannot hit that race.
+    init {
+        appScope.launch { navExpanded.value = settingsStore.navExpanded.first() }
+    }
 
     fun setNavExpanded(on: Boolean) {
         navExpanded.value = on

@@ -33,6 +33,14 @@ entry rather than only being set inside `go()`, so a back swipe no longer leaves
 highlighted while you sit on Home; and `navExpanded` is persisted in `SettingsStore` instead of
 living in an in-memory `MutableStateFlow` that reset to collapsed on every relaunch.
 
+**Crashed on launch (0.350.0, fixed 0.350.1).** The seeding coroutine was launched from the `init`
+block near the top of `AppContainer`, while `navExpanded` is declared ~60 lines below it. Kotlin runs
+property initialisers and `init` blocks in declaration order, so the coroutine resumed from a short
+DataStore read while the field was still null: NPE on `MutableStateFlow.setValue`, every launch.
+A coroutine started in a constructor may only touch properties declared ABOVE it — put the `init`
+block immediately after the property it seeds. `CrashTrail.install()` also moved ahead of
+`AppContainer(this)`, since a crash while building the container previously had no handler at all.
+
 ## Skip on an overdue workout must name the overdue DAY (v0.349.0)
 
 Two separate "skip"s had collapsed into one word, and neither did what a user tapping it on an

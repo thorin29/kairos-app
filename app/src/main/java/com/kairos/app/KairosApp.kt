@@ -9,11 +9,12 @@ class KairosApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(this)
-        // Diagnostics for the freeze/crash class the breadcrumbs alone can't see.
-        // Both are additive: they only ever append a line to the existing trail.
-        // AppContainer's init wires Breadcrumbs, so these come after it.
+        // Installed BEFORE the container: a crash while building it (as in
+        // 0.350.0) happens with no handler in place otherwise, which is exactly
+        // when a trace is most useful. Breadcrumbs may not be wired yet at that
+        // point, so the write is best-effort.
         com.kairos.app.data.diag.CrashTrail.install()
+        container = AppContainer(this)
         com.kairos.app.data.diag.StallWatchdog.start()
     }
 }

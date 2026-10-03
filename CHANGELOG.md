@@ -1,4 +1,6 @@
 # Changelog
+## 0.350.1
+- Fixes a crash on launch introduced in 0.350.0 by the remembered menu width.
 ## 0.350.0
 - Swipe right from anywhere to open the menu, instead of reaching for the logo. The calendar keeps its swipes for changing day/week, so there the logo still opens it.
 - Back now closes the menu instead of navigating behind it, and the menu traps focus properly for screen readers.
