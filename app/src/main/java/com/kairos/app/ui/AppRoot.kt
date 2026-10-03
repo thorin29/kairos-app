@@ -1,5 +1,8 @@
 package com.kairos.app.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -163,6 +166,9 @@ private fun AuthSurface(content: @Composable () -> Unit) {
         content()
     }
 }
+
+/** Cross-fade length for screen changes; matches the drawer's 220ms feel. */
+private const val NAV_FADE_MS = 180
 
 private val COLLAPSED_WIDTH = 76.dp
 private val EXPANDED_WIDTH = 224.dp
@@ -393,7 +399,20 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 .fillMaxSize()
                 .then(if (openProgress > 0f) Modifier.blur(radius = (openProgress * 6f).dp) else Modifier),
         ) {
-            NavHost(navController = navController, startDestination = Route.Home) {
+            // Navigation 2.10's default pop transition scales the outgoing screen
+            // down toward its centre as the back gesture progresses, which on a
+            // full-screen app reads as the whole app imploding — the same shape as
+            // the system's leaving-the-app animation. A plain cross-fade still
+            // follows the finger (predictive back drives whatever transitions are
+            // set) without implying you are exiting.
+            NavHost(
+                navController = navController,
+                startDestination = Route.Home,
+                enterTransition = { fadeIn(animationSpec = tween(NAV_FADE_MS)) },
+                exitTransition = { fadeOut(animationSpec = tween(NAV_FADE_MS)) },
+                popEnterTransition = { fadeIn(animationSpec = tween(NAV_FADE_MS)) },
+                popExitTransition = { fadeOut(animationSpec = tween(NAV_FADE_MS)) },
+            ) {
                 composable<Route.Home> {
                     HomeScreen(
                         person = person,
@@ -620,6 +639,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             }
         }
         }
+
+        // Back closes the menu instead of navigating the screen behind it. This
+        // sits AFTER the drawer on purpose: back handlers are dispatched
+        // last-registered-first, and NavHost registers its own when it composes,
+        // so a handler declared earlier would keep losing to it.
+        BackHandler(enabled = drawerState.isOpen) { closeDrawer() }
 
         // Subtle darker shade over the status-bar strip while the menu is open,
         // for icon readability over the blurred content. Sits above the drawer.

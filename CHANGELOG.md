@@ -1,4 +1,7 @@
 # Changelog
+## 0.351.0
+- Back now closes the side menu instead of navigating the screen behind it.
+- Screens cross-fade when you go back, instead of shrinking into the middle and vanishing. The fade still follows your finger during a back swipe.
 ## 0.350.1
 - Fixes a crash on launch introduced in 0.350.0 by the remembered menu width.
 ## 0.350.0

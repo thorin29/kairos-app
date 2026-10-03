@@ -3,6 +3,26 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Back: own the handler, and set the NavHost transitions (v0.351.0)
+
+**The drawer's back.** `ModalNavigationDrawer` did not close on Back in this Material3 version, so a
+back gesture with the menu open navigated the screen underneath it. The fix is our own
+`BackHandler(enabled = drawerState.isOpen)`, and **where it is composed matters**: back handlers are
+dispatched last-registered-first, and `NavHost` registers its own as it composes, so a handler
+declared before the drawer block keeps losing. It sits after the drawer in the Box.
+
+**The shrink-and-vanish.** `NavHost` was called with no transition arguments, so it used Navigation
+2.10's defaults; with predictive back active (targetSdk 37 — on by default, no manifest flag) the
+default pop scales the outgoing screen toward its centre as the gesture progresses. On a full-screen
+app that reads as the whole app imploding, the same shape as the system's leaving-the-app animation.
+It arrived with the toolchain upgrade, not with any change of ours, which is why it seemed to appear
+from nowhere. All four transitions are now a 180ms cross-fade; predictive back drives whatever
+transitions are set, so it still follows the finger.
+
+Worth remembering generally: a framework upgrade changes defaults you never set. `NavHost`'s
+transitions had always been defaulted, so the upgrade silently redefined how every screen change in
+the app looks.
+
 ## The drawer is the stock ModalNavigationDrawer now (v0.350.0)
 
 The hand-rolled drawer — a `var open` boolean, an `animateFloatAsState`, a scrim drawn by hand and
