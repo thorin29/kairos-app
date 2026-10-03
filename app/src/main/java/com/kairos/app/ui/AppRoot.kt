@@ -412,6 +412,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 exitTransition = { fadeOut(animationSpec = tween(NAV_FADE_MS)) },
                 popEnterTransition = { fadeIn(animationSpec = tween(NAV_FADE_MS)) },
                 popExitTransition = { fadeOut(animationSpec = tween(NAV_FADE_MS)) },
+                // A back GESTURE takes a different branch inside NavHost: it calls
+                // predictivePopEnter/ExitTransition, not popEnter/popExit. Setting
+                // only the latter (0.351.0) left every gesture on the Material
+                // default, which scales the outgoing screen toward its centre.
+                // These two are the ones that run on a swipe.
+                predictivePopEnterTransition = { fadeIn(animationSpec = tween(NAV_FADE_MS)) },
+                predictivePopExitTransition = { fadeOut(animationSpec = tween(NAV_FADE_MS)) },
             ) {
                 composable<Route.Home> {
                     HomeScreen(

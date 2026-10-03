@@ -16,8 +16,20 @@ declared before the drawer block keeps losing. It sits after the drawer in the B
 default pop scales the outgoing screen toward its centre as the gesture progresses. On a full-screen
 app that reads as the whole app imploding, the same shape as the system's leaving-the-app animation.
 It arrived with the toolchain upgrade, not with any change of ours, which is why it seemed to appear
-from nowhere. All four transitions are now a 180ms cross-fade; predictive back drives whatever
-transitions are set, so it still follows the finger.
+from nowhere. All four transitions were set to a 180ms cross-fade — and that
+fixed nothing on a gesture-navigation device, because **`NavHost` uses different parameters for a
+back gesture than for a back button**:
+
+```kotlin
+if (inPredictiveBack) { predictivePopExitTransition.invoke(this, swipeEdge) }
+else if (isPop) { popExitTransition.invoke(this) }
+```
+
+`predictivePopEnterTransition` / `predictivePopExitTransition` are separate arguments with their own
+Material defaults (the scale-down). Setting `popEnter`/`popExit` alone covers the button and forward
+navigation only. All six are set from 0.351.1. The lesson that cost a release: when a transition
+override appears to do nothing, read the host's source for a second code path before assuming the
+change did not deploy — the repo had exactly what was shipped.
 
 Worth remembering generally: a framework upgrade changes defaults you never set. `NavHost`'s
 transitions had always been defaulted, so the upgrade silently redefined how every screen change in

@@ -1,4 +1,6 @@
 # Changelog
+## 0.351.1
+- The cross-fade from 0.351.0 now actually applies to back *gestures* — swiping back no longer shrinks the screen into the middle. (0.351.0 only changed the button-back path.)
 ## 0.351.0
 - Back now closes the side menu instead of navigating the screen behind it.
 - Screens cross-fade when you go back, instead of shrinking into the middle and vanishing. The fade still follows your finger during a back swipe.
