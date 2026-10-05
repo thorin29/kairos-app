@@ -131,7 +131,7 @@ fun AddWorkoutSheet(
                 }
                 kind == "hiit" -> {
                     if (options.hiitWorkouts.isEmpty()) {
-                        Note("No named workouts yet. Build one on the web, or log one from “Log a different workout”.")
+                        Note("No named workouts yet. Build one on the web, or log one from “Log something else”.")
                     } else {
                         Dropdown(
                             label = "Workout",

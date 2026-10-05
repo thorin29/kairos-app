@@ -3,6 +3,32 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Workout progress leads with the record, not the line (v0.352.0)
+
+The chart answered "how has this moved over months". The question people actually ask is "what am I
+lifting now, and is it going up" — so the movement's **record** is now the headline above the line:
+heaviest set, the reps it was done for, and the date. Underneath, the rep-max chips show the best
+weight actually lifted at each rep count.
+
+Three rules this follows, all the owner's calls:
+
+- **The record is the weight.** Reps are context printed beside it, never a number that redefines the
+  record.
+- **No estimated 1RM anywhere.** Its only sanctioned use is a "you could try this" hint when choosing
+  a load — not stored, not charted, and not built yet.
+- **Only rep counts that have been logged appear.** No interpolation and no grid of blanks; the chips
+  fill in as reps get recorded.
+
+Logging takes an optional two-digit rep box beside the weight, for WEIGHT movements only, carried as
+`PlannedEntryDto.reps`. Blank behaves exactly as before, which matters because every existing logged
+set has no reps and must keep working.
+
+One thing that turned out not to need building: "add an extra movement at log time" already exists on
+both clients as `CustomWorkoutForm` / "Log something else" — it creates its own named session for the
+day and never touches the planned one. It was the web's label ("Log a different workout") that made
+it sound like a replacement. Swapping a planned movement for a variation, day-only, is still not
+built.
+
 ## Back: own the handler, and set the NavHost transitions (v0.351.0)
 
 **The drawer's back.** `ModalNavigationDrawer` did not close on Back in this Material3 version, so a

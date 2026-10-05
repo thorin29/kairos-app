@@ -27,6 +27,9 @@ data class MovementInput(
     val metric: String,
     val unit: String,
     val value: String,
+    /** Reps for the top set, WEIGHT movements only. Optional: blank logs exactly
+     *  as it always did, and the weight remains the record either way. */
+    val reps: String = "",
     val skipped: Boolean = false,
 )
 
@@ -190,6 +193,22 @@ class WorkoutLogViewModel(
         return plan.copy(loggable = loggable)
     }
 
+    /** Reps for a movement's top set. Digits only, two of them — nobody logs a
+     *  hundred-rep set, and it keeps the box small enough to sit beside the
+     *  weight. */
+    fun onReps(key: String, exId: String, v: String) {
+        val clean = v.filter { it.isDigit() }.take(2)
+        _ui.update { s ->
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.key != key) b
+                    else b.copy(inputs = b.inputs.map { if (it.poolExerciseId == exId) it.copy(reps = clean) else it })
+                },
+                actionError = null,
+            )
+        }
+    }
+
     fun onValue(key: String, exId: String, v: String) {
         _ui.update { s ->
             s.copy(
@@ -240,7 +259,14 @@ class WorkoutLogViewModel(
             try {
                 val entries = block.inputs.filter { !it.skipped }.mapNotNull { m ->
                     m.value.trim().toDoubleOrNull()?.let { v ->
-                        PlannedEntryDto(m.poolExerciseId, m.metric, v, m.unit)
+                        PlannedEntryDto(
+                            m.poolExerciseId,
+                            m.metric,
+                            v,
+                            m.unit,
+                            // Reps ride along with a weight; everything else ignores them.
+                            reps = if (m.metric == "WEIGHT") m.reps.trim().toIntOrNull()?.takeIf { it > 0 } else null,
+                        )
                     }
                 }
                 val ack = session.logWorkout(d, block.plannedWorkoutId, entries, replace = replace, detectConflict = true)

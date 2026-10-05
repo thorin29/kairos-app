@@ -1,4 +1,7 @@
 # Changelog
+## 0.352.0
+- Logging a lift takes an optional rep count beside the weight. The record is still the weight — reps ride along so 185 × 5 and 185 × 12 stop looking identical. Leave it blank and nothing changes. Needs web 0.537.
+- The progress chart now leads with the record for the movement you are looking at — heaviest set, the reps it was done for, and when — and shows the best weight you have actually lifted at each rep count underneath. Real logged sets only, no estimated maxes.
 ## 0.351.1
 - The cross-fade from 0.351.0 now actually applies to back *gestures* — swiping back no longer shrinks the screen into the middle. (0.351.0 only changed the button-back path.)
 ## 0.351.0

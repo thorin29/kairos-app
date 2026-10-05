@@ -531,6 +531,26 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Reps for the top set. Optional, and only for weights: without it
+                // 185 x 5 and 185 x 12 log identically and the months of rep
+                // progress between weight jumps never show up anywhere.
+                if (maxHint) {
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "\u00d7",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    OutlinedTextField(
+                        value = m.reps,
+                        onValueChange = { vm.onReps(planId, m.poolExerciseId, it) },
+                        placeholder = { Text("reps") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.width(92.dp),
+                    )
+                }
             }
         } else {
             Text(

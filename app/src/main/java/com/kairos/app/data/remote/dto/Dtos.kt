@@ -348,6 +348,8 @@ data class PlannedEntryDto(
     val metric: String,
     val value: Double,
     val unit: String,
+    /** Reps for a WEIGHT entry. Optional — the weight is still the record. */
+    val reps: Int? = null,
 )
 
 // --- Workout history + progress ---
@@ -365,12 +367,34 @@ data class ProgressSeriesDto(
     val name: String,
     val unit: String,
     val points: List<GraphPointDto> = emptyList(),
+    /** Heaviest set ever logged for this movement, with the reps it was done
+     *  for. The record is the weight; the reps are context. */
+    val best: BestSetDto? = null,
+    /** Best weight actually lifted at each rep count. Real sets only — no
+     *  estimated maxes, and a rep count with no logged set simply isn't here. */
+    val repMaxes: List<RepMaxDto> = emptyList(),
+)
+
+@Serializable
+data class BestSetDto(
+    val date: String = "",
+    val value: Double = 0.0,
+    val reps: Int? = null,
+)
+
+@Serializable
+data class RepMaxDto(
+    val reps: Int = 0,
+    val value: Double = 0.0,
+    val date: String = "",
 )
 
 @Serializable
 data class GraphPointDto(
     val date: String,
     val value: Double,
+    /** Reps for that day's top set, when they were logged. */
+    val reps: Int? = null,
 )
 
 

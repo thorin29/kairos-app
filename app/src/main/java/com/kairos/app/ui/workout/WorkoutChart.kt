@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -53,6 +55,7 @@ private val LINE = Color(0xFF0F766E)
  * chart opens a list of your tracked movements to switch. Stepped y-scale
  * (nearest 10 lb / 5 kg). Tap a point to see its date + weight.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
     if (series.isEmpty()) return
@@ -88,6 +91,38 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
     var tappedOffset by remember(selectedId) { mutableStateOf(Offset.Zero) }
 
     Column(Modifier.fillMaxWidth()) {
+        // The record first, because it is the question people actually ask: what
+        // am I lifting now. The line below answers "over time", which matters
+        // less day to day. Real logged sets only — never an estimated max.
+        s.best?.let { b ->
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    fmt(b.value) + " " + s.unit,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                b.reps?.let { r ->
+                    Text(
+                        "\u00d7 $r",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 2.dp),
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "best \u00b7 ${dateLabel(epochDay(b.date) ?: 0L)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+        }
+
         Row(Modifier.fillMaxWidth().height(160.dp)) {
             Column(
                 Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
@@ -179,6 +214,29 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 40.dp, top = 4.dp),
             )
+        }
+
+        // Best weight actually lifted at each rep count. Only rep counts that
+        // have been logged appear, so this fills in as reps get recorded rather
+        // than showing a grid of blanks.
+        if (s.repMaxes.isNotEmpty()) {
+            FlowRow(
+                Modifier.fillMaxWidth().padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                s.repMaxes.forEach { r ->
+                    Text(
+                        "${r.reps}r \u00b7 ${fmt(r.value)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
         }
 
         // Movement selector — tap the name to switch (tracked movements only).
