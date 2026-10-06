@@ -129,7 +129,14 @@ class WorkoutLogViewModel(
         val src: List<WorkoutBlockDto> = when {
             plan.workouts.isNotEmpty() -> plan.workouts
             plan.plannedWorkoutId != null -> listOf(
-                WorkoutBlockDto(plan.plannedWorkoutId, plan.name ?: "Workout", plan.exercises),
+                // Named arguments on purpose: this is the legacy single-plan
+                // payload, and a new field in the middle of the DTO silently
+                // reassigns positional ones.
+                WorkoutBlockDto(
+                    plannedWorkoutId = plan.plannedWorkoutId,
+                    name = plan.name ?: "Workout",
+                    exercises = plan.exercises,
+                ),
             )
             else -> emptyList()
         }

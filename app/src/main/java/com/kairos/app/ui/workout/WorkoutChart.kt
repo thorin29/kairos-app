@@ -142,6 +142,13 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (stats.sessions > 0) {
+                    Text(
+                        if (stats.sessions == 1) "1 session" else "${stats.sessions} sessions",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             // The last handful of sessions, newest last: short-term progress,
@@ -334,6 +341,7 @@ private fun fmt(v: Double): String =
 private data class LiftStats(
     val delta: Double?,
     val sincePR: String,
+    val sessions: Int,
     val recent: List<GraphPointDto>,
 )
 
@@ -358,5 +366,7 @@ private fun liftStats(s: ProgressSeriesDto): LiftStats {
         }
     } ?: "no best yet"
 
-    return LiftStats(delta, sincePR, recent)
+    // Named arguments: a field added to LiftStats must not silently reassign
+    // these (that exact mistake broke two builds).
+    return LiftStats(delta = delta, sincePR = sincePR, sessions = pts.size, recent = recent)
 }

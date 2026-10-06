@@ -3,6 +3,26 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A field added mid-declaration breaks positional call sites (v0.354.1)
+
+0.354.0 failed `compileReleaseKotlin`: `muscleGroup` was inserted into `WorkoutBlockDto`
+before `exercises`, and the legacy single-plan path still built it positionally, so a
+`List<PlannedMovementDto>` landed on a `String?`. The web release broke the same day for
+the same reason in TypeScript (a prop added to a type but not to the destructuring). One
+mistake, two languages, two burnt CI runs.
+
+Kotlin **cannot** be compiled in the sandbox — confirmed, not assumed: the Gradle wrapper
+downloads from `services.gradle.org`, which the proxy refuses with 403. So the app has no
+type checker and needs a static substitute. `scripts/check-positional-args.py` is it: it
+finds every positional construction of a data class with three or more fields, which is
+exactly the shape that silently breaks when a field moves. Run it over `app/src/main/java`
+after changing any data class and verify each hit by hand against the declaration's field
+order and types.
+
+Two rules that follow: **use named arguments** when constructing anything that may grow a
+field, and when adding a field to a data class, grep for every construction of it before
+packaging. A balanced-brace check proves nothing about argument order.
+
 ## Same-muscle plans share a card; a swap survives the reload (v0.354.0)
 
 Three related changes, all so the two clients say the same thing:

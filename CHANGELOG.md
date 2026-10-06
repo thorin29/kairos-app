@@ -1,4 +1,11 @@
 # Changelog
+## 0.354.1
+
+- Fixed the build: the legacy single-plan payload still constructed `WorkoutBlockDto`
+  positionally, so the new `muscleGroup` field swallowed the exercise list. All call
+  sites for changed data classes now use named arguments.
+- The lift view shows the session count, matching the web.
+
 ## 0.354.0
 - Swap is a button now, not a word you had to know was tappable.
 - Two workouts for the same muscle group share one card — "Chest" once at the top, each workout with its own fields and buttons underneath.
