@@ -3,6 +3,18 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A row that fits is not a row that will keep fitting (v0.356.0)
+
+The overdue card put the movement fields and both action tiles on one row. That worked while a
+movement was one field plus a unit. Adding the reps field made it weight box + unit + "x" + reps
+box + two 68dp tiles across a phone, and the weight box collapsed until its "today's max"
+placeholder wrapped onto three letters per line. The fix is to stop competing for one row:
+fields at full width, Skip and Log underneath, which is what the normal card already did.
+
+The general version: when a horizontal row holds both inputs and buttons at fixed widths, adding
+any control later takes its space from the one flexible element. Prefer stacking over squeezing,
+and check the narrowest supported width rather than the one on screen.
+
 ## "Sorted to the top" is not "grouped" (v0.355.0)
 
 The swap picker sorted the pool with the current movement's muscle group first and everything

@@ -1,4 +1,12 @@
 # Changelog
+## 0.356.0
+
+- Overdue cards: the entry fields get the full width and the Skip and Log buttons sit
+  underneath. The reps field had squeezed the weight box until "today's max" wrapped
+  onto three lines.
+- Each movement is named once, with its Swap button on the same line, matching the web.
+- A muscle group is named once per card instead of repeating on every workout under it.
+
 ## 0.355.0
 
 - The swap list is grouped by muscle group with a heading for each, instead of one

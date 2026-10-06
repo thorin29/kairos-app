@@ -212,14 +212,15 @@ fun WorkoutLogScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                         )
-                                        group.blocks.forEachIndexed { i, block ->
-                                            if (i > 0) HorizontalDivider()
-                                            BlockBody(
-                                                block,
-                                                vm,
-                                                openCalc,
-                                                hideName = block.name.equals(group.label, ignoreCase = true),
-                                            )
+                                        group.blocks.forEach { block ->
+                                            // No divider here: BlockBody draws its
+                                            // own above the fields, and two rules
+                                            // together read as a double line.
+                                            // hideName is always on — the group is
+                                            // named at the top and each movement
+                                            // names itself, so the plan name would
+                                            // be a third copy ("Chest / Chest").
+                                            BlockBody(block, vm, openCalc, hideName = true)
                                         }
                                     }
                                 }
@@ -447,13 +448,11 @@ private fun BlockBody(
                 }
             }
         }
-            Text(
-                block.inputs.joinToString(" · ") { it.name },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // No summary list of movement names here: each movement names
+            // itself directly above its own entry field, and printing them
+            // again under the muscle group said everything twice.
             HorizontalDivider()
-            block.inputs.forEach { m -> MovementRow(block.key, m, vm, showName = block.inputs.size > 1) }
+            block.inputs.forEach { m -> MovementRow(block.key, m, vm) }
 
             val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
             // After a log, flash "logged" briefly, then settle on "edit weight".
@@ -517,45 +516,40 @@ private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
                 Icon(KairosIcons.Check, contentDescription = "Logged", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             }
         }
-        Text(
-            block.inputs.joinToString(" \u00b7 ") { it.name },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                block.inputs.forEach { m ->
-                    MovementRow(block.key, m, vm, compact = true, showName = block.inputs.size > 1)
-                }
+        HorizontalDivider()
+        // Fields at full width, buttons underneath. They used to share one row
+        // with the two action tiles, which was fine until the reps field
+        // arrived: three controls plus two tiles across a phone squeezed the
+        // weight box until "today's max" wrapped onto three lines.
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            block.inputs.forEach { m ->
+                MovementRow(block.key, m, vm, compact = true)
             }
             // On an OVERDUE card, Skip means "I'm not doing that day" — it has to
             // clear the day on the server (rest), not just grey the movements
             // locally the way the per-movement skip does on today's card. The
             // local toggle left the task PENDING, so the late count and the card
             // itself came straight back on the next load.
-            WorkoutActionTile(
-                icon = KairosIcons.Moon,
-                label = "Skip",
-                modifier = Modifier.width(68.dp),
-                highlighted = true,
-                enabled = !block.saving,
-                compact = true,
-            ) { block.date?.let { vm.restDay(it) } }
-            WorkoutActionTile(
-                icon = KairosIcons.Dumbbell,
-                label = if (block.logged) "edit" else "Log",
-                modifier = Modifier.width(68.dp),
-                highlighted = !block.logged,
-                enabled = !block.saving,
-                loading = block.saving,
-                filled = true,
-                compact = true,
-            ) { vm.saveBlock(block.key) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WorkoutActionTile(
+                    icon = KairosIcons.Moon,
+                    label = "Skip",
+                    modifier = Modifier.weight(1f),
+                    highlighted = true,
+                    enabled = !block.saving,
+                    compact = true,
+                ) { block.date?.let { vm.restDay(it) } }
+                WorkoutActionTile(
+                    icon = KairosIcons.Dumbbell,
+                    label = if (block.logged) "edit" else "Log",
+                    modifier = Modifier.weight(1f),
+                    highlighted = !block.logged,
+                    enabled = !block.saving,
+                    loading = block.saving,
+                    filled = true,
+                    compact = true,
+                ) { vm.saveBlock(block.key) }
+            }
         }
     }
 }
@@ -592,35 +586,29 @@ private fun utcMillisToIso(millis: Long): String =
         .format(DateTimeFormatter.ISO_DATE)
 
 @Composable
-private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false, showName: Boolean = true) {
+private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false) {
     val maxHint = m.metric == "WEIGHT"
     var swapping by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // A swapped row always names itself, even in a one-movement block that
-        // normally hides the name — otherwise you cannot see what you swapped to.
-        if (showName || m.swappedFromName != null) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        m.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                        textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
-                    )
-                }
-            }
-        }
-        if (!m.skipped) {
+        // The movement always names itself, with its swap control on the same
+        // line — the muscle group heads the card and no longer repeats these
+        // names, so this row is the only place the movement is named.
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                m.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
+                modifier = Modifier.weight(1f),
+            )
             // Swap this movement for a variation TODAY only — front squat for back
             // squat. The weekly plan is untouched; next week comes back as planned.
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (!m.skipped) {
                 if (m.swappedFromName != null) {
-                    Text(
-                        "instead of ${m.swappedFromName}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     Text(
                         "Undo",
                         style = MaterialTheme.typography.labelMedium,
@@ -660,6 +648,15 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                         )
                     }
                 }
+            }
+        }
+        if (!m.skipped) {
+            if (m.swappedFromName != null) {
+                Text(
+                    "instead of ${m.swappedFromName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
