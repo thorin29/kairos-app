@@ -44,6 +44,8 @@ data class MovementInput(
 data class WorkoutBlock(
     val plannedWorkoutId: String,
     val name: String,
+    /** Plans sharing this are drawn on one card (two chest workouts together). */
+    val muscleGroup: String? = null,
     val inputs: List<MovementInput>,
     val saving: Boolean = false,
     val logged: Boolean = false,
@@ -135,13 +137,22 @@ class WorkoutLogViewModel(
             WorkoutBlock(
                 plannedWorkoutId = b.plannedWorkoutId,
                 name = b.name,
+                muscleGroup = b.muscleGroup,
                 inputs = b.exercises.map { e ->
+                    // A slot already logged with a swapped movement comes back as
+                    // that movement, still showing what it replaced — so a reload
+                    // after logging matches what was actually done.
+                    val swapped = e.loggedAs?.takeIf {
+                        it.poolExerciseId.isNotBlank() && it.poolExerciseId != e.poolExerciseId
+                    }
                     MovementInput(
-                        poolExerciseId = e.poolExerciseId,
-                        name = e.name,
+                        poolExerciseId = swapped?.poolExerciseId ?: e.poolExerciseId,
+                        name = swapped?.name?.takeIf { it.isNotBlank() } ?: e.name,
                         metric = e.metric,
                         unit = e.unit,
                         value = e.value?.let { fmt(it) } ?: "",
+                        plannedExerciseId = if (swapped != null) e.poolExerciseId else null,
+                        swappedFromName = if (swapped != null) e.name else null,
                     )
                 },
                 key = blockKey,
@@ -347,6 +358,8 @@ class WorkoutLogViewModel(
                             m.metric,
                             v,
                             m.unit,
+                            // The planned slot this fills, when swapped for the day.
+                            swappedFrom = m.plannedExerciseId,
                             // Reps ride along with a weight; everything else ignores them.
                             reps = if (m.metric == "WEIGHT") m.reps.trim().toIntOrNull()?.takeIf { it > 0 } else null,
                         )

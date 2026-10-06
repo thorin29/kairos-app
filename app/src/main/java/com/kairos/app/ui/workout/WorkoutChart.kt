@@ -94,6 +94,7 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
         // The record first, because it is the question people actually ask: what
         // am I lifting now. The line below answers "over time", which matters
         // less day to day. Real logged sets only — never an estimated max.
+        val stats = remember(s.poolExerciseId, s.points) { liftStats(s) }
         s.best?.let { b ->
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 10.dp),
@@ -120,6 +121,49 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
+            }
+
+            // Is it still moving, and when did it last move? A stall is
+            // information, so it gets said out loud rather than being left for
+            // the eye to find on the line.
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                stats.delta?.let { d ->
+                    Text(
+                        (if (d > 0) "+" else "") + fmt(d) + " " + s.unit + " in 30 days",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (d > 0) Color(0xFF047857) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    stats.sincePR,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // The last handful of sessions, newest last: short-term progress,
+            // which is what people check between PRs.
+            if (stats.recent.size > 1) {
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    stats.recent.forEach { p ->
+                        Text(
+                            fmt(p.value) + (p.reps?.let { "\u00d7$it" } ?: ""),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                }
             }
         }
 
@@ -284,3 +328,35 @@ private fun dateLabel(epochDay: Long): String = try {
 
 private fun fmt(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else String.format("%.1f", v)
+
+/** What a lifter checks between PRs: is it moving, when did it last move, and
+ *  what have the last few sessions looked like. All from real logged sets. */
+private data class LiftStats(
+    val delta: Double?,
+    val sincePR: String,
+    val recent: List<GraphPointDto>,
+)
+
+private fun liftStats(s: ProgressSeriesDto): LiftStats {
+    val pts = s.points.sortedBy { it.date }
+    val recent = pts.takeLast(5)
+
+    // 30-day change: the latest top set against the best on or before the
+    // cutoff. Null when nothing is that old — a first session is not a gain.
+    val cutoff = LocalDate.now().minusDays(30).toString()
+    val before = pts.filter { it.date <= cutoff }
+    val latest = pts.lastOrNull()?.value
+    val base = before.maxOfOrNull { it.value }
+    val delta = if (latest != null && base != null) latest - base else null
+
+    val sincePR = s.best?.let { b ->
+        val days = epochDay(b.date)?.let { LocalDate.now().toEpochDay() - it } ?: 0L
+        when {
+            days <= 1L -> "best today"
+            days < 7L -> "best $days days ago"
+            else -> "best ${days / 7}w ago"
+        }
+    } ?: "no best yet"
+
+    return LiftStats(delta, sincePR, recent)
+}

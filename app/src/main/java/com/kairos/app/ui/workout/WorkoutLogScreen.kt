@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
@@ -192,8 +193,37 @@ fun WorkoutLogScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        todayBlocks.forEach { block ->
-                            WorkoutBlockCard(block, vm, openCalc)
+                        // Plans sharing a muscle group go on ONE card — "Chest"
+                        // once at the top, each workout with its own fields and
+                        // buttons under a divider. A plan with no muscle group
+                        // keeps its own card (grouping by name would merge two
+                        // unrelated plans both called "Workout").
+                        groupByMuscle(todayBlocks).forEach { group ->
+                            if (group.blocks.size == 1) {
+                                WorkoutBlockCard(group.blocks.first(), vm, openCalc)
+                            } else {
+                                OutlinedCard(Modifier.fillMaxWidth()) {
+                                    Column(
+                                        Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        Text(
+                                            group.label,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        group.blocks.forEachIndexed { i, block ->
+                                            if (i > 0) HorizontalDivider()
+                                            BlockBody(
+                                                block,
+                                                vm,
+                                                openCalc,
+                                                hideName = block.name.equals(group.label, ignoreCase = true),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else if (overdueBlocks.isEmpty()) {
                         Text(
@@ -346,6 +376,53 @@ private fun WorkoutBlockCard(
             CompactBlockBody(block, vm)
         } else {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            BlockBody(block, vm, onOpenCalculatorFor)
+        }
+        }
+    }
+}
+
+/** Same-muscle plans share a card; anything without a muscle group stands alone. */
+private data class MuscleGroupCard(val key: String, val label: String, val blocks: List<WorkoutBlock>)
+
+private fun groupByMuscle(blocks: List<WorkoutBlock>): List<MuscleGroupCard> {
+    val out = mutableListOf<MuscleGroupCard>()
+    val index = mutableMapOf<String, Int>()
+    blocks.forEach { b ->
+        val key = b.muscleGroup?.takeIf { it.isNotBlank() }?.let { "mg:$it" } ?: "solo:${b.key}"
+        val at = index[key]
+        if (at == null) {
+            index[key] = out.size
+            out.add(
+                MuscleGroupCard(
+                    key = key,
+                    label = b.muscleGroup?.takeIf { it.isNotBlank() }?.let { muscleLabel(it) } ?: b.name,
+                    blocks = listOf(b),
+                ),
+            )
+        } else {
+            out[at] = out[at].copy(blocks = out[at].blocks + b)
+        }
+    }
+    return out
+}
+
+/** "UPPER_BACK" -> "Upper back". The server sends the enum name. */
+private fun muscleLabel(raw: String): String =
+    raw.split('_').joinToString(" ") { it.lowercase() }
+        .replaceFirstChar { it.uppercase() }
+
+/** The contents of a planned block: name, movements, and its own action row.
+ *  Used both as a card of its own and stacked inside a shared muscle card. */
+@Composable
+private fun BlockBody(
+    block: WorkoutBlock,
+    vm: WorkoutLogViewModel,
+    onOpenCalculatorFor: (String, String) -> Unit,
+    hideName: Boolean = false,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (!hideName) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     block.name,
@@ -362,6 +439,7 @@ private fun WorkoutBlockCard(
                     )
                 }
             }
+        }
             Text(
                 block.inputs.joinToString(" · ") { it.name },
                 style = MaterialTheme.typography.bodySmall,
@@ -415,8 +493,6 @@ private fun WorkoutBlockCard(
                     filled = true,
                 ) { vm.saveBlock(block.key) }
             }
-        }
-        }
     }
 }
 
@@ -540,23 +616,42 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     )
                     Text(
                         "Undo",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
                             .clickable { vm.undoSwap(planId, m.poolExerciseId) }
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 } else {
-                    Text(
-                        "Swap",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                    // An outlined pill, not a bare word: the first version was a
+                    // plain label and nobody could tell it was tappable.
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline,
+                                RoundedCornerShape(14.dp),
+                            )
                             .clickable { vm.loadPool(); swapping = true }
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                    )
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Icon(
+                            KairosIcons.Swap,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            "Swap",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

@@ -3,6 +3,35 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Same-muscle plans share a card; a swap survives the reload (v0.354.0)
+
+Three related changes, all so the two clients say the same thing:
+
+**Grouping.** `WorkoutBlock` carries `muscleGroup` (new on the planned-day payload) and the log screen
+groups by it: one `OutlinedCard`, the group named once, each plan's fields and action row stacked
+under a divider. The card body was pulled out into `BlockBody` so it can be a card of its own OR a
+section inside a shared one. Grouping is by muscle group only — by name would merge two unrelated
+plans both called "Workout" — and a plan without one keeps its own card.
+
+**The swap round-trips.** The log entry now carries `swappedFrom` (the planned movement's id), the
+server stores it on the set, and the planned movement comes back with `loggedAs`. `applyPlan` rebuilds
+the row as the swapped movement, still showing what it replaced, so a reload after logging matches
+what was actually done instead of showing a blank planned row. Before this the log was right and the
+screen was wrong, which is the worse of the two failures.
+
+**Swap looks like a control.** The first version was a bare word in the accent colour and was
+invisible in use. It is an outlined pill with an icon now. The lesson is dull and repeatable: a
+tappable thing that is only distinguished by colour will not be found.
+
+## The lift view answers "is it moving" (v0.354.0)
+
+Above the chart, each movement now shows its record, the change over 30 days, how long since that
+best, and the last five sessions as weight×reps chips, with the rep-max row underneath. The 30-day
+delta is **null, not zero**, when there is nothing that old to compare against — a first session is
+not a gain. Nothing is compared across lifts: a deadlift and a shoulder press share no scale, so
+every number belongs to one movement. No estimated 1RM anywhere; the only sanctioned use for one is
+a "you could try this" hint when choosing a load, which still is not built.
+
 ## Swapping a planned movement is a client-only, one-day change (v0.353.0)
 
 Swap replaces a movement for the day being logged and nothing else: the row's `poolExerciseId` and

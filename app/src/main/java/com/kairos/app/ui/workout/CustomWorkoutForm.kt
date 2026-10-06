@@ -49,7 +49,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.common.SentenceCaps
 
-/** The "Log something else" entry point: a button that opens a step-by-step
+/** The "Log an additional workout" entry point: a button that opens a step-by-step
  *  wizard (type -> details -> log), so the options aren't all crowded at once. */
 @Composable
 fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
@@ -61,7 +61,7 @@ fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
             containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
-        Text("Log something else")
+        Text("Log an additional workout")
     }
     if (open) {
         LogSomethingWizard(

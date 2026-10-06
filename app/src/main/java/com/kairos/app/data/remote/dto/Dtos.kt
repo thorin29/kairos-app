@@ -301,6 +301,8 @@ data class WorkoutConflictDto(
 data class WorkoutBlockDto(
     val plannedWorkoutId: String,
     val name: String,
+    /** Plans sharing a muscle group are shown on one card. */
+    val muscleGroup: String? = null,
     val exercises: List<PlannedMovementDto> = emptyList(),
 )
 
@@ -331,6 +333,15 @@ data class PlannedMovementDto(
     val metric: String,
     val unit: String,
     val value: Double? = null,
+    /** Set when this slot was logged with a swapped-in movement for the day:
+     *  what was actually done. Null means the planned movement itself. */
+    val loggedAs: LoggedAsDto? = null,
+)
+
+@Serializable
+data class LoggedAsDto(
+    val poolExerciseId: String = "",
+    val name: String = "",
 )
 
 @Serializable
@@ -348,6 +359,8 @@ data class PlannedEntryDto(
     val metric: String,
     val value: Double,
     val unit: String,
+    /** The planned movement this stands in for, when swapped for the day. */
+    val swappedFrom: String? = null,
     /** Reps for a WEIGHT entry. Optional — the weight is still the record. */
     val reps: Int? = null,
 )

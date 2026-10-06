@@ -1,4 +1,10 @@
 # Changelog
+## 0.354.0
+- Swap is a button now, not a word you had to know was tappable.
+- Two workouts for the same muscle group share one card — "Chest" once at the top, each workout with its own fields and buttons underneath.
+- A swapped movement sticks after you log it: the slot shows what you actually did instead of going blank on the next load. Needs web 0.538.
+- The lift view now says how much the movement has moved in the last 30 days, how long since your best, and your last five sessions, above the rep-max row.
+- "Log something else" is now "Log an additional workout", matching the web.
 ## 0.353.0
 - Swap a planned movement for a variation, today only — tap Swap on the movement and pick front squat instead of back squat, incline instead of flat. Your weekly plan is untouched and next week comes back as planned. Anything you have already typed in stays.
 ## 0.352.0
