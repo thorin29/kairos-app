@@ -1,4 +1,9 @@
 # Changelog
+## 0.355.0
+
+- The swap list is grouped by muscle group with a heading for each, instead of one
+  long alphabetical run. Your movement's own group comes first, then the rest.
+
 ## 0.354.1
 
 - Fixed the build: the legacy single-plan payload still constructed `WorkoutBlockDto`

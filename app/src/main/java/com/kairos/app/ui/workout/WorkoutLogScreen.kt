@@ -385,6 +385,13 @@ private fun WorkoutBlockCard(
 /** Same-muscle plans share a card; anything without a muscle group stands alone. */
 private data class MuscleGroupCard(val key: String, val label: String, val blocks: List<WorkoutBlock>)
 
+/** One muscle group's movements in the swap picker, under its own heading. */
+private data class SwapGroup(
+    val key: String,
+    val label: String,
+    val items: List<PoolExerciseDto>,
+)
+
 private fun groupByMuscle(blocks: List<WorkoutBlock>): List<MuscleGroupCard> {
     val out = mutableListOf<MuscleGroupCard>()
     val index = mutableMapOf<String, Int>()
@@ -719,20 +726,33 @@ private fun SwapMovementDialog(
     val current = ui.pool.firstOrNull { it.id == m.poolExerciseId }
     val q = query.trim().lowercase()
 
-    val options = remember(ui.pool, q, current?.id) {
+    // Grouped by muscle group, with a heading per group. Floating the current
+    // group to the top of a flat list was not enough: everything below it ran
+    // together alphabetically across every muscle group, so the list read as
+    // one jumble. The movement's own group comes first, then the rest
+    // alphabetically, with unassigned movements last under "Other".
+    val groups = remember(ui.pool, q, current?.id) {
+        val own = current?.muscleGroup
         ui.pool
             .asSequence()
             .filter { it.id != m.poolExerciseId }
             .filter { current == null || it.category == current.category }
             .filter { q.isEmpty() || it.name.lowercase().contains(q) }
+            .groupBy { it.muscleGroup }
+            .map { (mg, items) ->
+                SwapGroup(
+                    key = mg ?: "_other",
+                    label = if (mg != null) muscleLabel(mg) else "Other",
+                    items = items.sortedBy { it.name.lowercase() },
+                )
+            }
             .sortedWith(
-                compareByDescending<PoolExerciseDto> {
-                    current?.muscleGroup != null && it.muscleGroup == current.muscleGroup
-                }.thenBy { it.name.lowercase() },
+                compareByDescending<SwapGroup> { own != null && it.key == own }
+                    .thenBy { it.key == "_other" }
+                    .thenBy { it.label.lowercase() },
             )
-            .take(40)
-            .toList()
     }
+    val total = groups.sumOf { it.items.size }
 
     AnimatedDialog(
         onDismissRequest = onDismiss,
@@ -758,7 +778,7 @@ private fun SwapMovementDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                options.isEmpty() -> Text(
+                total == 0 -> Text(
                     if (ui.pool.isEmpty()) "Couldn't load the movement list." else "No movements match.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -766,19 +786,28 @@ private fun SwapMovementDialog(
                 else -> Column(
                     Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
                 ) {
-                    options.forEach { ex ->
+                    groups.forEach { g ->
                         Text(
-                            ex.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    vm.swapMovement(planId, m.poolExerciseId, ex)
-                                    onDismiss()
-                                }
-                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                            g.label.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp, top = 10.dp, bottom = 2.dp),
                         )
+                        g.items.forEach { ex ->
+                            Text(
+                                ex.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        vm.swapMovement(planId, m.poolExerciseId, ex)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                            )
+                        }
                     }
                 }
             }

@@ -3,6 +3,18 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## "Sorted to the top" is not "grouped" (v0.355.0)
+
+The swap picker sorted the pool with the current movement's muscle group first and everything
+else alphabetical, and was reported as "all jumbled together" — correctly. Below the first few
+rows there was no structure at all: chest, calves and shoulders in one alphabetical run with
+nothing marking where a group ended. It now draws a heading per muscle group, own group first,
+unassigned last under "Other".
+
+Worth remembering for any long picker in this app: a relevance sort helps the first three rows
+and does nothing for the other forty. If a list is long enough to need sorting, it is long enough
+to need headings.
+
 ## A field added mid-declaration breaks positional call sites (v0.354.1)
 
 0.354.0 failed `compileReleaseKotlin`: `muscleGroup` was inserted into `WorkoutBlockDto`
