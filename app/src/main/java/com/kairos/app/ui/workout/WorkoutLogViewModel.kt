@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.kairos.app.data.remote.dto.PoolExerciseDto
 import kotlinx.coroutines.launch
 
 /** One editable movement row: a value typed by the movement's metric, plus a
@@ -31,6 +32,12 @@ data class MovementInput(
      *  as it always did, and the weight remains the record either way. */
     val reps: String = "",
     val skipped: Boolean = false,
+    /** Set when this row has been swapped for a variation TODAY ONLY — holds the
+     *  planned movement's name so the row can say what it replaced and offer to
+     *  put it back. The weekly plan is never touched. */
+    val swappedFromName: String? = null,
+    /** The planned movement's id, kept so an undo restores exactly it. */
+    val plannedExerciseId: String? = null,
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -62,6 +69,10 @@ data class WorkoutLogUiState(
     val conflictPlanId: String? = null,
     val savedTick: Int = 0,
     val expiring: Boolean = false,
+    /** Movement pool for the swap picker. Loaded on first use, not at startup —
+     *  most logging never opens it. */
+    val pool: List<PoolExerciseDto> = emptyList(),
+    val poolLoading: Boolean = false,
 )
 
 /**
@@ -203,6 +214,78 @@ class WorkoutLogViewModel(
                 blocks = s.blocks.map { b ->
                     if (b.key != key) b
                     else b.copy(inputs = b.inputs.map { if (it.poolExerciseId == exId) it.copy(reps = clean) else it })
+                },
+                actionError = null,
+            )
+        }
+    }
+
+    /** Fetch the movement pool once, for the swap picker. */
+    fun loadPool() {
+        if (_ui.value.pool.isNotEmpty() || _ui.value.poolLoading) return
+        _ui.update { it.copy(poolLoading = true) }
+        viewModelScope.launch {
+            val items = runCatching { session.loadWorkoutPool().exercises }.getOrDefault(emptyList())
+            _ui.update { it.copy(pool = items, poolLoading = false) }
+        }
+    }
+
+    /**
+     * Swap a planned movement for a variation for THIS DAY ONLY — back squat for
+     * front squat, flat bench for incline. Nothing is written until the block is
+     * logged, and the weekly plan is never edited: the log simply carries the
+     * chosen movement's id, which the server accepts because it validates the
+     * plan's owner, not which movements the plan contains.
+     *
+     * Typed value and reps are kept: you swapped the movement, not the effort.
+     */
+    fun swapMovement(key: String, exId: String, to: PoolExerciseDto) {
+        _ui.update { s ->
+            val block = s.blocks.firstOrNull { it.key == key }
+            // Swapping onto a movement the block already has would collapse two
+            // rows onto one id and log only one of them.
+            if (block != null && block.inputs.any { it.poolExerciseId == to.id && it.poolExerciseId != exId }) {
+                return@update s.copy(actionError = "${to.name} is already in this workout.")
+            }
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.key != key) b
+                    else b.copy(
+                        inputs = b.inputs.map { m ->
+                            if (m.poolExerciseId != exId) m
+                            else m.copy(
+                                poolExerciseId = to.id,
+                                name = to.name,
+                                plannedExerciseId = m.plannedExerciseId ?: m.poolExerciseId,
+                                swappedFromName = m.swappedFromName ?: m.name,
+                            )
+                        },
+                    )
+                },
+                actionError = null,
+            )
+        }
+    }
+
+    /** Put the planned movement back. */
+    fun undoSwap(key: String, exId: String) {
+        _ui.update { s ->
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.key != key) b
+                    else b.copy(
+                        inputs = b.inputs.map { m ->
+                            val planned = m.plannedExerciseId
+                            val plannedName = m.swappedFromName
+                            if (m.poolExerciseId != exId || planned == null || plannedName == null) m
+                            else m.copy(
+                                poolExerciseId = planned,
+                                name = plannedName,
+                                plannedExerciseId = null,
+                                swappedFromName = null,
+                            )
+                        },
+                    )
                 },
                 actionError = null,
             )

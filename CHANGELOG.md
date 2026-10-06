@@ -1,4 +1,6 @@
 # Changelog
+## 0.353.0
+- Swap a planned movement for a variation, today only — tap Swap on the movement and pick front squat instead of back squat, incline instead of flat. Your weekly plan is untouched and next week comes back as planned. Anything you have already typed in stays.
 ## 0.352.0
 - Logging a lift takes an optional rep count beside the weight. The record is still the weight — reps ride along so 185 × 5 and 185 × 12 stop looking identical. Leave it blank and nothing changes. Needs web 0.537.
 - The progress chart now leads with the record for the movement you are looking at — heaviest set, the reps it was done for, and when — and shows the best weight you have actually lifted at each rep count underneath. Real logged sets only, no estimated maxes.

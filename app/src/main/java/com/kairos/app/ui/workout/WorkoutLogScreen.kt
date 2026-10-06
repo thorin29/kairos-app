@@ -1,5 +1,11 @@
 package com.kairos.app.ui.workout
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.kairos.app.data.remote.dto.PoolExerciseDto
+import com.kairos.app.ui.common.AnimatedDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -505,8 +511,11 @@ private fun utcMillisToIso(millis: Long): String =
 @Composable
 private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false, showName: Boolean = true) {
     val maxHint = m.metric == "WEIGHT"
+    var swapping by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (showName) {
+        // A swapped row always names itself, even in a one-movement block that
+        // normally hides the name — otherwise you cannot see what you swapped to.
+        if (showName || m.swappedFromName != null) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -520,6 +529,36 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
             }
         }
         if (!m.skipped) {
+            // Swap this movement for a variation TODAY only — front squat for back
+            // squat. The weekly plan is untouched; next week comes back as planned.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (m.swappedFromName != null) {
+                    Text(
+                        "instead of ${m.swappedFromName}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Undo",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { vm.undoSwap(planId, m.poolExerciseId) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                    )
+                } else {
+                    Text(
+                        "Swap",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { vm.loadPool(); swapping = true }
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                    )
+                }
+            }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = m.value,
@@ -558,6 +597,96 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+
+    if (swapping) {
+        SwapMovementDialog(planId, m, vm) { swapping = false }
+    }
+}
+
+/**
+ * Pick a variation for one movement, for today only. Same-category movements
+ * first (swapping a bench press for a plank is not the point), the current
+ * movement's muscle group floated to the top, and a search box because the pool
+ * is long. Nothing is written here — the choice only changes what the Log button
+ * sends.
+ */
+@Composable
+private fun SwapMovementDialog(
+    planId: String,
+    m: MovementInput,
+    vm: WorkoutLogViewModel,
+    onDismiss: () -> Unit,
+) {
+    val ui by vm.ui.collectAsState()
+    var query by remember { mutableStateOf("") }
+    val current = ui.pool.firstOrNull { it.id == m.poolExerciseId }
+    val q = query.trim().lowercase()
+
+    val options = remember(ui.pool, q, current?.id) {
+        ui.pool
+            .asSequence()
+            .filter { it.id != m.poolExerciseId }
+            .filter { current == null || it.category == current.category }
+            .filter { q.isEmpty() || it.name.lowercase().contains(q) }
+            .sortedWith(
+                compareByDescending<PoolExerciseDto> {
+                    current?.muscleGroup != null && it.muscleGroup == current.muscleGroup
+                }.thenBy { it.name.lowercase() },
+            )
+            .take(40)
+            .toList()
+    }
+
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = "Swap ${m.name}",
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Today only \u2014 your plan keeps ${m.swappedFromName ?: m.name}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search movements") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            when {
+                ui.poolLoading -> Text(
+                    "Loading movements\u2026",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                options.isEmpty() -> Text(
+                    if (ui.pool.isEmpty()) "Couldn't load the movement list." else "No movements match.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> Column(
+                    Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
+                ) {
+                    options.forEach { ex ->
+                        Text(
+                            ex.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    vm.swapMovement(planId, m.poolExerciseId, ex)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }

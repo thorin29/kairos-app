@@ -3,6 +3,32 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## Swapping a planned movement is a client-only, one-day change (v0.353.0)
+
+Swap replaces a movement for the day being logged and nothing else: the row's `poolExerciseId` and
+name change in `WorkoutLogViewModel`, the typed value and reps are kept, and the Log button sends the
+chosen movement's id. **No server change was needed** — `logPlannedWorkout` validates that the plan
+belongs to the user, not that each entry's movement is a member of the plan, so a substituted id is
+accepted as an ordinary set in that plan's session. The weekly plan is never edited, which is the
+whole point: next week comes back as planned.
+
+`MovementInput` carries `plannedExerciseId` and `swappedFromName` purely so the row can say "instead
+of Back squat" and offer Undo. The picker filters to the current movement's category (swapping a
+bench press for a plank is not the point), floats its muscle group to the top, searches by name, and
+refuses a movement the block already contains — two rows on one id would log only one of them. The
+pool is fetched on first use, not at startup.
+
+**Known rough edge, deliberately not papered over:** after logging a swapped block the screen reloads
+the plan from the server, which returns the *planned* movement with no value, because the set is
+stored under the variation's id. The log itself is correct — the day's session holds the front squat —
+but the planned row comes back blank. Fixing that means the server reporting "logged as X instead",
+which is a contract change, not a client tweak.
+
+Also worth knowing: the two progress paths disagree about swapped-in movements. The web graph is
+built from logged sets, so a variation appears there once logged; the app's `loadWorkoutProgress`
+builds its series from **tracked planned movements only**, so it does not. That matches the stated
+intent ("only tracked movements for now") but it is an inconsistency, not a coincidence.
+
 ## Workout progress leads with the record, not the line (v0.352.0)
 
 The chart answered "how has this moved over months". The question people actually ask is "what am I
