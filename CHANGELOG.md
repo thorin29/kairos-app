@@ -1,4 +1,11 @@
 # Changelog
+## 0.364.0
+
+- "Which lifts are moving" and "Workout days" now appear once at the bottom of
+  Progress instead of repeating identically inside every movement's details.
+- Each movement's details now hold only what is about that movement: its best
+  weight at each rep count.
+
 ## 0.363.0
 
 - A movement can sit in no muscle group: pick "No group" when adding it and it charts

@@ -3,6 +3,25 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## 2026-10 — Per-movement details vs whole-plan summary (v0.364.0)
+
+`LiftBlock` renders once per movement, and each copy called
+`LiftDetailCards(series = series, ...)` — the FULL series. Two of that card's three sections
+describe the whole plan, not the selected lift: "Which lifts are moving" ranks every lift's 90-day
+change, and "Workout days" colours a calendar by every muscle group. So a reader with six tracked
+movements got six byte-identical copies of both, each hidden behind its own "Show details".
+
+Split by what the content is actually about:
+- `LiftRepMaxCard(selected)` — best weight at each rep count. About one movement, so it stays
+  inside that movement.
+- `ProgressSummaryCards(series, planDays)` — the two whole-plan charts, rendered once after all
+  the group blocks.
+
+`LiftBlock` no longer takes `series` or `planDays` at all, which makes the duplication structurally
+impossible to reintroduce: a per-movement block has no access to the whole plan any more. The web
+already had this shape — `LiftBlocks` per group, one `LiftDetailPanel` below — so this brings the
+app in line rather than inventing something.
+
 ## 2026-10 — No "Other" bucket: an ungrouped movement is its own block (v0.363.0)
 
 `groupBy { it.muscleGroup ?: "_other" }` swept every ungrouped movement into one block titled

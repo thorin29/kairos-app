@@ -86,7 +86,7 @@ fun WorkoutChart(
         .sortedBy { it.second.lowercase() }
 
     Column(Modifier.fillMaxWidth()) {
-        groups.forEach { (key, label, items) ->
+        groups.forEach { (_, label, items) ->
             Text(
                 label,
                 style = MaterialTheme.typography.titleSmall,
@@ -95,9 +95,17 @@ fun WorkoutChart(
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
             items.forEach { item ->
-                LiftBlock(item, series, planDays)
+                LiftBlock(s = item)
             }
         }
+
+        // Once, not once per movement. "Which lifts are moving" and "Workout
+        // days" both describe the whole plan, so a reader with six tracked
+        // lifts was getting six identical copies of each.
+        ProgressSummaryCards(
+            series = groups.flatMap { it.third },
+            planDays = planDays,
+        )
     }
 }
 
@@ -109,8 +117,6 @@ private fun muscleLabelFor(raw: String): String =
 @Composable
 private fun LiftBlock(
     s: ProgressSeriesDto,
-    series: List<ProgressSeriesDto>,
-    planDays: List<PlanWeekdayDto>,
 ) {
     val selectedId = s.poolExerciseId
     val points = s.points
@@ -235,7 +241,7 @@ private fun LiftBlock(
         )
 
         if (showDetails) {
-            LiftDetailCards(series = series, selected = s, planDays = planDays)
+            LiftRepMaxCard(selected = s)
             Spacer(Modifier.height(10.dp))
             Text(
                 "EVERY SESSION",
@@ -466,11 +472,13 @@ private fun CardTitle(title: String, sub: String) {
  * is a percentage, because a deadlift and an overhead press share no scale.
  */
 @OptIn(ExperimentalLayoutApi::class)
+/** The one card that is about THIS movement: what it has actually lifted at
+ *  each rep count. Everything else in the old detail panel described the
+ *  whole plan, so it moved to ProgressSummaryCards and renders once.
+ */
 @Composable
-private fun LiftDetailCards(
-    series: List<ProgressSeriesDto>,
+private fun LiftRepMaxCard(
     selected: ProgressSeriesDto,
-    planDays: List<PlanWeekdayDto>,
 ) {
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
@@ -526,6 +534,21 @@ private fun LiftDetailCards(
         }
         Spacer(Modifier.height(10.dp))
     }
+
+}
+
+/** Cards that describe the WHOLE plan rather than one movement: which lifts
+ *  are moving, and which days were trained. These used to live inside each
+ *  movement’s "Show details", which meant a reader with six tracked lifts got
+ *  six identical copies of the same two charts. They render once, at the end.
+ */
+@Composable
+private fun ProgressSummaryCards(
+    series: List<ProgressSeriesDto>,
+    planDays: List<PlanWeekdayDto>,
+) {
+    val bar = MaterialTheme.colorScheme.primary
+    val track = MaterialTheme.colorScheme.surfaceVariant
 
     // Which lifts are moving. Percent is the one honest shared axis; the real
     // weights stay in the row so a small gain on a light lift cannot pass for
