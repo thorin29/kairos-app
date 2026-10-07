@@ -1,4 +1,9 @@
 # Changelog
+## 0.362.0
+
+- Progress reads your logged history, so a rotation or no plan at all still shows your
+  lifts. A weekly plan still leads with its planned movements. Needs web 0.547.
+
 ## 0.361.1
 
 - Fixed a flaky sync test. No app behaviour changed; the test raced SyncManager's

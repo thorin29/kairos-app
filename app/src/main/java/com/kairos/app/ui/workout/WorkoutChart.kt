@@ -65,8 +65,12 @@ fun WorkoutChart(
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
     // headed sections instead of a dropdown you have to discover.
-    val groups = series
-        .filter { it.points.isNotEmpty() }
+    // Prefer what a plan asked for. The payload now carries every movement with
+    // logged history, so a rotation or plan-less person has something to show at
+    // all — but someone with a weekly plan should still see their planned lifts
+    // and not every one-off they ever logged.
+    val withData = series.filter { it.points.isNotEmpty() }
+    val groups = (if (withData.any { it.tracked }) withData.filter { it.tracked } else withData)
         .groupBy { it.muscleGroup ?: "_other" }
         .map { (key, items) ->
             Triple(

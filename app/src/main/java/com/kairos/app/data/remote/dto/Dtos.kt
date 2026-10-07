@@ -371,6 +371,8 @@ data class PlannedEntryDto(
 data class WorkoutProgressDto(
     val series: List<ProgressSeriesDto> = emptyList(),
     val defaultId: String? = null,
+    /** Muscle group to open the progress view on. */
+    val defaultGroup: String? = null,
     val history: List<WorkoutHistoryDto> = emptyList(),
     /** Weekdays (0 = Sunday) the plan uses, with the muscle groups on each. */
     val planDays: List<PlanWeekdayDto> = emptyList(),
@@ -392,6 +394,9 @@ data class ProgressSeriesDto(
     /** The muscle group this movement is planned under, for stacking one
      *  progress block per group instead of hiding them behind a picker. */
     val muscleGroup: String? = null,
+    /** True when a plan marks this movement tracked. False for history-only
+     *  movements, which is all a rotation or plan-less person has. */
+    val tracked: Boolean = false,
     val unit: String,
     val points: List<GraphPointDto> = emptyList(),
     /** Heaviest set ever logged for this movement, with the reps it was done
