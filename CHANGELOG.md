@@ -1,4 +1,9 @@
 # Changelog
+## 0.369.0
+
+- An opened "Additional charts" no longer runs straight into "Lift progress" — there
+  is a gap at the foot of the chart and above the whole-plan cards.
+
 ## 0.368.0
 
 - Workout days squares take the muscle group's colour, matching the body map, and a

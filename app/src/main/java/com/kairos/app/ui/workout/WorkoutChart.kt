@@ -456,6 +456,11 @@ private fun LiftBlock(
             // The rep-max pills that used to sit here said the same thing as
             // the "Best reps per weight" card directly above, detached from any
             // chart and from each other. One place is enough.
+
+            // The whole-plan cards begin immediately below this, so an opened
+            // disclosure needs a gap at its foot or the dot chart runs straight
+            // into "Lift progress".
+            Spacer(Modifier.height(22.dp))
         }
     }
 }
@@ -642,6 +647,8 @@ private fun ProgressSummaryCards(
 ) {
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
+
+    Spacer(Modifier.height(6.dp))
 
     // Which lifts are moving. Percent is the one honest shared axis; the real
     // weights stay in the row so a small gain on a light lift cannot pass for
