@@ -1,5 +1,28 @@
 # Decisions
 
+## 2026-10 — The client has to say which day it logged on (v0.374.0)
+
+The server cannot infer it. A past `date` on a log means one of two things —
+catching up on an overdue workout, or deliberately back-dating from the date
+picker — and only the client knows which. Stamping "today" on every past date
+would move a back-dated Saturday lift to Sunday, which is the same failure that
+ruled out using `createdAt` server-side.
+
+So `WorkoutLogRequest` carries an optional `completedOn`, set only when today
+differs from the day being logged for. It is appended at the END of the data
+class and every construction of that request is now NAMED rather than
+positional: the request was being built positionally in SessionRepository, so an
+inserted field would have silently shifted `replace` and `detectConflict`.
+
+Captured at submit time, not at replay time. The write queue stores the
+serialized body verbatim from the OkHttp interceptor, so a log queued offline on
+Tuesday and synced on Thursday still reports Tuesday — which is when the workout
+was actually done.
+
+Older builds omit the field entirely and the server treats it as absent, so a
+phone that has not updated behaves exactly as it did before rather than failing
+validation.
+
 ## 2026-10 — Workout days was drawing off the edge of the phone (v0.373.0)
 
 0.371 fixed the date window and the current week still did not appear, because the window was never

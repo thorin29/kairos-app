@@ -543,11 +543,20 @@ class SessionRepository(
         entries: List<com.kairos.app.data.remote.dto.PlannedEntryDto>,
         replace: Boolean = false,
         detectConflict: Boolean = false,
+        completedOn: String? = null,
     ): WorkoutAckDto =
         runAuthed {
             requireService().logWorkout(
+                // Named, not positional: the request gained a field at the end
+                // and a positional call is one insertion away from shifting
+                // every flag after it.
                 com.kairos.app.data.remote.dto.WorkoutLogRequest(
-                    date, plannedWorkoutId, entries, replace, detectConflict,
+                    date = date,
+                    plannedWorkoutId = plannedWorkoutId,
+                    entries = entries,
+                    replace = replace,
+                    detectConflict = detectConflict,
+                    completedOn = completedOn,
                 ),
             )
         }

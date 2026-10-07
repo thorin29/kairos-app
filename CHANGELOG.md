@@ -1,4 +1,10 @@
 # Changelog
+## 0.374.0
+
+- Logging an overdue workout from the phone now records the day you actually did
+  it, so it counts for the day it was due but shows up on the day it was done —
+  in Workout days, the progress charts and Recent workouts. Matches the web.
+
 ## 0.373.0
 
 - Workout days now fits the screen, so the current week is always the last column.

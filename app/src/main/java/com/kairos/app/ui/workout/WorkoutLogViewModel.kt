@@ -414,7 +414,19 @@ class WorkoutLogViewModel(
                         )
                     }
                 }
-                val ack = session.logWorkout(d, block.plannedWorkoutId, entries, replace = replace, detectConflict = true)
+                // `d` is the day the workout counts for; this is the day it is
+                // being logged on. Captured HERE rather than when an offline
+                // write is replayed — a log queued on Tuesday and synced on
+                // Thursday was still done on Tuesday.
+                val loggedOn = java.time.LocalDate.now().toString()
+                val ack = session.logWorkout(
+                    d,
+                    block.plannedWorkoutId,
+                    entries,
+                    replace = replace,
+                    detectConflict = true,
+                    completedOn = if (loggedOn != d) loggedOn else null,
+                )
                 if (ack.status == "conflict" && ack.conflict != null) {
                     _ui.update { s ->
                         s.copy(

@@ -351,6 +351,18 @@ data class WorkoutLogRequest(
     val entries: List<PlannedEntryDto>,
     val replace: Boolean = false,
     val detectConflict: Boolean = false,
+    /** The day this was actually logged ON, when it differs from [date].
+     *  [date] stays the day the workout COUNTS for — adherence is keyed on
+     *  it — and this is only what gets displayed in the grid, the charts
+     *  and Recent workouts. Null for a same-day log and for a deliberate
+     *  back-date from the date picker, which is why the server cannot just
+     *  infer it from a past [date].
+     *
+     *  Appended at the END, and every call site below uses NAMED arguments:
+     *  this request was being built positionally, so inserting it mid-
+     *  declaration would have silently shifted `replace` and `detectConflict`.
+     *  Omitted by an older build, which the server treats as absent. */
+    val completedOn: String? = null,
 )
 
 @Serializable
