@@ -755,7 +755,12 @@ private fun ProgressSummaryCards(
         Spacer(Modifier.height(16.dp))
         CardTitle("Workout days", "")
         val today = LocalDate.now()
-        val start = today.minusDays(111).let { it.minusDays(it.dayOfWeek.value.toLong() % 7) }
+        // Anchor to THIS week and count back, so the last column is the week
+        // in progress. Going back 111 days and then snapping to Sunday moved
+        // the window's start earlier without moving its end, so it finished at
+        // today minus the weekday — on a Wednesday the current week was
+        // missing and today never appeared at all.
+        val start = today.minusDays(today.dayOfWeek.value.toLong() % 7).minusWeeks(15)
         val dow = listOf("S", "M", "T", "W", "T", "F", "S")
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -782,28 +787,44 @@ private fun ProgressSummaryCards(
                     rows.forEach { d ->
                         val day = start.plusDays((w * 7 + d).toLong()).toString()
                         val hits = byDate[day].orEmpty()
-                        val c1 = hits.getOrNull(0)?.let { colourOf[it] } ?: track
-                        val c2 = hits.getOrNull(1)?.let { colourOf[it] } ?: c1
+                        val cs = hits.mapNotNull { colourOf[it] }
                         Box(
                             Modifier
                                 .size(18.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .then(
-                                    // Two groups on one day splits the square on
-                                    // the diagonal, the way the web does it.
-                                    if (hits.size >= 2) {
-                                        Modifier.background(
+                                    when {
+                                        // Two reads best as a diagonal split,
+                                        // matching the web.
+                                        cs.size == 2 -> Modifier.background(
                                             Brush.linearGradient(
-                                                0f to c1,
-                                                0.5f to c1,
-                                                0.5f to c2,
-                                                1f to c2,
+                                                0f to cs[0],
+                                                0.5f to cs[0],
+                                                0.5f to cs[1],
+                                                1f to cs[1],
                                                 start = Offset.Zero,
                                                 end = Offset.Infinite,
                                             ),
                                         )
-                                    } else {
-                                        Modifier.background(c1)
+                                        // Three or more cannot extend that, so
+                                        // they become equal vertical bands: one
+                                        // rule that degrades predictably, where
+                                        // wedges at 18dp turn to mud.
+                                        cs.size > 2 -> Modifier.background(
+                                            Brush.horizontalGradient(
+                                                // Hard stops: each colour runs
+                                                // its full band and the next
+                                                // starts at the same offset, so
+                                                // the bands do not blend.
+                                                *cs.flatMapIndexed { i, c ->
+                                                    listOf(
+                                                        (i.toFloat() / cs.size) to c,
+                                                        ((i + 1).toFloat() / cs.size) to c,
+                                                    )
+                                                }.toTypedArray(),
+                                            ),
+                                        )
+                                        else -> Modifier.background(cs.firstOrNull() ?: track)
                                     },
                                 ),
                         )

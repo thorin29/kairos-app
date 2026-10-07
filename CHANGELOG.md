@@ -1,4 +1,13 @@
 # Changelog
+## 0.371.0
+
+- Workout days reaches the current week. It was ending several days short, so this
+  week never appeared.
+- A day with three or more muscle groups splits into that many colours instead of
+  showing only the first two.
+- Swap now sits against the end of the exercise name rather than parked at a fixed
+  column, where it hung over empty space beside short names.
+
 ## 0.370.0
 
 - The button that clears a muscle selection is a reset icon rather than a calendar;

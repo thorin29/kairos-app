@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-10 — Grid window, stripes, and the Swap button (v0.371.0)
+
+The attendance window had the same off-by-a-week fault as the web: `today.minusDays(111)` snapped
+back to Sunday moved the start earlier without moving the end, so it finished at
+`today - dayOfWeek` and the week in progress was missing. Now `startOfWeek(today).minusWeeks(15)`.
+
+Three or more muscle groups on a day become equal vertical bands via a hard-stop
+`Brush.horizontalGradient`; two keeps the diagonal. See the web DECISIONS entry for why.
+
+`Swap` sat after a name pinned to `Modifier.width(150.dp)`, so the button was parked at the same x
+whatever the name was and floated over empty space beside anything short. The name is
+`Modifier.weight(1f, fill = false)` now: it takes only the width it needs so Swap follows it, and a
+long name still ellipsizes at the weighted bound rather than pushing the button off the row. The
+buttons no longer line up with each other, which is the point — they belong to the names.
+
 ## 2026-10 — Completion is identity, not a label (v0.557.0)
 
 Two planned workouts on one day both filed under Back are both *named* "Back", because a planned

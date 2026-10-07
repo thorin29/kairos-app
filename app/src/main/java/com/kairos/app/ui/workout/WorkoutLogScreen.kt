@@ -563,7 +563,12 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                 textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.width(150.dp),
+                // Takes only the width it needs, so Swap sits against the end
+                // of the name. A fixed 150dp column parked the button at the
+                // same x whatever the name was, leaving it hanging over empty
+                // space next to anything short. `fill = false` keeps the bound
+                // for a long name — it ellipsizes rather than pushing Swap off.
+                modifier = Modifier.weight(1f, fill = false),
             )
             // Swap this movement for a variation TODAY only — front squat for back
             // squat. The weekly plan is untouched; next week comes back as planned.
