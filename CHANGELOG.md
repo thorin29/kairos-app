@@ -1,4 +1,12 @@
 # Changelog
+## 0.366.0
+
+- Both bodies stay on screen; a back-only lift leaves the front grey rather than
+  removing it.
+- "Show details" is now "Additional charts" and holds only that movement's chart.
+- "Which lifts are moving" is now "Lift progress". It and Workout days cover every
+  movement instead of only the muscle you have selected.
+
 ## 0.365.0
 
 - Progress opens on a body. Tap a muscle to see just that group's lifts; the figure

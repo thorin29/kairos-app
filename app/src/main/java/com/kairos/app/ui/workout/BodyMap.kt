@@ -168,15 +168,19 @@ private fun BodyFigure(
 
 /**
  * @param selected tap targets currently lit. Several at once on a multi-group day.
- * @param fills muscle group -> colour. A group absent from this map draws inert.
+ * @param fillsFront muscle group -> colour on the FRONT figure.
+ * @param fillsBack muscle group -> colour on the BACK figure.
  * @param available targets with nothing behind them are drawn but not tappable.
- * @param view "front", "back" or "both" — a deadlift is posterior-only.
+ *
+ * Both figures are always drawn. A movement that only shows on one of them
+ * simply leaves the other's groups grey — that is what separates a deadlift
+ * (posterior) from a squat (both) without taking a figure away from the reader.
  */
 @Composable
 fun BodyMap(
     selected: List<String>,
-    fills: Map<String, Color>,
-    view: String,
+    fillsFront: Map<String, Color>,
+    fillsBack: Map<String, Color>,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     available: List<String>? = null,
@@ -192,36 +196,29 @@ fun BodyMap(
     val sel = remember(selected) { selected.toSet() }
     val avail = remember(available) { available?.toSet() }
 
-    val showFront = view == "front" || view == "both"
-    val showBack = view == "back" || view == "both"
-
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (showFront) {
-            BodyFigure(
-                geo = front,
-                selected = sel,
-                fills = fills,
-                available = avail,
-                inert = inert,
-                ring = ring,
-                onSelect = onSelect,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (showBack) {
-            BodyFigure(
-                geo = back,
-                selected = sel,
-                fills = fills,
-                available = avail,
-                inert = inert,
-                ring = ring,
-                onSelect = onSelect,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        BodyFigure(
+            geo = front,
+            selected = sel,
+            fills = fillsFront,
+            available = avail,
+            inert = inert,
+            ring = ring,
+            onSelect = onSelect,
+            modifier = Modifier.weight(1f),
+        )
+        BodyFigure(
+            geo = back,
+            selected = sel,
+            fills = fillsBack,
+            available = avail,
+            inert = inert,
+            ring = ring,
+            onSelect = onSelect,
+            modifier = Modifier.weight(1f),
+        )
     }
 }

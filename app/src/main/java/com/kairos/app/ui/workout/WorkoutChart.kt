@@ -113,19 +113,12 @@ fun WorkoutChart(
     val surface = MaterialTheme.colorScheme.surface
     // Primary wins over secondary: a muscle one shown movement trains should
     // not be dimmed because another merely assists with it.
-    val fills = remember(shown, surface) {
-        buildMap {
-            shown.forEach { sr ->
-                sr.shadeSecondary.forEach { g ->
-                    if (!containsKey(g)) fadedMuscleColor(g, surface)?.let { put(g, it) }
-                }
-            }
-            shown.forEach { sr ->
-                val g = sr.shadePrimary
-                if (g != null) muscleColor(g)?.let { put(g, it) }
-            }
-        }
-    }
+    // Per figure, because both are always drawn now. A movement's `view` decides
+    // which figure it paints: a deadlift lights the back and leaves the front
+    // grey, a squat lights both. That separates them on the body without ever
+    // taking a figure away from the reader.
+    val fillsFront = remember(shown, surface) { fillsFor(shown, surface, "front") }
+    val fillsBack = remember(shown, surface) { fillsFor(shown, surface, "back") }
 
     fun blocksOf(items: List<ProgressSeriesDto>) = items
         // A movement with no muscle group is its own block, titled with its
@@ -144,19 +137,13 @@ fun WorkoutChart(
 
     val groups = blocksOf(shown) + blocksOf(orphans)
 
-    val view = when {
-        shown.isNotEmpty() && shown.all { it.view == "back" } -> "back"
-        shown.isNotEmpty() && shown.all { it.view == "front" } -> "front"
-        else -> "both"
-    }
-
     Column(Modifier.fillMaxWidth()) {
         if (available.isNotEmpty()) {
             Box(Modifier.fillMaxWidth()) {
                 BodyMap(
                     selected = active,
-                    fills = fills,
-                    view = view,
+                    fillsFront = fillsFront,
+                    fillsBack = fillsBack,
                     onSelect = { picked = it },
                     available = available,
                     inert = MaterialTheme.colorScheme.surfaceVariant,
@@ -196,10 +183,35 @@ fun WorkoutChart(
         // Once, not once per movement. "Which lifts are moving" and "Workout
         // days" both describe the whole plan, so a reader with six tracked
         // lifts was getting six identical copies of each.
+        // Every tracked movement, not the selected group: "Lift progress" and
+        // "Workout days" are about the whole plan. Feeding them the filtered
+        // selection made them shrink to whichever muscle was tapped.
         ProgressSummaryCards(
-            series = groups.flatMap { it.third },
+            series = universe,
             planDays = planDays,
         )
+    }
+}
+
+/** Groups to paint on ONE figure: a movement contributes only where it shows. */
+private fun fillsFor(
+    shown: List<ProgressSeriesDto>,
+    surface: androidx.compose.ui.graphics.Color,
+    figure: String,
+): Map<String, androidx.compose.ui.graphics.Color> {
+    val on = shown.filter { it.view == "both" || it.view == figure }
+    return buildMap {
+        on.forEach { sr ->
+            sr.shadeSecondary.forEach { g ->
+                if (!containsKey(g)) fadedMuscleColor(g, surface)?.let { put(g, it) }
+            }
+        }
+        // Primary wins over secondary: a muscle one movement trains is not
+        // dimmed because another merely assists with it.
+        on.forEach { sr ->
+            val g = sr.shadePrimary
+            if (g != null) muscleColor(g)?.let { put(g, it) }
+        }
     }
 }
 
@@ -325,7 +337,7 @@ private fun LiftBlock(
         }
 
         Text(
-            if (showDetails) "Hide details" else "Show details",
+            if (showDetails) "Hide charts" else "Additional charts",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
@@ -335,8 +347,12 @@ private fun LiftBlock(
         )
 
         if (showDetails) {
-            LiftRepMaxCard(selected = s)
-            Spacer(Modifier.height(10.dp))
+            // Only when there is something in it. An empty-state card inside a
+            // disclosure called "Additional charts" is a chart that isn't one.
+            if (s.repMaxes.isNotEmpty()) {
+                LiftRepMaxCard(selected = s)
+                Spacer(Modifier.height(10.dp))
+            }
             Text(
                 "EVERY SESSION",
                 style = MaterialTheme.typography.labelSmall,
@@ -658,7 +674,7 @@ private fun ProgressSummaryCards(
     }.sortedByDescending { it.second }
 
     if (moving.isNotEmpty()) {
-        CardTitle("Which lifts are moving", "Change over 90 days")
+        CardTitle("Lift progress", "Change over 90 days")
         val span = maxOf(30, moving.maxOf { kotlin.math.abs(it.second) })
         moving.forEach { (sr, pct, range) ->
             Row(
