@@ -1,4 +1,15 @@
 # Changelog
+## 0.357.0
+
+- Overdue and today's cards are now the same card, differing only in background:
+  same three buttons, same wording, same sizes.
+- The weight box is one size everywhere and smaller, its hint reads "weight", and
+  reps sit at the right edge.
+- The swap list is in plain alphabetical order by muscle group, each group named in
+  bold in the theme colour.
+- The Home workouts row counts a muscle group once ("Core · Legs", not
+  "Core · Core · Legs"). Needs web 0.541.
+
 ## 0.356.0
 
 - Overdue cards: the entry fields get the full width and the Skip and Log buttons sit

@@ -3,6 +3,19 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## One card, two backgrounds (v0.357.0)
+
+Overdue and today's workouts had drifted into two separate composables: different button sizes
+(56dp vs 84dp tiles), different wording ("Skip"/"Log" vs "Rest / skip"/"Calculator"/"Log weight"),
+no calculator on one of them, and a weight box that was flexible on one and fixed on the other.
+One screen looked like two features. `CompactBlockBody` is gone and both render through
+`BlockBody`; the only difference left is the card background.
+
+The one behaviour that genuinely differs is Rest / skip. On an overdue card it means "I am not
+doing that day" and must rest the day on the server, because the local toggle leaves the task
+PENDING and the card returns on the next load. That now branches on `block.isOverdue` inside the
+shared body instead of justifying a whole second composable.
+
 ## A row that fits is not a row that will keep fitting (v0.356.0)
 
 The overdue card put the movement fields and both action tiles on one row. That worked while a

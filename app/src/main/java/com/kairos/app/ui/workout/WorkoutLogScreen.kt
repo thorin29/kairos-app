@@ -183,7 +183,7 @@ fun WorkoutLogScreen(
                             color = MaterialTheme.colorScheme.error,
                         )
                         overdueBlocks.forEach { block ->
-                            WorkoutBlockCard(block, vm, openCalc, compact = true)
+                            WorkoutBlockCard(block, vm, openCalc)
                         }
                     }
 
@@ -363,8 +363,10 @@ private fun WorkoutBlockCard(
     block: WorkoutBlock,
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
-    compact: Boolean = false,
 ) {
+    // Overdue and today's cards are the same card. The only difference is the
+    // background; they used to be two bodies with different button sizes and
+    // wording, which made one screen look like two features.
     OutlinedCard(
         Modifier.fillMaxWidth(),
         colors = if (block.isOverdue) {
@@ -373,12 +375,8 @@ private fun WorkoutBlockCard(
             CardDefaults.outlinedCardColors()
         },
     ) {
-        if (compact) {
-            CompactBlockBody(block, vm)
-        } else {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             BlockBody(block, vm, onOpenCalculatorFor)
-        }
         }
     }
 }
@@ -474,10 +472,16 @@ private fun BlockBody(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WorkoutActionTile(
                     icon = KairosIcons.Moon,
-                    label = if (skipped) "skipped" else "Rest / skip",
+                    label = if (skipped && !block.isOverdue) "skipped" else "Rest / skip",
                     modifier = Modifier.weight(1f),
-                    highlighted = !skipped,
-                ) { vm.setBlockSkipped(block.key, !skipped) }
+                    highlighted = block.isOverdue || !skipped,
+                ) {
+                    // On an overdue card this means "I'm not doing that day", so
+                    // it has to rest the day on the server. The local toggle left
+                    // the task PENDING and the card came straight back.
+                    if (block.isOverdue) block.date?.let { vm.restDay(it) }
+                    else vm.setBlockSkipped(block.key, !skipped)
+                }
                 WorkoutActionTile(
                     icon = KairosIcons.Dumbbell,
                     label = "Calculator",
@@ -499,58 +503,6 @@ private fun BlockBody(
                     filled = true,
                 ) { vm.saveBlock(block.key) }
             }
-    }
-}
-
-@Composable
-private fun CompactBlockBody(block: WorkoutBlock, vm: WorkoutLogViewModel) {
-    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                block.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-            )
-            if (block.logged) {
-                Icon(KairosIcons.Check, contentDescription = "Logged", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            }
-        }
-        HorizontalDivider()
-        // Fields at full width, buttons underneath. They used to share one row
-        // with the two action tiles, which was fine until the reps field
-        // arrived: three controls plus two tiles across a phone squeezed the
-        // weight box until "today's max" wrapped onto three lines.
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            block.inputs.forEach { m ->
-                MovementRow(block.key, m, vm, compact = true)
-            }
-            // On an OVERDUE card, Skip means "I'm not doing that day" — it has to
-            // clear the day on the server (rest), not just grey the movements
-            // locally the way the per-movement skip does on today's card. The
-            // local toggle left the task PENDING, so the late count and the card
-            // itself came straight back on the next load.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WorkoutActionTile(
-                    icon = KairosIcons.Moon,
-                    label = "Skip",
-                    modifier = Modifier.weight(1f),
-                    highlighted = true,
-                    enabled = !block.saving,
-                    compact = true,
-                ) { block.date?.let { vm.restDay(it) } }
-                WorkoutActionTile(
-                    icon = KairosIcons.Dumbbell,
-                    label = if (block.logged) "edit" else "Log",
-                    modifier = Modifier.weight(1f),
-                    highlighted = !block.logged,
-                    enabled = !block.saving,
-                    loading = block.saving,
-                    filled = true,
-                    compact = true,
-                ) { vm.saveBlock(block.key) }
-            }
-        }
     }
 }
 
@@ -586,7 +538,7 @@ private fun utcMillisToIso(millis: Long): String =
         .format(DateTimeFormatter.ISO_DATE)
 
 @Composable
-private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel, compact: Boolean = false) {
+private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel) {
     val maxHint = m.metric == "WEIGHT"
     var swapping by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -658,14 +610,17 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // One fixed width for the weight box on every card. It used to be
+            // flexible on overdue and fixed on today's, so the same field was
+            // two different sizes on one screen. Reps sits hard right.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = m.value,
                     onValueChange = { vm.onValue(planId, m.poolExerciseId, it) },
-                    placeholder = { Text(if (maxHint) "today's max" else "0") },
+                    placeholder = { Text(if (maxHint) "weight" else "0") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = if (compact) Modifier.weight(1f) else Modifier.width(160.dp),
+                    modifier = Modifier.width(128.dp),
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -673,7 +628,7 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                 // 185 x 5 and 185 x 12 log identically and the months of rep
                 // progress between weight jumps never show up anywhere.
                 if (maxHint) {
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.weight(1f))
                     Text(
                         "\u00d7",
                         style = MaterialTheme.typography.bodyMedium,
@@ -729,7 +684,6 @@ private fun SwapMovementDialog(
     // one jumble. The movement's own group comes first, then the rest
     // alphabetically, with unassigned movements last under "Other".
     val groups = remember(ui.pool, q, current?.id) {
-        val own = current?.muscleGroup
         ui.pool
             .asSequence()
             .filter { it.id != m.poolExerciseId }
@@ -743,9 +697,11 @@ private fun SwapMovementDialog(
                     items = items.sortedBy { it.name.lowercase() },
                 )
             }
+            // Straight alphabetical by muscle group, movements alphabetical
+            // inside each. Floating the current group to the top meant the list
+            // started somewhere different every time it opened.
             .sortedWith(
-                compareByDescending<SwapGroup> { own != null && it.key == own }
-                    .thenBy { it.key == "_other" }
+                compareBy<SwapGroup> { it.key == "_other" }
                     .thenBy { it.label.lowercase() },
             )
     }
@@ -786,10 +742,10 @@ private fun SwapMovementDialog(
                     groups.forEach { g ->
                         Text(
                             g.label.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 8.dp, top = 10.dp, bottom = 2.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
                         )
                         g.items.forEach { ex ->
                             Text(
