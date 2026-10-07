@@ -806,11 +806,23 @@ private fun ProgressSummaryCards(
                                                 end = Offset.Infinite,
                                             ),
                                         )
-                                        // Three or more cannot extend that, so
-                                        // they become equal vertical bands: one
-                                        // rule that degrades predictably, where
-                                        // wedges at 18dp turn to mud.
-                                        cs.size > 2 -> Modifier.background(
+                                        // Three and four cut from the centre —
+                                        // thirds as wedges, four as quadrants —
+                                        // which stays readable because every
+                                        // piece meets in the middle.
+                                        cs.size == 3 || cs.size == 4 -> Modifier.background(
+                                            Brush.sweepGradient(
+                                                *cs.flatMapIndexed { i, c ->
+                                                    listOf(
+                                                        (i.toFloat() / cs.size) to c,
+                                                        ((i + 1).toFloat() / cs.size) to c,
+                                                    )
+                                                }.toTypedArray(),
+                                            ),
+                                        )
+                                        // Five or more would be slivers from the
+                                        // centre, so those become equal bands.
+                                        cs.size > 4 -> Modifier.background(
                                             Brush.horizontalGradient(
                                                 // Hard stops: each colour runs
                                                 // its full band and the next

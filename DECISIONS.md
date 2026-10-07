@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-10 — Three, four, five muscle groups on a day (v0.372.0)
+
+Matching the web: three and four cut from the centre via a hard-stop `Brush.sweepGradient` — thirds
+as wedges, four as quadrants — because every piece meets in the middle and stays legible at 18dp.
+Five or more would be slivers from a centre point, so those keep the horizontal bands.
+
+Compose's sweep starts at 3 o'clock where CSS conic starts at 12, so the pieces sit a quarter turn
+round from the web's. At this size that is not perceptible and it is not worth the rotation
+gymnastics to match exactly; what reads is "three wedges" or "four quarters", not which colour is
+where.
+
 ## 2026-10 — Grid window, stripes, and the Swap button (v0.371.0)
 
 The attendance window had the same off-by-a-week fault as the web: `today.minusDays(111)` snapped

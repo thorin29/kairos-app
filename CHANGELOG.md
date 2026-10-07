@@ -1,4 +1,9 @@
 # Changelog
+## 0.372.0
+
+- A day with three muscle groups splits into wedges, four into quadrants, five or
+  more into bands — matching the web.
+
 ## 0.371.0
 
 - Workout days reaches the current week. It was ending several days short, so this
