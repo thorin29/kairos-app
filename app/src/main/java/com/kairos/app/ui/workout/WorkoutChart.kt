@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.GraphPointDto
 import com.kairos.app.data.remote.dto.PlanWeekdayDto
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
+import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -70,28 +73,119 @@ fun WorkoutChart(
     // all — but someone with a weekly plan should still see their planned lifts
     // and not every one-off they ever logged.
     val withData = series.filter { it.points.isNotEmpty() }
-    val groups = (if (withData.any { it.tracked }) withData.filter { it.tracked } else withData)
+    val universe = if (withData.any { it.tracked }) withData.filter { it.tracked } else withData
+
+    // Only regions you actually train are live. A Chest you have never pressed
+    // is drawn, but inert — a target that selects nothing is a dead end.
+    val available = remember(universe) { universe.mapNotNull { it.navRegion }.distinct() }
+
+    // What the map opens on: everything today asks for. A day that trains Core
+    // and Legs lights both, because that is what the day is.
+    val todayDow = remember { LocalDate.now().dayOfWeek.value % 7 }
+    val todayGroups = remember(planDays, todayDow) {
+        planDays.firstOrNull { it.day == todayDow }?.groups.orEmpty().toSet()
+    }
+    val todayNavs = remember(universe, todayGroups) {
+        universe.filter { sr -> sr.shadePrimary?.let { it in todayGroups } == true }
+            .mapNotNull { it.navRegion }
+            .distinct()
+    }
+    // Nothing planned today — fall back to the most recently trained region,
+    // which is all a rotation or plan-less person has.
+    val latestNav = remember(universe) {
+        universe.filter { it.navRegion != null && it.points.isNotEmpty() }
+            .maxByOrNull { it.points.last().date }
+            ?.navRegion
+            ?: available.firstOrNull()
+    }
+
+    // null means "today". Picking a region narrows to it; the button comes back.
+    var picked by remember { mutableStateOf<String?>(null) }
+    val openOn = if (todayNavs.isNotEmpty()) todayNavs else listOfNotNull(latestNav)
+    val active = picked?.let { listOf(it) } ?: openOn
+    val activeSet = active.toSet()
+
+    val shown = universe.filter { sr -> sr.navRegion?.let { it in activeSet } == true }
+    // Nothing on the body selects an ungrouped movement or a full-body lift, so
+    // those keep their own blocks below rather than becoming unreachable.
+    val orphans = universe.filter { it.navRegion == null }
+
+    val surface = MaterialTheme.colorScheme.surface
+    // Primary wins over secondary: a muscle one shown movement trains should
+    // not be dimmed because another merely assists with it.
+    val fills = remember(shown, surface) {
+        buildMap {
+            shown.forEach { sr ->
+                sr.shadeSecondary.forEach { g ->
+                    if (!containsKey(g)) fadedMuscleColor(g, surface)?.let { put(g, it) }
+                }
+            }
+            shown.forEach { sr ->
+                val g = sr.shadePrimary
+                if (g != null) muscleColor(g)?.let { put(g, it) }
+            }
+        }
+    }
+
+    fun blocksOf(items: List<ProgressSeriesDto>) = items
         // A movement with no muscle group is its own block, titled with its
         // own name. A deadlift is not a back lift or a leg lift, and filing it
         // as either charts a 300 lb hinge next to a lat pulldown. Ungrouped
         // movements sort alphabetically among the groups: peers, not leftovers.
         .groupBy { it.muscleGroup ?: "__mv:" + it.poolExerciseId }
-        .map { (key, items) ->
+        .map { (key, group) ->
             Triple(
                 key,
-                if (key.startsWith("__mv:")) items.first().name else muscleLabelFor(key),
-                items.sortedBy { it.name.lowercase() },
+                if (key.startsWith("__mv:")) group.first().name else muscleLabelFor(key),
+                group.sortedBy { it.name.lowercase() },
             )
         }
         .sortedBy { it.second.lowercase() }
 
+    val groups = blocksOf(shown) + blocksOf(orphans)
+
+    val view = when {
+        shown.isNotEmpty() && shown.all { it.view == "back" } -> "back"
+        shown.isNotEmpty() && shown.all { it.view == "front" } -> "front"
+        else -> "both"
+    }
+
     Column(Modifier.fillMaxWidth()) {
-        groups.forEach { (_, label, items) ->
+        if (available.isNotEmpty()) {
+            Box(Modifier.fillMaxWidth()) {
+                BodyMap(
+                    selected = active,
+                    fills = fills,
+                    view = view,
+                    onSelect = { picked = it },
+                    available = available,
+                    inert = MaterialTheme.colorScheme.surfaceVariant,
+                    ring = MaterialTheme.colorScheme.onSurface,
+                )
+                if (picked != null) {
+                    // The app has no Material Icons dependency; KairosIcons is
+                    // the app's own set, drawn from the same path data as the
+                    // web's, so this is the same calendar glyph on both.
+                    Icon(
+                        KairosIcons.Calendar,
+                        contentDescription = "Back to today's workout",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .clickable { picked = null }
+                            .padding(8.dp),
+                    )
+                }
+            }
+        }
+        groups.forEach { (key, label, items) ->
             Text(
                 label,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = muscleColor(key) ?: MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
             items.forEach { item ->

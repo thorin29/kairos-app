@@ -405,6 +405,18 @@ data class ProgressSeriesDto(
     /** Best weight actually lifted at each rep count. Real sets only — no
      *  estimated maxes, and a rep count with no logged set simply isn't here. */
     val repMaxes: List<RepMaxDto> = emptyList(),
+    /** The one body-map region that selects this movement. Null for a movement
+     *  with no group, or a full-body lift — nothing on the body reaches those,
+     *  so they keep their own block below the map. Appended at the END: the
+     *  app has broken once already by inserting a field mid-declaration while
+     *  a call site used positional arguments. */
+    val navRegion: String? = null,
+    /** The group this movement lights strongly — the one it trains. */
+    val shadePrimary: String? = null,
+    /** The groups it lights faintly — the ones it also uses. */
+    val shadeSecondary: List<String> = emptyList(),
+    /** Which figure it shows on: "front", "back" or "both". */
+    val view: String = "both",
 )
 
 @Serializable

@@ -1,4 +1,11 @@
 # Changelog
+## 0.365.0
+
+- Progress opens on a body. Tap a muscle to see just that group's lifts; the figure
+  shades what the lift works, strongly for the muscle it trains and faintly for the
+  ones it also uses. A multi-group day lights all of them, and the calendar button
+  returns to today. Needs web 0.551.
+
 ## 0.364.0
 
 - "Which lifts are moving" and "Workout days" now appear once at the bottom of
