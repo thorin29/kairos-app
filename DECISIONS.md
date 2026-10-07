@@ -3,6 +3,18 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## 2026-10 — No "Other" bucket: an ungrouped movement is its own block (v0.363.0)
+
+`groupBy { it.muscleGroup ?: "_other" }` swept every ungrouped movement into one block titled
+"Other", last in the list. That was wrong once a movement could deliberately have no group: a
+deadlift filed under nothing is not a leftover, it is its own thing.
+
+Both the progress blocks and the Workout-days legend now key ungrouped movements by
+`"__mv:" + poolExerciseId`, label them with the movement's own name, and sort them alphabetically
+among the muscle groups. `keyOf`/`labelOf` are shared by the grid, its tooltips and its legend so
+the three cannot drift apart. The web does the same thing in `byMuscleGroup`; see the web repo's
+DECISIONS entry for why the deadlift drove this.
+
 ## A test that races the thing it is testing (v0.361.1)
 
 `SyncManagerServerRecoveryTest` enqueued exactly one mock response per request it expected.

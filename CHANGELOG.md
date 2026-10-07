@@ -1,4 +1,10 @@
 # Changelog
+## 0.363.0
+
+- A movement can sit in no muscle group: pick "No group" when adding it and it charts
+  as its own progress block, named after itself. For lifts like the deadlift that are
+  neither a back lift nor a leg lift. Needs web 0.548.
+
 ## 0.362.0
 
 - Progress reads your logged history, so a rotation or no plan at all still shows your

@@ -71,15 +71,19 @@ fun WorkoutChart(
     // and not every one-off they ever logged.
     val withData = series.filter { it.points.isNotEmpty() }
     val groups = (if (withData.any { it.tracked }) withData.filter { it.tracked } else withData)
-        .groupBy { it.muscleGroup ?: "_other" }
+        // A movement with no muscle group is its own block, titled with its
+        // own name. A deadlift is not a back lift or a leg lift, and filing it
+        // as either charts a 300 lb hinge next to a lat pulldown. Ungrouped
+        // movements sort alphabetically among the groups: peers, not leftovers.
+        .groupBy { it.muscleGroup ?: "__mv:" + it.poolExerciseId }
         .map { (key, items) ->
             Triple(
                 key,
-                if (key == "_other") "Other" else muscleLabelFor(key),
+                if (key.startsWith("__mv:")) items.first().name else muscleLabelFor(key),
                 items.sortedBy { it.name.lowercase() },
             )
         }
-        .sortedWith(compareBy({ it.first == "_other" }, { it.second.lowercase() }))
+        .sortedBy { it.second.lowercase() }
 
     Column(Modifier.fillMaxWidth()) {
         groups.forEach { (key, label, items) ->
@@ -591,14 +595,24 @@ private fun LiftDetailCards(
         Color(0xFF2A78D6), Color(0xFFEB6834), Color(0xFF1BAF7A), Color(0xFFEDA100),
         Color(0xFFE87BA4), Color(0xFF008300), Color(0xFF4A3AA7), Color(0xFFE34948),
     )
+    // Keyed the same way the blocks are, so an ungrouped movement gets its own
+    // colour and its own name in the legend rather than sharing an "Other".
+    val keyOf = { sr: ProgressSeriesDto -> sr.muscleGroup ?: "__mv:" + sr.poolExerciseId }
+    val gLabels = mutableMapOf<String, String>()
+    series.filter { it.points.isNotEmpty() }.forEach { sr ->
+        gLabels.getOrPut(keyOf(sr)) {
+            if (sr.muscleGroup != null) muscleLabelFor(sr.muscleGroup!!) else sr.name
+        }
+    }
+    val labelOf = { g: String -> gLabels[g] ?: muscleLabelFor(g) }
     val groupsSeen = series.filter { it.points.isNotEmpty() }
-        .map { it.muscleGroup ?: "_other" }
+        .map { keyOf(it) }
         .distinct()
-        .sortedWith(compareBy({ it == "_other" }, { muscleLabelFor(it).lowercase() }))
+        .sortedBy { labelOf(it).lowercase() }
     val colourOf = groupsSeen.mapIndexed { i, g -> g to palette[i % palette.size] }.toMap()
     val byDate = mutableMapOf<String, MutableList<String>>()
     series.forEach { sr ->
-        val g = sr.muscleGroup ?: "_other"
+        val g = keyOf(sr)
         sr.points.forEach { p ->
             byDate.getOrPut(p.date) { mutableListOf() }.let { if (!it.contains(g)) it.add(g) }
         }
@@ -661,7 +675,7 @@ private fun LiftDetailCards(
                             .background(colourOf[g] ?: bar),
                     )
                     Text(
-                        " " + if (g == "_other") "Other" else muscleLabelFor(g),
+                        " " + labelOf(g),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

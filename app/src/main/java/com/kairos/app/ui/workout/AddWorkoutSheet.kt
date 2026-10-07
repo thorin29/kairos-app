@@ -38,6 +38,9 @@ import com.kairos.app.data.remote.dto.PlanOptionsDto
 private data class Pick(val tracked: Boolean, val metric: String)
 private val DAY_LABELS = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
+/** A movement that sits in no muscle group charts as its own progress block. */
+private const val NO_GROUP_LABEL = "No group \u2014 its own chart"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddWorkoutSheet(
@@ -61,8 +64,10 @@ fun AddWorkoutSheet(
     val defMetric = category?.defaultMetric ?: ""
     val metrics = category?.metrics.orEmpty()
 
+    // An empty muscle key means "no group": it matches the movements that are
+    // filed under none, which chart as their own block rather than a group's.
     val exercises = options.exercises.filter {
-        it.category == categoryKey && (kind != "weights" || it.muscleGroup == muscleKey)
+        it.category == categoryKey && (kind != "weights" || (it.muscleGroup ?: "") == muscleKey)
     }
 
     val canSave = when {
@@ -81,7 +86,7 @@ fun AddWorkoutSheet(
                 AddPoolRequest(
                     day = day,
                     category = categoryKey,
-                    muscleGroup = if (kind == "weights") muscleKey else null,
+                    muscleGroup = if (kind == "weights") muscleKey.ifBlank { null } else null,
                     exercises = if (kind == "metricOnly") emptyList()
                     else picked.map { (id, p) -> AddPoolExercise(id, p.tracked, p.metric) },
                 ),
@@ -123,8 +128,10 @@ fun AddWorkoutSheet(
                 kind == "weights" -> {
                     Dropdown(
                         label = "Muscle group",
-                        selected = options.muscleGroups.firstOrNull { it.key == muscleKey }?.label ?: "",
-                        options = options.muscleGroups.map { it.key to it.label },
+                        selected = if (muscleKey.isBlank()) NO_GROUP_LABEL
+                        else options.muscleGroups.firstOrNull { it.key == muscleKey }?.label ?: "",
+                        options = options.muscleGroups.map { it.key to it.label } +
+                            listOf("" to NO_GROUP_LABEL),
                         onSelect = { muscleKey = it; picked = emptyMap() },
                     )
                     ExerciseList(exercises.map { it.id to it.name }, picked, metrics, defMetric) { picked = it }
