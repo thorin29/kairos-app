@@ -373,11 +373,14 @@ data class WorkoutProgressDto(
     val defaultId: String? = null,
     val history: List<WorkoutHistoryDto> = emptyList(),
     /** Weekdays (0 = Sunday) the plan uses, with the muscle groups on each. */
-    val planDays: List<PlanDayDto> = emptyList(),
+    val planDays: List<PlanWeekdayDto> = emptyList(),
 )
 
+/** Weekdays the plan uses, for the attendance grid. Named for weekdays, not
+ *  "PlanDay" \u2014 PlanDayDto already exists below and means the plan editor's
+ *  day of workouts. */
 @Serializable
-data class PlanDayDto(
+data class PlanWeekdayDto(
     val day: Int = 0,
     val groups: List<String> = emptyList(),
 )

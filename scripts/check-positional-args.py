@@ -81,3 +81,30 @@ for f in root.rglob("*.kt"):
 for h in sorted(set(hits)):
     print(f"{h[0]}:{h[1]}  {h[2]}(...)  {h[3]} positional of {h[4]} args")
 print(f"\n{len(set(hits))} positional construction(s) of multi-field classes")
+
+
+# ---------------------------------------------------------------------------
+# Duplicate top-level declarations.
+#
+# A second `data class PlanDayDto` in the same package does not just fail on
+# its own line: every reference to that name anywhere in the module becomes
+# unresolved, so one mistake prints as a page of unrelated errors in other
+# files. Cheap to check, expensive to debug from the log.
+# ---------------------------------------------------------------------------
+decl_lines = {}
+for f in root.rglob("*.kt"):
+    text = strip_comments(f.read_text(encoding="utf-8"))
+    for m in re.finditer(r"^(?:@\w+\s*)*\s*(?:data |sealed |enum |value )?class (\w+)",
+                         text, re.M):
+        decl_lines.setdefault(m.group(1), []).append(
+            f"{f.name}:{text[:m.start()].count(chr(10)) + 1}"
+        )
+
+dupes = {k: v for k, v in decl_lines.items() if len(v) > 1}
+if dupes:
+    print("\nDUPLICATE TOP-LEVEL CLASS NAMES:")
+    for name, where in sorted(dupes.items()):
+        print(f"  {name}: {', '.join(where)}")
+    print(f"{len(dupes)} duplicate class name(s) — these break every reference to the name")
+else:
+    print("\nNo duplicate top-level class names.")

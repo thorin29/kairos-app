@@ -1,4 +1,9 @@
 # Changelog
+## 0.360.1
+
+- Fixed the build: the new weekday DTO was called PlanDayDto, a name already taken
+  by the plan editor's own type. It is PlanWeekdayDto now.
+
 ## 0.360.0
 
 - Progress is one block per muscle group, stacked, each with its own numbers and plot.

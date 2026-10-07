@@ -3,6 +3,19 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A duplicate class name breaks every file that uses it (v0.360.1)
+
+0.360.0 failed to compile: the new payload type was called `PlanDayDto`, and `PlanDayDto` already
+existed for the plan editor's day-of-workouts. The log did not read like one mistake — two
+redeclaration lines in `Dtos.kt` followed by fourteen "unresolved reference" errors in
+`EditPlanScreen.kt`, a file nobody had touched. Those were all the same ambiguity: once a name is
+declared twice, every reference to it fails, wherever it lives.
+
+`scripts/check-positional-args.py` now also reports duplicate top-level class names. The rule that
+would have prevented it is simpler than the script: **grep for the name before declaring a type.**
+`Dtos.kt` is two thousand lines and already had `PlanDayDto`, `PersonalPlanDayDto` and
+`PlanWorkoutDto`; assuming a name is free in a file that size is a guess, not a design decision.
+
 ## The lift view, mirrored from the web (v0.359.0)
 
 Same shape as the web now: stat tiles first, then "Show details" opening best-weight-per-rep-count,

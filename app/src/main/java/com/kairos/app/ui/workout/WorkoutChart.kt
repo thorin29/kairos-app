@@ -39,7 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.GraphPointDto
-import com.kairos.app.data.remote.dto.PlanDayDto
+import com.kairos.app.data.remote.dto.PlanWeekdayDto
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
 import java.time.LocalDate
 import kotlin.math.ceil
@@ -59,7 +59,7 @@ private val LINE = Color(0xFF0F766E)
 fun WorkoutChart(
     series: List<ProgressSeriesDto>,
     defaultId: String?,
-    planDays: List<PlanDayDto> = emptyList(),
+    planDays: List<PlanWeekdayDto> = emptyList(),
 ) {
     if (series.isEmpty()) return
     // One block per muscle group, stacked and scrollable, rather than a picker
@@ -102,7 +102,7 @@ private fun muscleLabelFor(raw: String): String =
 private fun LiftBlock(
     s: ProgressSeriesDto,
     series: List<ProgressSeriesDto>,
-    planDays: List<PlanDayDto>,
+    planDays: List<PlanWeekdayDto>,
 ) {
     val selectedId = s.poolExerciseId
     val points = s.points
@@ -462,7 +462,7 @@ private fun CardTitle(title: String, sub: String) {
 private fun LiftDetailCards(
     series: List<ProgressSeriesDto>,
     selected: ProgressSeriesDto,
-    planDays: List<PlanDayDto>,
+    planDays: List<PlanWeekdayDto>,
 ) {
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
