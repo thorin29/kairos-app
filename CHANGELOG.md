@@ -1,4 +1,12 @@
 # Changelog
+## 0.359.0
+
+- The lift view leads with the numbers — record, 30-day change, time since your best
+  and session count, each in its own tile — and the chart moved behind "Show details".
+- Show details adds three cards, matching the web: best weight at each rep count,
+  which lifts have moved in 90 days, and a 16-week grid of the days you logged a set,
+  coloured by movement with a key.
+
 ## 0.358.0
 
 - Swap sits just after the movement name in a fixed column, so it is in the same

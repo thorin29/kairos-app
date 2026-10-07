@@ -3,6 +3,19 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## The lift view, mirrored from the web (v0.359.0)
+
+Same shape as the web now: stat tiles first, then "Show details" opening best-weight-per-rep-count,
+which lifts have moved over 90 days, the attendance grid, and the session plot last. The web was
+built first on purpose — it typechecks here and the phone does not, so the layout was settled
+where mistakes are cheap and then copied.
+
+Two details worth keeping. The 90-day bars use a **fixed 30% scale**, widened only if something
+beats it; scaling to the largest lift made a single movement fill the whole track and look like a
+bar chart of one thing. And the attendance grid is coloured per movement from a fixed eight-colour
+list with a key underneath, because one colour answered "did you train" but not "at what" — and a
+grid with no key is decoration.
+
 ## One card, two backgrounds (v0.357.0)
 
 Overdue and today's workouts had drifted into two separate composables: different button sizes
