@@ -1,4 +1,9 @@
 # Changelog
+## 0.358.0
+
+- Swap sits just after the movement name in a fixed column, so it is in the same
+  place on every card instead of pinned to the right edge.
+
 ## 0.357.0
 
 - Overdue and today's cards are now the same card, differing only in background:

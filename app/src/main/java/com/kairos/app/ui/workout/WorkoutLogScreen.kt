@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -550,12 +551,18 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // The name gets a fixed column and the swap pill sits right after
+            // it, so the pill lands in the same place on every card. Giving the
+            // name weight(1f) instead pushed the pill to the far edge and moved
+            // it with every change of movement name.
             Text(
                 m.name,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
-                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.width(150.dp),
             )
             // Swap this movement for a variation TODAY only — front squat for back
             // squat. The weekly plan is untouched; next week comes back as planned.
@@ -601,6 +608,7 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     }
                 }
             }
+            Spacer(Modifier.weight(1f))
         }
         if (!m.skipped) {
             if (m.swappedFromName != null) {
