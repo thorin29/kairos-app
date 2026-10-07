@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -31,6 +34,15 @@ class SyncManagerServerRecoveryTest {
     private lateinit var queue: WriteQueue
     private lateinit var server: MockWebServer
 
+    /** What the mock server answers, for as many requests as arrive. */
+    @Volatile private var reply: Int = 200
+    @Volatile private var replyBody: String = """{"status":"ok"}"""
+
+    private fun serverAnswers(code: Int, body: String) {
+        reply = code
+        replyBody = body
+    }
+
     @Before fun setUp() {
         // Shared global: start every test from "server reachable" so the
         // unavailable -> reachable edge below is a real transition.
@@ -40,6 +52,16 @@ class SyncManagerServerRecoveryTest {
         val ds = PreferenceDataStoreFactory.create(scope = scope) { File(dir, "q.preferences_pb") }
         queue = WriteQueue(ds, Json { ignoreUnknownKeys = true })
         server = MockWebServer()
+        // A standing reply rather than a one-shot queue. SyncManager's init
+        // launches a startup replay on Dispatchers.IO, so the number of requests
+        // a test receives is not deterministic: with server.enqueue() the
+        // startup pass could take the only response and the test's own pass
+        // would meet an empty queue, get a client error, and drop the write.
+        // Every request gets the current answer; tests set what that is.
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                MockResponse().setResponseCode(reply).setBody(replyBody)
+        }
         server.start()
     }
 
@@ -80,14 +102,15 @@ class SyncManagerServerRecoveryTest {
         val sync = manager(online)
         queue.enqueue(queuedWrite())
 
-        // Still down: the pass runs, gets a 502, and keeps the write.
-        server.enqueue(MockResponse().setResponseCode(502).setBody("bad gateway"))
+        // Still down: the pass runs, gets a 502, and keeps the write. Any
+        // startup pass gets the same 502, so it cannot change the outcome.
+        serverAnswers(502, "bad gateway")
         sync.replayAll()
         assertEquals(1, queue.snapshot().size)
 
         // The server comes back. This is the signal a live GET produces; the
         // phone's connectivity never changed.
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"status":"ok"}"""))
+        serverAnswers(200, """{"status":"ok"}""")
         ServerStatusTracker.markUnavailable()
         ServerStatusTracker.markReachable()
         sync.replayAll()
@@ -101,7 +124,7 @@ class SyncManagerServerRecoveryTest {
         val sync = manager(online)
         queue.enqueue(queuedWrite())
 
-        server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"validation"}"""))
+        serverAnswers(400, """{"error":"validation"}""")
         sync.replayAll()
 
         assertEquals(0, queue.snapshot().size)
@@ -117,7 +140,7 @@ class SyncManagerServerRecoveryTest {
         val online = MutableStateFlow(true)
         manager(online)
         queue.enqueue(queuedWrite())
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"status":"ok"}"""))
+        serverAnswers(200, """{"status":"ok"}""")
 
         // What the interceptor does: 502 marks it unavailable, a later live
         // success marks it reachable. The pause matters — StateFlow conflates,
@@ -129,7 +152,9 @@ class SyncManagerServerRecoveryTest {
         withTimeout(5_000) {
             while (queue.snapshot().isNotEmpty()) delay(50)
         }
-        assertEquals(1, server.requestCount)
+        // At least one, not exactly one: the startup replay may also have run.
+        // What this test is about is the queue draining with no manual call.
+        assertTrue(server.requestCount >= 1)
     }
 
     /** Offline means nothing is sent at all — the queue is left intact. */

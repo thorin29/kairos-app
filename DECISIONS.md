@@ -3,6 +3,27 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A test that races the thing it is testing (v0.361.1)
+
+`SyncManagerServerRecoveryTest` enqueued exactly one mock response per request it expected.
+But `SyncManager`'s `init` does `scope.launch(Dispatchers.IO) { replayAll() }`, and `launch`
+orders nothing relative to the `queue.enqueue()` on the next line of the test. When the startup
+pass won, it took the only queued 502, and the test's own `replayAll()` met an empty MockWebServer,
+read the result as a client error, and dropped the write — so the first assertion saw 0 where it
+wanted 1.
+
+The test's own comment asserted this could not happen ("the startup pass then no-ops and can't race
+this test"), which was true only while the queue was empty at construction. It stopped being true
+one line later.
+
+Fixed by giving MockWebServer a standing `Dispatcher` instead of a one-shot queue: every request
+gets the current answer, so how many passes run no longer decides the result. The collector test
+also relaxed from `requestCount == 1` to `>= 1`, because what it is actually about is the queue
+draining without a manual call, not the call count.
+
+A one-shot mock response is an assertion about concurrency that the test never states. Where
+production code starts its own work in `init`, the mock has to answer every caller.
+
 ## A unit that is only implied will be read two ways (v0.361.0)
 
 The server stores DURATION in seconds. The web multiplied its input by 60, so its single

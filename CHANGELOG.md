@@ -1,4 +1,9 @@
 # Changelog
+## 0.361.1
+
+- Fixed a flaky sync test. No app behaviour changed; the test raced SyncManager's
+  own startup replay for a single mock response.
+
 ## 0.361.0
 
 - A held movement (a plank, a wall sit) is logged as minutes and seconds instead of a
