@@ -1,4 +1,10 @@
 # Changelog
+## 0.373.0
+
+- Workout days now fits the screen, so the current week is always the last column.
+  Sixteen fixed columns were wider than a phone, and the newest ones — including
+  this week — were being drawn past the right edge.
+
 ## 0.372.0
 
 - A day with three muscle groups splits into wedges, four into quadrants, five or

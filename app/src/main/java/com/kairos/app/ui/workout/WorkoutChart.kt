@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -760,9 +761,21 @@ private fun ProgressSummaryCards(
         // the window's start earlier without moving its end, so it finished at
         // today minus the weekday — on a Wednesday the current week was
         // missing and today never appeared at all.
-        val start = today.minusDays(today.dayOfWeek.value.toLong() % 7).minusWeeks(15)
         val dow = listOf("S", "M", "T", "W", "T", "F", "S")
-        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Fit the weeks to the width rather than drawing a fixed sixteen. On a
+        // phone sixteen columns come to ~364dp before the card's padding, so
+        // the newest ones — including the week in progress — were rendered off
+        // the right edge: the data was there, the screen was not. Measuring
+        // instead means the current week is always the last visible column and
+        // the oldest simply fall away as time moves on.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val cell = 18.dp
+        val gap = 4.dp
+        val rail = 12.dp
+        val weeks = (((maxWidth - rail - gap) / (cell + gap)).toInt()).coerceIn(4, 16)
+        val start = today.minusDays(today.dayOfWeek.value.toLong() % 7)
+            .minusWeeks((weeks - 1).toLong())
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(gap)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Spacer(Modifier.height(14.dp))
                 rows.forEach { d ->
@@ -770,11 +783,11 @@ private fun ProgressSummaryCards(
                         dow[d],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(12.dp).height(18.dp),
+                        modifier = Modifier.width(rail).height(cell),
                     )
                 }
             }
-            (0 until 16).forEach { w ->
+            (0 until weeks).forEach { w ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val firstOfCol = start.plusDays((w * 7).toLong())
                     val prevMonth = if (w == 0) -1 else start.plusDays(((w - 1) * 7).toLong()).monthValue
@@ -790,7 +803,7 @@ private fun ProgressSummaryCards(
                         val cs = hits.mapNotNull { colourOf[it] }
                         Box(
                             Modifier
-                                .size(18.dp)
+                                .size(cell)
                                 .clip(RoundedCornerShape(4.dp))
                                 .then(
                                     when {
@@ -843,6 +856,7 @@ private fun ProgressSummaryCards(
                     }
                 }
             }
+        }
         }
         FlowRow(
             Modifier.fillMaxWidth().padding(top = 6.dp),

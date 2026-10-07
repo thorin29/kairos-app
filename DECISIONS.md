@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-10 — Workout days was drawing off the edge of the phone (v0.373.0)
+
+0.371 fixed the date window and the current week still did not appear, because the window was never
+the whole problem. The grid drew a fixed sixteen columns: 16 x (18dp + 4dp gap) + a 12dp weekday
+rail is ~364dp, and a phone's content width after card padding is ~330-360dp. The newest columns,
+the week in progress among them, were laid out past the right edge of a Row that does not scroll.
+The data was right, the dates were right, and the pixels were off-screen.
+
+`BoxWithConstraints` now measures the available width and draws as many weeks as fit
+(`(maxWidth - rail - gap) / (cell + gap)`, clamped 4..16), anchored so the current week is always
+the last column. 14 weeks on a 360dp phone, 16 on a 412dp one, and older weeks fall away on their
+own as time moves forward — which is the behaviour asked for rather than a fixed horizon.
+
+The lesson for next time: when a layout fix does not take, check whether the thing is being drawn
+somewhere you cannot see before changing the logic again. Two releases went into the date maths
+while the real fault was that the row was wider than the screen.
+
 ## 2026-10 — Three, four, five muscle groups on a day (v0.372.0)
 
 Matching the web: three and four cut from the centre via a hard-stop `Brush.sweepGradient` — thirds
