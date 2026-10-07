@@ -1,4 +1,13 @@
 # Changelog
+## 0.367.0
+
+- Chart dots and rep bars take the muscle group's colour, matching the body map and
+  the web.
+- Section labels are muted instead of accent-coloured, so the screen is not all one
+  colour, and "Additional charts" is now large enough to find.
+- Removed the rep pills under the chart; they repeated the card above them.
+- "Best weight at each rep count" is now "Best reps per weight".
+
 ## 0.366.0
 
 - Both bodies stay on screen; a back-only lift leaves the front grey rather than

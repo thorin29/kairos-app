@@ -244,6 +244,9 @@ private fun LiftBlock(
     fun py(v: Double, h: Float): Float =
         if (yMax == yMin) h / 2f else (h - ((v - yMin) / (yMax - yMin)).toFloat() * h)
 
+    // The muscle group's colour, not the chart default: the dots should read as
+    // the same thing the body map above just highlighted.
+    val dotTone = muscleColor(s.muscleGroup) ?: LINE
     var tapped by remember(selectedId) { mutableStateOf<GraphPointDto?>(null) }
     var tappedOffset by remember(selectedId) { mutableStateOf(Offset.Zero) }
 
@@ -338,7 +341,8 @@ private fun LiftBlock(
 
         Text(
             if (showDetails) "Hide charts" else "Additional charts",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -412,7 +416,7 @@ private fun LiftBlock(
                         val pts = points.mapNotNull { p -> epochDay(p.date)?.let { Offset(px(it, w), py(p.value, h)) } }
                         // Points only, no connecting stroke: a line between two
                         // sessions draws a lift on days nobody trained.
-                        pts.forEach { drawCircle(LINE, radius = 5f, center = it) }
+                        pts.forEach { drawCircle(dotTone, radius = 5f, center = it) }
                         tapped?.let { drawCircle(Color.White, radius = 4f, center = tappedOffset) }
                     }
 
@@ -453,28 +457,9 @@ private fun LiftBlock(
                 )
             }
 
-            // Best weight actually lifted at each rep count. Only rep counts that
-            // have been logged appear, so this fills in as reps get recorded rather
-            // than showing a grid of blanks.
-            if (s.repMaxes.isNotEmpty()) {
-                FlowRow(
-                    Modifier.fillMaxWidth().padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    s.repMaxes.forEach { r ->
-                        Text(
-                            "${r.reps}r \u00b7 ${fmt(r.value)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-            }
+            // The rep-max pills that used to sit here said the same thing as
+            // the "Best reps per weight" card directly above, detached from any
+            // chart and from each other. One place is enough.
         }
     }
 }
@@ -564,7 +549,9 @@ private fun CardTitle(title: String, sub: String) {
         title.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
+        // Muted, matching the web. These are labels, not the content; painting
+        // them in the theme accent made the whole screen one colour.
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     if (sub.isNotBlank()) {
         Text(
@@ -590,14 +577,14 @@ private fun CardTitle(title: String, sub: String) {
 private fun LiftRepMaxCard(
     selected: ProgressSeriesDto,
 ) {
-    val bar = MaterialTheme.colorScheme.primary
+    val bar = muscleColor(selected.muscleGroup) ?: MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
 
     // What you can lift \u2014 real sets only, so a rep count never lifted is absent.
     if (selected.repMaxes.isEmpty()) {
         // A card that simply disappears reads as a feature that was never
         // built. Say why it is empty instead.
-        CardTitle("Best weight at each rep count", "")
+        CardTitle("Best reps per weight", "")
         Text(
             "Nothing yet \u2014 this fills in as you log reps beside the weight.",
             style = MaterialTheme.typography.labelSmall,
@@ -607,7 +594,7 @@ private fun LiftRepMaxCard(
         Spacer(Modifier.height(10.dp))
     }
     if (selected.repMaxes.isNotEmpty()) {
-        CardTitle("Best weight at each rep count", selected.name)
+        CardTitle("Best reps per weight", selected.name)
         val max = selected.repMaxes.maxOf { it.value }.coerceAtLeast(1.0)
         selected.repMaxes.sortedBy { it.reps }.forEach { r ->
             Row(

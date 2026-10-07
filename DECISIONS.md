@@ -3,6 +3,24 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## 2026-10 — Chart colour comes from the muscle, not the theme (v0.367.0)
+
+Dots and rep-max bars take `muscleColor(...)`, the shared palette, falling back to the theme accent
+only when a movement has no group. That constant is identical on web and Android and independent of
+`ThemeScheme`, so the chart matches the body map above it and the two platforms agree whatever
+theme a device is set to.
+
+`CardTitle` was painting every section label in the theme accent, which made the whole screen one
+colour and left "Additional charts" indistinguishable from the headings around it. Labels are
+`onSurfaceVariant` now, matching the web's muted grey, and the disclosure is `titleSmall` +
+SemiBold so it reads as the control it is.
+
+The rep-max pills below the chart ("2r · 175") duplicated the card directly above them, detached
+from any chart and from each other. Removed.
+
+Not a bug, recorded so it is not "fixed" later: the app's accent differs from the web's because
+`ThemeScheme` is a LOCAL device setting in `SettingsStore`, never synced from the server.
+
 ## 2026-10 — Matching the web's progress layout (v0.366.0)
 
 `view` no longer removes a figure. Both are always drawn; fills are computed per figure
