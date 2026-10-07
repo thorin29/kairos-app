@@ -153,9 +153,11 @@ fun WorkoutChart(
                 if (picked != null) {
                     // The app has no Material Icons dependency; KairosIcons is
                     // the app's own set, drawn from the same path data as the
-                    // web's, so this is the same calendar glyph on both.
+                    // web's, so this is the same glyph on both. Reset rather
+                    // than a calendar: the button undoes a selection, it does
+                    // not open a date.
                     Icon(
-                        KairosIcons.Calendar,
+                        KairosIcons.Refresh,
                         contentDescription = "Back to today's workout",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier

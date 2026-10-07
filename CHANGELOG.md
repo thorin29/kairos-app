@@ -1,4 +1,9 @@
 # Changelog
+## 0.370.0
+
+- The button that clears a muscle selection is a reset icon rather than a calendar;
+  it undoes a selection, it does not open a date.
+
 ## 0.369.0
 
 - An opened "Additional charts" no longer runs straight into "Lift progress" — there
