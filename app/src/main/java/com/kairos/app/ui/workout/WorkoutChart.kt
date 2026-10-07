@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,8 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.GraphPointDto
+import com.kairos.app.data.remote.dto.PlanDayDto
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
-import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -57,19 +55,56 @@ private val LINE = Color(0xFF0F766E)
  * chart opens a list of your tracked movements to switch. Stepped y-scale
  * (nearest 10 lb / 5 kg). Tap a point to see its date + weight.
  */
+@Composable
+fun WorkoutChart(
+    series: List<ProgressSeriesDto>,
+    defaultId: String?,
+    planDays: List<PlanDayDto> = emptyList(),
+) {
+    if (series.isEmpty()) return
+    // One block per muscle group, stacked and scrollable, rather than a picker
+    // that showed one movement and hid the rest. A Core + Legs day reads as two
+    // headed sections instead of a dropdown you have to discover.
+    val groups = series
+        .filter { it.points.isNotEmpty() }
+        .groupBy { it.muscleGroup ?: "_other" }
+        .map { (key, items) ->
+            Triple(
+                key,
+                if (key == "_other") "Other" else muscleLabelFor(key),
+                items.sortedBy { it.name.lowercase() },
+            )
+        }
+        .sortedWith(compareBy({ it.first == "_other" }, { it.second.lowercase() }))
+
+    Column(Modifier.fillMaxWidth()) {
+        groups.forEach { (key, label, items) ->
+            Text(
+                label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
+            )
+            items.forEach { item ->
+                LiftBlock(item, series, planDays)
+            }
+        }
+    }
+}
+
+private fun muscleLabelFor(raw: String): String =
+    raw.split('_').joinToString(" ") { it.lowercase() }
+        .replaceFirstChar { it.uppercase() }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
-    if (series.isEmpty()) return
-
-    var selectedId by remember(series, defaultId) {
-        mutableStateOf(
-            defaultId?.takeIf { id -> series.any { it.poolExerciseId == id } }
-                ?: series.firstOrNull { it.points.isNotEmpty() }?.poolExerciseId
-                ?: series.first().poolExerciseId,
-        )
-    }
-    val s = series.firstOrNull { it.poolExerciseId == selectedId } ?: series.first()
+private fun LiftBlock(
+    s: ProgressSeriesDto,
+    series: List<ProgressSeriesDto>,
+    planDays: List<PlanDayDto>,
+) {
+    val selectedId = s.poolExerciseId
     val points = s.points
     val kg = s.unit == "kg"
     val step = if (kg) 5.0 else 10.0
@@ -98,32 +133,87 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
         // plot. The chart lives under "Show details" with everything else.
         val stats = remember(s.poolExerciseId, s.points) { liftStats(s) }
         var showDetails by remember { mutableStateOf(false) }
-        FlowRow(
+        val sorted = s.points.sortedBy { it.date }
+        val firstDay = sorted.firstOrNull()
+        val lastDay = sorted.lastOrNull()
+        // Two equal columns, three rows. They were fixed-width in a wrapping
+        // row before, which bunched them to the left with ragged gaps.
+        Column(
             Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            s.best?.let { b ->
-                StatTile(
-                    "record",
-                    fmt(b.value),
-                    s.unit + (b.reps?.let { " \u00d7 $it" } ?: ""),
-                    dateLabel(epochDay(b.date) ?: 0L),
-                )
+            listOf(
+                listOf<@Composable RowScope.() -> Unit>(
+                    {
+                        StatTile(
+                            "record",
+                            s.best?.let { fmt(it.value) } ?: "\u2014",
+                            s.unit,
+                            s.best?.let { longDate(it.date) } ?: "",
+                            Modifier.weight(1f),
+                        )
+                    },
+                    {
+                        StatTile(
+                            "reps",
+                            s.best?.reps?.toString() ?: "\u2014",
+                            if (s.best?.reps != null) "reps" else "",
+                            if (s.best?.reps != null) "at the record" else "none logged yet",
+                            Modifier.weight(1f),
+                        )
+                    },
+                ),
+                listOf<@Composable RowScope.() -> Unit>(
+                    {
+                        StatTile(
+                            "30 days",
+                            stats.delta?.let { (if (it > 0) "+" else "") + fmt(it) } ?: "\u2014",
+                            if (stats.delta != null) s.unit else "",
+                            when {
+                                stats.delta == null -> "no older session"
+                                stats.delta > 0 -> "still climbing"
+                                else -> "flat"
+                            },
+                            Modifier.weight(1f),
+                            up = (stats.delta ?: 0.0) > 0,
+                        )
+                    },
+                    {
+                        StatTile(
+                            "since best",
+                            stats.sincePR.removePrefix("best ").removeSuffix(" ago"),
+                            "",
+                            "last record",
+                            Modifier.weight(1f),
+                        )
+                    },
+                ),
+                listOf<@Composable RowScope.() -> Unit>(
+                    {
+                        StatTile(
+                            "sessions",
+                            stats.sessions.toString(),
+                            "",
+                            firstDay?.let { "since " + longDate(it.date) } ?: "",
+                            Modifier.weight(1f),
+                        )
+                    },
+                    {
+                        StatTile(
+                            "last",
+                            lastDay?.let { fmt(it.value) } ?: "\u2014",
+                            lastDay?.let { s.unit + (it.reps?.let { r -> " \u00d7 " + r } ?: "") } ?: "",
+                            lastDay?.let { longDate(it.date) } ?: "",
+                            Modifier.weight(1f),
+                        )
+                    },
+                ),
+            ).forEach { row ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) { row.forEach { it() } }
             }
-            StatTile(
-                "30 days",
-                stats.delta?.let { (if (it > 0) "+" else "") + fmt(it) } ?: "\u2014",
-                if (stats.delta != null) s.unit else "",
-                when {
-                    stats.delta == null -> "no older session"
-                    stats.delta > 0 -> "still climbing"
-                    else -> "flat"
-                },
-                up = (stats.delta ?: 0.0) > 0,
-            )
-            StatTile("since best", stats.sincePR.removePrefix("best ").removeSuffix(" ago"), "", "last record")
-            StatTile("sessions", stats.sessions.toString(), "", "logged")
         }
 
         Text(
@@ -136,35 +226,8 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
                 .padding(vertical = 6.dp, horizontal = 2.dp),
         )
 
-        // Movement selector — tap the name to switch (tracked movements only).
-        Box(Modifier.padding(top = 8.dp)) {
-            var open by remember { mutableStateOf(false) }
-            Row(
-                Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { open = true }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(s.name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.width(4.dp))
-                Icon(KairosIcons.ChevronDown, contentDescription = "Change movement", modifier = Modifier.width(16.dp))
-            }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                series.forEach { item ->
-                    DropdownMenuItem(
-                        text = { Text(item.name) },
-                        onClick = {
-                            selectedId = item.poolExerciseId
-                            open = false
-                        },
-                    )
-                }
-            }
-        }
         if (showDetails) {
-            LiftDetailCards(series = series, selected = s)
+            LiftDetailCards(series = series, selected = s, planDays = planDays)
             Spacer(Modifier.height(10.dp))
             Text(
                 "EVERY SESSION",
@@ -223,8 +286,9 @@ fun WorkoutChart(series: List<ProgressSeriesDto>, defaultId: String?) {
                             drawLine(gridDash, Offset(0f, y), Offset(w, y), 1f, pathEffect = dash)
                         }
                         val pts = points.mapNotNull { p -> epochDay(p.date)?.let { Offset(px(it, w), py(p.value, h)) } }
-                        for (i in 1 until pts.size) drawLine(LINE, pts[i - 1], pts[i], 3f)
-                        pts.forEach { drawCircle(LINE, radius = 8f, center = it) }
+                        // Points only, no connecting stroke: a line between two
+                        // sessions draws a lift on days nobody trained.
+                        pts.forEach { drawCircle(LINE, radius = 5f, center = it) }
                         tapped?.let { drawCircle(Color.White, radius = 4f, center = tappedOffset) }
                     }
 
@@ -297,6 +361,19 @@ private fun epochDay(iso: String): Long? = try {
     null
 }
 
+/** "29 Sep" \u2014 a date a person reads, not 9/29. */
+private fun longDate(iso: String): String = try {
+    val d = LocalDate.parse(iso)
+    d.dayOfMonth.toString() + " " + MONTHS[d.monthValue - 1]
+} catch (e: Exception) {
+    ""
+}
+
+private val MONTHS = listOf(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
 private fun dateLabel(epochDay: Long): String = try {
     val d = LocalDate.ofEpochDay(epochDay)
     "${d.monthValue}/${d.dayOfMonth}"
@@ -316,11 +393,11 @@ private fun StatTile(
     value: String,
     unit: String,
     sub: String,
+    modifier: Modifier = Modifier,
     up: Boolean = false,
 ) {
     Column(
-        Modifier
-            .width(150.dp)
+        modifier
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -382,13 +459,29 @@ private fun CardTitle(title: String, sub: String) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LiftDetailCards(series: List<ProgressSeriesDto>, selected: ProgressSeriesDto) {
+private fun LiftDetailCards(
+    series: List<ProgressSeriesDto>,
+    selected: ProgressSeriesDto,
+    planDays: List<PlanDayDto>,
+) {
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
 
     // What you can lift \u2014 real sets only, so a rep count never lifted is absent.
+    if (selected.repMaxes.isEmpty()) {
+        // A card that simply disappears reads as a feature that was never
+        // built. Say why it is empty instead.
+        CardTitle("Best weight at each rep count", "")
+        Text(
+            "Nothing yet \u2014 this fills in as you log reps beside the weight.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+        Spacer(Modifier.height(10.dp))
+    }
     if (selected.repMaxes.isNotEmpty()) {
-        CardTitle("What you can lift", selected.name)
+        CardTitle("Best weight at each rep count", selected.name)
         val max = selected.repMaxes.maxOf { it.value }.coerceAtLeast(1.0)
         selected.repMaxes.sortedBy { it.reps }.forEach { r ->
             Row(
@@ -486,45 +579,65 @@ private fun LiftDetailCards(series: List<ProgressSeriesDto>, selected: ProgressS
         Spacer(Modifier.height(10.dp))
     }
 
-    // Did you show up. One square per day over 16 weeks, coloured by the
-    // movement logged, so every workout reads on one grid. A rested or
-    // untracked day leaves no mark, which is why it says "logged".
+    // Workout days. One square per day, coloured by MUSCLE GROUP \u2014 the
+    // question is which days were trained, not which bar was held. Only
+    // weekdays the plan uses get a row: a row for a day nobody trains is noise,
+    // and a rotation plan has no weekday shape to draw at all.
     val palette = listOf(
         Color(0xFF2A78D6), Color(0xFFEB6834), Color(0xFF1BAF7A), Color(0xFFEDA100),
         Color(0xFFE87BA4), Color(0xFF008300), Color(0xFF4A3AA7), Color(0xFFE34948),
     )
-    val logged = series.filter { it.points.isNotEmpty() }.take(8)
-    val colourOf = logged.mapIndexed { i, sr -> sr.poolExerciseId to palette[i % palette.size] }.toMap()
-    val byDate = mutableMapOf<String, MutableList<Color>>()
-    logged.forEach { sr ->
-        val c = colourOf[sr.poolExerciseId] ?: bar
-        sr.points.forEach { p -> byDate.getOrPut(p.date) { mutableListOf() }.let { if (!it.contains(c)) it.add(c) } }
+    val groupsSeen = series.filter { it.points.isNotEmpty() }
+        .map { it.muscleGroup ?: "_other" }
+        .distinct()
+        .sortedWith(compareBy({ it == "_other" }, { muscleLabelFor(it).lowercase() }))
+    val colourOf = groupsSeen.mapIndexed { i, g -> g to palette[i % palette.size] }.toMap()
+    val byDate = mutableMapOf<String, MutableList<String>>()
+    series.forEach { sr ->
+        val g = sr.muscleGroup ?: "_other"
+        sr.points.forEach { p ->
+            byDate.getOrPut(p.date) { mutableListOf() }.let { if (!it.contains(g)) it.add(g) }
+        }
     }
+
+    val rows = if (planDays.isNotEmpty()) planDays.map { it.day }.distinct().sorted()
+    else (0..6).toList()
+
     if (byDate.isNotEmpty()) {
-        CardTitle("Did you show up", "One square per day, coloured by movement")
+        CardTitle("Workout days", "")
         val today = LocalDate.now()
-        val start = today.minusDays(111).let { it.minusDays(((it.dayOfWeek.value + 6) % 7).toLong()) }
-        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                listOf("M", "", "W", "", "F", "", "").forEach { d ->
+        val start = today.minusDays(111).let { it.minusDays(it.dayOfWeek.value.toLong() % 7) }
+        val dow = listOf("S", "M", "T", "W", "T", "F", "S")
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Spacer(Modifier.height(14.dp))
+                rows.forEach { d ->
                     Text(
-                        d,
+                        dow[d],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(10.dp).height(13.dp),
+                        modifier = Modifier.width(12.dp).height(18.dp),
                     )
                 }
             }
             (0 until 16).forEach { w ->
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    (0 until 7).forEach { d ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val firstOfCol = start.plusDays((w * 7).toLong())
+                    val prevMonth = if (w == 0) -1 else start.plusDays(((w - 1) * 7).toLong()).monthValue
+                    Text(
+                        if (firstOfCol.monthValue != prevMonth) MONTHS[firstOfCol.monthValue - 1] else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.height(14.dp),
+                    )
+                    rows.forEach { d ->
                         val day = start.plusDays((w * 7 + d).toLong()).toString()
-                        val hits = byDate[day]
+                        val hits = byDate[day].orEmpty()
                         Box(
                             Modifier
-                                .size(13.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(hits?.firstOrNull() ?: track),
+                                .size(18.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(hits.firstOrNull()?.let { colourOf[it] } ?: track),
                         )
                     }
                 }
@@ -535,16 +648,16 @@ private fun LiftDetailCards(series: List<ProgressSeriesDto>, selected: ProgressS
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            logged.forEach { sr ->
+            groupsSeen.forEach { g ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
-                            .size(9.dp)
+                            .size(10.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(colourOf[sr.poolExerciseId] ?: bar),
+                            .background(colourOf[g] ?: bar),
                     )
                     Text(
-                        " " + sr.name,
+                        " " + if (g == "_other") "Other" else muscleLabelFor(g),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

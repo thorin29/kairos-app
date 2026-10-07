@@ -1,4 +1,17 @@
 # Changelog
+## 0.360.0
+
+- Progress is one block per muscle group, stacked, each with its own numbers and plot.
+  The movement dropdown is gone — it hid everything but one lift.
+- Six equal tiles per movement, including reps at the record and your last session.
+  Dates read "29 Sep".
+- "Workout days" replaces "Did you show up": coloured by muscle group, a row only for
+  weekdays your plan uses, Sunday first, month labels and bigger squares.
+- The session plot draws points only, no connecting line.
+- The rep-count card says why it is empty instead of disappearing.
+- Removed the TODAY card; each progress block is headed by its muscle group instead.
+  Needs web 0.545.
+
 ## 0.359.0
 
 - The lift view leads with the numbers — record, 30-day change, time since your best

@@ -156,7 +156,7 @@ fun WorkoutsScreen(
                                     fontWeight = FontWeight.SemiBold,
                                 )
                                 Spacer(Modifier.height(8.dp))
-                                WorkoutChart(p.series, p.defaultId)
+                                WorkoutChart(p.series, p.defaultId, p.planDays)
                             }
                         }
                     }
@@ -190,21 +190,10 @@ fun WorkoutsScreen(
                         }
                     }
 
-                    OutlinedCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(14.dp)) {
-                            Text(
-                                "TODAY",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                ui.planName ?: "No workout planned",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
+                    // The TODAY card is gone: it listed the day's plan names
+                    // ("Core \u00b7 Core \u00b7 Legs") and said nothing the Progress
+                    // section above does not, which now heads each block with
+                    // its muscle group.
 
                     // Overdue days are a different thing from today, and "Rest /
                     // skip" below only ever clears TODAY. Without this, skipping

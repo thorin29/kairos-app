@@ -171,7 +171,10 @@ class WorkoutLogViewModel(
         }
         val todayBlocks = src.map { b -> toBlock(b, b.plannedWorkoutId, null, false) }
         val blocks = overdueBlocks + todayBlocks
-        val planName = if (todayBlocks.isEmpty()) null else todayBlocks.joinToString(" \u00b7 ") { it.name }
+        // Each name once: two Core plans on a day are two blocks but one name to
+        // the reader ("Core \u00b7 Core \u00b7 Legs" said nothing the single "Core" did).
+        val planName = if (todayBlocks.isEmpty()) null
+        else todayBlocks.map { it.name }.distinctBy { it.lowercase() }.joinToString(" \u00b7 ")
         _ui.update {
             it.copy(loading = false, loggable = plan.loggable, date = plan.date, blocks = blocks, planName = planName)
         }
