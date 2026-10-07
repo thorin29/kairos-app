@@ -541,6 +541,7 @@ private fun utcMillisToIso(millis: Long): String =
 @Composable
 private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewModel) {
     val maxHint = m.metric == "WEIGHT"
+    val isTime = m.metric == "DURATION"
     var swapping by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         // The movement always names itself, with its swap control on the same
@@ -625,13 +626,31 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                 OutlinedTextField(
                     value = m.value,
                     onValueChange = { vm.onValue(planId, m.poolExerciseId, it) },
-                    placeholder = { Text(if (maxHint) "weight" else "0") },
+                    placeholder = { Text(if (isTime) "0" else if (maxHint) "weight" else "0") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.width(128.dp),
+                    modifier = Modifier.width(if (isTime) 72.dp else 128.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // A held movement takes minutes and seconds, never one "time"
+                // box: the server stores seconds and a bare number cannot say
+                // which it meant.
+                if (isTime) {
+                    Text("min", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = m.seconds,
+                        onValueChange = { vm.onSeconds(planId, m.poolExerciseId, it) },
+                        placeholder = { Text("00") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.width(72.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("sec", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 // Reps for the top set. Optional, and only for weights: without it
                 // 185 x 5 and 185 x 12 log identically and the months of rep
                 // progress between weight jumps never show up anywhere.

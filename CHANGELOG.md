@@ -1,4 +1,12 @@
 # Changelog
+## 0.361.0
+
+- A held movement (a plank, a wall sit) is logged as minutes and seconds instead of a
+  single number. The server stores seconds; this used to send whatever was typed, so the
+  same plank logged here and on the web differed by sixtyfold. Needs web 0.546.1.
+- A previously logged hold reloads into the right boxes rather than putting its seconds
+  in the minutes field.
+
 ## 0.360.1
 
 - Fixed the build: the new weekday DTO was called PlanDayDto, a name already taken

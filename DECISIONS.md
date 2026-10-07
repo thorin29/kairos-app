@@ -3,6 +3,21 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## A unit that is only implied will be read two ways (v0.361.0)
+
+The server stores DURATION in seconds. The web multiplied its input by 60, so its single
+"time" box meant minutes. This app sent whatever was typed, so the same box meant seconds.
+Nobody noticed because a weights plan could not hold a DURATION movement until now — widening
+that made a sixtyfold disagreement reachable.
+
+Both clients now take minutes AND seconds and submit the sum in seconds. The fix is not a
+conversion on one side; it is removing the ambiguity, because a single box asking for "time"
+has no answer to "2 what". Prefill splits the stored seconds back across the two boxes, or a
+45-second plank reloads as 45 minutes.
+
+Worth remembering: this was found by asking what the OTHER client does with the same payload,
+not by testing this one. A client checked alone cannot reveal a disagreement.
+
 ## A duplicate class name breaks every file that uses it (v0.360.1)
 
 0.360.0 failed to compile: the new payload type was called `PlanDayDto`, and `PlanDayDto` already

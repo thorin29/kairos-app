@@ -28,6 +28,11 @@ data class MovementInput(
     val metric: String,
     val unit: String,
     val value: String,
+    /** Seconds for a DURATION movement; `value` holds the minutes. The server
+     *  stores duration in seconds, and a single "time" box could not say
+     *  whether 2 meant minutes or seconds — the web read it one way and this
+     *  read it the other, so the same plank logged twice differed by 60x. */
+    val seconds: String = "",
     /** Reps for the top set, WEIGHT movements only. Optional: blank logs exactly
      *  as it always did, and the weight remains the record either way. */
     val reps: String = "",
@@ -157,7 +162,20 @@ class WorkoutLogViewModel(
                         name = swapped?.name?.takeIf { it.isNotBlank() } ?: e.name,
                         metric = e.metric,
                         unit = e.unit,
-                        value = e.value?.let { fmt(it) } ?: "",
+                        // The server stores a DURATION in seconds, so split it
+                        // back into the minutes and seconds boxes. Dropping the
+                        // whole number into the minutes box would reload a
+                        // 45-second plank as 45 minutes.
+                        value = if (e.metric == "DURATION") {
+                            e.value?.let { (it.toInt() / 60).toString() } ?: ""
+                        } else {
+                            e.value?.let { fmt(it) } ?: ""
+                        },
+                        seconds = if (e.metric == "DURATION") {
+                            e.value?.let { (it.toInt() % 60).toString().padStart(2, '0') } ?: ""
+                        } else {
+                            ""
+                        },
                         plannedExerciseId = if (swapped != null) e.poolExerciseId else null,
                         swappedFromName = if (swapped != null) e.name else null,
                     )
@@ -228,6 +246,20 @@ class WorkoutLogViewModel(
     /** Reps for a movement's top set. Digits only, two of them — nobody logs a
      *  hundred-rep set, and it keeps the box small enough to sit beside the
      *  weight. */
+    /** Seconds box for a DURATION movement; minutes live in `onValue`. */
+    fun onSeconds(key: String, exId: String, v: String) {
+        val clean = v.filter { it.isDigit() }.take(2)
+        _ui.update { s ->
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.key != key) b
+                    else b.copy(inputs = b.inputs.map { if (it.poolExerciseId == exId) it.copy(seconds = clean) else it })
+                },
+                actionError = null,
+            )
+        }
+    }
+
     fun onReps(key: String, exId: String, v: String) {
         val clean = v.filter { it.isDigit() }.take(2)
         _ui.update { s ->
@@ -362,7 +394,14 @@ class WorkoutLogViewModel(
         viewModelScope.launch {
             try {
                 val entries = block.inputs.filter { !it.skipped }.mapNotNull { m ->
-                    m.value.trim().toDoubleOrNull()?.let { v ->
+                    val raw = if (m.metric == "DURATION") {
+                        val mins = m.value.trim().toDoubleOrNull() ?: 0.0
+                        val secs = m.seconds.trim().toDoubleOrNull() ?: 0.0
+                        (mins * 60 + secs).takeIf { it > 0 }
+                    } else {
+                        m.value.trim().toDoubleOrNull()
+                    }
+                    raw?.let { v ->
                         PlannedEntryDto(
                             m.poolExerciseId,
                             m.metric,
