@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -341,7 +342,7 @@ private fun LiftBlock(
 
         Text(
             if (showDetails) "Hide charts" else "Additional charts",
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
@@ -351,18 +352,13 @@ private fun LiftBlock(
         )
 
         if (showDetails) {
+            Spacer(Modifier.height(12.dp))
             // Only when there is something in it. An empty-state card inside a
             // disclosure called "Additional charts" is a chart that isn't one.
             if (s.repMaxes.isNotEmpty()) {
                 LiftRepMaxCard(selected = s)
                 Spacer(Modifier.height(10.dp))
             }
-            Text(
-                "EVERY SESSION",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
             Row(Modifier.fillMaxWidth().height(160.dp)) {
                 Column(
                     Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
@@ -729,7 +725,12 @@ private fun ProgressSummaryCards(
         .map { keyOf(it) }
         .distinct()
         .sortedBy { labelOf(it).lowercase() }
-    val colourOf = groupsSeen.mapIndexed { i, g -> g to palette[i % palette.size] }.toMap()
+    // The muscle group's own colour, so a square means the same thing here as
+    // it does on the body map. The positional palette is only for ungrouped
+    // movements, which have no fixed colour of their own.
+    val colourOf = groupsSeen.mapIndexed { i, g ->
+        g to (muscleColor(g) ?: palette[i % palette.size])
+    }.toMap()
     val byDate = mutableMapOf<String, MutableList<String>>()
     series.forEach { sr ->
         val g = keyOf(sr)
@@ -742,6 +743,7 @@ private fun ProgressSummaryCards(
     else (0..6).toList()
 
     if (byDate.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
         CardTitle("Workout days", "")
         val today = LocalDate.now()
         val start = today.minusDays(111).let { it.minusDays(it.dayOfWeek.value.toLong() % 7) }
@@ -771,11 +773,30 @@ private fun ProgressSummaryCards(
                     rows.forEach { d ->
                         val day = start.plusDays((w * 7 + d).toLong()).toString()
                         val hits = byDate[day].orEmpty()
+                        val c1 = hits.getOrNull(0)?.let { colourOf[it] } ?: track
+                        val c2 = hits.getOrNull(1)?.let { colourOf[it] } ?: c1
                         Box(
                             Modifier
                                 .size(18.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(hits.firstOrNull()?.let { colourOf[it] } ?: track),
+                                .then(
+                                    // Two groups on one day splits the square on
+                                    // the diagonal, the way the web does it.
+                                    if (hits.size >= 2) {
+                                        Modifier.background(
+                                            Brush.linearGradient(
+                                                0f to c1,
+                                                0.5f to c1,
+                                                0.5f to c2,
+                                                1f to c2,
+                                                start = Offset.Zero,
+                                                end = Offset.Infinite,
+                                            ),
+                                        )
+                                    } else {
+                                        Modifier.background(c1)
+                                    },
+                                ),
                         )
                     }
                 }

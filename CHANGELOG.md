@@ -1,4 +1,11 @@
 # Changelog
+## 0.368.0
+
+- Workout days squares take the muscle group's colour, matching the body map, and a
+  day with two muscle groups is split on the diagonal like the web.
+- "Additional charts" is larger; the "Every session" label is gone and the charts
+  have room between them instead of running together.
+
 ## 0.367.0
 
 - Chart dots and rep bars take the muscle group's colour, matching the body map and

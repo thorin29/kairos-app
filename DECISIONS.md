@@ -3,6 +3,23 @@
 Hard-won guardrails from building the app. Read alongside ARCHITECTURE.md and the
 web repo's `docs/API.md` (the contract) and `DECISIONS.md`.
 
+## 2026-10 — Workout days matches the body map (v0.368.0)
+
+Two divergences from the web, both in the same grid:
+
+**Colour.** `colourOf` assigned from the positional `palette`, so a square's colour depended on
+which groups happened to be present and matched nothing. It now takes `muscleColor(g)`, the shared
+constant the body map uses, falling back to the positional list only for ungrouped movements, which
+have no fixed colour of their own. A blue square means Legs on both platforms now.
+
+**Split days.** A day carrying two muscle groups filled with `hits.firstOrNull()` — the second
+group simply vanished. The square is now split on the diagonal with a hard-stop
+`Brush.linearGradient` (0–0.5 first colour, 0.5–1 second), matching the web's
+`linear-gradient(135deg, c1 0 50%, c2 50% 100%)`.
+
+Also: "Every session" labelled a chart that was plainly a chart, the disclosure was too small to
+find, and the sections ran into each other with no breathing room.
+
 ## 2026-10 — Chart colour comes from the muscle, not the theme (v0.367.0)
 
 Dots and rep-max bars take `muscleColor(...)`, the shared palette, falling back to the theme accent
