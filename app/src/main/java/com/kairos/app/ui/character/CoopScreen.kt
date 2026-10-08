@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -94,6 +97,11 @@ private fun CoopContent(data: CoopDto, ui: CoopUiState, vm: CoopViewModel) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        // Unfinished business first. A goal carried over from an earlier month
+        // sits above this month's progress, because burying it underneath is
+        // how it went unnoticed in the first place.
+        data.carried?.let { c -> CarriedGoalCard(c, data.isAdmin, data.childrenTotal, ui.busy, vm) }
+
         // Progress toward the gate
         OutlinedCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -122,6 +130,56 @@ private fun CoopContent(data: CoopDto, ui: CoopUiState, vm: CoopViewModel) {
 
         // Propose form
         ProposeForm(ui.busy) { title, detail -> vm.propose(title, detail) }
+    }
+}
+
+/**
+ * A goal chosen in an earlier month and never checked off.
+ *
+ * Its gate is its own month's — already decided — so either a parent can
+ * check it off now, or that month genuinely wasn't finished and it says so.
+ */
+@Composable
+private fun CarriedGoalCard(
+    c: com.kairos.app.data.remote.dto.CarriedGoalDto,
+    isAdmin: Boolean,
+    childrenTotal: Int,
+    busy: Boolean,
+    vm: CoopViewModel,
+) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Still to check off · ${c.seasonLabel}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFFB45309),
+            )
+            Text(c.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            c.detail?.takeIf { it.isNotBlank() }?.let { d ->
+                Text(d, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            when {
+                c.gateMet && isAdmin -> Button(
+                    onClick = { vm.grant(c.id) },
+                    enabled = !busy,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                ) {
+                    Icon(KairosIcons.Trophy, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (busy) "Saving\u2026" else "We did it")
+                }
+                c.gateMet -> Text(
+                    "Everyone finished ${c.seasonLabel} — waiting for a parent to hand it out.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF047857),
+                )
+                else -> Text(
+                    "${c.childrenMeeting} of $childrenTotal finished ${c.seasonLabel}, so this one never unlocked.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

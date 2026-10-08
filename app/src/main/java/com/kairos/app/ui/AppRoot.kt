@@ -430,6 +430,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenChores = { navController.navigate(Route.HomeChores) },
                         onOpenReading = { go(Route.Section("reading"), "reading") },
                         onOpenSchoolWork = { navController.navigate(Route.HomeSchoolWork) },
+                        onOpenCoop = { navController.navigate(Route.Coop) },
                         refreshKey = homeRefresh,
                     )
                 }

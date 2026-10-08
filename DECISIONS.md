@@ -1,5 +1,35 @@
 # Decisions
 
+## 2026-10 — The goal card loads on its own, not with the dashboard (v0.375.0)
+
+The obvious place for the home-screen goal card was the dashboard payload, next
+to `money` — that is how every other home card gets its data, in the one read
+the screen already makes.
+
+It went in its own view-model instead. The goal needs the server's progression
+query, the heaviest read there is, and `/dashboard` is the single most-hit
+endpoint in the app: folding it in would make every home refresh on every phone
+pay for the goal card. A separate `CoopViewModel` means the dashboard paints
+first and the card appears when it arrives — the same reasoning as the web's
+Suspense boundary, reached by a different mechanism. It is also cache-backed
+through `PayloadCacheStore`, so on a return visit or offline it paints
+immediately from the last payload.
+
+The side benefit is that this needed no server change at all. `/api/v1/coop`
+already returns everything the card needs, including `isAdmin` and now
+`carried`, so this is an app-only release.
+
+`CoopDto.carried` is appended at the END of the data class and nullable. Against
+a server older than web 0.565.0 the field is absent, decodes as null, and the
+card falls back to the current month — no failure. Nothing constructs `CoopDto`
+positionally, so appending was safe here, but the field still went last out of
+habit after the `WorkoutLogRequest` near-miss.
+
+A carried goal's gate comes from the carried record (`carried.gateMet`,
+`carried.childrenMeeting`), never from `CoopDto.gateMet`. That top-level field is
+this month's, and using it for a September goal would re-test an already-settled
+month against an empty October counter — closing a gate the family had earned.
+
 ## 2026-10 — The client has to say which day it logged on (v0.374.0)
 
 The server cannot infer it. A past `date` on a log means one of two things —

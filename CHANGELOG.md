@@ -1,4 +1,14 @@
 # Changelog
+## 0.375.0
+
+- The family goal now shows on the home screen, and a parent can check it off
+  there. The button only appears once every kid has finished their month.
+- A goal picked in an earlier month that was never checked off now carries
+  forward instead of disappearing, on the Family goal screen and on home. It is
+  judged on its own month, so September's goal unlocks on September.
+- Needs web 0.565.0 for the carried goal. Against an older server the field is
+  simply absent and the card shows the current month as before.
+
 ## 0.374.0
 
 - Logging an overdue workout from the phone now records the day you actually did

@@ -26,6 +26,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -80,6 +81,7 @@ import com.kairos.app.ui.common.AttendeesColumn
 import com.kairos.app.ui.common.rememberContainer
 import androidx.navigation.NavBackStackEntry
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.kairos.app.ui.character.CoopViewModel
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.nav.sectionFor
 import com.kairos.app.ui.theme.KairosThemeState
@@ -95,6 +97,7 @@ fun HomeScreen(
     onOpenChores: () -> Unit = {},
     onOpenReading: () -> Unit = {},
     onOpenSchoolWork: () -> Unit = {},
+    onOpenCoop: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
@@ -103,7 +106,17 @@ fun HomeScreen(
             initializer { HomeViewModel(container.sessionRepository, container.payloadCache) }
         },
     )
+    // The family goal rides its own view-model rather than the dashboard payload.
+    // It needs the progression read, which is the heaviest query on the server,
+    // and the home screen must not wait on it: the card appears when it arrives.
+    // Cache-backed, so it paints immediately on a return visit and offline.
+    val coopVm: CoopViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer { CoopViewModel(container.sessionRepository, container.payloadCache) }
+        },
+    )
     val ui by vm.ui.collectAsState()
+    val coopUi by coopVm.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
 
     // Load on first show (refreshKey starts at 0) and again whenever we return to
@@ -111,6 +124,7 @@ fun HomeScreen(
     // is the sole trigger — reliable under our drawer navigation.
     LaunchedEffect(refreshKey) {
         vm.load()
+        coopVm.load()
     }
 
     LaunchedEffect(ui.actionError) {
@@ -146,7 +160,11 @@ fun HomeScreen(
                     }
                 }
                 ui.dashboard == null -> ErrorState(ui.loadError, onRetry = vm::load)
-                else -> DashboardContent(person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork, onLogWorkout, onOpenReading)
+                else -> DashboardContent(
+                    person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork,
+                    onLogWorkout, onOpenReading,
+                    coopUi.data, coopUi.busy, coopVm::grant, onOpenCoop,
+                )
             }
 
         }
@@ -155,7 +173,20 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewModel, onOpenMoney: () -> Unit = {}, onOpenChores: () -> Unit = {}, onOpenSchoolWork: () -> Unit = {}, onLogWorkout: (String) -> Unit = {}, onOpenReading: () -> Unit = {}) {
+private fun DashboardContent(
+    person: PersonDto,
+    ui: HomeUiState,
+    vm: HomeViewModel,
+    onOpenMoney: () -> Unit = {},
+    onOpenChores: () -> Unit = {},
+    onOpenSchoolWork: () -> Unit = {},
+    onLogWorkout: (String) -> Unit = {},
+    onOpenReading: () -> Unit = {},
+    coop: com.kairos.app.data.remote.dto.CoopDto? = null,
+    coopBusy: Boolean = false,
+    onCheckOffGoal: (String) -> Unit = {},
+    onOpenCoop: () -> Unit = {},
+) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
     // The dashboard is computed per day on the server. When it can't be reached we
@@ -189,6 +220,16 @@ private fun DashboardContent(person: PersonDto, ui: HomeUiState, vm: HomeViewMod
                     item(key = "money-reminder") { MoneyReminder(m, onOpenMoney) }
                 }
             }
+
+            // No carried goal and no ideas at all means there is nothing to show,
+            // and an empty item would still take a slot's worth of spacing.
+            coop
+                ?.takeIf { it.carried != null || it.proposals.isNotEmpty() }
+                ?.let { c ->
+                    item(key = "family-goal") {
+                        FamilyGoalCard(c, coopBusy, onCheckOffGoal, onOpenCoop)
+                    }
+                }
 
             if (d.categories.isNotEmpty()) {
                 item(key = "bars") { CategoryBars(d.categories) }
@@ -1670,5 +1711,105 @@ private fun ErrorState(message: String?, onRetry: () -> Unit) {
         )
         Spacer(Modifier.size(16.dp))
         Button(onClick = onRetry) { Text("Try again") }
+    }
+}
+
+/**
+ * The family goal on the home screen, and the parent's place to approve it.
+ *
+ * Which goal it shows, in order: one carried over from an earlier month that was
+ * never checked off (first, because it is overdue \u2014 that is the whole reason
+ * the carry exists), then this month's chosen reward, then this month's reward if
+ * it has already been handed out, and failing all of that a nudge to go and vote.
+ *
+ * The check-off button only appears for a parent once the gate is met, but the
+ * rule is enforced on the server too \u2014 this button is the convenience, not
+ * the control.
+ */
+@Composable
+private fun FamilyGoalCard(
+    c: com.kairos.app.data.remote.dto.CoopDto,
+    busy: Boolean,
+    onCheckOff: (String) -> Unit,
+    onOpen: () -> Unit,
+) {
+    val carried = c.carried
+    val selected = c.proposals.firstOrNull { it.status == "SELECTED" }
+    val granted = c.proposals.firstOrNull { it.status == "GRANTED" }
+
+    // A carried goal is judged on ITS month, so its gate and its count come from
+    // the carried record rather than from this month's running totals.
+    val title = carried?.title ?: selected?.title ?: granted?.title
+    val goalId = carried?.id ?: selected?.id
+    val monthLabel = carried?.let { "from ${it.seasonLabel}" } ?: c.seasonLabel
+    val gateMet = if (carried != null) carried.gateMet else c.gateMet
+    val meeting = if (carried != null) carried.childrenMeeting else c.childrenMeeting
+    val done = carried == null && selected == null && granted != null
+
+    OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (done) "Earned" else "Family goal",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    monthLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (carried != null) Color(0xFFB45309) else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (title == null) {
+                Text(
+                    "${c.proposals.size} idea${if (c.proposals.size == 1) "" else "s"} waiting \u2014 vote for the one you want.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                return@Column
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (done) {
+                    Icon(
+                        KairosIcons.Trophy,
+                        contentDescription = null,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+
+            if (!done) {
+                LinearProgressIndicator(
+                    progress = {
+                        if (c.childrenTotal > 0) meeting.toFloat() / c.childrenTotal.toFloat() else 0f
+                    },
+                    color = if (gateMet) Color(0xFF10B981) else KairosThemeState.accent,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    if (gateMet) "$meeting of ${c.childrenTotal} finished \u2014 ready to check off"
+                    else "$meeting of ${c.childrenTotal} finished their month",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                if (gateMet && c.isAdmin && goalId != null) {
+                    Button(
+                        onClick = { onCheckOff(goalId) },
+                        enabled = !busy,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    ) {
+                        Icon(KairosIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (busy) "Saving\u2026" else "We did it")
+                    }
+                }
+            }
+        }
     }
 }

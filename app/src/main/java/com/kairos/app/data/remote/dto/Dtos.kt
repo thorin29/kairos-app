@@ -1634,6 +1634,25 @@ data class CoopDto(
     val isAdmin: Boolean = false,
     val children: List<CoopChildDto> = emptyList(),
     val proposals: List<CoopProposalDto> = emptyList(),
+    /** A goal picked in an EARLIER month that was never checked off. It stays
+     *  live until a parent marks it done, so a goal the family chose doesn't
+     *  vanish because a month ended.
+     *
+     *  Appended at the END and nullable: an older server simply omits it and
+     *  this decodes as null rather than failing. Its gate is its OWN month's,
+     *  not [gateMet] — September's goal is judged on September. */
+    val carried: CarriedGoalDto? = null,
+)
+
+/** The unfinished goal from a previous month, carrying its own month and gate. */
+@Serializable
+data class CarriedGoalDto(
+    val id: String = "",
+    val title: String = "",
+    val detail: String? = null,
+    val seasonLabel: String = "",
+    val gateMet: Boolean = false,
+    val childrenMeeting: Int = 0,
 )
 
 @Serializable
