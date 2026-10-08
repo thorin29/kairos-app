@@ -1,5 +1,26 @@
 # Decisions
 
+## 2026-10 — Aligning the fields by structure, not by numbers (v0.376.0)
+
+The entry boxes now sit in the same three weighted cells as the action tiles
+below them, rather than being positioned with widths and spacers that happened to
+look right. Both rows are `fillMaxWidth` children of the same Column with the
+same 8dp gaps, so cell N and tile N resolve to the same x-extent on any screen.
+Nothing has to be re-tuned for a different phone, which is the failure mode of
+the alternative.
+
+Each box is `weight(1f, fill = false).widthIn(max = NUM_FIELD_W)` — capped at
+three digits, but able to shrink below that on a narrow screen instead of
+overflowing its cell. A plain fixed width is what put sixteen columns off the
+right edge of the attendance grid in 0.372.
+
+One constant for every numeric box on the screen, so weight, reps and seconds
+cannot drift into three sizes again — which is what they were.
+
+`MovementRow` is the only implementation of that row and both call sites go
+through it, so this lands everywhere the fields appear without a second copy to
+keep in step.
+
 ## 2026-10 — The goal card loads on its own, not with the dashboard (v0.375.0)
 
 The obvious place for the home-screen goal card was the dashboard payload, next

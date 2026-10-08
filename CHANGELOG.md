@@ -1,4 +1,12 @@
 # Changelog
+## 0.376.0
+
+- The weight and reps boxes are now three digits wide instead of stretching, and
+  they line up with the buttons underneath: weight over Rest / skip, reps over
+  Calculator. Reps no longer sits hard right.
+- Seconds on a held movement uses the same box size, so a weight, a rep count and
+  a seconds field are no longer three different widths on one screen.
+
 ## 0.375.0
 
 - The family goal now shows on the home screen, and a parent can check it off

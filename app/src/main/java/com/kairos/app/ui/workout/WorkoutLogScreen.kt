@@ -75,6 +75,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.layout.widthIn
+
+/** Three digits wide. Every numeric entry box on this screen uses it, so a
+ *  weight, a rep count and a seconds field are never three different sizes. */
+private val NUM_FIELD_W = 72.dp
 
 /**
  * The Log workout page. Shows every planned workout for the day (Core, Arms) as
@@ -624,58 +629,75 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // One fixed width for the weight box on every card. It used to be
-            // flexible on overdue and fixed on today's, so the same field was
-            // two different sizes on one screen. Reps sits hard right.
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = m.value,
-                    onValueChange = { vm.onValue(planId, m.poolExerciseId, it) },
-                    placeholder = { Text(if (isTime) "0" else if (maxHint) "weight" else "0") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.width(if (isTime) 72.dp else 128.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                // A held movement takes minutes and seconds, never one "time"
-                // box: the server stores seconds and a bare number cannot say
-                // which it meant.
-                if (isTime) {
-                    Text("min", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.width(8.dp))
+            // The fields sit in the SAME three weighted cells as the action
+            // tiles below, so the weight box lands over "Rest / skip" and reps
+            // over "Calculator" instead of drifting to opposite ends of the row.
+            // Each box is capped at three digits wide and allowed to shrink
+            // below that on a narrow screen rather than overflow its cell.
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Cell 1 — over "Rest / skip".
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
-                        value = m.seconds,
-                        onValueChange = { vm.onSeconds(planId, m.poolExerciseId, it) },
-                        placeholder = { Text("00") },
+                        value = m.value,
+                        onValueChange = { vm.onValue(planId, m.poolExerciseId, it) },
+                        placeholder = { Text(if (isTime) "0" else if (maxHint) "wt" else "0") },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.width(72.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("sec", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    Text(m.unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                // Reps for the top set. Optional, and only for weights: without it
-                // 185 x 5 and 185 x 12 log identically and the months of rep
-                // progress between weight jumps never show up anywhere.
-                if (maxHint) {
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        "\u00d7",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f, fill = false).widthIn(max = NUM_FIELD_W),
                     )
                     Spacer(Modifier.width(6.dp))
-                    OutlinedTextField(
-                        value = m.reps,
-                        onValueChange = { vm.onReps(planId, m.poolExerciseId, it) },
-                        placeholder = { Text("reps") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.width(92.dp),
+                    Text(
+                        if (isTime) "min" else m.unit,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+
+                // Cell 2 — over "Calculator". Seconds for a held movement, reps
+                // for a weight, and empty for anything else.
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    if (isTime) {
+                        OutlinedTextField(
+                            value = m.seconds,
+                            onValueChange = { vm.onSeconds(planId, m.poolExerciseId, it) },
+                            placeholder = { Text("00") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f, fill = false).widthIn(max = NUM_FIELD_W),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "sec",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else if (maxHint) {
+                        // Reps for the top set. Optional, and only for weights:
+                        // without it 185 x 5 and 185 x 12 log identically and the
+                        // rep progress between weight jumps never shows up.
+                        Text(
+                            "\u00d7",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        OutlinedTextField(
+                            value = m.reps,
+                            onValueChange = { vm.onReps(planId, m.poolExerciseId, it) },
+                            placeholder = { Text("rep") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f, fill = false).widthIn(max = NUM_FIELD_W),
+                        )
+                    }
+                }
+
+                // Cell 3 — over the log button, deliberately empty.
+                Spacer(Modifier.weight(1f))
             }
         } else {
             Text(
