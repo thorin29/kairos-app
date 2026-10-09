@@ -699,7 +699,7 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
 
                 // Cell 3 — over the log button. This movement's history, hard
                 // right of its own entry fields.
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                Box(Modifier.weight(1f)) {
                     m.stats?.let { MovementHistory(it) }
                 }
             }
@@ -859,7 +859,7 @@ private fun longDate(iso: String): String = try {
  *   Best       the heaviest ever lifted, weight only.
  *   Best reps  the MOST reps ever done, with the weight they were done at —
  *              usually a lighter bar than the record, which is the point.
- *   Recent     the last session, even when it is below both records.
+ *   Latest     the last session, even when it is below both records.
  *
  * No dates and no repeated unit: this sits in a third of a phone's width, and
  * the unit is already printed beside the weight box on the same row.
@@ -867,7 +867,7 @@ private fun longDate(iso: String): String = try {
 @Composable
 private fun MovementHistory(st: com.kairos.app.data.remote.dto.MovementStatsDto) {
     val dash = "\u2014"
-    Column(horizontalAlignment = Alignment.End) {
+    Column(Modifier.fillMaxWidth()) {
         HistoryLine("Best", fmtNum(st.bestWeight))
         HistoryLine(
             "Best reps",
@@ -878,7 +878,7 @@ private fun MovementHistory(st: com.kairos.app.data.remote.dto.MovementStatsDto)
             },
         )
         HistoryLine(
-            "Recent",
+            "Latest",
             buildString {
                 append(fmtNum(st.lastWeight))
                 st.lastReps?.let { reps ->
@@ -890,17 +890,27 @@ private fun MovementHistory(st: com.kairos.app.data.remote.dto.MovementStatsDto)
     }
 }
 
+/**
+ * Label hard left, value hard right, so the labels start in one column and the
+ * values end in another.
+ *
+ * The VALUE is the unweighted child: a Row measures those first, so the number
+ * always gets the width it needs and the label ellipsizes instead. The other
+ * way round, a long label would push the number off the edge of the cell.
+ */
 @Composable
 private fun HistoryLine(label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = KairosThemeState.accent,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             value,
             style = MaterialTheme.typography.labelSmall,

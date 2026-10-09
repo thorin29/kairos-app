@@ -1,4 +1,11 @@
 # Changelog
+## 0.379.0
+
+- Movement history labels start in one column and values end in another, rather
+  than sitting against each other.
+- "Recent" is now "Latest", matching the web. It had been shortened to fit, so
+  the two platforms named the same line differently.
+
 ## 0.378.0
 
 - The movement history moved to the right of the entry fields, in the column
