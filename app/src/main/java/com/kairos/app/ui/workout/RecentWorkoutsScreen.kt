@@ -2,6 +2,7 @@ package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -140,12 +141,25 @@ private fun RecentRow(
             .padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            shortDate(h.date),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(width = 56.dp, height = 20.dp),
-        )
+        // Weekday over the date, both hard left. The fixed height this used to
+        // carry allowed one line only; the width stays so the labels beside it
+        // still line up down the list.
+        Column(
+            modifier = Modifier.width(52.dp),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Text(
+                weekdayAbbr(h.date),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                shortDate(h.date),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Column(Modifier.weight(1f).padding(start = 8.dp)) {
             Text(h.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             if (h.result.isNotBlank()) {
@@ -168,6 +182,15 @@ private fun RecentRow(
             }
         }
     }
+}
+
+/** "Mon" — the abbreviated weekday that sits above the date. */
+private fun weekdayAbbr(iso: String): String = try {
+    java.time.LocalDate.parse(iso)
+        .dayOfWeek
+        .getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
+} catch (_: Exception) {
+    ""
 }
 
 private fun shortDate(iso: String): String = try {

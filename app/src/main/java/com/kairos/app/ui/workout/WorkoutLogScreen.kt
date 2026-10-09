@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.CircularProgressIndicator
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.theme.KairosThemeState
 import kotlinx.coroutines.delay
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -699,6 +700,8 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                 // Cell 3 — over the log button, deliberately empty.
                 Spacer(Modifier.weight(1f))
             }
+
+            m.stats?.let { MovementHistory(it, m.unit) }
         } else {
             Text(
                 "Skipped",
@@ -841,5 +844,98 @@ private fun longDate(iso: String): String = try {
     val p = iso.split("-")
     "${p[1].toInt()}/${p[2].toInt()}/${p[0]}"
 } catch (e: Exception) {
+    iso
+}
+
+/**
+ * Three lines of history under a movement's entry fields: the record, the best
+ * rep count, and the last set.
+ *
+ * Attached to the MOVEMENT rather than the card, because "best bench" means
+ * nothing on a card holding three different lifts. On a single-movement card
+ * — which is most of them — that puts it exactly where the empty space was,
+ * above the Log weight button.
+ *
+ * Labels carry the theme colour, numbers stay the ordinary text colour, so the
+ * block scans as a table without needing rules or a heading.
+ */
+@Composable
+private fun MovementHistory(
+    st: com.kairos.app.data.remote.dto.MovementStatsDto,
+    unit: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        HistoryLine(
+            "Best",
+            buildString {
+                append(fmtNum(st.bestWeight))
+                append(" ")
+                append(unit)
+                st.bestWeightReps?.let { reps ->
+                    append(" \u00d7 ")
+                    append(reps)
+                }
+                append("  \u00b7  ")
+                append(mdy(st.bestOn))
+            },
+        )
+        st.bestReps?.let { r ->
+            HistoryLine(
+                "Best reps",
+                buildString {
+                    append(r)
+                    st.bestRepsWeight?.let { w ->
+                        append(" at ")
+                        append(fmtNum(w))
+                        append(" ")
+                        append(unit)
+                    }
+                },
+            )
+        }
+        HistoryLine(
+            "Last",
+            buildString {
+                append(fmtNum(st.lastWeight))
+                append(" ")
+                append(unit)
+                st.lastReps?.let { reps ->
+                    append(" \u00d7 ")
+                    append(reps)
+                }
+                append("  \u00b7  ")
+                append(mdy(st.lastOn))
+            },
+        )
+    }
+}
+
+@Composable
+private fun HistoryLine(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = KairosThemeState.accent,
+            modifier = Modifier.width(72.dp),
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** Trailing ".0" off a whole-number weight: 105, not 105.0. */
+private fun fmtNum(v: Double): String =
+    if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
+
+/** "10/5" — the numeric date form used across both clients. */
+private fun mdy(iso: String): String = try {
+    val p = iso.split("-")
+    "${p[1].toInt()}/${p[2].toInt()}"
+} catch (_: Exception) {
     iso
 }

@@ -43,6 +43,8 @@ data class MovementInput(
     val swappedFromName: String? = null,
     /** The planned movement's id, kept so an undo restores exactly it. */
     val plannedExerciseId: String? = null,
+    /** Record / best reps / last, straight from the server. Appended last. */
+    val stats: com.kairos.app.data.remote.dto.MovementStatsDto? = null,
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -178,6 +180,7 @@ class WorkoutLogViewModel(
                         },
                         plannedExerciseId = if (swapped != null) e.poolExerciseId else null,
                         swappedFromName = if (swapped != null) e.name else null,
+                        stats = e.stats,
                     )
                 },
                 key = blockKey,

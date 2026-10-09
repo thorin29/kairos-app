@@ -336,6 +336,25 @@ data class PlannedMovementDto(
     /** Set when this slot was logged with a swapped-in movement for the day:
      *  what was actually done. Null means the planned movement itself. */
     val loggedAs: LoggedAsDto? = null,
+    /** Record, best rep count and most recent set for this movement. Computed
+     *  on the server so the phone and the web cannot disagree about someone's
+     *  best lift. Null for anything not measured in weight, and for a movement
+     *  with nothing logged yet. Appended at the END, and nullable, so an older
+     *  server that omits it decodes rather than failing. */
+    val stats: MovementStatsDto? = null,
+)
+
+/** The three-line history summary under a movement's entry fields. */
+@Serializable
+data class MovementStatsDto(
+    val bestWeight: Double = 0.0,
+    val bestWeightReps: Int? = null,
+    val bestOn: String = "",
+    val bestReps: Int? = null,
+    val bestRepsWeight: Double? = null,
+    val lastWeight: Double = 0.0,
+    val lastReps: Int? = null,
+    val lastOn: String = "",
 )
 
 @Serializable

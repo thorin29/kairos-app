@@ -281,11 +281,22 @@ private fun LiftBlock(
                         )
                     },
                     {
+                        // Reps at the record, falling back to the best rep count
+                        // logged at any weight. The record predates reps being
+                        // stored, so this read "none logged yet" while LAST, on
+                        // the same card, showed the movement at x2.
+                        val topRep = s.repMaxes.maxByOrNull { it.reps }
+                        val atRecord = s.best?.reps
+                        val shown = atRecord ?: topRep?.reps
                         StatTile(
                             "reps",
-                            s.best?.reps?.toString() ?: "\u2014",
-                            if (s.best?.reps != null) "reps" else "",
-                            if (s.best?.reps != null) "at the record" else "none logged yet",
+                            shown?.toString() ?: "\u2014",
+                            if (shown != null) "reps" else "",
+                            when {
+                                atRecord != null -> "at the record"
+                                topRep != null -> "best, at ${fmt(topRep.value)} ${s.unit}"
+                                else -> "none logged yet"
+                            },
                             Modifier.weight(1f),
                         )
                     },

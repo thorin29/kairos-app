@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-10 — The history summary is server-computed (v0.377.0)
+
+Best / Best reps / Last arrive as a field on the movement rather than being
+derived on the phone. The phone has the logged sets it needs for today, not the
+whole history, and computing a record locally would mean two answers to "what is
+my best bench" — which is exactly the class of bug that cost the last two days.
+
+`MovementStatsDto` is appended last and nullable, so an older server omits it and
+the block simply doesn't render. Nothing constructs `PlannedMovementDto`
+positionally, but it still went last.
+
+Rendered per movement, under its entry fields. On a one-movement card that is
+the space above the Log weight button, which is where it was wanted; on a card
+with three lifts each keeps its own, which a card-level block could not do.
+
 ## 2026-10 — Aligning the fields by structure, not by numbers (v0.376.0)
 
 The entry boxes now sit in the same three weighted cells as the action tiles

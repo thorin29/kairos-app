@@ -1,4 +1,15 @@
 # Changelog
+## 0.377.0
+
+- Recent workouts shows the weekday above the date (Mon over 10/5), both hard
+  left, matching the web.
+- Each movement on the Log workout card now shows Best, Best reps and Last,
+  above the Log weight button.
+- The REPS tile no longer reads "none logged yet" while LAST on the same card
+  shows the lift at x2 — it falls back to the best rep count at any weight.
+- Needs web 0.568.0 for the per-movement summary; an older server omits it and
+  the card simply doesn't show that block.
+
 ## 0.376.0
 
 - The weight and reps boxes are now three digits wide instead of stretching, and
