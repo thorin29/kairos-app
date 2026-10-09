@@ -697,11 +697,12 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     }
                 }
 
-                // Cell 3 — over the log button, deliberately empty.
-                Spacer(Modifier.weight(1f))
+                // Cell 3 — over the log button. This movement's history, hard
+                // right of its own entry fields.
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    m.stats?.let { MovementHistory(it) }
+                }
             }
-
-            m.stats?.let { MovementHistory(it, m.unit) }
         } else {
             Text(
                 "Skipped",
@@ -848,63 +849,42 @@ private fun longDate(iso: String): String = try {
 }
 
 /**
- * Three lines of history under a movement's entry fields: the record, the best
- * rep count, and the last set.
+ * Three lines of history for one movement, to the right of its entry fields.
  *
- * Attached to the MOVEMENT rather than the card, because "best bench" means
- * nothing on a card holding three different lifts. On a single-movement card
- * — which is most of them — that puts it exactly where the empty space was,
- * above the Log weight button.
+ * Always three, with an em dash where there is nothing yet: a line that
+ * disappears shifts the other two, and a row that changes shape as you log is
+ * harder to read than one with a gap in it.
  *
- * Labels carry the theme colour, numbers stay the ordinary text colour, so the
- * block scans as a table without needing rules or a heading.
+ * Three different questions, deliberately not collapsed into one:
+ *   Best       the heaviest ever lifted, weight only.
+ *   Best reps  the MOST reps ever done, with the weight they were done at —
+ *              usually a lighter bar than the record, which is the point.
+ *   Recent     the last session, even when it is below both records.
+ *
+ * No dates and no repeated unit: this sits in a third of a phone's width, and
+ * the unit is already printed beside the weight box on the same row.
  */
 @Composable
-private fun MovementHistory(
-    st: com.kairos.app.data.remote.dto.MovementStatsDto,
-    unit: String,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+private fun MovementHistory(st: com.kairos.app.data.remote.dto.MovementStatsDto) {
+    val dash = "\u2014"
+    Column(horizontalAlignment = Alignment.End) {
+        HistoryLine("Best", fmtNum(st.bestWeight))
         HistoryLine(
-            "Best",
-            buildString {
-                append(fmtNum(st.bestWeight))
-                append(" ")
-                append(unit)
-                st.bestWeightReps?.let { reps ->
-                    append(" \u00d7 ")
-                    append(reps)
-                }
-                append("  \u00b7  ")
-                append(mdy(st.bestOn))
+            "Best reps",
+            if (st.bestReps != null && st.bestRepsWeight != null) {
+                "${fmtNum(st.bestRepsWeight)} \u00d7 ${st.bestReps}"
+            } else {
+                dash
             },
         )
-        st.bestReps?.let { r ->
-            HistoryLine(
-                "Best reps",
-                buildString {
-                    append(r)
-                    st.bestRepsWeight?.let { w ->
-                        append(" at ")
-                        append(fmtNum(w))
-                        append(" ")
-                        append(unit)
-                    }
-                },
-            )
-        }
         HistoryLine(
-            "Last",
+            "Recent",
             buildString {
                 append(fmtNum(st.lastWeight))
-                append(" ")
-                append(unit)
                 st.lastReps?.let { reps ->
                     append(" \u00d7 ")
                     append(reps)
                 }
-                append("  \u00b7  ")
-                append(mdy(st.lastOn))
             },
         )
     }
@@ -915,15 +895,17 @@ private fun HistoryLine(label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             label,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = KairosThemeState.accent,
-            modifier = Modifier.width(72.dp),
+            maxLines = 1,
         )
+        Spacer(Modifier.width(4.dp))
         Text(
             value,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
         )
     }
 }
@@ -932,10 +914,3 @@ private fun HistoryLine(label: String, value: String) {
 private fun fmtNum(v: Double): String =
     if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
 
-/** "10/5" — the numeric date form used across both clients. */
-private fun mdy(iso: String): String = try {
-    val p = iso.split("-")
-    "${p[1].toInt()}/${p[2].toInt()}"
-} catch (_: Exception) {
-    iso
-}

@@ -1,4 +1,14 @@
 # Changelog
+## 0.378.0
+
+- The movement history moved to the right of the entry fields, in the column
+  above the Log weight button, instead of sitting underneath them.
+- Three fixed lines: Best (heaviest ever, weight only), Best reps (the most reps
+  ever done, with the weight they were done at), Recent (the last session, even
+  if lower than both). A line with nothing behind it shows a dash.
+- No dates on the app, and the unit is not repeated — it is already beside the
+  weight box on the same row.
+
 ## 0.377.0
 
 - Recent workouts shows the weekday above the date (Mon over 10/5), both hard
