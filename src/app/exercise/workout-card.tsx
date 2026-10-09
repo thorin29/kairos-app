@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import {
   completePlannedWorkout,
   listExercisePool,
   logHiitWorkout,
   restDay,
+  type LoggedSet,
 } from "@/lib/actions/workouts";
-import { CheckIcon, DumbbellIcon, MoonIcon } from "@/components/icons";
+import { CheckIcon, DumbbellIcon, MoonIcon, SwapIcon } from "@/components/icons";
 import {
   METRIC_LABEL_SHORT,
   MUSCLE_GROUP_LABEL,
@@ -55,6 +56,7 @@ export function TodayPlan({
   unitSystem,
   heading = "Today\u2019s plan",
   loggedByPool = {},
+  completedOnISO,
 }: {
   userId: string;
   dateISO: string;
@@ -64,8 +66,15 @@ export function TodayPlan({
   rested: boolean;
   unitSystem: UnitSystem;
   heading?: string;
-  /** Already-logged weights for this date, keyed by pool-exercise id. */
-  loggedByPool?: Record<string, string>;
+  /** Already-logged sets for this date, keyed by pool-exercise id. */
+  loggedByPool?: Record<string, LoggedSet>;
+  /**
+   * The day these are actually being logged on, when that is not `dateISO`.
+   * Set by the overdue section: the workout still counts for the day it was
+   * due, but the history and attendance grid should say when it was really
+   * done. Purely data — it changes nothing about how the card is drawn.
+   */
+  completedOnISO?: string;
 }) {
   const todays = paused ? [] : workouts.filter((w) => !w.isRest);
   const done = new Set(doneLabels.map((l) => l.trim().toLowerCase()));
@@ -120,6 +129,7 @@ export function TodayPlan({
                 unitSystem={unitSystem}
                 done={isDone(w)}
                 loggedByPool={loggedByPool}
+                completedOnISO={completedOnISO}
                 bare={bare}
                 // Inside a group card the muscle group is already named at the
                 // top and every movement names itself, so the plan name is a
@@ -187,6 +197,7 @@ function PlanRow({
   unitSystem,
   done,
   loggedByPool = {},
+  completedOnISO,
   bare = false,
   hideName = false,
 }: {
@@ -195,7 +206,9 @@ function PlanRow({
   dateISO: string;
   unitSystem: UnitSystem;
   done: boolean;
-  loggedByPool?: Record<string, string>;
+  loggedByPool?: Record<string, LoggedSet>;
+  /** The day this is really being logged on, when it is not `dateISO`. */
+  completedOnISO?: string;
   /** Rendered inside a shared muscle-group card: drop this row's own card. */
   bare?: boolean;
   /** Hide the plan name when the group heading already says it. */
@@ -212,8 +225,11 @@ function PlanRow({
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const e of workout.exercises) {
-      if (e.poolExerciseId && loggedByPool[e.poolExerciseId]) {
-        init[e.id] = loggedByPool[e.poolExerciseId];
+      const logged = e.poolExerciseId ? loggedByPool[e.poolExerciseId] : null;
+      if (logged) {
+        init[e.id] = logged.weight;
+        // Reps live under a suffixed key, the same one the log action reads.
+        if (logged.reps) init[`${e.id}__reps`] = logged.reps;
       }
     }
     return init;
@@ -243,6 +259,17 @@ function PlanRow({
       }
     }
   }
+
+  // Already recorded for this date: the fields are prefilled with what was
+  // logged, so the button saves a correction rather than a first entry. The
+  // phone has said "edit weight" for a while; the web still offered to log
+  // something that was plainly sitting in the boxes.
+  const alreadyLogged =
+    workout.exercises.length > 0 &&
+    workout.exercises.every(
+      (e) => e.poolExerciseId && loggedByPool[e.poolExerciseId],
+    );
+  if (alreadyLogged || done) logLabel = "Edit weight";
 
   const setVal = (key: string, v: string) =>
     setValues((prev) => ({ ...prev, [key]: v.replace(/[^\d.]/g, "") }));
@@ -348,20 +375,19 @@ function PlanRow({
         dateISO,
         plannedWorkoutId: workout.id,
         entries,
+        completedOnISO,
       });
-      setValues({});
+      // Deliberately NOT cleared. What is in these boxes is now what the server
+      // holds, so wiping them makes a successful save look like a failed one —
+      // the numbers vanished and only came back on a full refresh. The prefill
+      // runs in a useState initialiser, which does not re-run on revalidation,
+      // so nothing was going to put them back until the component remounted.
     });
   };
 
-  if (done) {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2.5">
-        <CheckIcon className="h-4 w-4 shrink-0 text-accent" />
-        <span className="text-sm font-medium">{workout.name}</span>
-        <span className="ml-auto text-xs text-accent">Logged</span>
-      </div>
-    );
-  }
+  // A logged movement keeps its ordinary row \u2014 weight and reps filled in, with
+  // the button reading "Edit weight". Collapsing it to a tick and the word
+  // "Logged" hid the numbers, which are the thing you reopen the day to check.
 
   return (
     <div className={bare ? "" : "rounded-xl border border-hairline bg-ground/30 p-3"}>
@@ -476,31 +502,32 @@ function PlanRow({
                     key={e.id}
                     className={i > 0 ? "border-t border-hairline pt-2.5" : ""}
                   >
-                  {/* The name truncates inside a flexible cell and Swap owns a
-                      fixed column, so the button lands in the same spot whether
-                      the movement is "planks" or "two arm dumbbell extension". */}
+                  {/* Swap belongs to the movement, so it sits against the name
+                      rather than across the card. The name still truncates (it
+                      can shrink but not grow), and the trailing spacer absorbs
+                      the rest of the row so the button stays put. */}
                   <div className="mb-1.5 flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate text-sm">
+                    <span className="min-w-0 truncate text-sm">
                       {sw ? sw.name : e.name}
                       {sw && (
                         <span className="ml-1 text-muted">for {e.name}</span>
                       )}
                     </span>
-                    <span className="w-[4.5rem] shrink-0 text-right">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          sw ? setSwap(e.id, null) : setPicking(e.id)
-                        }
-                        className={`w-full rounded-lg border px-2 py-1 text-xs ${
-                          sw
-                            ? "border-hairline text-muted hover:border-accent hover:text-accent"
-                            : "border-hairline text-accent hover:bg-accent/5"
-                        }`}
-                      >
-                        {sw ? "Undo" : "Swap"}
-                      </button>
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        sw ? setSwap(e.id, null) : setPicking(e.id)
+                      }
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1 text-xs ${
+                        sw
+                          ? "border-hairline text-muted hover:border-accent hover:text-accent"
+                          : "border-hairline text-accent hover:bg-accent/5"
+                      }`}
+                    >
+                      <SwapIcon className="h-3.5 w-3.5" />
+                      {sw ? "Undo" : "Swap"}
+                    </button>
+                    <span className="flex-1" />
                   </div>
                   <div className="flex items-end gap-2">
                     {m === "DURATION" ? (
@@ -538,7 +565,7 @@ function PlanRow({
                         weight, but without this "185 x 5" and "185 x 12" log
                         identically and months of rep progress stay invisible. */}
                     {m === "WEIGHT" && (
-                      <div className="ml-auto flex items-center gap-1.5 pb-0.5">
+                      <div className="flex items-center gap-1.5 pb-0.5">
                         <span className="text-xs text-muted">×</span>
                         <input
                           inputMode="numeric"
@@ -548,6 +575,15 @@ function PlanRow({
                           aria-label={`${e.name} reps`}
                           className="tabular h-9 w-16 rounded-lg border border-hairline bg-surface text-center text-sm outline-none focus:border-accent"
                         />
+                      </div>
+                    )}
+                    {/* History for THIS movement, hard right of its own entry
+                        fields. Attached to the movement rather than the card:
+                        "best bench" means nothing on a card holding three
+                        different lifts. */}
+                    {e.stats && (
+                      <div className="ml-auto pb-0.5">
+                        <MovementHistory stats={e.stats} unit={unit} />
                       </div>
                     )}
                   </div>
@@ -807,4 +843,73 @@ function MetricField({
       </label>
     </div>
   );
+}
+
+/**
+ * Three lines of history for one movement, to the right of its entry fields.
+ *
+ * Always three, with an em dash where there is nothing yet: a line that
+ * disappears moves the other two, and a card that changes shape as you log is
+ * harder to read at a glance than one with a gap in it.
+ *
+ * They answer three different questions and must not be collapsed:
+ *   Best weight — the heaviest ever lifted, weight only.
+ *   Best reps   — the MOST reps ever done, with the weight they were done at.
+ *                 Usually a lighter bar than the record, which is the point.
+ *   Most recent — the last session, even when it is below both records.
+ *
+ * Labels in the accent colour, numbers in the ordinary text colour.
+ */
+function MovementHistory({
+  stats,
+  unit,
+}: {
+  stats: NonNullable<PlanExercise["stats"]>;
+  unit: string;
+}) {
+  const dash = "\u2014";
+  const lines: [string, string][] = [
+    [
+      "Best weight",
+      `${trimNum(stats.bestWeight)} ${unit}  \u00b7  ${mdSlash(stats.bestOn)}`,
+    ],
+    [
+      "Best reps",
+      stats.bestReps && stats.bestRepsWeight != null
+        ? `${trimNum(stats.bestRepsWeight)} ${unit} \u00d7 ${stats.bestReps}${
+            stats.bestRepsOn ? `  \u00b7  ${mdSlash(stats.bestRepsOn)}` : ""
+          }`
+        : dash,
+    ],
+    [
+      "Most recent",
+      `${trimNum(stats.lastWeight)} ${unit}${
+        stats.lastReps ? ` \u00d7 ${stats.lastReps}` : ""
+      }  \u00b7  ${mdSlash(stats.lastOn)}`,
+    ],
+  ];
+
+  // A two-column grid rather than three right-aligned rows: with rows, each
+  // label floats to wherever its own value ends and the labels come out ragged.
+  return (
+    <dl className="grid grid-cols-[auto_auto] gap-x-2 text-xs leading-tight">
+      {lines.map(([k, v]) => (
+        <Fragment key={k}>
+          <dt className="text-right font-semibold text-accent">{k}</dt>
+          <dd className="tabular whitespace-nowrap text-right">{v}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
+}
+
+/** 105, not 105.0 — which JS numbers already give; this just names the intent. */
+function trimNum(v: number): string {
+  return String(v);
+}
+
+/** "10/5" — the same numeric date the phone and Recent workouts use. */
+function mdSlash(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${m}/${d}`;
 }

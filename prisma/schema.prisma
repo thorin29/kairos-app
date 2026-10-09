@@ -1,0 +1,1679 @@
+// Family Dashboard — core schema
+// Modules (bible, school, exercise) attach detail tables to Task as we build them.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------
+// People
+// ---------------------------------------------------------------
+
+enum Role {
+  ADMIN // parent: can assign to anyone, edit templates and plans
+  MEMBER
+}
+
+// Account kind, separate from the admin permission above. A child is never an
+// admin; a parent may or may not be. The kid-focused features (companions, the
+// co-op participation gate) scope to CHILD accounts.
+enum AccountKind {
+  CHILD
+  PARENT
+}
+
+model User {
+  id          String  @id @default(cuid())
+  name        String  @unique // short name used on the dashboard
+  displayName String?
+  role        Role    @default(MEMBER)
+  kind        AccountKind @default(CHILD)
+  pinHash     String? // only set for ADMIN accounts while we're local-only
+
+  // Optional email: the address invites are sent to, and a second sign-in
+  // identifier (login accepts name or email). Null for anyone without one.
+  email       String? @unique
+
+  // First-party login credential. Null means this person is a wall-tablet-only
+  // profile with no personal sign-in (e.g. a young child) — the default. A
+  // password is set only by redeeming an admin-issued invite; there is no
+  // self-signup. Login identity is `name` (unique), so no email is needed.
+  passwordHash      String?
+  // Embedded in the personal session cookie. Bumping it invalidates every
+  // existing session for this person (password reset, admin disabling login).
+  credentialVersion Int     @default(0)
+
+  avatarPath  String? // uploaded image, stored under appdata
+  // How the uploaded photo is framed inside the circle (CSS object-position),
+  // so a face that sits off-centre can be nudged into view. Ignored for icons.
+  avatarPosition String @default("50% 50%")
+
+  // Date only — a birthday is a calendar day, never an instant, and it has
+  // no year-relative meaning that a timestamp would capture.
+  birthday DateTime? @db.Date
+  // Whether this person's birthday tints its whole day column on the calendar.
+  shadeBirthday Boolean @default(true)
+  color       String  @default("#64748b") // this person's color in the all-users calendar
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  // Money: whether this person earns a reward for finishing a month's Bible
+  // reading, and how much (in whole cents). Off by default; the household-wide
+  // group bonus and grace period live in AppSetting.
+  bibleRewardEnabled Boolean @default(false)
+  bibleRewardCents   Int     @default(0)
+
+  // Game-time monitoring: how the collector maps this person to their platforms.
+  gamertag        String?
+  steamId         String?
+
+  gameProfile     GameProfile?
+  gameSessions    GameSession[]
+  gameDays        GameDay[]
+  gameDayTitles   GameDayTitle[]
+  playerCard      PlayerCard?
+  tasks           Task[]         @relation("TaskOwner")
+  schoolClasses   SchoolClass[]
+  createdTasks    Task[]         @relation("TaskCreator")
+  events          Event[]
+  recurringTasks  RecurringTask[]   @relation("RecurringTaskOwner")
+  choreAssignments ChoreAssignment[]
+  poolEligibility  PoolEligibility[]
+  calendars       ExternalCalendar[]
+  groceryItems    ShoppingItem[]    @relation("GroceryAssignee")
+  workoutExercises Exercise[]        @relation("WorkoutExercises")
+  workoutSchedules WorkoutSchedule[] @relation("WorkoutSchedules")
+  workoutSessions  WorkoutSession[]  @relation("WorkoutSessions")
+  plannedWorkouts  PlannedWorkout[]  @relation("PlannedWorkouts")
+  books            Book[]
+  chapterReads     UserChapterRead[]
+  readingPlans     ReadingPlan[]     @relation("ReadingPlans")
+  workoutRotation  WorkoutRotation?  @relation("WorkoutRotation")
+  hiitWorkouts     HiitWorkout[]
+  poolExercises  PoolExercise[]
+  invites          Invite[]
+  devices          Device[]
+  calendarPref     UserCalendarPref?
+  sportSkips       SportSkip[]
+  eventParticipations EventParticipant[]
+  savedAddresses      SavedAddress[]    @relation("SubmittedAddresses")
+  classMemberships ClassMember[]
+  classCheckins    ClassCheckin[]
+  moneyEntries     MoneyEntry[]      @relation("MoneyOwner")
+  approvedMoney    MoneyEntry[]      @relation("MoneyApprover")
+  coopProposals    CoopProposal[]
+  coopVotes        CoopVote[]
+  companions       Companion[]
+  choreLogs        ChoreLog[]
+  companionState   CompanionState?
+  shoppingTrips    ShoppingTrip[]    @relation("TripShopper")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------
+// Tasks — the single completable unit behind every category.
+// Percent complete, overdue rollover, streaks, and the weekly
+// scoreboard are all queries against this one table.
+// ---------------------------------------------------------------
+
+model Term {
+  id           String        @id @default(cuid())
+  name         String
+  startDate    DateTime      @db.Date
+  endDate      DateTime      @db.Date
+  sortOrder    Int           @default(0)
+  pending      Boolean       @default(false)
+  proposedById String?
+  createdAt    DateTime      @default(now())
+  classes      SchoolClass[]
+}
+
+/// A planned week (or so) off inside the school year — a fall/spring break or an
+/// estimated vacation. Treated as a no-school block by scheduling and drawn on
+/// the calendar. `planned` marks an estimate that may later be confirmed or
+/// dropped (the reconciliation flow); Phase 1 treats planned and confirmed the
+/// same for scheduling.
+model SchoolBreak {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  planned   Boolean  @default(true)
+  /// Whether the admin has confirmed the break is happening (or a real vacation
+  /// covers it). Unconfirmed planned breaks trigger a reminder before they start.
+  confirmed Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+/// The admin's decision for a vacation (PAUSE event) that overlaps school work:
+/// schoolContinues=false shifts work off those days (the default), true keeps
+/// school running through the vacation. A row means the vacation has been
+/// decided, so it stops prompting.
+model SchoolVacationDecision {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  schoolContinues Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+// A reusable class name, managed like the chore master list. A class picks its
+// name from this pool, so the same subject can be reused term to term (and
+// ticked off when spinning up a new semester).
+model BaseSubject {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  // Hex colour for the whole group. Null = auto-assigned from the palette by order.
+  color     String?
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  subjects  Subject[]
+}
+
+model Subject {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  // Legacy free-text base + per-subject override (superseded by baseSubjectId /
+  // BaseSubject.color in migration 111; kept only so old data isn't dropped).
+  baseSubject   String?
+  color         String?
+  // The colour group this subject belongs to. Its colour comes from the base.
+  baseSubjectId String?
+  base          BaseSubject? @relation(fields: [baseSubjectId], references: [id], onDelete: SetNull)
+  sortOrder    Int           @default(0)
+  isActive     Boolean       @default(true)
+  pending      Boolean       @default(false)
+  proposedById String?
+  createdAt    DateTime      @default(now())
+  classes      SchoolClass[]
+}
+
+// The kind of a class (Homeschool, Church, Dual credit…), admin-managed. A
+// label on a class for now; drives nothing functional yet.
+model ClassType {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  classes   SchoolClass[]
+}
+
+model SchoolClass {
+  id      String  @id @default(cuid())
+  name    String
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  termId  String?
+  term    Term?   @relation(fields: [termId], references: [id], onDelete: SetNull)
+  // The pool subject this class's name comes from. Null for legacy classes not
+  // yet mapped; name stays the source of truth for display and the meeting event.
+  subjectId   String?
+  subject     Subject?   @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  classTypeId String?
+  classType   ClassType? @relation(fields: [classTypeId], references: [id], onDelete: SetNull)
+  color   String?
+  // After a meeting ends, ask each member on their dashboard whether they
+  // attended and whether work was assigned. On by default; admins can switch a
+  // class off (e.g. lunch, study hall).
+  promptHomework Boolean @default(true)
+  // Optional recurring CLASS event that is this class's meeting time.
+  eventId String? @unique
+  event   Event?  @relation("ClassMeeting", fields: [eventId], references: [id], onDelete: SetNull)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  work      SchoolWork[]
+  members   ClassMember[]
+  checkins  ClassCheckin[]
+  plan      ClassPlan?
+
+  @@index([userId])
+  @@index([termId])
+  @@index([subjectId])
+  @@index([classTypeId])
+}
+
+// One member's answer to the post-class prompt for one meeting: whether they
+// attended, recorded once per class per day. Its presence is what stops the
+// prompt from asking again. Any work they reported is created as ordinary
+// school work, so nothing about the assignment lives here.
+model ClassCheckin {
+  id        String      @id @default(cuid())
+  classId   String
+  class     SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime    @db.Date
+  attended  Boolean
+  createdAt DateTime    @default(now())
+
+  @@unique([classId, userId, date])
+  @@index([userId, date])
+}
+
+// A student in a class. The class owner (SchoolClass.userId) is also a member,
+// so this join is the single source of truth for "who's in this class" —
+// which drives whose work can be filed under it and, later, who gets a
+// post-class prompt. Separate from the meeting event's EventParticipant, which
+// only exists to render a shared class as one calendar block.
+model ClassMember {
+  id      String      @id @default(cuid())
+  classId String
+  class   SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@unique([classId, userId])
+  @@index([userId])
+}
+
+enum SchoolWorkType {
+  HOMEWORK
+  ASSIGNMENT
+  TEST
+  PROJECT
+}
+
+model SchoolWork {
+  id        String         @id @default(cuid())
+  taskId    String         @unique
+  task      Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  type      SchoolWorkType @default(ASSIGNMENT)
+  subject   String?
+  // Test result, optional. score out of scoreMax (defaults to 100 so a plain
+  // percentage works). Only tests use these; feeds the Scholar stat.
+  score     Int?
+  scoreMax  Int?
+  // Window (homework/project) vs date-specific (test): a window item shows from
+  // startDate until done; a date-specific one only on its due date.
+  dateSpecific Boolean   @default(false)
+  startDate    DateTime? @db.Date
+  // Optional time of day the work is due, minutes from midnight (household tz).
+  // Null means no specific time — it rides the calendar as an all-day chip
+  // rather than a timed block.
+  dueMinutes   Int?
+  classId   String?
+  class     SchoolClass?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  planUnit  ClassPlanUnit?
+  createdAt DateTime       @default(now())
+
+  @@index([classId])
+}
+
+enum Category {
+  CHORE
+  EXERCISE
+  BIBLE
+  SCHOOL
+  WORK
+  APPOINTMENT
+  OTHER
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETE
+  SKIPPED // excused; counts against neither numerator nor denominator
+}
+
+model Task {
+  id       String     @id @default(cuid())
+  clientId String?
+  userId   String
+  user     User       @relation("TaskOwner", fields: [userId], references: [id], onDelete: Cascade)
+  category Category
+  title    String
+  notes    String?
+
+  // Date only, no timezone. A chore is due "Tuesday", not "Tuesday 00:00 UTC".
+  dueDate     DateTime   @db.Date
+  // For "do anytime" chores: the task shows from its dueDate but isn't late
+  // until after this date (the end of its period). Null for ordinary tasks,
+  // which are late the day after dueDate.
+  lateAfter   DateTime?  @db.Date
+  status      TaskStatus @default(PENDING)
+  completedAt DateTime?
+
+  // Optional effort weight for a hand-added task (1..5). Chores carry their
+  // own effort on the Chore row; this is only for one-offs an admin wants to
+  // weight. Null scores as the default of 1 — most tasks are just "do it".
+  weight Int?
+
+  // Never rewrite dueDate to roll a task forward — overdue is a display
+  // rule (dueDate <= today AND status = PENDING), so history stays intact.
+
+  createdById String?
+  createdBy   User?   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  // The assignment this row was generated from. Reconciliation matches on
+  // this rather than on the person, so a chore handed to someone else keeps
+  // filling its slot instead of being rebuilt for the original owner.
+  generatedFrom String?
+  // Notification time (minutes from midnight, household-local) on the due date; null = no alert.
+  notifyMinutes Int?
+
+  // Released back to the household: still due, but nobody owns it yet. Open
+  // items drop out of the original person's score and appear on the
+  // dashboard for anyone to claim.
+  isOpen Boolean @default(false)
+
+  sortOrder Int @default(0)
+
+  // Distinguishes repeated same-day completions of an "always open" chore.
+  // Scheduled chores keep 0, so one-per-person-per-day still holds for them;
+  // each always-open tap gets a distinct value so credit can stack.
+  repeatKey Int @default(0)
+
+  // Set on generated chore tasks. Gives every instance of the same job a
+  // shared identity so a superseded one can be recognized.
+  choreId String?
+  chore   Chore?  @relation(fields: [choreId], references: [id], onDelete: SetNull)
+
+  // Optional link to a timed calendar block (a class, a shift, an appointment)
+  eventId String? @unique
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  // School module detail (assignment/test type + subject), when category=SCHOOL.
+  schoolWork SchoolWork?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Makes chore generation idempotent: re-running it can never duplicate a
+  // row. Postgres treats NULLs as distinct, so hand-added tasks are exempt.
+  @@unique([choreId, userId, dueDate, repeatKey])
+  @@index([userId, dueDate])
+  @@index([dueDate, status])
+  @@index([userId, category, dueDate])
+  @@index([choreId, dueDate])
+  @@index([isOpen, dueDate])
+  @@unique([userId, clientId])
+}
+
+// ---------------------------------------------------------------
+// Events — anything that occupies time on the week grid.
+// ---------------------------------------------------------------
+
+enum EventKind {
+  CLASS
+  WORK
+  APPOINTMENT
+  BIRTHDAY
+  EXTERNAL // pulled from a subscribed ICS feed
+  OTHER
+  PAUSE // the all-day marker event a household pause (vacation/break) generates
+}
+
+// Admin-managed custom event types (e.g. "Hockey game") with their own colour.
+// An event can point at one; when it does, that colour wins on the calendar.
+model EventType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  sportWorkout Boolean @default(false)
+  defaultMinutes Int?
+  // Default reminder (minutes before) pre-filled on new events of this type.
+  defaultReminder Int?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  events Event[]
+}
+
+model Event {
+  id     String  @id @default(cuid())
+  clientId String? @unique
+  // Null when the event belongs to the shared "Family" identity rather than a
+  // specific person (isFamily is true in that case).
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isFamily Boolean @default(false)
+
+  kind     EventKind
+  eventTypeId String?
+  eventType   EventType? @relation(fields: [eventTypeId], references: [id], onDelete: SetNull)
+  title    String
+  location String?
+  // A manual address for a subscribed (feed) event that has none, or to correct
+  // one. Sync never touches this field, so it survives feed refreshes; display
+  // and navigation use locationOverride ?? location.
+  locationOverride String?
+  notes    String?
+  // Minutes-before reminders for this event (e.g. [15, 60] = 15 min and 1 hr
+  // before). Empty means no reminder. Fired per-device by the app.
+  reminders Int[] @default([])
+  // User ids that receive this event's reminders (empty = nobody).
+  reminderUserIds String[] @default([])
+
+  // Timestamptz — a 4pm shift is a real instant, unlike a task's due date.
+  startsAt DateTime
+  endsAt   DateTime
+  allDay   Boolean  @default(false)
+  // Whether an all-day event tints its whole day column on the calendar.
+  shadeDay Boolean  @default(true)
+
+  // RFC 5545 RRULE for repeating classes and shifts.
+  rrule       String?
+  recurrenceId String? // parent series id, for single-occurrence edits
+  // The original occurrence date this override replaces, so the parent series
+  // skips that date. The child's own startsAt may differ (a moved occurrence).
+  recurrenceDate DateTime? @db.Date
+
+  // A cancelled single occurrence of a repeating series: a child override with
+  // this set to true removes just that date from the parent (the expander
+  // skips it) and never renders itself.
+  cancelled Boolean @default(false)
+
+  externalCalendarId String?
+  externalCalendar   ExternalCalendar? @relation(fields: [externalCalendarId], references: [id], onDelete: Cascade)
+  // Links every piece of a logically-single series that has been split by a
+  // "this and future" edit, so the whole thing can be deleted together. Null
+  // until the first split; then all pieces (including the original) share the
+  // original series' id.
+  seriesId String?
+  externalUid        String? // ICS UID, for dedupe across refetches
+
+  task Task?
+  sportSkips SportSkip[]
+  participants EventParticipant[]
+  subscribedReminders SubscribedReminder[]
+  schoolClass SchoolClass? @relation("ClassMeeting")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([externalCalendarId, externalUid])
+  @@index([userId, startsAt])
+  @@index([startsAt, endsAt])
+  @@index([eventTypeId])
+  @@index([seriesId])
+}
+
+model ExternalCalendar {
+  id            String    @id @default(cuid())
+  // Null when the feed belongs to the shared "Family" identity rather than a
+  // specific person (isFamily is true in that case), mirroring Event.
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isFamily      Boolean   @default(false)
+  // Additional people this feed is shared with, beyond the owner (userId).
+  // Their names show on the feed's events; the owner stays the primary.
+  memberIds     String[]  @default([])
+  name          String
+  url           String // webcal/ICS
+  color         String?
+  isActive      Boolean   @default(true)
+  // When on, every event from this feed auto-logs a sport workout on its day
+  // for the feed's owner (helpful for a hockey or game schedule).
+  sportWorkout  Boolean   @default(false)
+  // Length (minutes) to give a feed event that has no end time / duration of its
+  // own. Null falls back to 60. Useful for league feeds (e.g. 75-minute games)
+  // that publish only a start time.
+  defaultDurationMin Int?
+  // When on, apply defaultDurationMin to EVERY event from this feed, overriding
+  // any end time the feed sends (for feeds that publish a wrong/short end).
+  forceDuration      Boolean   @default(false)
+  lastFetchedAt DateTime?
+  lastError     String?
+
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A reusable address for calendar event locations: a short friendly name plus
+// the full address (which is what gets sent to a phone's nav app). `category`
+// groups the picker (an event-type or subscribed-calendar name, or "General").
+// lat/lng are unused for now — room for maps later. `status` is APPROVED for
+// admin/web entries; a phone submission lands PENDING for admin approval.
+model SavedAddress {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  // When on, opening this place in maps searches by "name, address" (best for a
+  // business); off searches the address alone (best for a residence).
+  navByName Boolean  @default(true)
+  lat       Float?
+  lng       Float?
+  status    AddressStatus @default(APPROVED)
+  submittedById String?
+  submittedBy   User?  @relation("SubmittedAddresses", fields: [submittedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+enum AddressStatus {
+  APPROVED
+  PENDING
+}
+
+/// A remembered calendar event name, so new events can pick from names already
+/// used in the household. Grows as events are created; admins normalize
+/// spelling and casing on the /admin/event-names page. Alphabetical everywhere.
+model EventName {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+// Per-user personal-calendar preferences (docs/API.md, DECISIONS.md "Personal
+// calendar…"). Only used by the signed-in personal view and the mobile app;
+// the shared wall tablet ignores this entirely and keeps the household-wide
+// settings. Stored, not derived — these are chosen preferences.
+//
+// The id-list columns are Json so null can mean "never customised → fall back
+// to the default" (self for people, the user's own feeds for subscriptions),
+// distinct from an explicit empty list. The colour columns are defined now but
+// unused until Phase B, so the whole epic needs a single migration.
+model UserCalendarPref {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Phase A — structure
+  view           String  @default("week") // month | week | three_day | day | agenda
+  showFamily     Boolean @default(false)
+  showSchoolWork Boolean @default(true)
+  shownPeople    Json? // user ids explicitly shown; null = default to just self
+  shownSubs      Json? // ExternalCalendar ids shown; null = default to own feeds
+
+  // Phase B — colours (unused until then)
+  personalizeColors Boolean @default(false)
+  othersMode        String  @default("own") // own | grey | family
+  othersColor       String? // the single colour used when othersMode = grey
+  nowColor          String? // personal override of the admin now-line colour
+  holidayColor      String? // personal override of the admin holiday colour
+  familyColor       String? // personal override of the family calendar colour
+  kindColors        Json? // { APPOINTMENT|CLASS|WORK|BIRTHDAY: "#rrggbb" }
+  eventTypeColors   Json? // { <eventTypeId>: "#rrggbb" }
+  subColors         Json? // { <externalCalendarId>: "#rrggbb" }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+//
+// A Chore is the job itself ("Vacuum the living room"), independent of who
+// does it or when. That identity is what drives expiry: an unfinished
+// instance expires the moment the same chore comes due again for anyone,
+// because the floor only needs doing once. Expiry is never time-based.
+// ---------------------------------------------------------------
+
+model Chore {
+  id        String  @id @default(cuid())
+  title     String  @unique
+  notes     String?
+  // Optional badge glyph shown after the Chores summary line when this chore is
+  // done today (e.g. "grass", "water"). Rendered from the CHORE_ICONS registry.
+  icon      String?
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  // A shared chore belongs to nobody. It appears up for grabs, and once
+  // somebody finishes it, the next one is scheduled intervalDays later —
+  // measured from completion, not from a fixed weekday. Mowing is the
+  // motivating case: it depends on how fast the grass grew, not on it
+  // being Saturday.
+  isPool       Boolean @default(false)
+  alwaysOpen   Boolean @default(false) // perpetual up-for-grabs; regenerates on completion
+  perpetual    Boolean @default(false) // throughout-the-day: tap-to-log, countable
+  intervalDays Int?
+
+  // For an always-open chore: minutes it stays gone after a completion before
+  // it can be done again. 0 means it never leaves — it's always tappable.
+  cooldownMinutes Int @default(0)
+
+  // A collaborative chore is assigned to several people who each do their
+  // part; the flag just labels it as shared work. intervalWeeks lets an
+  // assigned chore recur less often than weekly — 2 is every other week.
+  isCollaborative Boolean @default(false)
+  intervalWeeks   Int     @default(1)
+
+  // A "do anytime" chore: assigned to a person, sits on their list for the
+  // whole period (intervalWeeks long), done any day, only late at period end.
+  isAnytime Boolean @default(false)
+
+  // Effort weight, admin-only, on a 1-5 scale. Used to see whether the week's
+  // chores are balanced across the family; never shown to users. Can be locked
+  // so it isn't changed by accident.
+  effort       Int     @default(3)
+  effortLocked Boolean @default(false)
+
+  // Seasonal chores stop rather than pile up. Resuming puts one out
+  // immediately rather than waiting a full interval.
+  isPaused Boolean @default(false)
+
+  assignments ChoreAssignment[]
+  tasks       Task[]
+  logs        ChoreLog[]
+  // Which people a shared (up-for-grabs) chore is available for. Empty means
+  // everyone; a non-empty set is the curated list of eligible people.
+  poolEligibility PoolEligibility[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChoreAssignment {
+  id      String @id @default(cuid())
+  choreId String
+  chore   Chore  @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dayOfWeek Int // 0 = Sunday .. 6 = Saturday
+
+  // Edits apply going forward; already-generated tasks are left alone.
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  isActive      Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([choreId, userId, dayOfWeek])
+  @@index([dayOfWeek, isActive])
+}
+
+/// Membership list for a shared/up-for-grabs chore: the people it is available
+/// for. No rows for a chore means it is available to everyone (unconfigured).
+model PoolEligibility {
+  choreId String
+  chore   Chore  @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([choreId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------
+// Bible reading
+//
+// A plan is a dated list of passages — the schedule, not the text. Plans are
+// data, never code: a household's own plan lives here and never enters the
+// repository. Only one plan is published at a time; drafts can be reviewed
+// and rebuilt freely because nothing reaches anyone's list until published.
+// ---------------------------------------------------------------
+
+model ReadingPlan {
+  id     String  @id @default(cuid())
+  name   String
+  notes  String?
+
+  // A personal plan belongs to one person (family plans leave this null). A
+  // personal plan's days are theirs alone and, when read, mark that person's
+  // chapters — they never touch the family figures.
+  ownerId String?
+  owner   User?   @relation("ReadingPlans", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  isPublished Boolean @default(false)
+
+  startDate DateTime? @db.Date
+  endDate   DateTime? @db.Date
+
+  days ReadingDay[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReadingDay {
+  id     String      @id @default(cuid())
+  planId String
+  plan   ReadingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  day     DateTime @db.Date
+  passage String
+
+  // A special reading — Christmas, Easter — that occupies a date but is left
+  // out of the coverage statistics, so it can't push a percentage past what
+  // the plan proper has actually taken the household through.
+  isExtra Boolean @default(false)
+
+  @@unique([planId, day])
+  @@index([planId, day])
+}
+
+// What a household has already read, marked by an admin, at chapter
+// granularity so a book they're part way through can be ticked off as far as
+// they've read. This is the manual baseline; the published plan's coverage is
+// counted separately from its scheduled days.
+model ChapterCompletion {
+  bookName    String
+  chapter     Int
+  completedAt DateTime @default(now())
+
+  @@id([bookName, chapter])
+}
+
+// A person's own record of Bible chapters they've read, in any order — the
+// personal counterpart to the household ChapterCompletion. Powers each person's
+// own coverage stats and feeds Wisdom XP. Kept separate so personal reading
+// never touches the shared household figures.
+model UserChapterRead {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookName    String
+  chapter     Int
+  completedAt DateTime @default(now())
+
+  @@id([userId, bookName, chapter])
+  @@index([userId])
+}
+
+// Leisure reading, per person. Add a book with a length (in pages or chapters);
+// each day you can log how much you read. It never goes overdue and isn't a
+// checklist item — just a gentle tracker. Progress is the sum of the logs,
+// capped at the length. Reading feeds the Scholar stat slightly (the more you
+// read, the more it adds), derived at read time from the logs.
+enum ReadingUnit {
+  PAGES
+  CHAPTERS
+}
+
+model Book {
+  id         String      @id @default(cuid())
+  clientId String?
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  author     String?
+  // Progress is tracked in one unit (unit/length, derived from pages/chapters —
+  // pages win when both are set). pages/chapters carry the full size metadata; a
+  // book must have at least one, and may have both. `position` is the page/chapter
+  // the reader is up to; how far they've read (and the Scholar XP) derives from it
+  // at read time, so paging back and forth never banks extra credit.
+  unit       ReadingUnit @default(PAGES)
+  length     Int
+  pages      Int?
+  chapters   Int?
+  position   Int         @default(0)
+  shelved    Boolean     @default(false)
+  finishedAt DateTime?
+  createdAt  DateTime    @default(now())
+  logs       BookLog[]
+  goals      ReadingGoal[]
+
+  @@index([userId])
+  @@unique([userId, clientId])
+}
+
+// Optional, sequential reading goals for a book: reach `target` (a page/chapter
+// in the book's unit) by `dueDate`. Goals are partial — they need not cover the
+// whole book — and purely a planning aid: a goal is met once the book's position
+// reaches its target, and reading's own Scholar XP is unaffected by them.
+model ReadingGoal {
+  id          String    @id @default(cuid())
+  bookId      String
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  // The page this goal's segment starts from: the previous goal's target, or —
+  // for the first goal — the reader's position when the goals were set. Progress
+  // toward the goal is measured across [startPage, target].
+  startPage   Int       @default(0)
+  target      Int
+  dueDate     DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([bookId])
+}
+
+model BookLog {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  day       DateTime @db.Date
+  amount    Int
+  createdAt DateTime @default(now())
+
+  @@index([bookId, day])
+}
+
+// ---------------------------------------------------------------
+// Screen time
+//
+// A daily allowance plus a small number of weekly tokens that buy extra
+// minutes. Tokens are the interesting part: they're scarce, so spending one
+// is a decision, which is what makes them usable as a reward later.
+// ---------------------------------------------------------------
+
+model GameProfile {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dailyMinutes Int     @default(60)
+  weeklyTokens Int     @default(3)
+  tokenMinutes Int     @default(20)
+  isActive     Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+}
+
+model GameSession {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Date only: a session belongs to a day's allowance, not to an instant.
+  day     DateTime @db.Date
+  minutes Int
+
+  // Whether this session spent one of the week's tokens.
+  usedToken Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, day])
+  @@index([day])
+}
+
+// ---------------------------------------------------------------
+// Settings
+//
+// Small key/value store. Currently holds the scoring start date, which lets
+// the scoreboard ignore everything from before a chosen day without deleting
+// any history — useful for starting a season even after months of testing.
+// ---------------------------------------------------------------
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// A person attending an event beyond its owner. For sport-workout events this
+// is the set who each get a completion prompt; empty means "just the owner".
+model EventParticipant {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+// Per-person reminder minutes on a subscribed (feed) event. Feed events are
+// shared, so each person keeps their own minutes here rather than on the event.
+model SubscribedReminder {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  minutes Int[]  @default([])
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+// A sport-workout calendar event's per-person, per-day "no". Its absence
+// (with no logged session for that occurrence) is what shows the prompt; keyed
+// on the occurrence date so every day and every person is independent.
+model SportSkip {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId, date])
+  @@index([userId, date])
+}
+
+// A one-time invitation to set up a personal login for an existing person.
+// The raw token is shown to the admin once and never stored; only its hash
+// lives here. Redeeming it sets the person's password and deletes the invite.
+// This is the only path to a loginable account — there is no self-signup.
+model Invite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  purpose   String   @default("join")
+
+  @@index([userId])
+}
+
+// A phone (or other personal device) enrolled to one person. On the mobile
+// client the device token *is* that person's identity — the web wall tablet
+// stays identity-free (see docs/API.md "identity"). Only a hash of the token's
+// secret is stored, like an Invite; the raw token is shown once at enrollment.
+// Rotating (refresh) or revoking replaces/blanks the hash so the old token
+// stops verifying. `expiresAt` refuses a stale token even before revocation.
+model Device {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String? // a label the parent gives, e.g. "Ellie's phone"
+  tokenHash  String    @unique // sha256 of the bearer token's secret
+  expiresAt  DateTime
+  lastSeenAt DateTime?
+  revokedAt  DateTime? // soft-revoke; a revoked row never verifies
+  credentialVersion Int @default(0) // password version this device last authenticated at
+  clientBuild Int? // last app build this device reported (X-Client-Build header)
+  clientVersion String? // human version name, e.g. "0.177.0" (X-Client-Version)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------
+// Weather — one row, refreshed on a 15-minute timer, shared by all.
+// ---------------------------------------------------------------
+
+model WeatherCache {
+  id          Int      @id @default(1)
+  payload     Json
+  fetchedAt   DateTime @default(now())
+  provider    String
+  lastError   String?
+}
+
+// ---------------------------------------------------------------
+// Groceries — a shared shopping list that learns which items the
+// household buys, filtered by the store you're shopping at.
+// ---------------------------------------------------------------
+
+model Store {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  icon      String  @default("🛒")
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  catalog GroceryItem[]
+  items   ShoppingItem[]
+  trip    ShoppingTrip?
+}
+
+// A live shopping run for one store, claimed by one person. It exists only
+// while active — completing or dropping it removes the row — so there's at most
+// one per store (the unique storeId). Trips are per store even on a single
+// outing: two stores are two trips, so each store's cart stays its own.
+model ShoppingTrip {
+  id        String   @id @default(cuid())
+  storeId   String   @unique
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  shopperId String
+  shopper   User     @relation("TripShopper", fields: [shopperId], references: [id], onDelete: Cascade)
+  startedAt DateTime @default(now())
+
+  items ShoppingItem[]
+
+  @@index([shopperId])
+}
+
+// The remembered catalog. Adding a needed item finds or creates its entry,
+// bumps the use count, and reuses the icon, so common things surface first
+// and don't need typing or re-picking an icon each time.
+model GroceryItem {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  icon           String   @default("📦")
+  iconLocked     Boolean  @default(false)
+  defaultStoreId String?
+  defaultStore   Store?   @relation(fields: [defaultStoreId], references: [id], onDelete: SetNull)
+  useCount       Int      @default(0)
+  isActive       Boolean  @default(true)
+  lastUsedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
+
+// One line on the list. It sits on the saved list (tripId null) until a trip
+// for its store is started, which pulls it into that trip; anything added while
+// a trip is live joins it too. `boughtAt` marks a line purchased *within the
+// current trip* — completing the trip drops the purchased lines and returns the
+// rest to the saved list. Name and icon are snapshots that track the catalog.
+model ShoppingItem {
+  id           String    @id @default(cuid())
+  clientId String? @unique
+  name         String
+  icon         String    @default("📦")
+  storeId      String
+  store        Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tripId       String?
+  trip         ShoppingTrip? @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  assignedToId String?
+  assignedTo   User?     @relation("GroceryAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  note         String?
+  /// Optional count for the line (1-99); null means no quantity is shown.
+  quantity     Int?
+  boughtAt     DateTime?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  @@index([storeId])
+  @@index([tripId])
+}
+
+// ---------------------------------------------------------------
+// Exercise — routines of movements, assigned to people by weekday,
+// generated into daily tasks, with a log of what was actually done.
+// ---------------------------------------------------------------
+
+enum WorkoutCategory {
+  WEIGHTS
+  RUNNING
+  ROWING
+  SPORT
+  STRETCHING
+  HIIT
+  ISOMETRIC
+  RUCKING
+}
+
+enum WorkoutImplement {
+  BARBELL
+  DUMBBELL
+  KETTLEBELL
+  BODYWEIGHT
+  NONE
+}
+
+// The headline number an exercise is graphed on — everything else logged is
+// detail. Bench is graphed on WEIGHT; a run on DISTANCE; a row on METERS.
+enum WorkoutType {
+  AMRAP
+  FOR_TIME
+  MAX_SETS
+  FOR_REPS
+  STATIONS
+  TIMED_STATIONS
+  PYRAMID
+  TABATA
+}
+
+enum WorkoutMetric {
+  WEIGHT
+  DISTANCE
+  METERS
+  DURATION
+  REPS
+}
+
+// A built-in sub-category for weights, so the pool of lifts can be organised
+// the way people think about a session ("chest day"). Weights only.
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  LEGS
+  ARMS
+  CORE
+  FULL_BODY
+}
+
+// The household exercise pool: a shared, admin-managed library of movements,
+// categorised, with a muscle-group sub-category for weights. People pick from
+// this pool when planning and logging, so the same "Bench Press" is one shared
+// thing everyone can be compared on — unlike the per-person Exercise below.
+model PoolExercise {
+  id          String          @id @default(cuid())
+  category    WorkoutCategory
+  name        String
+  muscleGroup MuscleGroup?
+  isActive    Boolean         @default(true)
+  sortOrder   Int             @default(0)
+  ownerId     String?
+  owner       User?           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+
+  sets    SessionSet[]
+  planned PlannedExercise[]
+  hiitMovements HiitWorkoutMovement[]
+
+  @@unique([category, name, ownerId])
+  @@index([category, muscleGroup, isActive])
+}
+
+// A named HIIT/CrossFit workout (e.g. "Cindy") of a given type, built from
+// HIIT-pool movements. ownerId null means the shared household pool; a set
+// ownerId means it's that person's own, pending share/approval.
+model HiitWorkout {
+  id           String       @id @default(cuid())
+  name         String
+  type         WorkoutType
+  ownerId      String?
+  owner        User?        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  approved     Boolean      @default(true)
+  shareRequested Boolean    @default(false)
+  capSec       Int? // AMRAP time cap / timed-station duration
+  pyramidStart Int?
+  pyramidEnd   Int?
+  pyramidStep  Int?         @default(1)
+  notes        String?
+  heroWod      Boolean      @default(false)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  movements HiitWorkoutMovement[]
+  planned   PlannedWorkout[]
+
+  @@index([ownerId])
+  @@index([approved])
+}
+
+model HiitWorkoutMovement {
+  id             String       @id @default(cuid())
+  hiitWorkoutId  String
+  hiitWorkout    HiitWorkout  @relation(fields: [hiitWorkoutId], references: [id], onDelete: Cascade)
+  poolExerciseId String
+  poolExercise   PoolExercise @relation(fields: [poolExerciseId], references: [id], onDelete: Cascade)
+  reps           Int?
+  distance       Float?
+  weight         Float?
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+
+  @@index([hiitWorkoutId])
+  @@index([poolExerciseId])
+}
+
+// A person's own definition of a thing they do. Built once, reused: it drives
+// what the log form asks for and whether the exercise gets a line on a graph.
+model Exercise {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation("WorkoutExercises", fields: [userId], references: [id], onDelete: Cascade)
+  category  WorkoutCategory
+  name      String
+  implement WorkoutImplement?
+  unit      String        // "lb", "kg", "mi", "km", "m", "min", "sec", "rep"
+  metric    WorkoutMetric  @default(WEIGHT)
+  tracked   Boolean @default(true) // graph this one?
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+
+  schedules WorkoutSchedule[]
+  sets      SessionSet[]
+
+  @@index([userId, category, isActive])
+}
+
+// "On Mondays, expect Bench." A weekday recurrence that shapes the daily
+// prompt. It can be paused (with a nudge to resume) or given an end date
+// (with a nudge to make a new plan before it lapses).
+model WorkoutSchedule {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation("WorkoutSchedules", fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId    String
+  exercise      Exercise  @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  dayOfWeek     Int       // 0 = Sunday .. 6 = Saturday
+  isActive      Boolean   @default(true)
+  isPaused      Boolean   @default(false)
+  effectiveFrom DateTime  @db.Date
+  endDate       DateTime? @db.Date
+  createdAt     DateTime  @default(now())
+
+  @@unique([exerciseId, dayOfWeek])
+  @@index([userId, dayOfWeek, isActive])
+}
+
+// One workout on a date. Saying "yes, I worked out" creates it; logging its
+// detail fills in the sets. Marking it unfinished is fine.
+// A named workout on a weekday — the building block of a person's weekly plan.
+// A day with any of these is a training day; "leg day" and "chest" can both
+// sit on the same day. Details (muscle groups, HIIT specifics) come later.
+model PlannedWorkout {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("PlannedWorkouts", fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int // 0 = Sunday .. 6 = Saturday
+  name        String
+  category    WorkoutCategory?
+  muscleGroup MuscleGroup?
+  isRest      Boolean          @default(false)
+  hiitWorkoutId String?
+  hiitWorkout   HiitWorkout?   @relation(fields: [hiitWorkoutId], references: [id], onDelete: SetNull)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+
+  exercises PlannedExercise[]
+
+  @@index([userId, dayOfWeek])
+}
+
+// A workout rotation: an ordered cycle of days that repeats independent of the
+// calendar (e.g. Chest / Legs / Push, every three days). One per person; its
+// presence means that person is on a rotation instead of a weekly plan.
+//
+// restMask marks weekdays that are always off (bit i set, 0=Sun..6=Sat). A
+// fixed rest weekday PAUSES the cycle — the rotation holds its place and resumes
+// on the next working day, so a weekend never costs you your spot. anchorDate is
+// day 0 of the cycle; the slot for any date is derived at read time from the
+// working days elapsed since the anchor.
+model WorkoutRotation {
+  id         String         @id @default(cuid())
+  userId     String         @unique
+  user       User           @relation("WorkoutRotation", fields: [userId], references: [id], onDelete: Cascade)
+  anchorDate DateTime       @db.Date
+  restMask   Int            @default(0)
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  slots      RotationSlot[]
+}
+
+// One day in a rotation. A rest slot advances the cycle (unlike a fixed rest
+// weekday, which pauses it) — that's how a pure "every 4th day off" pattern is
+// expressed. muscleGroup is the "main workout" tag used for overdue matching.
+model RotationSlot {
+  id          String           @id @default(cuid())
+  rotationId  String
+  rotation    WorkoutRotation  @relation(fields: [rotationId], references: [id], onDelete: Cascade)
+  position    Int
+  name        String
+  category    WorkoutCategory?
+  muscleGroup MuscleGroup?
+  isRest      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@unique([rotationId, position])
+}
+
+// A pool movement placed inside a planned workout, with whether the person
+// wants to log a metric for it when they complete that day, and which one.
+model PlannedExercise {
+  id               String         @id @default(cuid())
+  plannedWorkoutId String
+  plannedWorkout   PlannedWorkout @relation(fields: [plannedWorkoutId], references: [id], onDelete: Cascade)
+  poolExerciseId   String
+  poolExercise     PoolExercise   @relation(fields: [poolExerciseId], references: [id], onDelete: Cascade)
+  tracked          Boolean        @default(true)
+  metric           WorkoutMetric?
+  sortOrder        Int            @default(0)
+  createdAt        DateTime       @default(now())
+
+  @@unique([plannedWorkoutId, poolExerciseId])
+  @@index([poolExerciseId])
+}
+
+model WorkoutSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("WorkoutSessions", fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  // A day can hold more than one workout — a lift and a run, hockey and a
+  // ride. Each session is one of them: an optional name and category label it
+  // in the day's list. Null name/category is a plain "worked out" session or
+  // legacy pre-naming data.
+  name        String?
+  category    WorkoutCategory?
+  workoutType WorkoutType?
+  durationMin Int?
+  finished    Boolean  @default(true)
+  // A deliberate rest/skip day: marks the day handled without counting toward
+  // scoring later.
+  isRest      Boolean  @default(false)
+  notes       String?
+  sourceEventId String?  // the calendar event this was auto-logged from
+  // The day the workout was actually DONE, when that differs from `date`.
+  // `date` stays the day it counts for, because adherence is keyed on it —
+  // loadOverdueWorkoutDays asks whether that day's planned exercises have
+  // values. Null means "same as date", which is true of every ordinary log and
+  // every deliberately back-dated one; only logging a missed day sets it.
+  completedOn DateTime? @db.Date
+  createdAt   DateTime @default(now())
+
+  sets SessionSet[]
+
+  @@index([userId, date])
+  @@index([sourceEventId])
+}
+
+// What was actually done, one row per exercise per set. A uniform shape holds
+// a barbell set, a run, a row, or a plank — only some columns are used.
+model SessionSet {
+  id         String  @id @default(cuid())
+  sessionId  String
+  session    WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // A set points at either a legacy per-person Exercise or a shared PoolExercise
+  // (the pool is what makes the same movement comparable across people). Newer
+  // pool-driven logs use poolExerciseId; metric-only logs (a run) use neither
+  // and take their identity from the session's category.
+  exerciseId String?
+  exercise   Exercise? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  poolExerciseId String?
+  poolExercise   PoolExercise? @relation(fields: [poolExerciseId], references: [id], onDelete: SetNull)
+  /// When this set was logged in place of a planned movement (a swap for the
+  /// day — front squat instead of back squat), the planned movement's id. Lets
+  /// the day's plan show what was actually done in the slot it belongs to.
+  swappedFromId  String?
+  setNumber  Int     @default(1)
+  reps       Int?
+  weight     Float?
+  distance   Float?
+  meters     Float?
+  seconds    Int?
+  unit       String? // snapshot so changing the definition never rewrites history
+  finished   Boolean @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([sessionId, exerciseId, setNumber])
+  @@index([exerciseId])
+  @@index([poolExerciseId])
+}
+
+enum PauseType {
+  VACATION
+  OTHER
+}
+
+// A household-wide pause (a vacation, say). No chores are generated for the
+// days it covers, so those days also drop out of scoring; chores resume the
+// day after it ends. Creating one puts a multi-day all-day event on the
+// calendar (tracked by eventId) so the break is visible and shades its days.
+model Pause {
+  id        String    @id @default(cuid())
+  name      String
+  type      PauseType @default(VACATION)
+  startDate DateTime  @db.Date
+  endDate   DateTime  @db.Date
+  eventId   String? // the generated all-day calendar event, removed with the pause
+  createdAt DateTime  @default(now())
+
+  @@index([startDate, endDate])
+}
+
+// ---------------------------------------------------------------------------
+// Money
+//
+// A personal ledger for the people who keep one — birthday money, gifts,
+// earnings, Bible-reading rewards. One row per movement; a person appears on
+// the Money page only if they have at least one row. Balances are summed at
+// read time from every row (pending included), so approval is a verification
+// mark, never a gate on the number.
+// ---------------------------------------------------------------------------
+
+enum MoneyDirection {
+  DEPOSIT // money in  (+)
+  PAYMENT // money out (-)
+}
+
+// The fixed deposit category pool. Payments carry none (they use free text).
+enum MoneyCategory {
+  BIRTHDAY
+  GIFT
+  HOLIDAY
+  EARNINGS
+  BIBLE
+  OTHER
+}
+
+enum MoneyStatus {
+  PENDING
+  APPROVED
+}
+
+// How a row came to be. Drives the label the table shows and keeps the
+// automated Bible rewards idempotent (see periodKey).
+enum MoneyKind {
+  MANUAL // added through the overlay
+  STARTING // the "starting funds" baseline
+  BIBLE_REWARD // per-person monthly reading reward (Phase 2)
+  BIBLE_BONUS // group completion top-up (Phase 2)
+  IMPORT // brought in from a CSV (Phase 3)
+}
+
+model MoneyEntry {
+  id     String @id @default(cuid())
+  clientId String?
+  userId String
+  user   User   @relation("MoneyOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Date only — a transaction lands on a day, not an instant. Defaults to the
+  // day it was entered, but the person can back-date it.
+  date DateTime @db.Date
+
+  direction MoneyDirection
+  // Only meaningful for deposits; null for payments.
+  category  MoneyCategory?
+  // Free text: extra detail on a deposit, or the whole description of a payment.
+  detail    String?
+
+  // Always a positive magnitude in whole cents; direction supplies the sign.
+  // Integer cents avoids float drift on a running balance.
+  amountCents Int
+
+  status MoneyStatus @default(PENDING)
+  kind   MoneyKind   @default(MANUAL)
+
+  // "YYYY-MM" for reward/bonus rows, so a month can never be paid twice.
+  // Null for everything else.
+  periodKey String?
+
+  createdById  String?
+  approvedById String?
+  approvedBy   User?     @relation("MoneyApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([status])
+  // One reward and one bonus per person per month, at most.
+  @@unique([userId, kind, periodKey])
+  @@unique([userId, clientId])
+}
+
+// ---- Family co-op -----------------------------------------------------------
+
+enum CoopStatus {
+  PROPOSED // suggested, collecting votes
+  SELECTED // the admin-chosen reward for this season
+  GRANTED  // handed out once the participation gate was met
+}
+
+// A proposed family (co-op) reward for a season. Anyone can propose; everyone
+// votes; an admin selects one and grants it once every child clears the floor.
+model CoopProposal {
+  id           String     @id @default(cuid())
+  seasonKey    String // the season window's start date, so proposals are per-season
+  title        String
+  detail       String? // optional "what / when"
+  proposedById String
+  proposedBy   User       @relation(fields: [proposedById], references: [id], onDelete: Cascade)
+  status       CoopStatus @default(PROPOSED)
+  votes        CoopVote[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([seasonKey])
+}
+
+model CoopVote {
+  id         String       @id @default(cuid())
+  proposalId String
+  proposal   CoopProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+
+  @@unique([proposalId, userId])
+}
+
+// ---- Companion collection ---------------------------------------------------
+
+// A creature a person has hatched. Unique per (user, species) — no duplicates.
+model Companion {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  species       String
+  shiny         Boolean  @default(false)
+  isActive      Boolean  @default(false)
+  activeSinceXp Int      @default(0) // lifetime XP when it became active (drives tenure)
+  mintedStage   Int? // frozen stage when it was retired to the shelf
+  acquiredAt    DateTime @default(now())
+
+  @@unique([userId, species])
+  @@index([userId])
+}
+
+// Per-person incubation progress and the season egg cap.
+model CompanionState {
+  userId           String @id
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incubationBaseXp Int    @default(0) // lifetime XP banked at the last hatch
+  eggsHatched      Int    @default(0)
+  seasonKey        String?
+  eggsThisSeason   Int    @default(0)
+}
+
+// A tap-log for a throughout-the-day (perpetual) chore. One row per time done.
+model ChoreLog {
+  id        String   @id @default(cuid())
+  choreId   String
+  chore     Chore    @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@index([choreId, day])
+  @@index([day])
+}
+
+model RecurringTask {
+  id          String    @id @default(cuid())
+  clientId String?
+  userId      String
+  user        User      @relation("RecurringTaskOwner", fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?
+  category    Category  @default(OTHER)
+  weight      Int?
+  // DAILY | WEEKLY | MONTHLY, every `interval` of that unit.
+  freq        String    @default("WEEKLY")
+  interval    Int       @default(1)
+  // Weekly only: comma-separated day codes (SU,MO,TU,WE,TH,FR,SA).
+  byday       String?
+  startDate   DateTime  @db.Date
+  // NEVER | COUNT (first `maxCount`) | UNTIL (through `untilDate`).
+  endMode     String    @default("NEVER")
+  maxCount    Int?
+  untilDate   DateTime? @db.Date
+  active      Boolean   @default(true)
+  createdById String?
+  // Alert time (minutes from midnight) stamped onto each generated occurrence.
+  notifyMinutes Int?
+  createdAt   DateTime  @default(now())
+
+  @@index([active])
+  @@unique([userId, clientId])
+}
+
+/// A person's total game/console time for one local day, already resolved by the
+/// collector (e.g. Steam-primary merge applied). Upserted idempotently as the day
+/// fills in, so the collector can keep re-sending "today so far".
+model GameDay {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  minutes   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
+/// Per-game minutes for one person on one local day.
+model GameDayTitle {
+  id      String   @id @default(cuid())
+  userId  String
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date    DateTime @db.Date
+  game    String
+  minutes Int      @default(0)
+  // Which platform the title ran on (e.g. "PC" vs a console), from the collector.
+  platform String?
+
+  @@unique([userId, date, game])
+}
+
+/// Latest profile status for a person, synced from the collector and shown on
+/// their own app view. Not historical — always the current values.
+model PlayerCard {
+  userId      String   @id
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gamerscore  Int?
+  gamerpic    String?
+  hasGamePass Boolean?
+  msBalance   String? // display string, e.g. "$12.50", from Family Safety
+  platforms   String? // comma-joined systems used, e.g. "xbox" or "steam"
+  updatedAt   DateTime @updatedAt
+}
+
+
+enum ClassPlanStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// A class's curriculum: an ordered list of units (lessons, tests, ...) that the
+/// builder spreads across the term's school days into SchoolWork. One per class.
+model ClassPlan {
+  id        String          @id @default(cuid())
+  classId   String          @unique
+  class     SchoolClass     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  /// Spans both semesters (spread across the whole school year) vs the class's
+  /// single term. When true, each term-build locks the slice inside its dates.
+  bothTerms Boolean         @default(false)
+  /// Items scheduled per school day (usually 1).
+  perDay    Int             @default(1)
+  /// Weekdays this class runs, ISO digits 1=Mon..7=Sun, e.g. "12345".
+  weekdays  String          @default("12345")
+  /// Sequence index of the first not-yet-done unit — scheduling starts here.
+  startIndex Int            @default(0)
+  /// The calendar day scheduling begins on (a DATE). Null means "start from
+  /// today" when the plan is published.
+  startDate DateTime?       @db.Date
+  /// Front-load extra items so the plan finishes by the last term day even when
+  /// it wouldn't fit at one a day. Off = a flat perDay spread (may overflow).
+  fitToTerm Boolean         @default(false)
+  status    ClassPlanStatus @default(DRAFT)
+  units     ClassPlanUnit[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+/// One ordered unit of a ClassPlan (a lesson, a test, ...). On publish each
+/// scheduled unit becomes a SchoolWork item on the student's card.
+model ClassPlanUnit {
+  id       String         @id @default(cuid())
+  planId   String
+  plan     ClassPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  seq      Int
+  label    String
+  /// Reuses the SchoolWork types; a lesson unit is stored as ASSIGNMENT, a test
+  /// as TEST (its label carries "Lesson N" / "Test N").
+  type     SchoolWorkType @default(ASSIGNMENT)
+  load     Int            @default(1)
+  done     Boolean        @default(false)
+  /// Assigned when the term is built/published; null until then.
+  scheduledDate DateTime? @db.Date
+  /// The generated SchoolWork once published; null while a draft.
+  workId   String?        @unique
+  work     SchoolWork?    @relation(fields: [workId], references: [id], onDelete: SetNull)
+
+  @@unique([planId, seq])
+  @@index([planId])
+}

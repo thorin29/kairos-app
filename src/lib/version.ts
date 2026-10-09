@@ -4,7 +4,7 @@
  * quickest tell for a partial upload: a missing file usually shows up as a
  * missing migration.
  */
-export const APP_VERSION = "0.557.0";
+export const APP_VERSION = "0.569.0";
 
 export const MIGRATIONS = [
   "0_init",
@@ -129,15 +129,107 @@ export const MIGRATIONS = [
   "114_feed_force_duration",
   "115_grocery_quantity",
   "116_set_swapped_from",
+  "117_session_completed_on",
 ] as const;
 
 export type Change = { version: string; summary: string[] };
 
 export const CHANGES: Change[] = [
   {
-    version: "0.557.0",
+    version: "0.569.0",
+    summary: [
+      "The movement history moved to the right of the entry fields, on the same row, instead of sitting underneath them.",
+      "Three fixed lines now, each answering a different question: Best weight is the heaviest ever lifted (weight only), Best reps is the MOST reps ever done with the weight they were done at \u2014 usually a lighter bar \u2014 and Most recent is the last session even when it is below both.",
+      "A line with nothing behind it shows a dash rather than disappearing, so the block keeps its shape as you log.",
+    ],
+  },
+  {
+    version: "0.568.0",
+    summary: [
+      "Recent workouts now reads the same on both: the weekday above a 10/5 date, both hard left. The web said \u201cOct 7\u201d where the phone said 10/7 for the same workout.",
+      "Under each movement on the log card: Best, Best reps and Last. Computed on the server and shared with the phone, so the two can't disagree about your record.",
+      "The REPS tile no longer says \u201cnone logged yet\u201d while LAST, two tiles over, shows the same lift at \u00d72. It means reps AT the record, and the record predates reps being stored \u2014 it now falls back to the best rep count logged at any weight.",
+    ],
+  },
+  {
+    version: "0.567.0",
+    summary: [
+      "The weight and reps you just logged now stay in the boxes. They were being cleared on save, so a successful log looked like a failed one until you refreshed.",
+      "Swap moved next to the movement name and picked up a swap icon, instead of sitting across the card.",
+      "Reps moved to sit directly after the weight box rather than hard right. Both changes apply on the home page and the Workouts page \u2014 they share one row component.",
+    ],
+  },
+  {
+    version: "0.566.0",
+    summary: [
+      "Reps now save when you log a workout on the web. The box was being filled in and thrown away on the server, which is why the charts showed \u00d71, Recent workouts showed only a weight, and reopening the day left Reps empty.",
+      "\u201cEdit weight\u201d now actually edits. It was creating a second session for the same day instead of updating the first.",
+      "A swapped movement now keeps the slot it was swapped into, instead of losing it on save.",
+      "All three came from the web having its own copy of the logging code, which had drifted from the one the phone uses. It now calls the same function, so there is only one.",
+      "Reps logged on the web before this were never stored and can't be recovered \u2014 reopen the day and enter them, which will now update the entry in place.",
+    ],
+  },
+  {
+    version: "0.565.0",
+    summary: [
+      "The family goal no longer disappears when the month turns. A goal that was picked but never checked off carries forward and shows until a parent marks it done \u2014 September's is back, with its votes.",
+      "The goal now shows on the home page for everyone, with this month's progress and, for a parent, a \u201cWe did it\u201d button once every kid has finished their month.",
+      "A carried goal is judged on ITS month, not the current one. September's goal unlocks on September's clean days; October starting over doesn't move the finish line.",
+      "Checking off a goal is now enforced on the server. Previously the button was hidden when the gate wasn't met, but the API would still grant it.",
+    ],
+  },
+  {
+    version: "0.564.0",
+    summary: [
+      "The same overdue fix now applies to workouts logged from the phone. The app posts to /api/v1/workouts/log, a different path from the web's, which had no completedOn \u2014 so a catch-up logged on a phone still landed on the due day.",
+      "Needs app 0.374.0 to take effect. An older phone omits the field and behaves exactly as before.",
+    ],
+  },
+  {
+    version: "0.563.0",
+    summary: [
+      "An overdue workout now counts for the day it was due but shows as done on the day you actually did it \u2014 in the workout-days grid, the progress charts and Recent workouts.",
+      "Before this, logging Monday's workout on Tuesday put Tuesday's weights on Monday's square and dated it 10/5. Adherence still reads the due day, so a missed Monday stays missed.",
+    ],
+  },
+  {
+    version: "0.562.0",
+    summary: [
+      "Log workout on the Workouts page now fills in today's weights and reps, the same as it does from the home page. That copy of the plan was never being handed the logged sets at all.",
+      "Fixes \u201cLoading logged weights\\u2026\u201d showing the escape as raw text.",
+    ],
+  },
+  {
+    version: "0.561.0",
+    summary: [
+      "A logged movement keeps its normal row with the weight and reps filled in and the button reading \u201cEdit weight\u201d, instead of collapsing to a tick that hid the numbers.",
+      "Compare orders each person's bars by date, so they read as that person's progression rather than a tidy staircase.",
+    ],
+  },
+  {
+    version: "0.560.0",
+    summary: [
+      "Today's logged weights and reps now fill in on the plan, and the button reads Edit. They were being fetched for every day EXCEPT today, which is the day you are most likely to be correcting.",
+      "Compare stops at the heaviest lift \u2014 no solid or dotted line drawn above it.",
+      "A day with three muscle groups splits into wedges, four into quadrants, five or more into bands.",
+    ],
+  },
+  {
+    version: "0.559.0",
+    summary: [
+      "Workout days reaches the current week. It was ending several days short, so this week never appeared.",
+      "Reopening a logged day fills in the weight and the reps you recorded, and the button says Edit rather than offering to log it again.",
+      "A day with three or more muscle groups splits into that many colours instead of showing only the first two.",
+      "Compare no longer draws a second line above the top one when nothing rises past it.",
+    ],
+  },
+  {
+    version: "0.558.0",
     summary: [
       "Fixes two workouts with the same name on one day being ticked off together \u2014 logging one Back workout marked both, and the second could only be recorded through \u201clog a different workout\u201d.",
+      "A logged row now names the movements you did rather than repeating the muscle group, so a Back card reads \u201cbent over row\u201d instead of \u201cBack, Back\u201d.",
+      "Workouts logged today appear in Recent workouts. They were being excluded outright, which is why your phone showed them and the web did not.",
+      "Opening Recent workouts starts at the top instead of wherever the previous screen was scrolled to.",
       "On Compare, \u00d71 is no longer written on every bar (a bar exists because a set was done), the rep count is lighter and tucked against the bar, and the top gridline is solid and labelled when it lands on a round load.",
     ],
   },

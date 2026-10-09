@@ -1,136 +1,324 @@
 # Decisions
 
-## 2026-10 — The history summary is server-computed (v0.377.0)
+## 2026-10 — Best weight and best reps are different questions (v0.569.0)
 
-Best / Best reps / Last arrive as a field on the movement rather than being
-derived on the phone. The phone has the logged sets it needs for today, not the
-whole history, and computing a record locally would mean two answers to "what is
-my best bench" — which is exactly the class of bug that cost the last two days.
+The first cut of this block showed "Best" as the record set, weight AND the reps
+done at it, and then only showed a reps line when those reps existed. That
+collapses two questions into one and answers neither well.
 
-`MovementStatsDto` is appended last and nullable, so an older server omits it and
-the block simply doesn't render. Nothing constructs `PlannedMovementDto`
-positionally, but it still went last.
+They are now three fixed lines:
 
-Rendered per movement, under its entry fields. On a one-movement card that is
-the space above the Log weight button, which is where it was wanted; on a card
-with three lifts each keeps its own, which a card-level block could not do.
+  Best weight  the heaviest ever lifted, weight alone. Whatever reps happened to
+               go with it are noise against the number being asked for.
+  Best reps    the MOST reps ever done, with the weight they were done at. This
+               is usually a LIGHTER bar than the record, which is the whole
+               point of having the line — deriving it from the record set would
+               make it the record over again.
+  Most recent  the last session, even when below both records. A summary that
+               only ever shows personal bests cannot tell you where you are now.
 
-## 2026-10 — Aligning the fields by structure, not by numbers (v0.376.0)
+All three render always, with an em dash when empty. A line that disappears
+shifts the two below it, so the block changed shape as a movement accumulated
+history.
 
-The entry boxes now sit in the same three weighted cells as the action tiles
-below them, rather than being positioned with widths and spacers that happened to
-look right. Both rows are `fillMaxWidth` children of the same Column with the
-same 8dp gaps, so cell N and tile N resolve to the same x-extent on any screen.
-Nothing has to be re-tuned for a different phone, which is the failure mode of
-the alternative.
+Placement is to the right of the movement's own entry fields, in the same row.
+Under them was wrong: it pushed the action tiles down and read as a footnote to
+the card rather than as information about that one movement.
 
-Each box is `weight(1f, fill = false).widthIn(max = NUM_FIELD_W)` — capped at
-three digits, but able to shrink below that on a narrow screen instead of
-overflowing its cell. A plain fixed width is what put sixteen columns off the
-right edge of the attendance grid in 0.372.
+`bestRepsOn` was added for the web's date column. The app omits dates and the
+repeated unit entirely — it has a third of a phone's width to work in, and the
+unit is already printed beside the weight box on the same row.
 
-One constant for every numeric box on the screen, so weight, reps and seconds
-cannot drift into three sizes again — which is what they were.
+## 2026-10 — One record, two plan queries (v0.568.0)
 
-`MovementRow` is the only implementation of that row and both call sites go
-through it, so this lands everywhere the fields appear without a second copy to
-keep in step.
+The log card needed Best / Best reps / Last per movement. The two clients reach
+the log card through *different* queries — the web renders the weekly plan from
+`loadWorkoutsBoard`, the phone reads the day's plan from
+`loadTodayPlannedWorkouts` — so the obvious move was to compute the summary in
+each. That is how the web and the phone ended up disagreeing about reps, swaps
+and sessions over the last two days.
 
-## 2026-10 — The goal card loads on its own, not with the dashboard (v0.375.0)
+So the computation went into `queries/movement-stats.ts` and both call it.
+`workout-log.ts` already imports `workouts.ts`, so putting it in either would
+have made them import each other; a third module costs nothing and ends the
+question. `doneOn` moved there too, since the summary has to report the day a
+workout was DONE, the same rule the charts use — and it was private to
+`workout-log.ts`, which is how a second copy starts.
 
-The obvious place for the home-screen goal card was the dashboard payload, next
-to `money` — that is how every other home card gets its data, in the one read
-the screen already makes.
+The API route needed no change at all: it passes `workouts` through wholesale,
+so the new field reached the phone the moment the query produced it.
 
-It went in its own view-model instead. The goal needs the server's progression
-query, the heaviest read there is, and `/dashboard` is the single most-hit
-endpoint in the app: folding it in would make every home refresh on every phone
-pay for the goal card. A separate `CoopViewModel` means the dashboard paints
-first and the card appears when it arrives — the same reasoning as the web's
-Suspense boundary, reached by a different mechanism. It is also cache-backed
-through `PayloadCacheStore`, so on a return visit or offline it paints
-immediately from the last payload.
+The summary attaches to the MOVEMENT, not the card. "Best bench" is meaningless
+on a card holding three lifts. On a single-movement card — most of them — that
+puts it exactly in the empty space above the action row, which is where it was
+asked for.
 
-The side benefit is that this needed no server change at all. `/api/v1/coop`
-already returns everything the card needs, including `isAdmin` and now
-`carried`, so this is an app-only release.
+The REPS tile was not broken. It means reps AT the record, and the record
+predates reps being stored, so it honestly said "none logged yet" while LAST,
+two tiles away, showed the same lift at ×2. Honest and still wrong to read, so
+it now falls back to the best rep count logged at any weight and says which
+weight that was.
 
-`CoopDto.carried` is appended at the END of the data class and nullable. Against
-a server older than web 0.565.0 the field is absent, decodes as null, and the
-card falls back to the current month — no failure. Nothing constructs `CoopDto`
-positionally, so appending was safe here, but the field still went last out of
-habit after the `WorkoutLogRequest` near-miss.
+Dates: the web was formatting with `toLocaleDateString`, which prints "Oct 7"
+and, in another locale, could print 5/10 where the phone prints 10/5. Both now
+build the string from the ISO parts.
 
-A carried goal's gate comes from the carried record (`carried.gateMet`,
-`carried.childrenMeeting`), never from `CoopDto.gateMet`. That top-level field is
-this month's, and using it for a September goal would re-test an already-settled
-month against an empty October counter — closing a gate the family had earned.
+## 2026-10 — Clearing the fields made a save look like a failure (v0.567.0)
 
-## 2026-10 — The client has to say which day it logged on (v0.374.0)
+`completePlannedWorkout` finished with `setValues({})`. The numbers vanished the
+instant they were saved, and only came back on a full page refresh.
 
-The server cannot infer it. A past `date` on a log means one of two things —
-catching up on an overdue workout, or deliberately back-dating from the date
-picker — and only the client knows which. Stamping "today" on every past date
-would move a back-dated Saturday lift to Sunday, which is the same failure that
-ruled out using `createdAt` server-side.
+The clear was wrong on its own terms: what is in those boxes after a successful
+save IS what the server holds, so emptying them reports the opposite of what
+happened. And nothing was going to refill them, because the prefill runs in a
+`useState` initialiser — that does not re-run when revalidation delivers new
+props, only on remount, which is exactly why navigating away and back "fixed" it.
 
-So `WorkoutLogRequest` carries an optional `completedOn`, set only when today
-differs from the day being logged for. It is appended at the END of the data
-class and every construction of that request is now NAMED rather than
-positional: the request was being built positionally in SessionRepository, so an
-inserted field would have silently shifted `replace` and `detectConflict`.
+So the save no longer clears. No syncing effect was added to chase the
+revalidated props: an effect that writes into the same state the user is typing
+into can clobber an edit in progress, and it buys nothing here, since a remount
+already re-reads from the server.
 
-Captured at submit time, not at replay time. The write queue stores the
-serialized body verbatim from the OkHttp interceptor, so a log queued offline on
-Tuesday and synced on Thursday still reports Tuesday — which is when the workout
-was actually done.
+The overdue cards still get no `loggedByPool`, which is correct and worth not
+"fixing" later: that map holds TODAY's logged sets, and a card about a missed
+Monday would prefill Monday with today's numbers.
 
-Older builds omit the field entirely and the server treats it as absent, so a
-phone that has not updated behaves exactly as it did before rather than failing
+## 2026-10 — One logging function, not two (v0.566.0)
+
+Reps typed on the web never reached the database. `completePlannedWorkout` built
+its set with `switch (e.metric) { case "WEIGHT": set.weight = e.value; }` and
+never read `e.reps` — a field its own input type declared. `mark.ts`, which the
+phone goes through, had handled it correctly the whole time.
+
+Hunting that turned up two more holes in the same function: it dropped
+`swappedFrom` as well (also declared, also ignored), and it called
+`workoutSession.create` unconditionally, so "Edit weight" appended a second
+session for the day rather than editing the first.
+
+Three bugs, one cause: two implementations of the same operation, one of which
+quietly fell behind. Yesterday's `completedOn` work hit this exact seam from the
+other direction — the web action had the feature and `mark.ts` did not. That
+made it the second time in two days, which is the point at which patching the
+symptom is the wrong move.
+
+So `completePlannedWorkout` no longer implements anything. It does the two things
+that are genuinely the web's business — `requireCanActFor` and `refresh()` —
+and delegates to `logPlannedWorkout`. The entry shapes already matched field for
+field, which is the tell that these were one function wearing two hats. About
+sixty lines of parallel logic are gone, and there is now no copy left to drift.
+
+Two behaviour changes fall out of it, both wanted. Re-logging edits the day's
+existing session instead of adding another, which is what the button has said
+since it was relabelled "Edit weight". And a web log now reuses a session the
+phone created, and vice versa, because both finally agree on what a session for a
+plan on a day is.
+
+Reps logged on the web before this are gone. They were discarded server-side
+rather than stored wrongly, so there is nothing to recover from — no backfill
+is possible, unlike the `completedOn` repair where `createdAt` still held the
+answer.
+
+## 2026-10 — A goal outlives its month (v0.565.0)
+
+September's family goal "ended" on October 1. Nothing expired it. `seasonKey` is a
+plain string (`"2026-09-01"`) and `loadCoop()` filters on whichever key is current,
+so on October 1 the query started asking for `"2026-10-01"` and found nothing. The
+proposals and votes were never deleted — they became unreachable, which looked
+identical to being gone.
+
+A `SELECTED` proposal from an earlier window now loads alongside the current
+window's, as `carried`, and stays live until a parent checks it off. `PROPOSED`
+rows do not carry (a losing idea is just a past idea) and `GRANTED` ones do not
+(they are finished). Only one carries, newest first, so an abandoned goal from
+months back cannot outrank a more recent one.
+
+The hard part was the gate, not the carry. "Everyone finished their month" was
+computed as a single number for the current window, and a carried goal needs the
+answer for ITS window — a question October's counter cannot answer. So
+`monthlyCleanDays` is now derived from a new `cleanDaysBySeason` map: the same
+one pass over day buckets, keyed by the window each day resolves into rather than
+filtered to the current one. It uses `resolveSeasonWindow`, the same resolver the
+live window uses, so it stays correct in "weeks" mode instead of assuming calendar
+months.
+
+This matters for fairness in a specific way. If the kids finished September and a
+parent simply forgot to hand out the reward, re-testing the gate against October
+would close a gate the family had already earned — moving the finish line after
+the race. The gate for a past window is a settled fact, so it is read as one.
+
+No migration. The carry is a different query against rows that were already there.
+
+`grantCoopCore` now enforces the gate itself. It only checked status before; the
+web UI hid the button when the gate wasn't met, which meant the rule held on the
+web and nowhere else — the `/api/v1` route and the app call the same function
+directly. A rule that lives in a disabled button is not enforced.
+
+The home banner streams inside a Suspense boundary. It needs `loadProgression()`,
+the heaviest read in the app, and the home page is the most-visited page; awaiting
+it there would have made every visit pay for the goal card. `bump()` also
+revalidates `/` now, or checking the goal off from the banner would leave the
+banner stale — the one thing the person who just pressed the button is looking at.
+
+## 2026-10 — Two log paths, not one (v0.564.0)
+
+`completedOn` was wired through `completePlannedWorkout` (the web server action)
+and that looked complete, because the app's charts and history read dates the
+server already resolves — so no app change appeared necessary.
+
+It was not complete. The app does not use that action. It posts to
+`/api/v1/workouts/log`, which calls `logPlannedWorkout` in `lib/workouts/mark.ts`
+— a separate implementation whose own doc comment says it "mirrors the web's
+completePlannedWorkout". A mirror is not the same object, and only one of the two
+had been changed.
+
+Both now take the day actually logged on. The route reads it as an optional body
+field so a phone on an older build omits it and is unaffected instead of failing
 validation.
 
-## 2026-10 — Workout days was drawing off the edge of the phone (v0.373.0)
+One asymmetry worth keeping: on the edit path `logPlannedWorkout` only ever SETS
+`completedOn`, never clears it. That path also runs when an existing session is
+re-logged, and a client sending no `completedOn` — an older app, or a same-day
+edit from the web — must not erase the day a catch-up was recorded on.
 
-0.371 fixed the date window and the current week still did not appear, because the window was never
-the whole problem. The grid drew a fixed sixteen columns: 16 x (18dp + 4dp gap) + a 12dp weekday
-rail is ~364dp, and a phone's content width after card padding is ~330-360dp. The newest columns,
-the week in progress among them, were laid out past the right edge of a Row that does not scroll.
-The data was right, the dates were right, and the pixels were off-screen.
+## 2026-10 — A session has a due day and a done day (v0.563.0)
 
-`BoxWithConstraints` now measures the available width and draws as many weeks as fit
-(`(maxWidth - rail - gap) / (cell + gap)`, clamped 4..16), anchored so the current week is always
-the last column. 14 weeks on a 360dp phone, 16 on a 412dp one, and older weeks fall away on their
-own as time moves forward — which is the behaviour asked for rather than a fixed horizon.
+`WorkoutSession.date` is the day a workout *counts for*. Adherence is built on it:
+`loadOverdueWorkoutDays` walks back through the plan and asks `loadTodayPlannedWorkouts(iso)`
+whether that day's session exists, so moving `date` to the day someone caught up on would make a
+missed Monday retroactively not missed. That is the one thing the column must never do.
 
-The lesson for next time: when a layout fix does not take, check whether the thing is being drawn
-somewhere you cannot see before changing the logic again. Two releases went into the date maths
-while the real fault was that the row was wider than the screen.
+But a chart that draws Tuesday's weights on Monday's square is lying about when the work happened,
+and Recent workouts dating it 10/5 reads as a bug because it is one.
 
-## 2026-10 — Three, four, five muscle groups on a day (v0.372.0)
+So: a second nullable column, `completedOn DATE`, written only when the two differ. `date` stays
+the due day and keeps owning adherence; every DISPLAY read resolves `completedOn ?? date`. One
+helper, `doneOn()` in `workout-log.ts`, so the fallback is written once rather than at each of the
+four series sites.
 
-Matching the web: three and four cut from the centre via a hard-stop `Brush.sweepGradient` — thirds
-as wedges, four as quadrants — because every piece meets in the middle and stays legible at 18dp.
-Five or more would be slivers from a centre point, so those keep the horizontal bands.
+`createdAt` was considered and rejected: it is when the row was inserted, which is right for a
+catch-up and wrong for deliberate backdating — logging Saturday's lift on Sunday morning from the
+date picker would move it to Sunday. The ISO date the UI was actually logging *for* is the only
+honest source, so `completePlannedWorkout` takes `completedOnISO` and stores it only when it
+differs from `dateISO`.
 
-Compose's sweep starts at 3 o'clock where CSS conic starts at 12, so the pieces sit a quarter turn
-round from the web's. At this size that is not perceptible and it is not worth the rotation
-gymnastics to match exactly; what reads is "three wedges" or "four quarters", not which colour is
-where.
+The overdue cards were left alone on purpose. `TodayPlan` and `PlanRow` thread the new prop
+through and render nothing new from it — the request was for the data to be right, not for the
+cards to grow a second date.
 
-## 2026-10 — Grid window, stripes, and the Swap button (v0.371.0)
+No app release. The app's attendance grid (`byDate.getOrPut(p.date)`) and its history list read
+dates the server already resolved, so the field name is unchanged and only the value moves. Room
+caches the payload verbatim and refreshes on next sync, so there is no schema change there either.
 
-The attendance window had the same off-by-a-week fault as the web: `today.minusDays(111)` snapped
-back to Sunday moved the start earlier without moving the end, so it finished at
-`today - dayOfWeek` and the week in progress was missing. Now `startOfWeek(today).minusWeeks(15)`.
+## 2026-10 — Two plans on one page, one of them unwired (v0.562.0)
 
-Three or more muscle groups on a day become equal vertical bands via a hard-stop
-`Brush.horizontalGradient`; two keeps the diagonal. See the web DECISIONS entry for why.
+`workouts-grid.tsx` renders `TodayPlan` twice: once for today on the main Log workout step, and
+once for a chosen date on "plan for this day". Only the second was passed `loggedByPool`, so the
+one people actually use had no prefill at all — while the home page's single copy worked, which is
+exactly why it looked like a sync problem rather than a missing prop.
 
-`Swap` sat after a name pinned to `Modifier.width(150.dp)`, so the button was parked at the same x
-whatever the name was and floated over empty space beside anything short. The name is
-`Modifier.weight(1f, fill = false)` now: it takes only the width it needs so Swap follows it, and a
-long name still ellipsizes at the weighted bound rather than pushing the button off the row. The
-buttons no longer line up with each other, which is the point — they belong to the names.
+The main step gets its own `loggedToday`, loaded for `todayISO` and deliberately NOT shared with
+the date picker's state: that follows whatever day is being browsed, and handing it to a card about
+today would prefill the wrong day the moment someone looked at another one.
+
+It is also gated on its own loading flag. The prefill is read once in a `useState` initialiser when
+the rows mount, so a card that mounts before the fetch returns captures nothing and never recovers.
+Toggling between the loading line and the plan unmounts and remounts it, which is what makes the
+home page work and what this copy was missing.
+
+### `\u2026` in JSX text
+
+Two "Loading logged weights\u2026" strings rendered the escape literally. Inside a JSX text node
+`\u2026` is six characters, not an ellipsis — only a JS string literal interprets it. `version.ts`
+records a fix for this exact class before, so it has now regressed once; `&hellip;` is used instead.
+
+### The attendance window advances
+
+Confirmed by simulation across several dates on both clients: the window is derived from
+`today` at render, so it rolls forward a week at a time and the oldest week falls off the left.
+Checked 2026-10-07 through 2027-06-30 — the current week is in range on every date tested, and the
+start advances exactly 7 days per week elapsed.
+
+## 2026-10 — Logged rows keep their fields (v0.561.0 / app 0.373.0)
+
+The compact "✓ bent over row — Logged" row goes away. It was a reasonable-looking idea and the
+wrong one: the reason you reopen a day is to see WHAT you lifted, and collapsing the row to a tick
+hid exactly that. A logged movement keeps its ordinary row with weight and reps prefilled and the
+button reading "Edit weight", which is how the phone has always behaved.
+
+Worth recording as a pattern, since this is the second time: "it is done, so show less" removed
+information at the moment it became most useful. Done is a reason to show the numbers, not to
+replace them with a word.
+
+### Compare orders by date, not by weight
+
+Sorting each person's bars lightest-to-heaviest made every lifter look like a neat staircase
+whatever actually happened. Chronological order shows the progression — including a week that went
+backwards, which is the part a tidy sort was quietly hiding.
+
+## 2026-10 — Today was the one day excluded from its own prefill (v0.560.0 / app 0.372.0)
+
+Adding `reps` to `loadLoggedWeights` in 0.559 changed nothing, because the fetch never ran for
+today. Both call sites were guarded:
+
+```ts
+if (logDate !== todayISO) { loadLoggedWeights(...) } else { setLoggedByPool({}); }
+```
+
+The launcher's comment said it outright — "already-logged weights for a BACK-DATED day". Today was
+deliberately excluded, so the one day you are most likely to be correcting was the only day whose
+fields came up blank, under a button offering to log it afresh. Both now fetch for the date being
+shown, today included.
+
+Worth noting how this hid: 0.559's change was real and correct, and verifying it by reading the
+query would have shown reps coming back. The thing that was broken sat one layer up, in a
+condition that decided whether to ask at all. A fix to the right function is still no fix when
+nothing calls it.
+
+### Compare tops out at the heaviest lift
+
+The plot ceiling was the ROUNDED top (`grid.yMax`), leaving headroom above the heaviest lift and
+then drawing lines into it — a solid one first, and after that was suppressed, a dotted one. The
+ceiling is now the tallest bar itself, and both tick lists are filtered to it. The top gets a
+labelled line only when it is a load someone would recognise; an odd number leaves the bar standing
+above the last line, which is honest.
+
+### Three, four, five muscle groups
+
+Three and four cut from the centre — thirds as wedges, four as true quadrants (`from 0deg`, so the
+boundaries land on the axes). Every piece meets in the middle, which is what keeps them legible at
+18px. Five or more would be slivers from a centre point, so those become equal vertical bands.
+Verified by rendering all six cases at 18px before shipping.
+
+## 2026-10 — The attendance grid never reached this week (v0.559.0 / app 0.371.0)
+
+Both clients built the window as `today - 111 days`, then snapped that start back to Sunday, then
+drew 16 weeks. Snapping moved the START earlier without moving the END, so the range finished at
+`today - dayOfWeek`. On a Wednesday it stopped the previous Saturday and today could not appear at
+all; only on a Sunday was it correct. Verified against 2026-10-07: the old window ran to Oct 3, the
+new one to Oct 10.
+
+Both now anchor to the current week and count back — `startOfWeek(today) - 15 weeks` — so the last
+column is always the week in progress.
+
+### Three or more muscle groups in a day
+
+Two reads best as a diagonal split and that stays. Three cannot extend it, and wedges or quarters
+in an 18px square turn to mud, so 3+ becomes equal vertical bands with hard stops. One rule that
+degrades predictably, and the change of grammar is itself a signal that the day holds more than two.
+
+### Prefilling a logged day
+
+`loadLoggedWeights` selected `poolExerciseId` and `weight` only. Reopening a logged day therefore
+filled in what was lifted but not how many times, under a button still offering to "Log weight" —
+for something plainly already in the boxes. It returns `{ weight, reps }` now, both prefill, and the
+button reads "Edit" when every movement in the workout is already recorded. The phone has behaved
+this way for a while; this is the web catching up.
+
+### Compare's top gridline
+
+Adding the rounded ceiling unconditionally put a 190 label on top of a 185 one when the tallest bar
+was itself a common load. It is only added when something actually rises above the highest labelled
+line.
 
 ## 2026-10 — Completion is identity, not a label (v0.557.0)
 
@@ -148,6 +336,29 @@ keeps the same weakness.
 
 The general shape: a label is a rendering of a thing, not the thing. Any time two rows can carry
 the same label, matching on it is a coin flip that happens to be right while the data is sparse.
+
+The same mistake, one line further on: the logged row rendered `workout.name` — the muscle-group
+label again — so a Back card holding two logged plans read "Back / Back / Back". It names the
+movements now, falling back to the plan name only for HIIT and metric-only workouts, which have no
+movements to name.
+
+### Recent workouts excluded today
+
+`where: { userId, date: { lt: today } }`. Not a sync problem and not a caching problem: the web's
+history query asked for everything BEFORE today, so a session logged this morning could not appear
+in it however many times the page reloaded. The phone reads `loadWorkoutProgress`, a different
+query without that bound, which is exactly why the two disagreed — the phone was right. Now `lte`.
+
+### The overlay kept its scroll between steps
+
+The person card is one `overflow-y-auto` container with the steps swapped inside it. Scrolling down
+the menu to reach "Recent workouts" and opening it left the new screen at the old offset, which
+reads as the list opening at its bottom. A ref on the pane and a `scrollTo({ top: 0 })` on every
+step change.
+
+Not fixed because it is already fixed: the phone showing "Log weight" on an already-logged movement
+is 0.351.0 behaviour. Current code reads `block.logged -> "edit weight"`. That device needs the
+update, not a patch.
 
 ## 2026-10 — Gridlines, the rep floor, and the reset icon (v0.556.0 / app 0.370.0)
 

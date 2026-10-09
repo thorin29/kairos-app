@@ -1,0 +1,631 @@
+
+type IconProps = { className?: string };
+
+/**
+ * Material Symbols-style outlines: 24px grid, 2px strokes, rounded caps.
+ * Inline SVG rather than an icon package — a dozen glyphs isn't worth a
+ * dependency, and these inherit currentColor cleanly.
+ */
+const base = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+export function TasksIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="4" y="4" width="16" height="16" rx="4.5" />
+      <path d="m8.5 12 2.5 2.5 4.5-5.5" />
+    </svg>
+  );
+}
+
+export function HomeIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+      <path d="M9.5 21v-6h5v6" />
+    </svg>
+  );
+}
+
+export function ArrowLeftIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M19 12H5" />
+      <path d="m11 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+/** Two curved arrows — the same glyph as the app's KairosIcons.Swap. */
+export function SwapIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M23 4v6h-6" />
+      <path d="M1 20v-6h6" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+      <path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="m4 12.5 5.5 5.5L20 7" />
+    </svg>
+  );
+}
+
+
+export function XIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+export function TrashIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+      <path d="M9 7V4h6v3" />
+    </svg>
+  );
+}
+
+export function PeopleIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="9" cy="8" r="3.25" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <path d="M16.5 5.5a3.25 3.25 0 0 1 0 5.5" />
+      <path d="M18 20a6 6 0 0 0-2.5-4.9" />
+    </svg>
+  );
+}
+
+export function ChoresIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M9 5h10M9 12h10M9 19h10" />
+      <path d="m3.5 5 1.25 1.25L7 4" />
+      <path d="m3.5 12 1.25 1.25L7 11" />
+      <path d="M4 19h1.5" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  );
+}
+
+export function AlertIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.5M12 16.5h.01" />
+    </svg>
+  );
+}
+
+export function HandIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11" />
+      <path d="M11 10.5V4.5a1.5 1.5 0 0 1 3 0V11" />
+      <path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V14" />
+      <path d="M8 11V9.5a1.5 1.5 0 0 0-3 0v4.7c0 3.2 2.5 5.8 5.6 5.8h1.3c3 0 5.1-2.3 5.1-5.2" />
+    </svg>
+  );
+}
+
+export function ReleaseIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M12 3v11" />
+      <path d="m8 10 4 4 4-4" />
+      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  );
+}
+
+export function BookIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v14H6.5A2.5 2.5 0 0 0 4 19.5V5.5Z" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19v4H6.5A2.5 2.5 0 0 1 4 19.5Z" />
+      <path d="M9 7h6" />
+    </svg>
+  );
+}
+
+export function BibleIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v14H6.5A2.5 2.5 0 0 0 4 19.5V5.5Z" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19v4H6.5A2.5 2.5 0 0 1 4 19.5Z" />
+      <path d="M13 5.5v8.5" />
+      <path d="M10.4 8h5.2" />
+    </svg>
+  );
+}
+
+export function DumbbellIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M6.5 8v8M3.5 10v4M17.5 8v8M20.5 10v4M6.5 12h11" />
+    </svg>
+  );
+}
+
+export function SchoolIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M12 4 2.5 9 12 14l9.5-5L12 4Z" />
+      <path d="M6 11.5V17c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.5" />
+    </svg>
+  );
+}
+
+export function LockIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+export function UnlockIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      {/* Open shackle: swung up and to the side. */}
+      <path d="M8 10V7a4 4 0 0 1 7.5-2" />
+    </svg>
+  );
+}
+
+export function MoonIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5Z" />
+    </svg>
+  );
+}
+
+export function GamepadIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M7 8h10a4 4 0 0 1 3.9 3.1l1 4.4A2.6 2.6 0 0 1 19.4 19c-.8 0-1.5-.4-2-1l-1.3-1.7H7.9L6.6 18c-.5.6-1.2 1-2 1a2.6 2.6 0 0 1-2.5-3.5l1-4.4A4 4 0 0 1 7 8Z" />
+      <path d="M7.5 11.5v2.2M6.4 12.6h2.2" />
+      <path d="M15.5 12h.01M17.5 14h.01" />
+    </svg>
+  );
+}
+
+export function TokenIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4" />
+    </svg>
+  );
+}
+
+export function TrophyIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M7 6H4.5A1.5 1.5 0 0 0 3 7.5C3 9.4 4.6 11 6.5 11H7" />
+      <path d="M17 6h2.5A1.5 1.5 0 0 1 21 7.5c0 1.9-1.6 3.5-3.5 3.5H17" />
+      <path d="M12 14v3M9 20h6M10 17h4l.5 3h-5l.5-3Z" />
+    </svg>
+  );
+}
+
+export function CalendarPlusIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M21 11V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M17 15v6M14 18h6" />
+    </svg>
+  );
+}
+
+export function RefreshIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M20 11a8 8 0 1 0-.6 4" />
+      <path d="M20 4v7h-7" />
+    </svg>
+  );
+}
+
+export function LinkIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M10 13a4 4 0 0 0 5.7.3l3-3A4 4 0 0 0 13 4.7l-1.4 1.3" />
+      <path d="M14 11a4 4 0 0 0-5.7-.3l-3 3A4 4 0 0 0 11 19.3l1.4-1.3" />
+    </svg>
+  );
+}
+
+export function BriefcaseIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="3" y="7.5" width="18" height="12.5" rx="2" />
+      <path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5" />
+      <path d="M3 13h18" />
+    </svg>
+  );
+}
+
+export function StethoscopeIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M6 3v5a4 4 0 0 0 8 0V3" />
+      <path d="M10 12v2a5 5 0 0 0 5 5 4 4 0 0 0 4-4v-2" />
+      <circle cx="19" cy="9" r="2" />
+    </svg>
+  );
+}
+
+export function DotIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="12" cy="12" r="7" />
+    </svg>
+  );
+}
+
+export function PaletteIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="13.5" cy="6.8" r="1.1" />
+      <circle cx="17.2" cy="10.5" r="1.1" />
+      <circle cx="8.6" cy="7.4" r="1.1" />
+      <circle cx="6.6" cy="12.2" r="1.1" />
+      <path d="M12 3a9 9 0 1 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1a1.5 1.5 0 0 1 1.11-2.5H16a5 5 0 0 0 5-5c0-4.42-4.03-8-9-8z" />
+    </svg>
+  );
+}
+
+export function SlidersIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+      <circle cx="9" cy="6" r="2" />
+      <circle cx="15" cy="12" r="2" />
+      <circle cx="8" cy="18" r="2" />
+    </svg>
+  );
+}
+
+export function GearIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+export function CartIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <circle cx="9" cy="20" r="1.3" />
+      <circle cx="17" cy="20" r="1.3" />
+      <path d="M2.5 3.5H5l2.1 10.5a1.6 1.6 0 0 0 1.6 1.3h7.6a1.6 1.6 0 0 0 1.6-1.3L20.5 7H6" />
+    </svg>
+  );
+}
+
+export function SwitchIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M4 8h13M14 5l3 3-3 3" />
+      <path d="M20 16H7M10 13l-3 3 3 3" />
+    </svg>
+  );
+}
+
+export function GripIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <circle cx="9" cy="6" r="1.6" />
+      <circle cx="15" cy="6" r="1.6" />
+      <circle cx="9" cy="12" r="1.6" />
+      <circle cx="15" cy="12" r="1.6" />
+      <circle cx="9" cy="18" r="1.6" />
+      <circle cx="15" cy="18" r="1.6" />
+    </svg>
+  );
+}
+
+export function HashIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M10 4 8 20M16 4l-2 16M4.5 9h15M3.5 15h15" />
+    </svg>
+  );
+}
+
+export function PencilIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M13.5 6.5l4 4M4 20l1-4L16 5a1.8 1.8 0 0 1 2.5 0l.5.5a1.8 1.8 0 0 1 0 2.5L8 19l-4 1Z" />
+    </svg>
+  );
+}
+
+export function MailIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3.5 7 8.5 6 8.5-6" />
+    </svg>
+  );
+}
+
+export function DeviceIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="5" y="2.5" width="14" height="19" rx="2.5" />
+      <path d="M10.5 18.5h3" />
+    </svg>
+  );
+}
+
+// --- school work types ----------------------------------------------------
+// Distinct glyphs so a due item reads at a glance: a lined page (homework), a
+// clipboard (assignment), a checked page (test), a folder (project).
+
+export function HomeworkIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M6 3h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M14 3v4h4" />
+      <path d="M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+
+export function AssignmentIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <path d="M9 4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V4.5Z" />
+      <path d="M8.5 12h7M8.5 16h4" />
+    </svg>
+  );
+}
+
+export function TestIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="m8.5 12 2.5 2.5L16 9" />
+    </svg>
+  );
+}
+
+export function ProjectIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M4 6h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
+
+/** Picks the glyph for a school-work type. Unknown types fall back to the
+ *  assignment glyph. */
+export function SchoolTypeIcon({
+  type,
+  className = "h-4 w-4",
+}: {
+  type: string;
+  className?: string;
+}) {
+  switch (type) {
+    case "TEST":
+      return <TestIcon className={className} />;
+    case "PROJECT":
+      return <ProjectIcon className={className} />;
+    case "HOMEWORK":
+      return <HomeworkIcon className={className} />;
+    default:
+      return <AssignmentIcon className={className} />;
+  }
+}
+
+export function DollarIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <line x1="12" y1="2" x2="12" y2="22" />
+      <path d="M17 5.5H9.75a3.25 3.25 0 0 0 0 6.5h4.5a3.25 3.25 0 0 1 0 6.5H6.5" />
+    </svg>
+  );
+}
+
+export function UploadIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M17 8l-5-5-5 5" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+export function FlameIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M12 3c1 2.5 3.5 4 3.5 7a3.5 3.5 0 0 1-7 0c0-1 .3-1.7.8-2.3C9 10 9 11.5 10 12c-.3-3 2-4.5 2-9Z" />
+      <path d="M12 21a6 6 0 0 0 6-6c0-3-2-5-3.2-6.6" />
+      <path d="M12 21a6 6 0 0 1-6-6c0-1.8.7-3.2 1.6-4.4" />
+    </svg>
+  );
+}
+
+export function StarIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.14 1 5.86L12 17l-5.25 2.75 1-5.86L3.5 9.7l5.9-.9L12 3.5Z" />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+export function ChevronDownIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+export function NapkinIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M3 19h18L12 5Z" />
+      <path d="M12 5 8.5 19" />
+      <path d="M12 5 15.5 19" />
+    </svg>
+  );
+}
+
+export function WaterBottleIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="M10 2h4" />
+      <path d="M9 4h6v2l1.5 3v9a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2V9l1.5-3Z" />
+      <path d="M8.5 12h7" />
+    </svg>
+  );
+}
+
+const GLYPH_IMAGES: Record<string, string> = {
+  "ic:napkin": "/grocery-icons/napkin.png",
+  "ic:papertowel": "/grocery-icons/paper-towel.png",
+  "ic:sorbet": "/grocery-icons/sorbet.png",
+  "ic:waterbottle": "/grocery-icons/water-bottle.png",
+  "ic:protein": "/grocery-icons/protein.png",
+};
+
+/**
+ * Renders an item's stored icon: a small image for the "ic:*" tokens the catalog
+ * guesser emits for items with no good emoji (napkins, paper towels, bottled
+ * water, protein), or the emoji/text otherwise. Unknown tokens fall back to a box.
+ */
+export function GroceryGlyph({
+  icon,
+  className = "h-5 w-5",
+  emojiClassName,
+}: {
+  icon: string;
+  className?: string;
+  emojiClassName?: string;
+}) {
+  const src = GLYPH_IMAGES[icon];
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" className={`${className} object-contain`} aria-hidden />;
+  }
+  if (icon.startsWith("kairos:")) {
+    // Bundled colorful PNGs under public/grocery-icons/kairos/<slug>.png.
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={`/grocery-icons/kairos/${icon.slice(7)}.png`}
+        alt=""
+        className={`${className} object-contain`}
+        aria-hidden
+      />
+    );
+  }
+  // A prefixed token we can't render (unknown ic:/kairos:/other) shows a box
+  // rather than the raw string like "kairos:foo".
+  const unknownToken = /^[a-z]+:/.test(icon);
+  return (
+    <span className={emojiClassName} aria-hidden>
+      {unknownToken ? "📦" : icon}
+    </span>
+  );
+}
+
+export function MapPinIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+/** Chore badge icons — filled glyphs, tinted per chore (grass green, water blue).
+ *  Sourced as SVG paths so they carry to the Android app's KairosIcons too. */
+export function GrassIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg viewBox="0 0 512 512" fill="currentColor" className={className} aria-hidden>
+      <path d="M461.563 38.938C313.435 165.053 232.49 371.144 210.313 492.5h77.218c31.597-122.495 51.135-263.494 174.033-453.563zM78.375 91.374c52.397 62.796 102.31 132.45 142.094 199.28a1188 1188 0 0 1 20.81 36.408 956 956 0 0 1 26.095-58.282c-51.817-71.23-113.464-135.005-189-177.405zm391.188 133.72c-51.588 46.498-78.856 114.453-90.594 190.655 13.775 25.835 26.704 51.295 38.936 75.875h39.375c-25.25-71.46-11.537-162.36 12.283-266.53M67 240.437c72.962 73.26 120.794 188.6 80.094 250.78h45c4.494-25.12 11.34-53.633 20.687-84.25C194.338 322.68 131.42 242.927 67 240.44zm-32.875 87.937C87.145 409.31 95.83 453.34 75.063 490.97h67.5c-13.1-72.02-31.444-116.305-108.438-162.595zm300.938 45.594c-10.65 41.36-19.188 80.437-28.813 118.25h91.72c-19.144-38.286-39.92-78.392-62.908-118.25z" />
+    </svg>
+  );
+}
+
+export function WaterIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg viewBox="0 0 48 48" fill="currentColor" className={className} aria-hidden>
+      <path d="M24.855 5.636a1.125 1.125 0 0 0-1.71 0C20.179 9.108 10.5 21.11 10.5 30c0 8.285 5.216 13.5 13.5 13.5S37.5 38.285 37.5 30c0-8.89-9.678-20.892-12.645-24.364m.645 32.989a1.125 1.125 0 0 1-1.063-1.5 1.115 1.115 0 0 1 1.07-.75 5.63 5.63 0 0 0 5.618-5.618 1.115 1.115 0 0 1 .75-1.07 1.125 1.125 0 0 1 1.5 1.063 7.883 7.883 0 0 1-7.875 7.875" />
+    </svg>
+  );
+}
