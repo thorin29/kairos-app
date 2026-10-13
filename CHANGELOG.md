@@ -1,4 +1,12 @@
 # Changelog
+## 0.385.0
+
+- One row of squares on the companion card: it fills with growth and breaks
+  where each stage ends. No separate growth rail underneath, and no "growing"
+  caption.
+- Deepening keeps its own short bar.
+- Needs web 0.578.0.
+
 ## 0.384.0
 
 - A companion deepened before it was grown keeps its glow but must now be raised

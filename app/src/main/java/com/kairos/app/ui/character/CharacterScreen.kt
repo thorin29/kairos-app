@@ -255,31 +255,35 @@ private fun CompanionCard(c: CharCompanionDto) {
                 }
                 if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = SHINY)
             }
-            // The skill-blend cells stay — they were always deliberate. What
-            // was missing is below them: growth, split into one segment per
-            // stage, so the stages are visible before anyone reads a word.
-            XpCells(c.xpCells)
-            PhaseBar(
-                pct = c.incubationPct,
-                phase = c.phase,
-                luckColor = luckColor,
-                // Deepening gets a visibly shorter rail in place of the growth
-                // one: a smaller, separate job, not the same journey restarting.
-                modifier = Modifier.width(if (c.phase == "deepening") 110.dp else 180.dp),
-            )
-            Text(
-                when (c.phase) {
-                    "growing" -> "growing"
-                    "deepening" -> "deepening"
-                    // One sentence when something is waiting, however it was
-                    // earned. "deepened" described how it got here, not what to
-                    // do next — and what to do next is the same either way.
-                    else -> "A new egg is ready!"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = if (c.eggReady) Color(0xFF047857) else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // ONE row of squares. It fills with GROWTH and breaks at each stage,
+            // so the cells tie directly to raising the creature instead of
+            // needing a second rail underneath to say so. The colours still come
+            // from what earned it, which was always the point of them.
+            XpCells(c.xpCells, c.cellGaps)
+            // Deepening is the exception: a smaller, separate job, so it gets a
+            // short rail of its own rather than reusing the stage row, which is
+            // about growth it has already finished.
+            if (c.phase == "deepening") {
+                PhaseBar(
+                    pct = c.incubationPct,
+                    phase = c.phase,
+                    luckColor = luckColor,
+                    modifier = Modifier.width(110.dp),
+                )
+                Text(
+                    "deepening",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (c.eggReady) {
+                Text(
+                    "A new egg is ready!",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF047857),
+                )
+            }
         } else {
             Text("Ready to hatch!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Bar(1f, luckColor, Modifier.width(180.dp))
@@ -290,15 +294,18 @@ private fun CompanionCard(c: CharCompanionDto) {
 /** The web's segmented level bar: 20 little squares, filled ones colored by
  *  which domain earned the XP. */
 @Composable
-private fun XpCells(cells: List<String>) {
+private fun XpCells(cells: List<String>, gaps: List<Int> = emptyList()) {
     val slots = if (cells.isEmpty()) List(20) { "" } else cells
+    // The break is extra spacing after a cell rather than an inserted element:
+    // an element would take its own width and knock the squares out of a grid.
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        slots.forEach { hex ->
+        slots.forEachIndexed { i, hex ->
             val filled = hex.isNotBlank()
             Box(
                 Modifier.size(10.dp).clip(RoundedCornerShape(2.dp))
                     .background(if (filled) parseHex(hex) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
             )
+            if (gaps.contains(i + 1)) Spacer(Modifier.width(5.dp))
         }
     }
 }

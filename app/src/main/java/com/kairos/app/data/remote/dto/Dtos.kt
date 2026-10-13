@@ -1610,6 +1610,9 @@ data class CharCompanionDto(
      *  Appended at the END and defaulted, so an older server that omits it
      *  decodes and the card falls back to the flags. */
     val phase: String = "",
+    /** Cell counts to break [xpCells] after, so one row of squares shows where
+     *  each stage ends. Empty from an older server, which just draws no breaks. */
+    val cellGaps: List<Int> = emptyList(),
 )
 
 @Serializable
