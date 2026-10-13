@@ -1,4 +1,14 @@
 # Changelog
+## 0.381.0
+
+- Companion card now shows one bar: progress through whatever the companion is
+  doing, with a tick where each stage begins. No more skill-blend cells plus a
+  separate egg meter.
+- Deepen is offered only on a fully grown companion, and starts a phase rather
+  than switching the glow on instantly. The glow means it finished.
+- The monthly hatch cap and its "Shiny"/"Ready next month" states are gone.
+- Needs web 0.574.0.
+
 ## 0.380.0
 
 - School work you are behind on is tinted on the row, not just shown with a red

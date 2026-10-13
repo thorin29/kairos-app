@@ -1606,6 +1606,10 @@ data class CharCompanionDto(
     val image: String = "",
     val color: String = "#94a3b8",
     val xpCells: List<String> = emptyList(),
+    /** growing | adult | deepening | shiny \u2014 what [incubationPct] is measuring.
+     *  Appended at the END and defaulted, so an older server that omits it
+     *  decodes and the card falls back to the flags. */
+    val phase: String = "",
 )
 
 @Serializable

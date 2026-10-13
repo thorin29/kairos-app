@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -106,16 +107,14 @@ private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: Charac
             if (c.eggReady) {
                 CharAction(KairosIcons.Egg, "Hatch", Modifier.weight(1f), highlighted = true, enabled = !ui.busy) { vm.hatch("new") }
             }
-            // Deepening costs the egg but not one of the month's three hatches, so
-            // it is offered while capped too — then it is the only thing on offer.
-            // Hidden when the companion is already shiny: it would spend the egg
-            // and change nothing.
-            if ((c.eggReady || c.eggCapped) && c.active && !c.shiny) {
+            // Only a fully grown, not-yet-deepened companion. One still growing
+            // has not earned it; one already deepened has nothing left to deepen.
+            // The server refuses both too — this just keeps the button honest.
+            if (c.phase == "adult" && c.active) {
                 CharAction(
                     KairosIcons.Palette,
-                    if (c.eggCapped) "Shiny" else "Deepen",
+                    "Deepen",
                     Modifier.weight(1f),
-                    highlighted = c.eggCapped,
                     enabled = !ui.busy,
                 ) { vm.hatch("deepen") }
             }
@@ -256,29 +255,30 @@ private fun CompanionCard(c: CharCompanionDto) {
                 }
                 if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = SHINY)
             }
-            XpCells(c.xpCells)
-            // Next-egg progress, always visible so a new egg is earned, not a surprise.
-            if (c.eggReady) {
-                Text("A new egg is ready!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFF047857))
-            } else if (c.eggCapped) {
-                Text(
-                    if (c.active && !c.shiny) {
-                        "All three hatched this month \u2014 a shiny doesn't cost one."
-                    } else {
-                        "Next egg ready \u2014 hatch it next month!"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFFB45309),
-                )
-            } else {
-                Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
-                Text("Next egg ${c.incubationPct}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            // ONE bar, measuring whatever this companion is doing now, with a
+            // mark where each stage begins. The card used to carry the skill
+            // blend cells AND an egg meter, and neither was the thing people
+            // read it as: how grown the creature is.
+            PhaseBar(
+                pct = c.incubationPct,
+                phase = c.phase,
+                luckColor = luckColor,
+                modifier = Modifier.width(180.dp),
+            )
+            Text(
+                when (c.phase) {
+                    "growing" -> "growing"
+                    "deepening" -> "deepening"
+                    "shiny" -> "deepened \u2014 a new egg is ready!"
+                    else -> "fully grown \u2014 a new egg is ready!"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = if (c.eggReady) Color(0xFF047857) else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         } else {
-            Text(if (c.eggReady) "Ready to hatch!" else if (c.eggCapped) "Ready next month" else "Egg", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Bar(c.incubationPct / 100f, luckColor, Modifier.width(180.dp))
-            Text(if (c.eggCapped) "Hatch opens next month" else "${c.incubationPct}% incubated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Ready to hatch!", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Bar(1f, luckColor, Modifier.width(180.dp))
         }
     }
 }
@@ -439,5 +439,51 @@ private fun parseHex(hex: String?): Color {
         }
     } catch (_: NumberFormatException) {
         Color(0xFF94A3B8)
+    }
+}
+
+/**
+ * Progress through the companion's current phase, with a tick where each stage
+ * begins.
+ *
+ * The ticks carry no labels deliberately: two marks and three stages show the
+ * shape of the journey without a legend anyone has to be taught. They are drawn
+ * only while growing, because after that the bar measures something else and a
+ * stage mark on it would be telling a lie.
+ */
+@Composable
+private fun PhaseBar(
+    pct: Int,
+    phase: String,
+    luckColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    // Matches the web's STAGE_TICK_PCT, from CLEAN_DAY_STAGES [0, 6, 12].
+    val ticks = listOf(50)
+    val fill = if (phase == "shiny") SHINY else luckColor
+    Box(modifier.height(8.dp).clip(RoundedCornerShape(999.dp)).background(Color(0x1F000000))) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(pct.coerceIn(0, 100) / 100f)
+                .clip(RoundedCornerShape(999.dp))
+                .background(fill),
+        )
+        if (phase == "growing") {
+            // Positioned by fraction rather than an offset in dp: the bar's
+            // width is set by the caller, and a hardcoded offset would drift
+            // the moment that changed.
+            ticks.forEach { t ->
+                Row(Modifier.fillMaxSize()) {
+                    Spacer(Modifier.fillMaxWidth(t / 100f))
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(1.dp)
+                            .background(MaterialTheme.colorScheme.surface),
+                    )
+                }
+            }
+        }
     }
 }
