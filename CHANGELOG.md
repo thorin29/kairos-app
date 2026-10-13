@@ -1,4 +1,12 @@
 # Changelog
+## 0.383.0
+
+- Tap a companion in the gallery to make it your active one again. It resumes at
+  the growth it had, and your current companion goes back to the gallery keeping
+  everything it grew. Deepening then works as normal once it is fully grown.
+- The dialog says what the swap costs before you tap, not after.
+- Needs web 0.576.0.
+
 ## 0.382.0
 
 - Fixes a companion that was deepened before it was grown being drawn as an

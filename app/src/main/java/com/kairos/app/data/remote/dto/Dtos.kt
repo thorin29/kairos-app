@@ -1633,6 +1633,13 @@ data class EraDto(
     val species: List<CollectSpeciesDto> = emptyList(),
 )
 
+/** Bring an owned companion out of the gallery and make it the active one. */
+@Serializable
+data class ActivateCompanionRequest(val species: String = "")
+
+@Serializable
+data class ActivateResultDto(val activated: String? = null)
+
 @Serializable
 data class CollectSpeciesDto(
     val id: String = "",
@@ -1642,6 +1649,11 @@ data class CollectSpeciesDto(
     val image: String? = null,
     /** Deepened at some point — permanent, and shown wherever the creature is. */
     val shiny: Boolean = false,
+    /** How far it has been raised: 0 hatchling, 1 juvenile, 2 adult. */
+    val stage: Int? = null,
+    /** The one currently with you. Appended at the END and defaulted, so an
+     *  older server simply never marks one and the action stays available. */
+    val isActive: Boolean = false,
 )
 
 @Serializable

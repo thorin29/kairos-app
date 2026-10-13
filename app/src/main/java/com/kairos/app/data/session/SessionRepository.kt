@@ -723,6 +723,13 @@ class SessionRepository(
     suspend fun loadCollection(): com.kairos.app.data.remote.dto.CollectionDto =
         runAuthed { requireService().collection() }
 
+    suspend fun activateCompanion(species: String): com.kairos.app.data.remote.dto.ActivateResultDto =
+        runAuthed {
+            requireService().activateCompanion(
+                com.kairos.app.data.remote.dto.ActivateCompanionRequest(species = species),
+            )
+        }
+
     suspend fun loadCoop(): com.kairos.app.data.remote.dto.CoopDto =
         runAuthed { requireService().coop() }
     suspend fun proposeCoop(title: String, detail: String) {

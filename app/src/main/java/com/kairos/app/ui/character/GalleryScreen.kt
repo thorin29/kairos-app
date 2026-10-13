@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -84,6 +85,11 @@ fun GalleryScreen(onBack: () -> Unit) {
     )
     val ui by vm.ui.collectAsState()
     var enlarged by remember { mutableStateOf<CollectSpeciesDto?>(null) }
+    // Follow the refreshed list: after a swap the dialog's own copy is stale,
+    // so it would still offer to activate what is already active.
+    val shown = enlarged?.let { e ->
+        ui.data?.eras?.flatMap { it.species }?.firstOrNull { it.id == e.id } ?: e
+    }
 
     Scaffold(
         topBar = {
@@ -116,7 +122,14 @@ fun GalleryScreen(onBack: () -> Unit) {
         }
     }
 
-    enlarged?.let { sp -> EnlargeDialog(sp) { enlarged = null } }
+    shown?.let { sp ->
+        EnlargeDialog(
+            sp = sp,
+            busy = ui.busy,
+            onActivate = { vm.activate(it) },
+            onDismiss = { enlarged = null },
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -196,7 +209,12 @@ private fun Slot(sp: CollectSpeciesDto, eraKey: String, onOpen: (CollectSpeciesD
 }
 
 @Composable
-private fun EnlargeDialog(sp: CollectSpeciesDto, onDismiss: () -> Unit) {
+private fun EnlargeDialog(
+    sp: CollectSpeciesDto,
+    busy: Boolean,
+    onActivate: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val container = rememberContainer()
     val base = container.sessionRepository.baseUrlRaw
     AnimatedDialog(
@@ -220,6 +238,32 @@ private fun EnlargeDialog(sp: CollectSpeciesDto, onDismiss: () -> Unit) {
                     error = {},
                 )
             }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        if (sp.isActive) {
+            Text(
+                "This one is with you now.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            // Bringing one back retires whoever is in the slot, which is worth
+            // saying before the tap rather than after it.
+            Button(
+                onClick = { onActivate(sp.id) },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (busy) "Swapping\u2026" else "Make this my companion") }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Your current companion goes back to the gallery, keeping everything it has grown. " +
+                    "${sp.name ?: "This one"} picks up where it left off" +
+                    if (sp.shiny) "." else ", and can be deepened once it is fully grown.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
