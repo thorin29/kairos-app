@@ -263,14 +263,18 @@ private fun CompanionCard(c: CharCompanionDto) {
                 pct = c.incubationPct,
                 phase = c.phase,
                 luckColor = luckColor,
-                modifier = Modifier.width(180.dp),
+                // Deepening gets a visibly shorter rail in place of the growth
+                // one: a smaller, separate job, not the same journey restarting.
+                modifier = Modifier.width(if (c.phase == "deepening") 110.dp else 180.dp),
             )
             Text(
                 when (c.phase) {
                     "growing" -> "growing"
                     "deepening" -> "deepening"
-                    "shiny" -> "deepened \u2014 a new egg is ready!"
-                    else -> "fully grown \u2014 a new egg is ready!"
+                    // One sentence when something is waiting, however it was
+                    // earned. "deepened" described how it got here, not what to
+                    // do next — and what to do next is the same either way.
+                    else -> "A new egg is ready!"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,

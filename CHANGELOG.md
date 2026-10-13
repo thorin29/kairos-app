@@ -1,4 +1,12 @@
 # Changelog
+## 0.384.0
+
+- A companion deepened before it was grown keeps its glow but must now be raised
+  to adult before the next egg, and its bar shows the stage segments again.
+- Deepening uses a shorter bar of its own instead of the full growth rail.
+- The caption just says "A new egg is ready!".
+- Needs web 0.577.0.
+
 ## 0.383.0
 
 - Tap a companion in the gallery to make it your active one again. It resumes at
