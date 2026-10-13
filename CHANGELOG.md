@@ -1,4 +1,17 @@
 # Changelog
+## 0.386.0
+
+- Every movement on a Log workout card now has its own Rest / skip, Calculator
+  and Log buttons, under a rule of its own. Two movements added to one plan
+  together look exactly like two plans sharing a muscle group.
+- Logging one movement leaves the others on the card alone, and only the button
+  you pressed shows the spinner.
+- The calculator sends its weight back to the movement whose button opened it,
+  not to the first movement on the card.
+- A movement already logged today says "edit weight" on reopening the page, not
+  just after a save made in the same session.
+- Needs web 0.579.0.
+
 ## 0.385.0
 
 - One row of squares on the companion card: it fills with growth and breaks

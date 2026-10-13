@@ -457,59 +457,135 @@ private fun BlockBody(
             // itself directly above its own entry field, and printing them
             // again under the muscle group said everything twice.
             HorizontalDivider()
-            block.inputs.forEach { m -> MovementRow(block.key, m, vm) }
+            if (block.inputs.isEmpty()) {
+                // Nothing to enter, so the buttons belong to the plan itself.
+                BlockActions(block, vm, onOpenCalculatorFor)
+            } else {
+                // Every movement gets its own fields AND its own buttons, under
+                // a rule of its own. Two movements added to one plan in a single
+                // go now read exactly like two plans sharing a muscle group —
+                // how they were added no longer changes how they are logged.
+                block.inputs.forEachIndexed { i, m ->
+                    if (i > 0) HorizontalDivider()
+                    MovementRow(block.key, m, vm)
+                    MovementActions(block, m, vm, onOpenCalculatorFor)
+                }
+            }
+    }
+}
 
-            val skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
-            // After a log, flash "logged" briefly, then settle on "edit weight".
-            var justLogged by remember(block.key) { mutableStateOf(false) }
-            LaunchedEffect(block.logged) {
-                if (block.logged) {
-                    justLogged = true
-                    delay(2500)
-                    justLogged = false
-                } else {
-                    justLogged = false
-                }
-            }
-            val logLabel = when {
-                block.logged && justLogged -> "logged"
-                block.logged -> "edit weight"
-                else -> "Log weight"
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WorkoutActionTile(
-                    icon = KairosIcons.Moon,
-                    label = if (skipped && !block.isOverdue) "skipped" else "Rest / skip",
-                    modifier = Modifier.weight(1f),
-                    highlighted = block.isOverdue || !skipped,
-                ) {
-                    // On an overdue card this means "I'm not doing that day", so
-                    // it has to rest the day on the server. The local toggle left
-                    // the task PENDING and the card came straight back.
-                    if (block.isOverdue) block.date?.let { vm.restDay(it) }
-                    else vm.setBlockSkipped(block.key, !skipped)
-                }
-                WorkoutActionTile(
-                    icon = KairosIcons.Dumbbell,
-                    label = "Calculator",
-                    modifier = Modifier.weight(1f),
-                    highlighted = true,
-                ) {
-                    onOpenCalculatorFor(
-                        block.key,
-                        block.inputs.firstOrNull()?.poolExerciseId ?: "",
-                    )
-                }
-                WorkoutActionTile(
-                    icon = KairosIcons.Dumbbell,
-                    label = logLabel,
-                    modifier = Modifier.weight(1f),
-                    highlighted = !block.logged,
-                    enabled = !block.saving,
-                    loading = block.saving,
-                    filled = true,
-                ) { vm.saveBlock(block.key) }
-            }
+/** One movement's three tiles: skip it, open the calculator for it, log it. */
+@Composable
+private fun MovementActions(
+    block: WorkoutBlock,
+    m: MovementInput,
+    vm: WorkoutLogViewModel,
+    onOpenCalculatorFor: (String, String) -> Unit,
+) {
+    // After a log, flash "logged" briefly, then settle on "edit weight". Keyed
+    // on the save counter rather than on `logged`, so a movement that arrives
+    // already recorded doesn't flash every time the page opens.
+    var justLogged by remember(block.key, m.poolExerciseId) { mutableStateOf(false) }
+    LaunchedEffect(m.savedAt) {
+        if (m.savedAt > 0) {
+            justLogged = true
+            delay(2500)
+            justLogged = false
+        } else {
+            // A reload resets the counter; don't leave a half-finished flash on.
+            justLogged = false
+        }
+    }
+    val noun = logNoun(listOf(m))
+    val logLabel = when {
+        justLogged -> "logged"
+        m.logged -> "edit $noun"
+        else -> "Log $noun"
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        WorkoutActionTile(
+            icon = KairosIcons.Moon,
+            label = if (m.skipped && !block.isOverdue) "skipped" else "Rest / skip",
+            modifier = Modifier.weight(1f),
+            highlighted = block.isOverdue || !m.skipped,
+        ) {
+            // On an overdue card this means "I'm not doing that day", so it has
+            // to rest the day on the server. The local toggle left the task
+            // PENDING and the card came straight back.
+            if (block.isOverdue) block.date?.let { vm.restDay(it) }
+            else vm.setMovementSkipped(block.key, m.poolExerciseId, !m.skipped)
+        }
+        WorkoutActionTile(
+            icon = KairosIcons.Dumbbell,
+            label = "Calculator",
+            modifier = Modifier.weight(1f),
+            highlighted = true,
+        ) {
+            // THIS movement, not the card's first one — the calculator used to
+            // hand its result back to the top movement whichever button opened
+            // it, so a second movement's weight landed in the wrong box.
+            onOpenCalculatorFor(block.key, m.poolExerciseId)
+        }
+        WorkoutActionTile(
+            icon = KairosIcons.Dumbbell,
+            label = logLabel,
+            modifier = Modifier.weight(1f),
+            highlighted = !m.logged,
+            enabled = !m.saving,
+            loading = m.saving,
+            filled = true,
+        ) { vm.saveBlock(block.key, m.poolExerciseId) }
+    }
+}
+
+/** The tiles for a plan with no movements to enter — the one shape that still
+ *  has nothing to hang per-movement buttons on. */
+@Composable
+private fun BlockActions(
+    block: WorkoutBlock,
+    vm: WorkoutLogViewModel,
+    onOpenCalculatorFor: (String, String) -> Unit,
+) {
+    var justLogged by remember(block.key) { mutableStateOf(false) }
+    LaunchedEffect(block.logged) {
+        if (block.logged) {
+            justLogged = true
+            delay(2500)
+            justLogged = false
+        } else {
+            justLogged = false
+        }
+    }
+    val logLabel = when {
+        block.logged && justLogged -> "logged"
+        block.logged -> "edit weight"
+        else -> "Log weight"
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        WorkoutActionTile(
+            icon = KairosIcons.Moon,
+            label = "Rest / skip",
+            modifier = Modifier.weight(1f),
+            highlighted = true,
+        ) {
+            if (block.isOverdue) block.date?.let { vm.restDay(it) }
+            else vm.setBlockSkipped(block.key, true)
+        }
+        WorkoutActionTile(
+            icon = KairosIcons.Dumbbell,
+            label = "Calculator",
+            modifier = Modifier.weight(1f),
+            highlighted = true,
+        ) { onOpenCalculatorFor(block.key, "") }
+        WorkoutActionTile(
+            icon = KairosIcons.Dumbbell,
+            label = logLabel,
+            modifier = Modifier.weight(1f),
+            highlighted = !block.logged,
+            enabled = !block.saving,
+            loading = block.saving,
+            filled = true,
+        ) { vm.saveBlock(block.key) }
     }
 }
 

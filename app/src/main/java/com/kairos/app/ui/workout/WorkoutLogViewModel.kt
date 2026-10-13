@@ -45,6 +45,17 @@ data class MovementInput(
     val plannedExerciseId: String? = null,
     /** Record / best reps / last, straight from the server. Appended last. */
     val stats: com.kairos.app.data.remote.dto.MovementStatsDto? = null,
+    /** This movement's own Log button is mid-save. Per movement, not per block:
+     *  a card holding two movements used to put BOTH buttons into the spinner
+     *  when either was pressed. */
+    val saving: Boolean = false,
+    /** Already recorded for the day — from the server on load, or from a save
+     *  made here. Turns this movement's button into "edit weight". */
+    val logged: Boolean = false,
+    /** Bumped by a save made on this screen, so the button can flash "logged"
+     *  briefly afterwards. Deliberately separate from [logged]: a movement that
+     *  arrives already logged should not flash on every page open. */
+    val savedAt: Int = 0,
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -76,6 +87,9 @@ data class WorkoutLogUiState(
     val done: Boolean = false,
     val conflict: WorkoutConflictDto? = null,
     val conflictPlanId: String? = null,
+    /** Which movement's save hit the conflict, so "Update" retries exactly that
+     *  one rather than re-sending every movement on the card. */
+    val conflictExerciseId: String? = null,
     val savedTick: Int = 0,
     val expiring: Boolean = false,
     /** Movement pool for the swap picker. Loaded on first use, not at startup —
@@ -181,11 +195,19 @@ class WorkoutLogViewModel(
                         plannedExerciseId = if (swapped != null) e.poolExerciseId else null,
                         swappedFromName = if (swapped != null) e.name else null,
                         stats = e.stats,
+                        // A value coming back from the server means this slot is
+                        // already recorded for the day, so its button offers an
+                        // edit rather than a first log — the same reading the
+                        // web takes from its prefill.
+                        logged = e.value != null,
                     )
                 },
                 key = blockKey,
                 date = day,
                 isOverdue = overdue,
+                // The tick beside the plan name, restored on reload rather than
+                // only after a save made in this session.
+                logged = b.exercises.isNotEmpty() && b.exercises.all { it.value != null },
             )
         val overdueBlocks = plan.overdue.flatMap { od ->
             od.workouts.map { b -> toBlock(b, "${b.plannedWorkoutId}@${od.date}", od.date, true) }
@@ -360,14 +382,17 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** Toggle "skip" for one movement — greys it and excludes it from the log. */
-    fun toggleSkip(planId: String, exId: String) {
+    /** Skip (or un-skip) one movement — greys it and excludes it from the log.
+     *  Keyed on the block's row key, not its plan id: an overdue block lives on
+     *  an earlier date and the two differ there. */
+    fun setMovementSkipped(key: String, exId: String, skipped: Boolean) {
         _ui.update { s ->
             s.copy(
                 blocks = s.blocks.map { b ->
-                    if (b.plannedWorkoutId != planId) b
+                    if (b.key != key) b
                     else b.copy(inputs = b.inputs.map {
-                        if (it.poolExerciseId == exId) it.copy(skipped = !it.skipped, value = if (!it.skipped) "" else it.value) else it
+                        if (it.poolExerciseId != exId) it
+                        else it.copy(skipped = skipped, value = if (skipped) "" else it.value)
                     })
                 },
             )
@@ -389,14 +414,56 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** Log one block's entered (non-skipped) movements. Other blocks stay open. */
-    fun saveBlock(key: String, replace: Boolean = false) {
+    /**
+     * Mark a block (or one movement in it) as saving / saved. `exId` null means
+     * the whole block, which is only the shape with no movements to hang a
+     * button on.
+     */
+    private fun markSaving(key: String, exId: String?, busy: Boolean, saved: Boolean) {
+        _ui.update { s ->
+            s.copy(
+                blocks = s.blocks.map { b ->
+                    if (b.key != key) return@map b
+                    val inputs = b.inputs.map { m ->
+                        if (exId != null && m.poolExerciseId != exId) m
+                        else m.copy(
+                            saving = busy,
+                            logged = if (saved) true else m.logged,
+                            savedAt = if (saved) m.savedAt + 1 else m.savedAt,
+                        )
+                    }
+                    // The tick by the plan name means the whole plan is in, so it
+                    // waits for the last movement rather than lighting up as soon
+                    // as one of several is logged.
+                    val allIn =
+                        if (inputs.isEmpty()) saved || b.logged else inputs.all { it.logged }
+                    b.copy(
+                        inputs = inputs,
+                        saving = if (exId == null) busy else b.saving,
+                        logged = allIn,
+                    )
+                },
+                actionError = null,
+            )
+        }
+    }
+
+    /**
+     * Log a block's entered (non-skipped) movements, or just one of them when
+     * [exId] is given — which is how every card with movements now saves, since
+     * each movement carries its own Log button. The server replaces only the
+     * movements a submission covers, so logging the bench press leaves the
+     * incline press on the same plan untouched. Other blocks stay open.
+     */
+    fun saveBlock(key: String, exId: String? = null, replace: Boolean = false) {
         val block = _ui.value.blocks.find { it.key == key } ?: return
         val d = block.date ?: date ?: return
-        _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.key == key) it.copy(saving = true) else it }, actionError = null) }
+        val targets =
+            if (exId == null) block.inputs else block.inputs.filter { it.poolExerciseId == exId }
+        markSaving(key, exId, busy = true, saved = false)
         viewModelScope.launch {
             try {
-                val entries = block.inputs.filter { !it.skipped }.mapNotNull { m ->
+                val entries = targets.filter { !it.skipped }.mapNotNull { m ->
                     val raw = if (m.metric == "DURATION") {
                         val mins = m.value.trim().toDoubleOrNull() ?: 0.0
                         val secs = m.seconds.trim().toDoubleOrNull() ?: 0.0
@@ -431,23 +498,22 @@ class WorkoutLogViewModel(
                     completedOn = if (loggedOn != d) loggedOn else null,
                 )
                 if (ack.status == "conflict" && ack.conflict != null) {
-                    _ui.update { s ->
-                        s.copy(
-                            blocks = s.blocks.map { if (it.key == key) it.copy(saving = false) else it },
-                            conflict = ack.conflict, conflictPlanId = key,
+                    markSaving(key, exId, busy = false, saved = false)
+                    _ui.update {
+                        it.copy(
+                            conflict = ack.conflict,
+                            conflictPlanId = key,
+                            conflictExerciseId = exId,
                         )
                     }
                 } else {
-                    _ui.update { s ->
-                        s.copy(
-                            blocks = s.blocks.map { if (it.key == key) it.copy(saving = false, logged = true) else it },
-                            savedTick = s.savedTick + 1,
-                        )
-                    }
+                    markSaving(key, exId, busy = false, saved = true)
+                    _ui.update { it.copy(savedTick = it.savedTick + 1) }
                     cacheCurrentPlan()
                 }
             } catch (e: ApiException) {
-                _ui.update { s -> s.copy(blocks = s.blocks.map { if (it.key == key) it.copy(saving = false) else it }, actionError = e.error.message) }
+                markSaving(key, exId, busy = false, saved = false)
+                _ui.update { it.copy(actionError = e.error.message) }
             }
         }
     }
@@ -455,11 +521,13 @@ class WorkoutLogViewModel(
     /** "Update" on the already-logged prompt: overwrite the existing entry. */
     fun confirmReplace() {
         val planId = _ui.value.conflictPlanId ?: return
-        _ui.update { it.copy(conflict = null, conflictPlanId = null) }
-        saveBlock(planId, replace = true)
+        val exId = _ui.value.conflictExerciseId
+        _ui.update { it.copy(conflict = null, conflictPlanId = null, conflictExerciseId = null) }
+        saveBlock(planId, exId, replace = true)
     }
 
-    fun dismissConflict() = _ui.update { it.copy(conflict = null, conflictPlanId = null) }
+    fun dismissConflict() =
+        _ui.update { it.copy(conflict = null, conflictPlanId = null, conflictExerciseId = null) }
 
     /** Mark the day a rest day (SKIPPED). Used from the workouts overview. */
     /** Re-fetch the raw plan for this date and refresh the "workout" cache, so a
