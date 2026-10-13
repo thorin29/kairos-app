@@ -1,4 +1,12 @@
 # Changelog
+## 0.380.0
+
+- School work you are behind on is tinted on the row, not just shown with a red
+  date. The tint clears once it is done.
+- School rows now say "ahead of Oct 20" or "moved from Oct 8" next to the due
+  date when the work has been pulled forward or pushed back. Needs web 0.573.0;
+  an older server just doesn't send that part.
+
 ## 0.379.0
 
 - Movement history labels start in one column and values end in another, rather

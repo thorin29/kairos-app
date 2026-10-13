@@ -1125,8 +1125,23 @@ private fun SchoolCheckRow(task: TaskDto, busy: Boolean, vm: HomeViewModel) {
     val parts = (task.subtitle ?: "").split(" \u00b7 ")
     val className = parts.firstOrNull()?.takeIf { it.isNotBlank() } ?: task.title
     val detail = (listOf(task.title) + parts.drop(1)).joinToString(" \u00b7 ")
+    // Behind work carries a tint, not just red text on one line. The detail line
+    // was already red when overdue, but it reads as emphasis on a date rather
+    // than as a state the whole row is in. Cleared once it is done: a finished
+    // assignment is not behind anything.
+    val behind = task.isOverdue && !done
     Row(
-        Modifier.fillMaxWidth().clickable(enabled = enabled) { vm.toggle(task.id, done) }.padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier
+            .fillMaxWidth()
+            .then(
+                if (behind) {
+                    Modifier.background(MaterialTheme.colorScheme.error.copy(alpha = 0.06f))
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(enabled = enabled) { vm.toggle(task.id, done) }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = done, onCheckedChange = null)
