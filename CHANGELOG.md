@@ -1,4 +1,12 @@
 # Changelog
+## 0.382.0
+
+- Fixes a companion that was deepened before it was grown being drawn as an
+  adult. The sprite follows the growth actually done, never the glow.
+- The skill-blend cells are back on the card; growth sits below them as one
+  segment per stage, with a gap between, so the stages are visible at a glance.
+- Needs web 0.575.0.
+
 ## 0.381.0
 
 - Companion card now shows one bar: progress through whatever the companion is

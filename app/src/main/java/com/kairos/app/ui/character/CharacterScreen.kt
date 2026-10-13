@@ -255,10 +255,10 @@ private fun CompanionCard(c: CharCompanionDto) {
                 }
                 if (c.shiny) Text("  \u2726", style = MaterialTheme.typography.titleSmall, color = SHINY)
             }
-            // ONE bar, measuring whatever this companion is doing now, with a
-            // mark where each stage begins. The card used to carry the skill
-            // blend cells AND an egg meter, and neither was the thing people
-            // read it as: how grown the creature is.
+            // The skill-blend cells stay — they were always deliberate. What
+            // was missing is below them: growth, split into one segment per
+            // stage, so the stages are visible before anyone reads a word.
+            XpCells(c.xpCells)
             PhaseBar(
                 pct = c.incubationPct,
                 phase = c.phase,
@@ -443,13 +443,15 @@ private fun parseHex(hex: String?): Color {
 }
 
 /**
- * Progress through the companion's current phase, with a tick where each stage
- * begins.
+ * Growth, drawn as one segment per stage with a gap between them.
  *
- * The ticks carry no labels deliberately: two marks and three stages show the
- * shape of the journey without a legend anyone has to be taught. They are drawn
- * only while growing, because after that the bar measures something else and a
- * stage mark on it would be telling a lie.
+ * The gaps are the point: a hairline tick on a continuous rail read as a seam
+ * in the bar, where separate spans say "there are stages here" without a legend
+ * anyone has to be taught. While deepening there is one span, because deepening
+ * is one span of work.
+ *
+ * Spans and fills match the web's STAGE_SPANS / spanFills, from
+ * CLEAN_DAY_STAGES [0, 6, 12] — two equal stages up to adult.
  */
 @Composable
 private fun PhaseBar(
@@ -458,31 +460,30 @@ private fun PhaseBar(
     luckColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    // Matches the web's STAGE_TICK_PCT, from CLEAN_DAY_STAGES [0, 6, 12].
-    val ticks = listOf(50)
-    val fill = if (phase == "shiny") SHINY else luckColor
-    Box(modifier.height(8.dp).clip(RoundedCornerShape(999.dp)).background(Color(0x1F000000))) {
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(pct.coerceIn(0, 100) / 100f)
-                .clip(RoundedCornerShape(999.dp))
-                .background(fill),
-        )
-        if (phase == "growing") {
-            // Positioned by fraction rather than an offset in dp: the bar's
-            // width is set by the caller, and a hardcoded offset would drift
-            // the moment that changed.
-            ticks.forEach { t ->
-                Row(Modifier.fillMaxSize()) {
-                    Spacer(Modifier.fillMaxWidth(t / 100f))
-                    Box(
-                        Modifier
-                            .fillMaxHeight()
-                            .width(1.dp)
-                            .background(MaterialTheme.colorScheme.surface),
-                    )
-                }
+    val spans = if (phase == "growing") listOf(50f, 50f) else listOf(100f)
+    val fillColor = if (phase == "shiny") SHINY else luckColor
+    var left = pct.coerceIn(0, 100).toFloat()
+    val fills = spans.map { w ->
+        val take = left.coerceIn(0f, w)
+        left -= take
+        if (w > 0f) take / w else 0f
+    }
+    Row(modifier.height(8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        spans.forEachIndexed { i, w ->
+            Box(
+                Modifier
+                    .weight(w)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color(0x1F000000)),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fills[i])
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(fillColor),
+                )
             }
         }
     }
