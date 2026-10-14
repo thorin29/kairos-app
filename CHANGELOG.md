@@ -1,4 +1,16 @@
 # Changelog
+## 0.387.0
+
+- Events and medical appointments take a short note — flight details, a
+  confirmation code, what to bring. It sits under the address and above the
+  notifications, and shows on the event when you open it.
+- A parent can file an event under anyone else in the house: the Calendar row
+  now offers My calendar, Family calendar, and each person, for a child's
+  doctor appointment, hockey practice or school event.
+- Picking someone as the owner takes them out of the event's "share with" list,
+  since nobody needs an event shared with them that they already own.
+- Needs web 0.580.0.
+
 ## 0.386.0
 
 - Every movement on a Log workout card now has its own Rest / skip, Calculator

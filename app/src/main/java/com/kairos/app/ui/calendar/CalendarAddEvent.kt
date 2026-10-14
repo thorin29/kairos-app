@@ -82,9 +82,14 @@ fun AddEventOverlay(
     val meId = remember {
         (container.sessionRepository.state.value as? com.kairos.app.data.session.SessionState.Ready)?.person?.id
     }
+    // Whose calendar this event goes on. Null means the person on this device;
+    // a parent can hand it to someone else from the Calendar picker (a child's
+    // doctor appointment, a hockey practice), which is what the web's "Whose"
+    // dropdown has always done.
+    var calOwnerId by remember { mutableStateOf(editEvent?.ownerId ?: meId) }
     // The event's owner shouldn't appear in "share with" (you can't share with
-    // yourself). For a new event that's me; for an edit it's the event's owner.
-    val ownerId = editEvent?.ownerId ?: meId
+    // yourself), and that follows whoever currently owns it.
+    val ownerId = calOwnerId
     var title by remember { mutableStateOf(editEvent?.title ?: "") }
     var eventNames by remember { mutableStateOf<List<String>>(emptyList()) }
     var showNameSearch by remember { mutableStateOf(false) }
@@ -151,6 +156,10 @@ fun AddEventOverlay(
     }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var addressSearchOpen by remember { mutableStateOf(false) }
+    // A short free-text note (flight details, what to bring). Held here rather
+    // than inside the field so switching the type away and back doesn't wipe
+    // what was typed; the server applies the same takesNotes rule on save.
+    var notes by remember { mutableStateOf(editEvent?.notes ?: "") }
     var repeat by remember { mutableStateOf("NONE") }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
     var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
@@ -221,7 +230,7 @@ fun AddEventOverlay(
     // on a new event after settings load, which would otherwise read as "dirty".
     fun formSig() = listOf(
         title, allDay, startDateIso, endDateIso, startMin, endMin, location,
-        repeat, isFamily, kind, eventTypeId, participants.toList(),
+        repeat, isFamily, kind, eventTypeId, participants.toList(), notes, calOwnerId,
     ).toString()
     val initialSig = remember { formSig() }
     val dirty = formSig() != initialSig
@@ -269,6 +278,10 @@ fun AddEventOverlay(
                 participants = participants.toList(),
                 reminders = reminders,
                 reminderUserIds = recipients(),
+                // Always sent, so clearing a note actually clears it. The server
+                // drops it anyway on a kind that doesn't take one.
+                notes = notes.trim().take(NOTES_MAX),
+                ownerId = if (isFamily) null else calOwnerId,
             ),
         ) { onClose() }
     }
@@ -335,6 +348,8 @@ fun AddEventOverlay(
                                     participants = participants.toList().ifEmpty { null },
                                     reminders = reminders,
                                     reminderUserIds = recipients(),
+                                    notes = notes.trim().take(NOTES_MAX).ifBlank { null },
+                                    ownerId = if (isFamily) null else calOwnerId,
                                 ),
                             ) { onClose() }
                         }
@@ -401,7 +416,10 @@ fun AddEventOverlay(
                 }
                 if (canFamily) {
                     SectionLine()
-                    SelectRow(KairosIcons.Calendar, if (isFamily) "Family calendar" else "My calendar") { openSelector = "calendar" }
+                    SelectRow(
+                        KairosIcons.Calendar,
+                        calendarLabel(isFamily, calOwnerId, meId, data.options.people),
+                    ) { openSelector = "calendar" }
                 }
                 SectionLine()
                 SelectRow(KairosIcons.Book, typeLabel(kind, eventTypeId, customTypes)) { openSelector = "type" }
@@ -424,6 +442,15 @@ fun AddEventOverlay(
                     value = location,
                     onOpenSearch = { addressSearchOpen = true },
                 )
+
+                // A short note — flight details, a confirmation code, what to
+                // bring. Only on the kinds that keep one; the server drops it
+                // from anything else, so the field is never offered where the
+                // save would throw it away.
+                if (takesNotes(kind, eventTypeId)) {
+                    SectionLine()
+                    NotesField(value = notes, onChange = { notes = it.take(NOTES_MAX) })
+                }
 
                 SectionLine()
                 if (reminders.isNotEmpty()) {
@@ -692,8 +719,22 @@ fun AddEventOverlay(
             }
         }
         "calendar" -> SelectorOverlay("Calendar", onClose = { openSelector = null }) {
-            SelectOptionRow("My calendar", !isFamily) { isFamily = false; openSelector = null }
+            SelectOptionRow("My calendar", !isFamily && (calOwnerId == null || calOwnerId == meId)) {
+                isFamily = false; calOwnerId = meId; openSelector = null
+            }
             SelectOptionRow("Family calendar", isFamily) { isFamily = true; openSelector = null }
+            // Everyone else in the house. Only a parent gets this far (the row
+            // itself is behind canFamily), and the server checks the same thing
+            // rather than trusting the id the phone sends.
+            data.options.people.filter { it.id != meId }.forEach { p ->
+                SelectOptionRow("${p.name}'s calendar", !isFamily && calOwnerId == p.id) {
+                    isFamily = false
+                    calOwnerId = p.id
+                    // They own it now, so they can't also be shared with it.
+                    participants = participants - p.id
+                    openSelector = null
+                }
+            }
         }
         "type" -> SelectorOverlay("Type", onClose = { openSelector = null }) {
             listOf(
@@ -806,6 +847,77 @@ private fun SelectRow(icon: ImageVector, value: String, muted: Boolean = false, 
             modifier = Modifier.weight(1f),
         )
         Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+    }
+}
+
+/** Characters a note may hold. Mirrors NOTES_MAX in the web's
+ *  src/lib/calendar/event-notes.ts; the server caps it there either way. */
+private const val NOTES_MAX = 500
+
+/**
+ * Which events carry a free-text note. Mirrors takesNotes() in the web's
+ * src/lib/calendar/event-notes.ts, which every save runs through: a note
+ * belongs to an "Event" (APPOINTMENT) and a "Medical / Dental" (OTHER). A
+ * custom event type such as a hockey game stores as OTHER but is its own
+ * category, so it is deliberately left out.
+ */
+private fun takesNotes(kind: String, eventTypeId: String?): Boolean {
+    if (!eventTypeId.isNullOrBlank()) return false
+    return kind == "APPOINTMENT" || kind == "OTHER"
+}
+
+/** "My calendar" / "Family calendar" / "Aaron's calendar". */
+private fun calendarLabel(
+    isFamily: Boolean,
+    ownerId: String?,
+    meId: String?,
+    people: List<com.kairos.app.data.remote.dto.CalOptionPersonDto>,
+): String = when {
+    isFamily -> "Family calendar"
+    ownerId == null || ownerId == meId -> "My calendar"
+    else ->
+        people.firstOrNull { it.id == ownerId }?.let { "${it.name}'s calendar" }
+            ?: "My calendar"
+}
+
+/**
+ * The note field. Typed in place rather than on a screen of its own: a note is
+ * a line or two, and sending the user somewhere else for it would cost more
+ * taps than the note is worth. The icon sits in the same column as Where and
+ * the rest, with the text wrapping beside it.
+ */
+@Composable
+private fun NotesField(value: String, onChange: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(
+            KairosIcons.Pencil,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(22.dp),
+        )
+        BasicTextField(
+            value = value,
+            onValueChange = onChange,
+            textStyle = MaterialTheme.typography.bodyLarge
+                .copy(color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = SentenceCaps,
+            modifier = Modifier.weight(1f),
+            decorationBox = { inner ->
+                if (value.isEmpty()) {
+                    Text(
+                        "Add a note",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                inner()
+            },
+        )
     }
 }
 

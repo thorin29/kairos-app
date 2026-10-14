@@ -1200,6 +1200,12 @@ data class CreateEventRequest(
     val reminders: List<Int>? = null,
     val reminderUserIds: List<String>? = null,
     val clientId: String? = null,
+    /** A short free-text note. The server keeps it only on the kinds that take
+     *  one (Event, Medical / Dental) and drops it on every other kind. */
+    val notes: String? = null,
+    /** Whose event this is, when a parent is filing it under someone else from
+     *  the calendar picker. Null means the person on this device. */
+    val ownerId: String? = null,
 )
 
 @Serializable
@@ -1232,6 +1238,10 @@ data class UpdateEventRequest(
     val participants: List<String>? = null,
     val reminders: List<Int>? = null,
     val reminderUserIds: List<String>? = null,
+    /** A short free-text note; see CreateEventRequest. */
+    val notes: String? = null,
+    /** Whose event this is after the edit; see CreateEventRequest. */
+    val ownerId: String? = null,
 )
 
 // ---- Money (GET /money, POST /money/entry, reward approvals) ----

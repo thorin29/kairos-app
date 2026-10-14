@@ -578,6 +578,8 @@ class CalendarViewModel(
             dayISO = req.date, allDay = req.allDay, startMin = startMin, endMin = endMin,
             timeLabel = timeLabel(req.allDay, startMin, endMin),
             isFamily = req.isFamily ?: false, kind = req.kind ?: "",
+            notes = req.notes,
+            ownerId = req.ownerId,
             recurring = !req.repeat.isNullOrBlank() && req.repeat != "none",
         )
         val events = (data.events + ev).sortedWith(compareBy({ it.dayISO }, { it.startMin }))
@@ -600,6 +602,11 @@ class CalendarViewModel(
                     startMin = startMin, endMin = endMin,
                     timeLabel = timeLabel(req.allDay, startMin, endMin),
                     location = req.location, isFamily = req.isFamily ?: it.isFamily,
+                    // The note rides along so an offline edit reads back the way
+                    // it was typed. The owner deliberately doesn't: changing it
+                    // also changes the colour, name and who-label, and guessing
+                    // those here would be a second copy of the server's rules.
+                    notes = req.notes ?: it.notes,
                 )
             },
         )
