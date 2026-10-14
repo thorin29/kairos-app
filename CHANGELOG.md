@@ -1,4 +1,15 @@
 # Changelog
+## 0.388.0
+
+- The event Notes row now behaves like every other row on the form: tap it and
+  the note opens on its own screen with a Save, the same way the address and
+  event name already do. The row itself shows one line of the note.
+- Closing that screen without saving leaves the note as it was.
+- A note shows only when you open an event for its details, directly under the
+  address, with an icon so it reads as part of the event rather than a loose
+  line. It never appears on the chips in the grid.
+- Needs web 0.580.0 (unchanged — no server work in this one).
+
 ## 0.387.0
 
 - Events and medical appointments take a short note — flight details, a

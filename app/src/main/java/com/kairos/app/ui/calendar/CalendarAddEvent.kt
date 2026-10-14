@@ -156,10 +156,12 @@ fun AddEventOverlay(
     }
     var location by remember { mutableStateOf(editEvent?.location ?: "") }
     var addressSearchOpen by remember { mutableStateOf(false) }
-    // A short free-text note (flight details, what to bring). Held here rather
-    // than inside the field so switching the type away and back doesn't wipe
-    // what was typed; the server applies the same takesNotes rule on save.
+    // A short free-text note (flight details, what to bring). Held on the form
+    // rather than in the editor screen, so switching the type away and back
+    // doesn't wipe what was typed; the server applies the same takesNotes rule
+    // on save and drops a note left behind by a kind that can't hold one.
     var notes by remember { mutableStateOf(editEvent?.notes ?: "") }
+    var noteOpen by remember { mutableStateOf(false) }
     var repeat by remember { mutableStateOf("NONE") }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
     var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
@@ -295,6 +297,15 @@ fun AddEventOverlay(
                 onPick = {
                     location = it
                     addressSearchOpen = false
+                },
+            )
+        } else if (noteOpen) {
+            NoteEditScreen(
+                initial = notes,
+                onDismiss = { noteOpen = false },
+                onSave = {
+                    notes = it
+                    noteOpen = false
                 },
             )
         } else if (showNameSearch) {
@@ -449,7 +460,7 @@ fun AddEventOverlay(
                 // save would throw it away.
                 if (takesNotes(kind, eventTypeId)) {
                     SectionLine()
-                    NotesField(value = notes, onChange = { notes = it.take(NOTES_MAX) })
+                    NoteRow(value = notes) { noteOpen = true }
                 }
 
                 SectionLine()
@@ -850,22 +861,6 @@ private fun SelectRow(icon: ImageVector, value: String, muted: Boolean = false, 
     }
 }
 
-/** Characters a note may hold. Mirrors NOTES_MAX in the web's
- *  src/lib/calendar/event-notes.ts; the server caps it there either way. */
-private const val NOTES_MAX = 500
-
-/**
- * Which events carry a free-text note. Mirrors takesNotes() in the web's
- * src/lib/calendar/event-notes.ts, which every save runs through: a note
- * belongs to an "Event" (APPOINTMENT) and a "Medical / Dental" (OTHER). A
- * custom event type such as a hockey game stores as OTHER but is its own
- * category, so it is deliberately left out.
- */
-private fun takesNotes(kind: String, eventTypeId: String?): Boolean {
-    if (!eventTypeId.isNullOrBlank()) return false
-    return kind == "APPOINTMENT" || kind == "OTHER"
-}
-
 /** "My calendar" / "Family calendar" / "Aaron's calendar". */
 private fun calendarLabel(
     isFamily: Boolean,
@@ -878,47 +873,6 @@ private fun calendarLabel(
     else ->
         people.firstOrNull { it.id == ownerId }?.let { "${it.name}'s calendar" }
             ?: "My calendar"
-}
-
-/**
- * The note field. Typed in place rather than on a screen of its own: a note is
- * a line or two, and sending the user somewhere else for it would cost more
- * taps than the note is worth. The icon sits in the same column as Where and
- * the rest, with the text wrapping beside it.
- */
-@Composable
-private fun NotesField(value: String, onChange: (String) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Icon(
-            KairosIcons.Pencil,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(22.dp),
-        )
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            textStyle = MaterialTheme.typography.bodyLarge
-                .copy(color = MaterialTheme.colorScheme.onSurface),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            keyboardOptions = SentenceCaps,
-            modifier = Modifier.weight(1f),
-            decorationBox = { inner ->
-                if (value.isEmpty()) {
-                    Text(
-                        "Add a note",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                inner()
-            },
-        )
-    }
 }
 
 @Composable

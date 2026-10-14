@@ -1541,8 +1541,28 @@ private fun EventDetailScreen(
                                 }
                             }
                         }
-                        event.notes?.takeIf { it.isNotBlank() }?.let {
-                            Text(it, style = MaterialTheme.typography.bodyMedium)
+                        // The note, directly under the address. Given the same
+                        // icon-and-text shape as the location line above it so
+                        // it reads as a labelled part of the event rather than
+                        // a loose sentence; it only ever appears here, never on
+                        // the chips in the grid.
+                        event.notes?.takeIf { it.isNotBlank() }?.let { note ->
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(top = 2.dp),
+                            ) {
+                                Icon(
+                                    KairosIcons.Pencil,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    // Padding BEFORE size, so the 2dp drops the
+                                    // whole glyph onto the first line instead of
+                                    // squashing it inside a 16dp box.
+                                    modifier = Modifier.padding(top = 2.dp).size(16.dp),
+                                )
+                                Text(note, style = MaterialTheme.typography.bodyMedium)
+                            }
                         }
                         // Event type name.
                         Text(
