@@ -332,7 +332,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
 
     // A notification tap (or other launch intent) can ask to open a section.
-    LaunchedEffect(pendingRoute) {
+    // Only an on-screen activity takes it: an older, stopped MainActivity shares
+    // pendingRoute and would otherwise consume it out of sight.
+    val onScreen = com.kairos.app.ui.common.rememberActivityOnScreen()
+    LaunchedEffect(pendingRoute, onScreen) {
+        if (!onScreen) return@LaunchedEffect
         when (pendingRoute) {
             "calendar" -> {
                 go(Route.Section("calendar"), "calendar")

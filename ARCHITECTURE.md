@@ -150,6 +150,9 @@ MainActivity's VIEW/SEND filters → the file read on IO (≤1 MB) into
 `AppContainer.pendingIcs` + `pendingRoute = "calendar"` → CalendarScreen waits
 for its data, parses on `data.timezone`, and opens `AddEventOverlay(importDraft)`
 or explains why not. Only a fresh activity imports (not a rotation/restore).
+Both `pendingRoute` and `pendingIcs` are consumed only where
+`rememberActivityOnScreen()` is true — several MainActivity instances can be
+alive, and a stopped one must not take the hand-off.
 `IcsImport.kt` is a line-for-line mirror of the web's
 `src/lib/calendar/ics-import.ts`; the web repo's `scripts/ics-parity/check.sh`
 compiles this file with `kotlinc` and diffs the two over thousands of files.

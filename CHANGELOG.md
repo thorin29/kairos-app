@@ -1,4 +1,9 @@
 # Changelog
+## 0.391.0
+
+- Opening an .ics invite now shows the new event instead of the home screen.
+- Notification taps open the right screen when Kairos was already running.
+
 ## 0.390.0
 
 - Kairos icon now shows full size in "Open with" and share menus.

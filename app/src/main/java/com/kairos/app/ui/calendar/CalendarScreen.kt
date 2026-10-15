@@ -133,8 +133,11 @@ fun CalendarScreen(
     // container.pendingIcs). It waits here until the calendar has loaded, since
     // the times are put on the household clock, then opens New event filled in —
     // owned by the person on this phone, like any new event.
+    // Only in an on-screen activity — a stopped one would open the form unseen.
     val pendingIcs by container.pendingIcs.collectAsState()
-    LaunchedEffect(pendingIcs, data != null) {
+    val onScreen = com.kairos.app.ui.common.rememberActivityOnScreen()
+    LaunchedEffect(pendingIcs, data != null, onScreen) {
+        if (!onScreen) return@LaunchedEffect
         val p = pendingIcs ?: return@LaunchedEffect
         val d = data ?: return@LaunchedEffect
         container.pendingIcs.value = null

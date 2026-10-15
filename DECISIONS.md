@@ -1,5 +1,27 @@
 # Decisions
 
+## 2026-10 — Hand-offs go to the activity on screen (v0.391.0)
+
+An `.ics` opened from Gmail landed on Home with nothing imported. The log showed
+two MainActivity instances: the mail app's "Open with" starts a fresh one, while
+an older, stopped one lingered. Both compositions collect the app-wide one-shot
+flows in AppContainer (`pendingRoute`, `pendingIcs`), and a stopped activity's
+composition still runs — so the hidden one, not stuck behind the new one's 2 s
+splash, consumed both: it navigated itself to Calendar and opened the filled-in
+form where nobody could see it. The new one then finished its splash on Home.
+
+Fix: `rememberActivityOnScreen()` (ui/common) — the hosting ACTIVITY is at least
+STARTED — gates the `pendingRoute` effect in AppRoot and the `pendingIcs` effect
+in CalendarScreen. It deliberately reads the activity's lifecycle, not the
+NavBackStackEntry's, because drawer navigation can leave an entry below RESUMED
+while its screen shows. The same race could send a notification tap to the
+hidden instance, so that is fixed too. Any new hand-off through AppContainer
+must be consumed behind the same gate.
+
+Considered and not done: `launchMode="singleTask"` would avoid the second
+instance, but changes how Back and recents behave across the app for a problem
+the gate already solves.
+
 ## 2026-10 — Launcher icon inset is a fraction, not dp (v0.390.0)
 
 The adaptive icon's foreground wrapped the logo in `<inset android:inset="20dp">`.
