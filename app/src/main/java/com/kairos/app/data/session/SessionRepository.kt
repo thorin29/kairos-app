@@ -730,6 +730,22 @@ class SessionRepository(
             )
         }
 
+    /** Make an owned companion, at a stage already reached, the profile picture.
+     *  Adopts the person the server sends back so every avatar updates at once. */
+    suspend fun setCompanionAvatar(species: String, stage: Int) {
+        val ack = runAuthed {
+            requireService().setCompanionAvatar(
+                com.kairos.app.data.remote.dto.CompanionAvatarRequest(species = species, stage = stage),
+            )
+        }
+        val person = ack.person
+        if (person != null && _state.value is SessionState.Ready) {
+            _state.value = SessionState.Ready(person)
+        } else {
+            refreshPerson()
+        }
+    }
+
     suspend fun loadCoop(): com.kairos.app.data.remote.dto.CoopDto =
         runAuthed { requireService().coop() }
     suspend fun proposeCoop(title: String, detail: String) {
@@ -992,6 +1008,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 448
+        const val CLIENT_BUILD = 449
     }
 }

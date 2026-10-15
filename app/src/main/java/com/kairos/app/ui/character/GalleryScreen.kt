@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -122,13 +123,26 @@ fun GalleryScreen(onBack: () -> Unit) {
         }
     }
 
+    // The picture currently in use, to ring the matching stage in the picker.
+    val session by container.sessionRepository.state.collectAsState()
+    val currentPick = (session as? com.kairos.app.data.session.SessionState.Ready)?.person?.avatarCompanion
+
     shown?.let { sp ->
         EnlargeDialog(
             sp = sp,
             busy = ui.busy,
+            currentPick = currentPick,
             onActivate = { vm.activate(it) },
+            onPickStage = { stage -> vm.useAsProfilePicture(sp.id, stage) { enlarged = null } },
             onDismiss = { enlarged = null },
         )
+    }
+
+    ui.pictureNotice?.let { msg ->
+        AnimatedDialog(
+            onDismissRequest = { vm.clearPictureNotice() },
+            confirmButton = { TextButton(onClick = { vm.clearPictureNotice() }) { Text("OK") } },
+        ) { Text(msg) }
     }
 }
 
@@ -212,11 +226,24 @@ private fun Slot(sp: CollectSpeciesDto, eraKey: String, onOpen: (CollectSpeciesD
 private fun EnlargeDialog(
     sp: CollectSpeciesDto,
     busy: Boolean,
+    currentPick: com.kairos.app.data.remote.dto.AvatarCompanionDto?,
     onActivate: (String) -> Unit,
+    onPickStage: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val container = rememberContainer()
     val base = container.sessionRepository.baseUrlRaw
+    var picking by remember(sp.id) { mutableStateOf(false) }
+    if (picking) {
+        StagePickerDialog(
+            sp = sp,
+            busy = busy,
+            currentStage = currentPick?.takeIf { it.species == sp.id }?.stage,
+            onPick = onPickStage,
+            onBack = { picking = false },
+        )
+        return
+    }
     AnimatedDialog(
         onDismissRequest = onDismiss,
         title = if (sp.shiny) "${sp.name ?: ""} \u2726" else (sp.name ?: ""),
@@ -264,6 +291,103 @@ private fun EnlargeDialog(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        // An older server sends no stage art; the option simply isn't offered.
+        if (sp.stageImages.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = { picking = true },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Use as profile picture") }
+        }
+    }
+}
+
+private val STAGE_LABELS = listOf("Hatchling", "Juvenile", "Adult")
+
+/**
+ * The three stages side by side. A stage reached shows its art and is
+ * tappable; one not reached shows an egg and "Not yet" — its art is never sent,
+ * so nothing is spoiled. The picture already in use is ringed.
+ */
+@Composable
+private fun StagePickerDialog(
+    sp: CollectSpeciesDto,
+    busy: Boolean,
+    currentStage: Int?,
+    onPick: (Int) -> Unit,
+    onBack: () -> Unit,
+) {
+    val container = rememberContainer()
+    val base = container.sessionRepository.baseUrlRaw
+    val ring = MaterialTheme.colorScheme.primary
+    AnimatedDialog(
+        onDismissRequest = onBack,
+        title = sp.name ?: "",
+        confirmButton = { TextButton(onClick = onBack, enabled = !busy) { Text("Back") } },
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            STAGE_LABELS.forEachIndexed { stage, label ->
+                val image = sp.stageImages.getOrNull(stage)
+                val selected = currentStage == stage
+                Column(
+                    Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        Modifier.fillMaxWidth().height(96.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .border(
+                                if (selected) 2.5.dp else 1.dp,
+                                if (selected) ring else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(14.dp),
+                            )
+                            .then(
+                                if (image != null && !busy) Modifier.clickable { onPick(stage) } else Modifier,
+                            )
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (image != null && base != null) {
+                            SubcomposeAsyncImage(
+                                model = ApiClient.resolveUrl(base, image),
+                                imageLoader = container.imageLoader,
+                                contentDescription = "${sp.name ?: ""} $label",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize(),
+                                loading = { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
+                                error = {},
+                            )
+                        } else {
+                            Icon(
+                                KairosIcons.Egg,
+                                contentDescription = "Not reached yet",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(32.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        if (image != null) label else "Not yet",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (image != null) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        if (busy) {
+            Spacer(Modifier.height(10.dp))
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+            }
         }
     }
 }

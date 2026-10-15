@@ -330,7 +330,17 @@ private fun AvatarPreview(person: PersonDto, ring: Color, busy: Boolean) {
                 .background(ring.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
-            if (url != null && base != null) {
+            val companion = person.avatarCompanion
+            if (companion != null && base != null) {
+                com.kairos.app.ui.common.CompanionAvatarArt(companion.image, person.name) {
+                    Text(
+                        person.shortName,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ring,
+                    )
+                }
+            } else if (url != null && base != null) {
                 SubcomposeAsyncImage(
                     model = ApiClient.resolveUrl(base, url),
                     imageLoader = container.imageLoader,

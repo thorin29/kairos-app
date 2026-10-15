@@ -1,4 +1,8 @@
 # Changelog
+## 0.392.0
+
+- Use a companion as your profile picture: open it in the gallery and pick a stage.
+
 ## 0.391.0
 
 - Opening an .ics invite now shows the new event instead of the home screen.

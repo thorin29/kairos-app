@@ -45,7 +45,10 @@ fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
                 .background(tint.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
-            if (url != null && base != null) {
+            val companion = person.avatarCompanion
+            if (companion != null && base != null) {
+                CompanionAvatarArt(companion.image, person.name) { Initials(label, tint) }
+            } else if (url != null && base != null) {
                 val xf = parseAvatarXf(person.avatarPosition)
                 SubcomposeAsyncImage(
                     model = ApiClient.resolveUrl(base, url),
@@ -72,6 +75,32 @@ fun PersonAvatar(person: PersonDto, size: Dp = 36.dp) {
         // so it stays crisp over a photo edge.
         Box(Modifier.fillMaxSize().border(ringWidth, tint, CircleShape))
     }
+}
+
+/**
+ * A companion chosen as a profile picture, inside an avatar circle. Sprites are
+ * transparent art, so they are fitted whole with some air (76% of the circle)
+ * rather than cropped and framed like a photo. The one renderer for this — the
+ * rail, content avatars and the Profile preview all call it. [fallback] shows
+ * while loading and if the sprite can't be fetched.
+ */
+@Composable
+fun CompanionAvatarArt(image: String, contentDescription: String?, fallback: @Composable () -> Unit) {
+    val container = rememberContainer()
+    val base = container.sessionRepository.baseUrlRaw
+    if (base == null) {
+        fallback()
+        return
+    }
+    SubcomposeAsyncImage(
+        model = ApiClient.resolveUrl(base, image),
+        imageLoader = container.imageLoader,
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier.fillMaxSize(0.76f),
+        loading = { fallback() },
+        error = { fallback() },
+    )
 }
 
 @Composable

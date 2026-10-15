@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-10 — Companion as profile picture, chosen in the gallery (v0.392.0 / web 0.582.0)
+
+Full rationale in the web repo's DECISIONS ("A companion can be the profile
+picture"). App side: the gallery's enlarge dialog gains "Use as profile
+picture" (only when the server sends `stageImages`), which opens a three-stage
+picker — reached stages show their art and are tappable, unreached show an egg
+and "Not yet" (their art is never sent), and the picture in use is ringed. The
+pick posts `/me/avatar/companion`, and `SessionRepository.setCompanionAvatar`
+adopts the returned person, so the rail and every avatar update at once.
+
+The result shows in its own `pictureNotice`. The view model's older `message`
+(set after "Make this my companion") has never been displayed by the gallery;
+surfacing it here would have changed that flow unasked, so it is left alone.
+
+All three avatar views (rail, `PersonAvatar`, Profile preview) draw a companion
+through one composable, `CompanionAvatarArt`: fit, not crop, no framing.
+
 ## 2026-10 — Hand-offs go to the activity on screen (v0.391.0)
 
 An `.ics` opened from Gmail landed on Home with nothing imported. The log showed

@@ -454,6 +454,11 @@ interface ApiService {
     @POST("characters/hatch")
     suspend fun hatchCompanion(@Body body: com.kairos.app.data.remote.dto.HatchRequest): Response<com.kairos.app.data.remote.dto.HatchResultDto>
 
+    @POST("me/avatar/companion")
+    suspend fun setCompanionAvatar(
+        @Body body: com.kairos.app.data.remote.dto.CompanionAvatarRequest,
+    ): Response<com.kairos.app.data.remote.dto.CompanionAvatarAckDto>
+
     @GET("characters/collection")
     suspend fun collection(): Response<com.kairos.app.data.remote.dto.CollectionDto>
 

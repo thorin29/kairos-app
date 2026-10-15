@@ -344,7 +344,12 @@ private fun Avatar(person: PersonDto) {
                 .background(Color.White.copy(alpha = 0.22f)),
             contentAlignment = Alignment.Center,
         ) {
-            if (url != null && base != null) {
+            val companion = person.avatarCompanion
+            if (companion != null && base != null) {
+                com.kairos.app.ui.common.CompanionAvatarArt(companion.image, person.name) {
+                    Text(label, color = OnSidebar, style = MaterialTheme.typography.titleSmall)
+                }
+            } else if (url != null && base != null) {
                 val xf = parseAvatarXf(person.avatarPosition)
                 SubcomposeAsyncImage(
                     model = ApiClient.resolveUrl(base, url),

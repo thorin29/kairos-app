@@ -28,7 +28,26 @@ data class PersonDto(
     val color: String? = null,
     val role: String,
     val kind: String,
+    /** A companion chosen as the profile picture (web 0.582+). Drawn whole via
+     *  CompanionAvatarArt, never cropped like a photo. Appended + defaulted. */
+    val avatarCompanion: AvatarCompanionDto? = null,
 )
+
+@Serializable
+data class AvatarCompanionDto(
+    val species: String = "",
+    /** 0 hatchling, 1 juvenile, 2 adult. */
+    val stage: Int = 0,
+    /** Device-authed sprite URL, relative to the API base. */
+    val image: String = "",
+)
+
+/** Use an owned companion, at a reached stage, as the profile picture. */
+@Serializable
+data class CompanionAvatarRequest(val species: String = "", val stage: Int = 0)
+
+@Serializable
+data class CompanionAvatarAckDto(val person: PersonDto? = null)
 
 
 @Serializable
@@ -1667,6 +1686,9 @@ data class CollectSpeciesDto(
     /** The one currently with you. Appended at the END and defaulted, so an
      *  older server simply never marks one and the action stays available. */
     val isActive: Boolean = false,
+    /** Art for each stage reached so far (index = stage), for choosing a
+     *  profile picture. Unreached stages are absent. Empty from an older server. */
+    val stageImages: List<String> = emptyList(),
 )
 
 @Serializable

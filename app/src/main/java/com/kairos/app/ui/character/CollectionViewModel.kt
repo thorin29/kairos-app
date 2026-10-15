@@ -17,6 +17,9 @@ data class CollectionUiState(
     val data: CollectionDto? = null,
     val busy: Boolean = false,
     val message: String? = null,
+    /** Result of choosing a profile picture, shown by the gallery. Separate from
+     *  [message], which the gallery has never displayed. */
+    val pictureNotice: String? = null,
 )
 
 class CollectionViewModel(private val session: SessionRepository, private val cache: PayloadCacheStore) : ViewModel() {
@@ -45,6 +48,27 @@ class CollectionViewModel(private val session: SessionRepository, private val ca
             }
         }
     }
+
+    /**
+     * Use an owned companion at a reached [stage] as the profile picture. The
+     * server re-checks ownership and stage; the session adopts the person it
+     * returns, so the new picture shows everywhere without a reload here.
+     */
+    fun useAsProfilePicture(species: String, stage: Int, onDone: () -> Unit) {
+        if (_ui.value.busy) return
+        _ui.update { it.copy(busy = true, pictureNotice = null) }
+        viewModelScope.launch {
+            try {
+                session.setCompanionAvatar(species, stage)
+                _ui.update { it.copy(busy = false, pictureNotice = "Profile picture updated.") }
+                onDone()
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false, pictureNotice = e.message ?: "Couldn't change your picture.") }
+            }
+        }
+    }
+
+    fun clearPictureNotice() { _ui.update { it.copy(pictureNotice = null) } }
 
     fun clearMessage() { _ui.update { it.copy(message = null) } }
 

@@ -90,6 +90,11 @@ so avatar requests carry the device token). Reach it in composables with
   falling back to emoji/initials on null/error. Apply `avatarPosition` with a
   `graphicsLayer { scaleX/Y = scale; translationX = tx/100f*size.width; ... }` —
   this mirrors the web's `translate(tx%, ty%) scale(s)` on an `object-cover` image.
+- A companion picture arrives as `avatarCompanion { species, stage, image }` and
+  is drawn ONLY through `CompanionAvatarArt` (ui/common/PersonAvatar.kt): fitted
+  whole at 76% of the circle, no framing. Any new avatar view must check it
+  before `avatarUrl`. It is chosen in the gallery (`StagePickerDialog`) via
+  `POST /me/avatar/companion`; the session adopts the returned person.
 
 ## Theme
 
