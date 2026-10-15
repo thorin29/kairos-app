@@ -19,7 +19,12 @@ is unchanged and is still just for your own testing.
      day that gate is used. It drifted to 430 while `versionCode` reached 445
      and was put back in 0.389.0 (446).
 2. **Update `CHANGELOG.md`** — add a `## <versionName>` section at the top. Its
-   bullets become the release notes the household sees in the update prompt.
+   bullets become the release notes the household sees in the update prompt, so
+   write them for the people using the app:
+   - 1–4 bullets, one short line each — what changed, not why or how.
+   - No instructions, explanations, server/deploy notes ("Needs web …") or
+     internals (CLIENT_BUILD, refactors). Those belong in `DECISIONS.md`.
+   - Example: `- Kairos icon now shows full size in "Open with" and share menus.`
 3. **Update the docs that changed with the code** — `DECISIONS.md` for a new
    guardrail or a settled model, `ARCHITECTURE.md` for anything cross-cutting
    (stack, theming, navigation, a shared data model), and the web repo's

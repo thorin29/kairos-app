@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-10 — Launcher icon inset is a fraction, not dp (v0.390.0)
+
+The adaptive icon's foreground wrapped the logo in `<inset android:inset="20dp">`.
+A dp inset doesn't scale with the size the icon is drawn at: on the home screen
+(large) 20dp per side is a normal margin, but the system "Open with" sheet draws
+the icon small and the same 20dp per side left almost nothing for the logo — a
+speck in a white circle. Now `18.5%` (20/108 of the adaptive canvas): identical
+on the launcher, proportional everywhere else. Any future inset or padding in an
+icon layer should be a percentage for the same reason.
+
+## 2026-10 — Release notes are short, for the household (v0.390.0)
+
+`CHANGELOG.md`'s top section is the update prompt's text (release.yml), so it is
+written for end users: a few one-line bullets of what changed. No explanations,
+no "Needs web x.y" lines, no internals — the reasoning lives here instead.
+Rule in RELEASING.md step 2.
+
 ## 2026-10 — Calendar files open in Kairos, read on the phone (v0.389.0 / web 0.581.0)
 
 Tapping an `.ics` attachment (or sharing it to Kairos) opens New event filled in

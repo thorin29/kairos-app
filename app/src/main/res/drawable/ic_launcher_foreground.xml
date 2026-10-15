@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Proportional inset (20/108 of the adaptive canvas), not dp: a fixed 20dp
+     swallowed the logo wherever the icon is drawn small, e.g. the "Open with"
+     sheet. Same look on the home screen. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/kairos_logo"
-    android:inset="20dp" />
+    android:inset="18.5%" />

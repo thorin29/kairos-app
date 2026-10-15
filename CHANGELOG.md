@@ -1,20 +1,13 @@
 # Changelog
+## 0.390.0
+
+- Kairos icon now shows full size in "Open with" and share menus.
+
 ## 0.389.0
 
-- Calendar invites open in Kairos. Tap an .ics attachment in your email (or
-  Share it to Kairos) and New event opens with the name, date and times,
-  location and note filled in from the file, on your own calendar. Pick the
-  type and reminders, change whose calendar it is if you like, and save.
-- The first time, Android asks which app should open calendar files — choose
-  Kairos, and Always if you want it every time.
-- A file with a whole schedule in it isn't imported; Kairos says how many events
-  it holds and points to subscribing to that calendar instead. A cancellation
-  says so, and a repeat that is more than plain daily / weekly / monthly /
-  yearly is left for you to set.
-- Internal: CLIENT_BUILD is back in step with versionCode (it had been left at
-  430 across several releases).
-- No new server work — the file is read on the phone. Deploy web 0.581.0 first
-  as usual.
+- Open .ics calendar invites from email in Kairos to add them as events.
+- Files with a whole schedule suggest subscribing instead.
+
 ## 0.388.0
 
 - The event Notes row now behaves like every other row on the form: tap it and
