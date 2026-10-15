@@ -74,6 +74,9 @@ fun AddEventOverlay(
     ui: CalendarUiState,
     editEvent: com.kairos.app.data.remote.dto.CalEventDto? = null,
     editOccurrenceISO: String? = null,
+    // A calendar file's event (opened from an email) to start a NEW event from.
+    // Times are already on the household clock, which a new event defaults to.
+    importDraft: IcsDraft? = null,
     onClose: () -> Unit,
     onAddClass: (String?, String, Int, Int, String?, String, String) -> Unit = { _, _, _, _, _, _, _ -> },
 ) {
@@ -90,14 +93,14 @@ fun AddEventOverlay(
     // The event's owner shouldn't appear in "share with" (you can't share with
     // yourself), and that follows whoever currently owns it.
     val ownerId = calOwnerId
-    var title by remember { mutableStateOf(editEvent?.title ?: "") }
+    var title by remember { mutableStateOf(editEvent?.title ?: importDraft?.title ?: "") }
     var eventNames by remember { mutableStateOf<List<String>>(emptyList()) }
     var showNameSearch by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         eventNames = runCatching { container.sessionRepository.loadEventNames() }
             .getOrDefault(emptyList())
     }
-    var allDay by remember { mutableStateOf(editEvent?.allDay ?: false) }
+    var allDay by remember { mutableStateOf(editEvent?.allDay ?: importDraft?.allDay ?: false) }
     val initDate = editEvent?.dayISO?.ifBlank { data.date } ?: data.date.ifBlank { data.today }
     // A stored end of 1440 means midnight = 00:00 on the NEXT day (the calendar
     // keeps 1440 only as a same-day layout edge). Roll the end date forward and
@@ -109,7 +112,7 @@ fun AddEventOverlay(
     val hasBounds = !editEvent?.startDayISO.isNullOrBlank()
     val endAtMidnight = (editEvent?.endMin ?: 0) >= 1440
     var startDateIso by remember {
-        mutableStateOf(if (hasBounds) editEvent!!.startDayISO else initDate)
+        mutableStateOf(if (hasBounds) editEvent!!.startDayISO else importDraft?.startDate ?: initDate)
     }
     var endDateIso by remember {
         mutableStateOf(
@@ -119,6 +122,8 @@ fun AddEventOverlay(
                 hasBounds && editEvent!!.allDay ->
                     LocalDate.parse(editEvent.endDayISO).minusDays(1).toString()
                 hasBounds -> editEvent!!.endDayISO
+                // An imported all-day end is already the inclusive last day.
+                importDraft != null -> importDraft.endDate
                 // Legacy cached payload (no exact bounds): an all-day segment fills
                 // its day (endMin 1440) but stays on its own date — only a timed
                 // midnight end rolls to the next day.
@@ -135,11 +140,15 @@ fun AddEventOverlay(
         val now = java.time.LocalTime.now()
         (((now.hour * 60 + now.minute + 14) / 15) * 15).coerceIn(0, 22 * 60)
     }
-    var startMin by remember { mutableStateOf(if (hasBounds) editEvent!!.startMinExact else (editEvent?.startMin ?: defaultStart)) }
+    val importStart = importDraft?.startTime?.let(::hhmmToMin)
+    val importEnd = importDraft?.endTime?.let(::hhmmToMin)
+    var startMin by remember { mutableStateOf(if (hasBounds) editEvent!!.startMinExact else (editEvent?.startMin ?: importStart ?: defaultStart)) }
     var endMin by remember {
         mutableStateOf(
             if (hasBounds) {
                 editEvent!!.endMinExact
+            } else if (importStart != null && importEnd != null) {
+                importEnd
             } else {
                 (editEvent?.endMin?.takeIf { it > editEvent.startMin }
                     ?: (editEvent?.startMin?.plus(60) ?: (defaultStart + 60)))
@@ -154,15 +163,15 @@ fun AddEventOverlay(
         if (allDay) ed < sd
         else (ed * 1440L + endMin) <= (sd * 1440L + startMin)
     }
-    var location by remember { mutableStateOf(editEvent?.location ?: "") }
+    var location by remember { mutableStateOf(editEvent?.location ?: importDraft?.location ?: "") }
     var addressSearchOpen by remember { mutableStateOf(false) }
     // A short free-text note (flight details, what to bring). Held on the form
     // rather than in the editor screen, so switching the type away and back
     // doesn't wipe what was typed; the server applies the same takesNotes rule
     // on save and drops a note left behind by a kind that can't hold one.
-    var notes by remember { mutableStateOf(editEvent?.notes ?: "") }
+    var notes by remember { mutableStateOf(editEvent?.notes ?: importDraft?.notes ?: "") }
     var noteOpen by remember { mutableStateOf(false) }
-    var repeat by remember { mutableStateOf("NONE") }
+    var repeat by remember { mutableStateOf(importDraft?.repeat ?: "NONE") }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
     var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
     var eventTypeId by remember { mutableStateOf(editEvent?.eventTypeId) }
@@ -235,7 +244,8 @@ fun AddEventOverlay(
         repeat, isFamily, kind, eventTypeId, participants.toList(), notes, calOwnerId,
     ).toString()
     val initialSig = remember { formSig() }
-    val dirty = formSig() != initialSig
+    // An imported form is never "clean": closing it would silently drop the file.
+    val dirty = importDraft != null || formSig() != initialSig
 
     fun attemptClose() { if (dirty) showDiscard = true else onClose() }
 
@@ -372,6 +382,14 @@ fun AddEventOverlay(
                 Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                if (importDraft?.repeatDropped == true) {
+                    Text(
+                        "The file\u2019s repeat didn\u2019t carry over \u2014 set Repeats if you need it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    )
+                }
                 Text(
                     title.ifBlank { "Add title" },
                     style = MaterialTheme.typography.headlineSmall,
@@ -1007,3 +1025,10 @@ private fun isoToUtcMillis(iso: String): Long =
 
 private fun utcMillisToIso(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().format(ISO)
+
+/** "HH:MM" → minutes from midnight (an imported draft's times). */
+private fun hhmmToMin(v: String): Int {
+    val h = v.substringBefore(':').toIntOrNull() ?: 0
+    val m = v.substringAfter(':', "0").toIntOrNull() ?: 0
+    return h * 60 + m
+}

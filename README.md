@@ -27,12 +27,16 @@ Install the debug APK on a device with USB debugging, or sideload the APK.
 
 ## Identity model
 
-Per-person **device tokens** (see the server's `DECISIONS.md`). A parent
-generates a one-time enrollment code in the admin area; the phone redeems it at
-`/auth/enroll` for a long-lived bearer token. The token is the identity — there
-is no password on the phone. It's stored encrypted with an AES-256-GCM key held
-in the Android Keystore, and sent as `Authorization: Bearer <token>` on every
-request except enrollment.
+Per-person **device tokens** (see the server's `DECISIONS.md` and `docs/API.md`).
+A parent invites a person from the admin area, which issues a single-use
+**invitation code**. On the phone the person enters that code and sets a
+password (new account) or confirms their existing one — one `POST /auth/join`
+both checks the invite and enrolls the device, returning a long-lived bearer
+token. The token is the identity for every later request; it's stored
+encrypted with an AES-256-GCM key held in the Android Keystore and sent as
+`Authorization: Bearer <token>`. The password is for joining, unlocking a locked
+phone (`/auth/login`) and re-confirming after a credential change
+(`/auth/reauth`); `/auth/forgot` and `/auth/recover` cover a lost one.
 
 ## What the app does
 
@@ -48,12 +52,21 @@ Characters. Beyond parity with the web personal view it adds:
   which syncs to the web/calendar), and **Notifications**.
 - **Reminders.** Set reminders per calendar event; they fire locally at the
   chosen lead time (no push service). Off by default.
+- **Calendar invites.** Tap an `.ics` attachment in your email (or Share it to
+  Kairos) and New event opens filled in from it, on your own calendar. The file
+  is read on the phone.
+- **Workouts** logged movement by movement — weight and reps, or a hold time —
+  with your best weight, best reps and latest session beside the fields, and a
+  body map to browse progress by muscle group.
+- **Companions** to raise through growth stages, deepen, and swap back in from
+  the gallery.
 
 ## First-launch flow (this build)
 
 1. **Setup** — enter your server address; the app runs a `/meta` handshake.
-2. **Enroll** — type the one-time code (QR scan lands next); the app calls
-   `/auth/enroll`, stores the token, and fetches `/me`.
+2. **Join** — type the invitation code a parent sent you; the app checks it
+   (`/auth/join/check`), asks you to create or confirm your password, then calls
+   `/auth/join`, stores the token, and fetches `/me`.
 3. **Home** — the personal dashboard for whoever you enrolled as, with the full
    feature set above; sign-out (gear by your name) revokes the token on the server.
 

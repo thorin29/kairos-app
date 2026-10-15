@@ -143,6 +143,18 @@ which day was tapped.
   the start; the All-day switch normalises the dates/times rather than leaving a
   zero-length span.
 
+## Calendar file import (`ui/calendar/IcsImport.kt`)
+
+An `.ics` opened or shared into the app becomes a pre-filled New event:
+MainActivity's VIEW/SEND filters → the file read on IO (≤1 MB) into
+`AppContainer.pendingIcs` + `pendingRoute = "calendar"` → CalendarScreen waits
+for its data, parses on `data.timezone`, and opens `AddEventOverlay(importDraft)`
+or explains why not. Only a fresh activity imports (not a rotation/restore).
+`IcsImport.kt` is a line-for-line mirror of the web's
+`src/lib/calendar/ics-import.ts`; the web repo's `scripts/ics-parity/check.sh`
+compiles this file with `kotlinc` and diffs the two over thousands of files.
+Never change one without the other and a parity run.
+
 ## Docs that must stay current
 
 `CHANGELOG.md` every release (it becomes the in-app release notes), `DECISIONS.md`
@@ -154,6 +166,8 @@ is what that rule exists to prevent.
 ## Where things live
 
 - `ui/<section>/` — screens + view models per feature (e.g. `ui/workout/`).
+- `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
+  from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables.
 - `data/remote/` — ApiClient, ApiService, AuthInterceptor, dto/Dtos.kt, ApiError.
 - `data/session/` — SessionRepository, SessionState.

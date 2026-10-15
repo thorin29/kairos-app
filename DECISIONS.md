@@ -1,5 +1,106 @@
 # Decisions
 
+## 2026-10 — Calendar files open in Kairos, read on the phone (v0.389.0 / web 0.581.0)
+
+Tapping an `.ics` attachment (or sharing it to Kairos) opens New event filled in
+from the file. Full rationale in the web repo's DECISIONS ("One calendar file,
+read in two places"); the app-side choices:
+
+- **Read on the device** — the owner's call: no connection needed, no server
+  work. The rule is `ui/calendar/IcsImport.kt`, a line-for-line mirror of the
+  web's `src/lib/calendar/ics-import.ts` (the web uses it for its Import .ics
+  button). The two are held to parity by the web repo's
+  `scripts/ics-parity/check.sh`, which compiles THIS file with `kotlinc` and
+  diffs both readers over thousands of files. Change one, change the other,
+  run it. Its first runs found a split emoji at the note cap and a crash on a
+  three-digit year; both fixed in both, and `readIcsFile` never throws.
+- **Intent filters, not a default.** VIEW and SEND for `text/calendar`,
+  `text/x-vcalendar`, `application/ics`, `application/x-ical` on MainActivity.
+  Android shows the chooser the first time; "Always" is the user's. SEND covers
+  mail apps whose own "open" doesn't offer Kairos, and also takes a shared
+  `EXTRA_TEXT` that is itself a VCALENDAR.
+- **Read off the main thread, once.** The content URI is read on IO (a mail app
+  may still be fetching the attachment), capped at 1 MB, into
+  `AppContainer.pendingIcs`, and `pendingRoute = "calendar"`. `handleIntent`
+  only imports when the activity is fresh (not a rotation or restore), so a saved
+  event can't be re-opened as a second import.
+- **The Calendar screen consumes it** once its data has loaded — the draft is put
+  on `data.timezone`, the household clock new events default to — which also
+  means it waits through sign-in, since `pendingRoute` is only acted on in the
+  authenticated app. One event → `AddEventOverlay(importDraft = …)`, keyed on the
+  draft so a second file restarts the form; several events, a cancellation, or
+  nothing usable → an `AnimatedDialog` saying so (several points to subscribing,
+  which is a parent job on the web).
+- **Owner defaults to the person on the phone**, as for any new event; the
+  Calendar picker can still change it. The type starts as Event so the
+  description, which becomes the note, is kept.
+- **An imported form is always "dirty"**, so closing it asks first instead of
+  silently dropping the file.
+- `CLIENT_BUILD` is back to `versionCode` (446). It had been left at 430; nothing
+  broke only because `/api/v1/meta` reports `minClient: 0`.
+
+## 2026-10 — Notes open on their own screen; the owner is a picker (v0.387.0–0.388.0 / web 0.580.0)
+
+A short note on Events and Medical appointments only. `takesNotes` /
+`NOTES_MAX` in `NoteField.kt` mirror the web's `event-notes.ts` exactly — a
+blank `eventTypeId` is "no type" on both, so the phone never offers a field the
+server would discard; a custom event type (stored as OTHER) is deliberately
+excluded. 0.387 put the note inline; 0.388 made the row behave like the address
+and title rows: tap it and the note opens on its own screen with Save, closing
+without saving leaves it unchanged, and the row shows one line. The note is
+displayed only in the event detail, under the address, never on grid chips.
+
+The Calendar row now lists My calendar, Family calendar and each person, the
+same choice as the web's Whose. Picking an owner drops them from Share with.
+The server resolves and re-checks the owner (`create-event.ts`), so the picker
+is a request, not an authority.
+
+## 2026-10 — Each movement has its own buttons (v0.386.0 / web 0.579.0)
+
+Every movement on a Log workout card gets its own Rest / skip, Calculator and
+Log buttons under its own rule, so two movements added to one plan look exactly
+like two plans sharing a muscle group. Logging one leaves the others alone (the
+server clears only what a submission covers) and only the pressed button shows
+the spinner. The calculator writes back to the movement whose button opened
+it, not the card's first movement. "Edit weight" is read from what is logged for
+the day, so it survives reopening the page, not just a save in the same session.
+
+## 2026-10 — Companions: stage is earned, phase is current (v0.381.0–0.385.0 / web 0.574–0.578)
+
+The web DECISIONS has the full thread; the rule the phone must keep: **`stage`
+is earned growth, `phase` is what the companion is doing now, and nothing about
+one may be inferred from the other.** Conflating them caused three bugs in a row
+(shiny read as adult, so a shiny hatchling got an adult sprite; stage segments
+hidden because shiny was read as finished; an egg held by a companion that
+never grew). The
+sprite follows growth actually done, never the glow.
+
+What the card is now: one row of squares that fills with growth and breaks at
+each stage boundary (break positions come from the server, not hardcoded), the
+skill-blend colours kept on it; deepening on its own short bar, offered only on
+a fully grown companion and worked through as a phase. No monthly hatch cap.
+0.383: tap a companion in the gallery to make it active again — it resumes the
+growth it had, the current one is shelved keeping its own, and the dialog says
+so before you tap. Don't remove the bar or its segments because they look
+redundant: the XP bar was deleted once by mistake and had to be restored.
+
+## 2026-10 — School rows show ahead / behind (v0.380.0 / web 0.573.0)
+
+Behind work is tinted on the row itself (it clears when done), not just a red
+date under a heading that scrolls away. Pulled-forward or pushed-back work says
+"ahead of Oct 20" / "moved from Oct 8" beside its due date, from the task's
+original due date (web migration 119). An older server simply doesn't send it.
+
+## 2026-10 — The history block beside the fields (v0.378.0–0.379.0 / web 0.569–0.570)
+
+Three fixed lines to the right of the entry fields, above Log weight: Best
+(heaviest ever, weight only), Best reps (most reps ever, with the weight), and
+Latest (the last session even when below both). A line with nothing behind it
+shows a dash so the block keeps its shape. No dates and no repeated unit on the
+phone — the unit is already beside the box. The labels start in one column and
+values end in another; "Recent" became "Latest" to match the web. The numbers
+come from the server (`stats`, see "The history summary is server-computed").
+
 ## 2026-10 — The history summary is server-computed (v0.377.0)
 
 Best / Best reps / Last arrive as a field on the movement rather than being
@@ -132,7 +233,7 @@ whatever the name was and floated over empty space beside anything short. The na
 long name still ellipsizes at the weighted bound rather than pushing the button off the row. The
 buttons no longer line up with each other, which is the point — they belong to the names.
 
-## 2026-10 — Completion is identity, not a label (v0.557.0)
+## 2026-10 — Completion is identity, not a label (v0.557.0, shipped in v0.558.0)
 
 Two planned workouts on one day both filed under Back are both *named* "Back", because a planned
 workout's name is its muscle-group label. `TodayPlan` decided whether a row was logged with
@@ -387,7 +488,7 @@ The distinction that matters: `TS2538` naming `'{}'` is a collapsed Prisma row a
 The script is checked in and verified by reintroducing the 0.548.0 break and confirming it exits 1.
 Run `node scripts/typecheck-report.mjs --changed` before packaging any web release.
 
-## 2026-10 — A one-day swap is remembered on the set, not inferred (v0.538.0)
+## 2026-10 — A one-day swap is remembered on the set, not inferred (v0.538.0, shipped in v0.538.1)
 
 The app can swap a planned movement for a variation for one day (app 0.353). The set lands under the
 variation's id, so the planned slot came back blank on the next load: the log was right, the screen
@@ -454,7 +555,7 @@ Three decisions the server now makes once, so the clients cannot drift:
   group. Someone with no plan still has a last workout, and that is the one they want.
 - **Muscle group per movement**: the plan's filing where there is one, the movement's own otherwise.
 
-## 2026-10 — Movement involvement, and why a deadlift is a leg exercise (v0.546.0)
+## 2026-10 — Movement involvement, and why a deadlift is a leg exercise (v0.546.0, shipped in v0.546.1)
 
 `src/lib/workouts/involvement.ts` maps a movement name to the groups it works beyond the one it is
 filed under. Three rules keep it honest:
@@ -482,7 +583,7 @@ Two bugs the table caught only because it was run against the real movement name
 invented ones: the deadlift demotion above, and `/\bplank\b/` failing on "planks" — the trailing
 word boundary broke every plural. Test fixtures should be the user's own data.
 
-## 2026-10 — A weights plan may hold something that is not a weight (v0.546.0)
+## 2026-10 — A weights plan may hold something that is not a weight (v0.546.0, shipped in v0.546.1)
 
 `metricChoicesFor("WEIGHTS")` returned `["WEIGHT"]`, so every movement in a weights plan had to be
 logged as a load. A plank in a Core session therefore asked for pounds. It now offers DURATION and
@@ -529,7 +630,7 @@ And the web logging page grew the phone's three labelled tiles: `ActionButton` i
 has the right shape but cannot be imported here, because that module already imports this one, so
 the tile is defined locally rather than creating a cycle.
 
-## 2026-10 — A name belongs in exactly one place on a card (v0.540.0)
+## 2026-10 — A name belongs in exactly one place on a card (v0.540.0, shipped in v0.540.1)
 
 The card had grown three places that print a name: the plan name under the muscle group, a
 summary line listing every movement in the plan, and — added with the swap control — a name
@@ -592,7 +693,7 @@ because none of them depend on Prisma types.
 
 Run it before packaging any web release. Inspection is the fallback, not the method.
 
-## 2026-10 — Same-muscle plans share a card (v0.538.0)
+## 2026-10 — Same-muscle plans share a card (v0.538.0, shipped in v0.538.1)
 
 Two chest plans on a Monday used to be two separate cards with nothing saying they were the same
 session's work. They now group: one card, the muscle group named once at the top, each workout with
@@ -601,7 +702,7 @@ grouping by name would merge two unrelated plans both called "Workout" — and a
 group keeps its own card. `muscleGroup` now rides along on the planned-day payload so the phone can
 group identically.
 
-## 2026-10 — The lift view answers "where am I now" first (v0.538.0)
+## 2026-10 — The lift view answers "where am I now" first (v0.538.0, shipped in v0.538.1)
 
 A line over all history answers a question people rarely ask. Each tracked lift now leads with its
 **record** (heaviest set and the reps it was done for), then **change over 30 days**, **how long

@@ -50,6 +50,26 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="kairos" android:host="join" />
             </intent-filter>
+            <!-- Calendar files (an .ics invite opened or shared from an email):
+                 the app reads the file and opens New event filled in from it.
+                 Mail apps label these attachments differently, hence the
+                 several types; Share covers apps whose "open" doesn't offer us. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="text/x-vcalendar" />
+                <data android:mimeType="application/ics" />
+                <data android:mimeType="application/x-ical" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="text/x-vcalendar" />
+                <data android:mimeType="application/ics" />
+                <data android:mimeType="application/x-ical" />
+            </intent-filter>
         </activity>
 
         <receiver

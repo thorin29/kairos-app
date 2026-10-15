@@ -44,6 +44,10 @@ class AppContainer(context: Context) {
      *  the onboarding to show the join / set-password screen. */
     val pendingJoinToken = MutableStateFlow<String?>(null)
 
+    /** A calendar file opened or shared into the app, read and waiting for the
+     *  Calendar screen to turn it into a New event (see IcsImport.kt). */
+    val pendingIcs = MutableStateFlow<PendingIcs?>(null)
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val dataStore = context.applicationContext.appDataStore
@@ -142,3 +146,6 @@ class AppContainer(context: Context) {
         )
     }
 }
+
+/** The text of an opened calendar file — or null with [tooBig] / unreadable. */
+data class PendingIcs(val text: String?, val tooBig: Boolean = false)

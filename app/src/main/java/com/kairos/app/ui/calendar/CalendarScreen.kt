@@ -112,6 +112,10 @@ fun CalendarScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showDefaultPicker by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
+    // New event filled in from a calendar file, and what to say when a file
+    // gives nothing to fill in (see the pendingIcs effect below).
+    var importDraft by remember { mutableStateOf<IcsDraft?>(null) }
+    var importMessage by remember { mutableStateOf<String?>(null) }
     var selectedEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
     var editingEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
     // System back / swipe-back should close an open overlay, not fall through to
@@ -120,10 +124,41 @@ fun CalendarScreen(
         when {
             selectedEvent != null -> { selectedEvent = null; vm.clearDeleteError() }
             editingEvent != null -> { editingEvent = null; vm.clearCreateError() }
-            showAdd -> { showAdd = false; vm.clearCreateError() }
+            showAdd -> { showAdd = false; importDraft = null; vm.clearCreateError() }
         }
     }
     val data = ui.data
+
+    // A calendar file opened or shared from an email (MainActivity reads it into
+    // container.pendingIcs). It waits here until the calendar has loaded, since
+    // the times are put on the household clock, then opens New event filled in —
+    // owned by the person on this phone, like any new event.
+    val pendingIcs by container.pendingIcs.collectAsState()
+    LaunchedEffect(pendingIcs, data != null) {
+        val p = pendingIcs ?: return@LaunchedEffect
+        val d = data ?: return@LaunchedEffect
+        container.pendingIcs.value = null
+        val text = p.text
+        when {
+            p.tooBig -> importMessage = "That file is too big to be a single invite."
+            text == null -> importMessage = "Couldn\u2019t read that file."
+            else -> when (val r = readIcsFile(text, d.timezone)) {
+                is IcsImport.Event -> {
+                    selectedEvent = null
+                    editingEvent = null
+                    showSettings = false
+                    importDraft = r.draft
+                    showAdd = true
+                }
+                is IcsImport.Many -> importMessage =
+                    "This file holds ${r.count} events. A file brings in one event at a time \u2014 " +
+                        "for a whole schedule, a parent can subscribe to the calendar\u2019s link " +
+                        "under Admin \u2192 Calendar on the web."
+                IcsImport.Cancelled -> importMessage = "This file cancels an event, so there\u2019s nothing to add."
+                IcsImport.None -> importMessage = "No event found in this file."
+            }
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
@@ -245,13 +280,26 @@ fun CalendarScreen(
     }
 
     if (showAdd && data != null) {
-        AddEventOverlay(
-            vm, data, ui,
-            onClose = { showAdd = false; vm.clearCreateError() },
-            onAddClass = { rid, subj, sm, em, day, loc, sw ->
-                showAdd = false; onAddClass(rid, subj, sm, em, day, loc, sw)
-            },
-        )
+        // Keyed on the draft so a file opened while New event is already up
+        // starts the form over from the file instead of keeping the old fields.
+        androidx.compose.runtime.key(importDraft) {
+            AddEventOverlay(
+                vm, data, ui,
+                importDraft = importDraft,
+                onClose = { showAdd = false; importDraft = null; vm.clearCreateError() },
+                onAddClass = { rid, subj, sm, em, day, loc, sw ->
+                    showAdd = false; importDraft = null; onAddClass(rid, subj, sm, em, day, loc, sw)
+                },
+            )
+        }
+    }
+
+    importMessage?.let { msg ->
+        AnimatedDialog(
+            onDismissRequest = { importMessage = null },
+            title = "Calendar file",
+            confirmButton = { TextButton(onClick = { importMessage = null }) { Text("OK") } },
+        ) { Text(msg) }
     }
 
     if (editingEvent != null && data != null) {
