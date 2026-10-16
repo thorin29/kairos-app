@@ -1,4 +1,8 @@
 # Changelog
+## 0.395.0
+
+- The character page updates right after you swap companions in the gallery.
+
 ## 0.394.0
 
 - The home page tells you when it's your turn for a shared chore.

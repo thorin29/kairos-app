@@ -22,7 +22,12 @@ data class CollectionUiState(
     val pictureNotice: String? = null,
 )
 
-class CollectionViewModel(private val session: SessionRepository, private val cache: PayloadCacheStore) : ViewModel() {
+class CollectionViewModel(
+    private val session: SessionRepository,
+    private val cache: PayloadCacheStore,
+    /** Called after the active companion changes, so the character page reloads. */
+    private val onCompanionChanged: () -> Unit = {},
+) : ViewModel() {
     private val _ui = MutableStateFlow(CollectionUiState())
     val ui: StateFlow<CollectionUiState> = _ui.asStateFlow()
 
@@ -42,6 +47,7 @@ class CollectionViewModel(private val session: SessionRepository, private val ca
             try {
                 val r = session.activateCompanion(species)
                 _ui.update { it.copy(busy = false, message = r.activated?.let { n -> "$n is with you now." }) }
+                onCompanionChanged()
                 load()
             } catch (e: Exception) {
                 _ui.update { it.copy(busy = false, message = e.message ?: "Couldn't do that.") }

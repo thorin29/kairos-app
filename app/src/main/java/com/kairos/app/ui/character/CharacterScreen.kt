@@ -63,6 +63,12 @@ fun CharacterScreen(person: PersonDto, onOpenDrawer: () -> Unit, onOpenGallery: 
         factory = viewModelFactory { initializer { CharacterViewModel(container.sessionRepository, container.payloadCache) } },
     )
     val ui by vm.ui.collectAsState()
+    // A swap in the gallery changes the active companion behind this page's
+    // back (the view model survives the trip there), so reload when it does.
+    val companionRevision by container.companionRevision.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(companionRevision) {
+        if (companionRevision > 0) vm.load()
+    }
 
     Scaffold(
         topBar = {

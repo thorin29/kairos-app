@@ -48,6 +48,11 @@ class AppContainer(context: Context) {
      *  Calendar screen to turn it into a New event (see IcsImport.kt). */
     val pendingIcs = MutableStateFlow<PendingIcs?>(null)
 
+    /** Bumped when the active companion changes outside the character page (a
+     *  swap in the gallery), so that page reloads instead of showing the one it
+     *  loaded before — its view model outlives the trip to the gallery. */
+    val companionRevision = MutableStateFlow(0)
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val dataStore = context.applicationContext.appDataStore

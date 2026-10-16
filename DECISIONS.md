@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-10 — Character page reloads after a gallery swap (v0.395.0 / web 0.585.0)
+
+`CharacterViewModel` loads once (cache first, then the server) and survives the
+trip to the gallery, so after "Make this my companion" it went on showing the
+companion it loaded before — the web and the gallery, which ask the server
+fresh, showed the new one. `CollectionViewModel` now takes an
+`onCompanionChanged` callback; the gallery bumps `AppContainer.companionRevision`
+after a successful swap, and `CharacterScreen` reloads when it changes (a
+shared signal rather than ON_RESUME, which is unreliable under the drawer nav).
+The reset-to-hatchling half of the report was server-side: web DECISIONS,
+"A companion brought back keeps its stage".
+
 ## 2026-10 — "Your turn" on the home card (v0.394.0 / web 0.584.0)
 
 The home Chores card now pulls any up-for-grabs chore with `furthestBehind`
