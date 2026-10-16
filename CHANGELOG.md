@@ -1,4 +1,9 @@
 # Changelog
+## 0.393.0
+
+- One family-goal vote each month; voting for another idea moves it.
+- The home card stops asking you to vote once you have.
+
 ## 0.392.0
 
 - Use a companion as your profile picture: open it in the gallery and pick a stage.

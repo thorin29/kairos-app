@@ -215,8 +215,16 @@ private fun ProposalCard(p: CoopProposalDto, data: CoopDto, busy: Boolean, vm: C
             Text("Proposed by ${p.proposedByName} \u00b7 ${p.votes} vote${if (p.votes == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // One vote a month: with my vote on another idea, this moves it.
+                val votedElsewhere = !p.iVoted && data.proposals.any { it.iVoted }
                 OutlinedButton(onClick = { vm.vote(p.id) }, enabled = !busy) {
-                    Text(if (p.iVoted) "Voted \u2713" else "Vote")
+                    Text(
+                        when {
+                            p.iVoted -> "Voted \u2713"
+                            votedElsewhere -> "Move my vote here"
+                            else -> "Vote"
+                        },
+                    )
                 }
                 if (data.isAdmin && !granted) {
                     if (selected) {

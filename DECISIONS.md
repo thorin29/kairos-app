@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10 — Family-goal votes: one a month, and the card is the server's call (v0.393.0 / web 0.583.0)
+
+Rationale in the web DECISIONS ("One family-goal vote a month"). App side: the
+home card no longer decides for itself whether to nudge — it shows for a goal
+(carried, chosen or earned) or when the server's `homeNudge` is "vote" / "pick",
+so the rule lives once (web `coopHomeNudge`). An older server omits the field
+and the nudge simply doesn't show. On the Family goal screen the button reads
+"Move my vote here" when your vote is on another idea; the server does the move.
+
 ## 2026-10 — Companion as profile picture, chosen in the gallery (v0.392.0 / web 0.582.0)
 
 Full rationale in the web repo's DECISIONS ("A companion can be the profile

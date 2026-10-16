@@ -1712,6 +1712,10 @@ data class CoopDto(
      *  this decodes as null rather than failing. Its gate is its OWN month's,
      *  not [gateMet] — September's goal is judged on September. */
     val carried: CarriedGoalDto? = null,
+    /** While no goal is chosen: "vote" (I haven't voted this month), "pick" (a
+     *  parent/admin — choosing is their job), or null (nothing to nudge). The
+     *  server's coopHomeNudge decides, the same rule as the web banner. */
+    val homeNudge: String? = null,
 )
 
 /** The unfinished goal from a previous month, carrying its own month and gate. */

@@ -221,10 +221,15 @@ private fun DashboardContent(
                 }
             }
 
-            // No carried goal and no ideas at all means there is nothing to show,
-            // and an empty item would still take a slot's worth of spacing.
+            // Shown for a goal (carried, chosen or earned), or while none is chosen
+            // when the server says there's something to nudge: a vote I haven't
+            // cast, or a parent's pick. Once I've voted, no card.
             coop
-                ?.takeIf { it.carried != null || it.proposals.isNotEmpty() }
+                ?.takeIf { c ->
+                    c.carried != null ||
+                        c.proposals.any { it.status == "SELECTED" || it.status == "GRANTED" } ||
+                        c.homeNudge != null
+                }
                 ?.let { c ->
                     item(key = "family-goal") {
                         FamilyGoalCard(c, coopBusy, onCheckOffGoal, onOpenCoop)
@@ -1779,7 +1784,8 @@ private fun FamilyGoalCard(
 
             if (title == null) {
                 Text(
-                    "${c.proposals.size} idea${if (c.proposals.size == 1) "" else "s"} waiting \u2014 vote for the one you want.",
+                    "${c.proposals.size} idea${if (c.proposals.size == 1) "" else "s"} waiting \u2014 " +
+                        if (c.homeNudge == "pick") "pick this month\u2019s goal." else "vote for the one you want.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
