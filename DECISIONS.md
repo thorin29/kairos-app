@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10 — "Your turn" on the home card (v0.394.0 / web 0.584.0)
+
+The home Chores card now pulls any up-for-grabs chore with `furthestBehind`
+out of the grey summary line into its own row: the same red "!" the Chores
+detail uses, "Your turn: <chore>", and "You did it longest ago". Who that is
+stays the server's call — including the admin's Turn reminder opt-outs (web
+DECISIONS, v0.584) — so the app adds no rule of its own. Always-open chores
+off your "Available for" list no longer reach the phone at all (server-side).
+
 ## 2026-10 — Family-goal votes: one a month, and the card is the server's call (v0.393.0 / web 0.583.0)
 
 Rationale in the web DECISIONS ("One family-goal vote a month"). App side: the

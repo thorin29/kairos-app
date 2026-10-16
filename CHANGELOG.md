@@ -1,4 +1,8 @@
 # Changelog
+## 0.394.0
+
+- The home page tells you when it's your turn for a shared chore.
+
 ## 0.393.0
 
 - One family-goal vote each month; voting for another idea moves it.

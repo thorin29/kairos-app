@@ -570,9 +570,14 @@ private fun WorkSummaryCard(
         if (pendingToday.isNotEmpty()) add("${pendingToday.size} today")
         if (pendingOverdue.isEmpty() && pendingToday.isEmpty() && getAheadCount > 0) add("$getAheadCount to get ahead")
     }.joinToString(" \u00b7 ").ifEmpty { "All caught up" }
+    // A shared chore where I'm the one who did it longest ago (and the admin
+    // hasn't left me off its Turn reminder) is called out, not left in the grey
+    // line — the server decides who that is (furthestBehind).
+    val myTurn = upForGrabs.filter { it.furthestBehind }
+    val others = upForGrabs.filterNot { it.furthestBehind }
     val poolText = when {
-        upForGrabs.size == 1 -> upForGrabs.first().title
-        upForGrabs.size > 1 -> "Up for grabs chores are available"
+        others.size == 1 -> others.first().title
+        others.size > 1 -> "Up for grabs chores are available"
         else -> null
     }
 
@@ -602,6 +607,28 @@ private fun WorkSummaryCard(
                         ChoreBadgesRow(badges)
                     }
                     Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                }
+                if (myTurn.isNotEmpty()) {
+                    Row(
+                        Modifier.padding(top = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FurthestBehindBadge()
+                        Column {
+                            Text(
+                                "Your turn: ${myTurn.joinToString { it.title }}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Text(
+                                "You did it longest ago",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
                 if (poolText != null) {
                     Text(poolText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
