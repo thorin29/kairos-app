@@ -300,6 +300,16 @@ data class WorkoutDateRequest(
     val date: String,
 )
 
+/** Body for skipping one planned movement for a day. An empty
+ *  [poolExerciseId] skips a plan logged as a single result (HIIT). */
+@Serializable
+data class WorkoutSkipRequest(
+    val date: String,
+    val plannedWorkoutId: String,
+    val poolExerciseId: String,
+    val skipped: Boolean,
+)
+
 /** Response of the workout complete/uncomplete/rest endpoints. */
 @Serializable
 data class WorkoutAckDto(
@@ -361,6 +371,13 @@ data class PlannedMovementDto(
      *  with nothing logged yet. Appended at the END, and nullable, so an older
      *  server that omits it decodes rather than failing. */
     val stats: MovementStatsDto? = null,
+    /** False for a movement the plan lists without asking for a number; it
+     *  never holds up the day. Appended with a default, like everything here. */
+    val tracked: Boolean = true,
+    /** Reps logged with a WEIGHT value, so a reopened day refills the reps box. */
+    val reps: Int? = null,
+    /** Skipped for this day. Counts as done for this movement. */
+    val skipped: Boolean = false,
 )
 
 /** The three-line history summary under a movement's entry fields. */

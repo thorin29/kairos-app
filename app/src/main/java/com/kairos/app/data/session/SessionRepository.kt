@@ -429,6 +429,24 @@ class SessionRepository(
     suspend fun workoutRest(date: String): WorkoutAckDto =
         runAuthed { requireService().workoutRest(WorkoutDateRequest(date)) }
 
+    /** Skip or un-skip one planned movement for [date]; "" = the whole plan. */
+    suspend fun workoutSkip(
+        date: String,
+        plannedWorkoutId: String,
+        poolExerciseId: String,
+        skipped: Boolean,
+    ): WorkoutAckDto =
+        runAuthed {
+            requireService().workoutSkip(
+                com.kairos.app.data.remote.dto.WorkoutSkipRequest(
+                    date = date,
+                    plannedWorkoutId = plannedWorkoutId,
+                    poolExerciseId = poolExerciseId,
+                    skipped = skipped,
+                ),
+            )
+        }
+
     suspend fun workoutExpire(date: String): WorkoutAckDto =
         runAuthed { requireService().workoutExpire(WorkoutDateRequest(date)) }
 
@@ -1008,6 +1026,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 452
+        const val CLIENT_BUILD = 453
     }
 }

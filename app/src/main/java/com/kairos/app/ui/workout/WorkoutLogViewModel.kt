@@ -56,6 +56,9 @@ data class MovementInput(
      *  briefly afterwards. Deliberately separate from [logged]: a movement that
      *  arrives already logged should not flash on every page open. */
     val savedAt: Int = 0,
+    /** False for a movement the plan lists without asking a number for. It
+     *  never holds up the plan's tick. */
+    val tracked: Boolean = true,
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -192,9 +195,14 @@ class WorkoutLogViewModel(
                         } else {
                             ""
                         },
+                        // Reps come back with the weight now, so a reopened day
+                        // refills both boxes instead of the weight alone.
+                        reps = if (e.metric == "WEIGHT") e.reps?.takeIf { it > 0 }?.toString() ?: "" else "",
+                        skipped = e.skipped,
                         plannedExerciseId = if (swapped != null) e.poolExerciseId else null,
                         swappedFromName = if (swapped != null) e.name else null,
                         stats = e.stats,
+                        tracked = e.tracked,
                         // A value coming back from the server means this slot is
                         // already recorded for the day, so its button offers an
                         // edit rather than a first log — the same reading the
@@ -207,7 +215,11 @@ class WorkoutLogViewModel(
                 isOverdue = overdue,
                 // The tick beside the plan name, restored on reload rather than
                 // only after a save made in this session.
-                logged = b.exercises.isNotEmpty() && b.exercises.all { it.value != null },
+                // A skipped movement counts as done, the same rule the server
+                // uses to decide whether the day is complete.
+                logged = b.exercises.filter { it.tracked }.let { t ->
+                    t.isNotEmpty() && t.all { it.value != null || it.skipped }
+                },
             )
         val overdueBlocks = plan.overdue.flatMap { od ->
             od.workouts.map { b -> toBlock(b, "${b.plannedWorkoutId}@${od.date}", od.date, true) }
@@ -382,36 +394,72 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** Skip (or un-skip) one movement — greys it and excludes it from the log.
-     *  Keyed on the block's row key, not its plan id: an overdue block lives on
-     *  an earlier date and the two differ there. */
+    /** Skip (or un-skip) one movement for the day. Saved on the server, where a
+     *  skip counts as done for that movement: the day completes once every
+     *  movement is logged or skipped. Keyed on the block's row key, not its plan
+     *  id: an overdue block lives on an earlier date and the two differ there. */
     fun setMovementSkipped(key: String, exId: String, skipped: Boolean) {
+        val block = _ui.value.blocks.find { it.key == key } ?: return
+        val d = block.date ?: date ?: return
+        // A swapped row is skipped under the PLANNED movement — the slot it fills.
+        val slot = block.inputs.firstOrNull { it.poolExerciseId == exId }
+            ?.let { it.plannedExerciseId ?: it.poolExerciseId } ?: exId
+        applySkip(key, exId, skipped)
+        viewModelScope.launch {
+            try {
+                session.workoutSkip(d, block.plannedWorkoutId, slot, skipped)
+                _ui.update { it.copy(savedTick = it.savedTick + 1) }
+                cacheCurrentPlan()
+            } catch (e: ApiException) {
+                applySkip(key, exId, !skipped)
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Skip or un-skip a block with no movements to enter, as a whole. */
+    fun setBlockSkipped(key: String, skipped: Boolean) {
+        val block = _ui.value.blocks.find { it.key == key } ?: return
+        val d = block.date ?: date ?: return
+        applySkip(key, null, skipped)
+        viewModelScope.launch {
+            try {
+                session.workoutSkip(d, block.plannedWorkoutId, "", skipped)
+                _ui.update { it.copy(savedTick = it.savedTick + 1) }
+                cacheCurrentPlan()
+            } catch (e: ApiException) {
+                applySkip(key, null, !skipped)
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Local half of a skip: flag the movement (or every movement when [exId] is
+     *  null) and recompute the plan's tick. Typed values are kept — skipping
+     *  doesn't delete anything already logged. */
+    private fun applySkip(key: String, exId: String?, skipped: Boolean) {
         _ui.update { s ->
             s.copy(
                 blocks = s.blocks.map { b ->
                     if (b.key != key) b
-                    else b.copy(inputs = b.inputs.map {
-                        if (it.poolExerciseId != exId) it
-                        else it.copy(skipped = skipped, value = if (skipped) "" else it.value)
-                    })
+                    else {
+                        val inputs = b.inputs.map {
+                            if (exId != null && it.poolExerciseId != exId) it
+                            else it.copy(skipped = skipped)
+                        }
+                        b.copy(inputs = inputs, logged = blockDone(inputs, b.logged))
+                    }
                 },
+                actionError = null,
             )
         }
     }
 
-    /** Skip or un-skip a whole block (its Rest/skip button) — sets every movement
-     *  in the block to the given skipped state. */
-    fun setBlockSkipped(key: String, skipped: Boolean) {
-        _ui.update { s ->
-            s.copy(
-                blocks = s.blocks.map { b ->
-                    if (b.key != key) b
-                    else b.copy(inputs = b.inputs.map {
-                        it.copy(skipped = skipped, value = if (skipped) "" else it.value)
-                    })
-                },
-            )
-        }
+    /** The tick beside a plan's name: every tracked movement logged or skipped.
+     *  With nothing tracked, whatever the block already said stands. */
+    private fun blockDone(inputs: List<MovementInput>, fallback: Boolean): Boolean {
+        val tracked = inputs.filter { it.tracked }
+        return if (tracked.isEmpty()) fallback else tracked.all { it.logged || it.skipped }
     }
 
     /**
@@ -430,13 +478,16 @@ class WorkoutLogViewModel(
                             saving = busy,
                             logged = if (saved) true else m.logged,
                             savedAt = if (saved) m.savedAt + 1 else m.savedAt,
+                            // Logging un-skips on the server; match it here.
+                            skipped = if (saved) false else m.skipped,
                         )
                     }
                     // The tick by the plan name means the whole plan is in, so it
                     // waits for the last movement rather than lighting up as soon
                     // as one of several is logged.
                     val allIn =
-                        if (inputs.isEmpty()) saved || b.logged else inputs.all { it.logged }
+                        if (inputs.isEmpty()) saved || b.logged
+                        else blockDone(inputs, saved || b.logged)
                     b.copy(
                         inputs = inputs,
                         saving = if (exId == null) busy else b.saving,
@@ -460,10 +511,15 @@ class WorkoutLogViewModel(
         val d = block.date ?: date ?: return
         val targets =
             if (exId == null) block.inputs else block.inputs.filter { it.poolExerciseId == exId }
+        // One movement with nothing typed: nothing to send. An empty log used to
+        // reach the server and clear every movement already logged on the plan.
+        if (exId != null && targets.none { it.hasEntry() }) return
         markSaving(key, exId, busy = true, saved = false)
         viewModelScope.launch {
             try {
-                val entries = targets.filter { !it.skipped }.mapNotNull { m ->
+                // A movement Logged while marked skipped is being un-skipped by
+                // the log itself, so its value is sent like any other.
+                val entries = targets.filter { exId != null || !it.skipped }.mapNotNull { m ->
                     val raw = if (m.metric == "DURATION") {
                         val mins = m.value.trim().toDoubleOrNull() ?: 0.0
                         val secs = m.seconds.trim().toDoubleOrNull() ?: 0.0
@@ -576,6 +632,13 @@ class WorkoutLogViewModel(
             }
         }
     }
+
+    private fun MovementInput.hasEntry(): Boolean =
+        if (metric == "DURATION") {
+            ((value.trim().toDoubleOrNull() ?: 0.0) * 60 + (seconds.trim().toDoubleOrNull() ?: 0.0)) > 0
+        } else {
+            (value.trim().toDoubleOrNull() ?: 0.0) > 0
+        }
 
     private fun fmt(d: Double): String =
         if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()

@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-10 — Skip is saved per movement; reps refill (v0.396.0 / web 0.586.0)
+
+Skip on a movement was local only: it greyed the row and left it out of the
+log, but nothing reached the server, so it vanished on reload and could not
+count toward the day. It now calls `POST /api/v1/workouts/skip` (optimistic,
+rolled back on failure). A swapped row skips under the planned movement's id;
+a one-result block (HIIT) sends `""`. Overdue blocks skip the same way — they
+used to rest the whole day from any one movement's tile. Skipping no longer
+blanks a typed value. The server decides whether the day is complete (every
+movement logged or skipped — web DECISIONS, v0.586); the tick beside a plan's
+name follows the same rule locally, ignoring untracked movements.
+
+Reps did not refill because the server never sent them; `PlannedMovementDto`
+gains `reps`, `skipped` and `tracked`, appended with defaults. A movement's Log
+with an empty box no longer sends anything (an empty log used to clear every
+movement already logged on the plan). The reps placeholder says "reps".
+
 ## 2026-10 — Character page reloads after a gallery swap (v0.395.0 / web 0.585.0)
 
 `CharacterViewModel` loads once (cache first, then the server) and survives the

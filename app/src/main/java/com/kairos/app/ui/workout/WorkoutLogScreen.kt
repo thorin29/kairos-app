@@ -505,15 +505,14 @@ private fun MovementActions(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         WorkoutActionTile(
             icon = KairosIcons.Moon,
-            label = if (m.skipped && !block.isOverdue) "skipped" else "Rest / skip",
+            label = if (m.skipped) "Skipped" else "Skip",
             modifier = Modifier.weight(1f),
-            highlighted = block.isOverdue || !m.skipped,
+            highlighted = !m.skipped,
         ) {
-            // On an overdue card this means "I'm not doing that day", so it has
-            // to rest the day on the server. The local toggle left the task
-            // PENDING and the card came straight back.
-            if (block.isOverdue) block.date?.let { vm.restDay(it) }
-            else vm.setMovementSkipped(block.key, m.poolExerciseId, !m.skipped)
+            // Skips THIS movement for its day, on the server — overdue days
+            // included, since the block carries its own date. Once every
+            // movement is logged or skipped the day is done.
+            vm.setMovementSkipped(block.key, m.poolExerciseId, !m.skipped)
         }
         WorkoutActionTile(
             icon = KairosIcons.Dumbbell,
@@ -556,6 +555,7 @@ private fun BlockActions(
             justLogged = false
         }
     }
+    val blockSkipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped }
     val logLabel = when {
         block.logged && justLogged -> "logged"
         block.logged -> "edit weight"
@@ -564,12 +564,11 @@ private fun BlockActions(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         WorkoutActionTile(
             icon = KairosIcons.Moon,
-            label = "Rest / skip",
+            label = if (blockSkipped) "Skipped" else "Skip",
             modifier = Modifier.weight(1f),
-            highlighted = true,
+            highlighted = !blockSkipped,
         ) {
-            if (block.isOverdue) block.date?.let { vm.restDay(it) }
-            else vm.setBlockSkipped(block.key, true)
+            vm.setBlockSkipped(block.key, !blockSkipped)
         }
         WorkoutActionTile(
             icon = KairosIcons.Dumbbell,
@@ -765,7 +764,7 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                         OutlinedTextField(
                             value = m.reps,
                             onValueChange = { vm.onReps(planId, m.poolExerciseId, it) },
-                            placeholder = { Text("rep") },
+                            placeholder = { Text("reps") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f, fill = false).widthIn(max = NUM_FIELD_W),

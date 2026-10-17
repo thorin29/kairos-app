@@ -1,4 +1,11 @@
 # Changelog
+## 0.396.0
+
+- A workout day is complete only once every movement is logged or skipped.
+- Skip now skips just that movement, and stays skipped when you come back.
+- Reps stay filled in when you reopen a logged workout.
+- The reps box says "reps".
+
 ## 0.395.0
 
 - The character page updates right after you swap companions in the gallery.
