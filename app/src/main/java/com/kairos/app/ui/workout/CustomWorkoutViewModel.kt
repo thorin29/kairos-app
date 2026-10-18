@@ -33,6 +33,8 @@ data class CustomUiState(
     val hiitWorkoutId: String = "",
     val value: String = "",
     val load: String = "",
+    /** Reps for a weight. Optional. */
+    val reps: String = "",
     val notes: String = "",
     val saving: Boolean = false,
     val error: String? = null,
@@ -61,6 +63,8 @@ data class CustomUiState(
     val resultLabel: String get() = if (isHiit) (selectedHiit?.resultLabel ?: "Result") else (metric?.label ?: "Result")
     val resultUnit: String get() = if (isHiit) (selectedHiit?.resultUnit ?: "") else (metric?.unit ?: "")
     val showLoad: Boolean get() = !isHiit && category?.load == true
+    /** Weights carry reps beside the weight, as on a planned log. */
+    val showReps: Boolean get() = !isHiit && metricKey == "WEIGHT"
 }
 
 class CustomWorkoutViewModel(
@@ -108,6 +112,7 @@ class CustomWorkoutViewModel(
                 hiitWorkoutId = if (key == "HIIT") s.hiitWorkouts.firstOrNull()?.id ?: "" else "",
                 value = "",
                 load = "",
+                reps = "",
                 step = next,
                 error = null,
             )
@@ -121,6 +126,7 @@ class CustomWorkoutViewModel(
 
     fun onValue(v: String) = _ui.update { it.copy(value = v, error = null) }
     fun onLoad(v: String) = _ui.update { it.copy(load = v, error = null) }
+    fun onReps(v: String) = _ui.update { it.copy(reps = v.filter { c -> c.isDigit() }.take(3), error = null) }
     fun onNotes(v: String) = _ui.update { it.copy(notes = v) }
 
     /** Back one step, following the flow for the chosen type. */
@@ -180,6 +186,7 @@ class CustomWorkoutViewModel(
                         load = if (cat.load) s.load.trim().toDoubleOrNull() else null,
                         notes = s.notes.trim().ifBlank { null },
                         replace = replace, detectConflict = true,
+                        reps = if (metric.key == "WEIGHT") s.reps.trim().toIntOrNull()?.takeIf { it > 0 } else null,
                     )
                 }
                 val ack = session.logCustom(req)

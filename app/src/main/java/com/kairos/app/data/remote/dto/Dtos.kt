@@ -821,6 +821,9 @@ data class CustomLogRequest(
     val notes: String? = null,
     val replace: Boolean = false,
     val detectConflict: Boolean = false,
+    /** Reps for a WEIGHT log; the weight is still the record. Appended last
+     *  with a default, so every existing construction is unchanged. */
+    val reps: Int? = null,
 )
 
 @Serializable

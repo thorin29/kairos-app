@@ -1,4 +1,8 @@
 # Changelog
+## 0.397.0
+
+- Logging a different weights workout now has a reps box beside the weight.
+
 ## 0.396.0
 
 - A workout day is complete only once every movement is logged or skipped.

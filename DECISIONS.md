@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Reps on a one-off weights log (v0.397.0 / web 0.587.0)
+
+The "log a different workout" wizard took a weight only. Its value step now
+shows a reps box beside the weight when the metric is WEIGHT (`showReps`), and
+`CustomLogRequest` gains `reps: Int? = null`, appended last. Optional; blank
+logs exactly as before. Reset with the rest of the form when the type changes.
+
 ## 2026-10 — Skip is saved per movement; reps refill (v0.396.0 / web 0.586.0)
 
 Skip on a movement was local only: it greyed the row and left it out of the

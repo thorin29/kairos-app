@@ -209,6 +209,25 @@ private fun ValueStep(ui: CustomUiState, vm: CustomWorkoutViewModel) {
                     modifier = Modifier.padding(top = 20.dp),
                 )
             }
+            // Reps for the weight, optional — the same "weight × reps" shape as
+            // a planned log, so a one-off lift isn't stuck with the weight alone.
+            if (ui.showReps) {
+                Text(
+                    "\u00d7",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 20.dp),
+                )
+                OutlinedTextField(
+                    value = ui.reps,
+                    onValueChange = vm::onReps,
+                    label = { Text("Reps") },
+                    placeholder = { Text("reps") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(96.dp),
+                )
+            }
         }
 
         if (ui.showLoad) {
