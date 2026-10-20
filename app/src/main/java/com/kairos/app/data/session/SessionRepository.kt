@@ -215,6 +215,15 @@ class SessionRepository(
     }
 
     /** Set my color (ring + calendar + everywhere it's used). Syncs to the web. */
+    /** This person's birthday (YYYY-MM-DD), or null when not set. */
+    suspend fun loadMyBirthday(): String? =
+        runAuthed { requireService().myBirthday() }.birthday
+
+    /** Set or clear (null) this person's birthday; returns what was saved. The
+     *  server checks it's a real date from 1900 on and not in the future. */
+    suspend fun setMyBirthday(iso: String?): String? =
+        runAuthed { requireService().setMyBirthday(com.kairos.app.data.remote.dto.BirthdayDto(iso)) }.birthday
+
     suspend fun setMyColor(color: String) {
         runAuthed { requireService().setColor(com.kairos.app.data.remote.dto.ColorRequest(color)) }
     }
@@ -1038,6 +1047,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 456
+        const val CLIENT_BUILD = 457
     }
 }

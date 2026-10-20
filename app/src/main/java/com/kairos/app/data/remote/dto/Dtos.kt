@@ -2170,3 +2170,9 @@ data class WidgetTaskDto(
     val id: String = "",
     val title: String = "",
 )
+
+/** `/api/v1/me/birthday`, both ways: YYYY-MM-DD, or null for none. */
+@Serializable
+data class BirthdayDto(
+    val birthday: String? = null,
+)

@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-10 — Birthday in Profile; a date picker with month and year quick picks (v0.400.0 / web 0.589.0)
+
+Profile gains a Birthday card (`GET`/`POST /api/v1/me/birthday`), saved the
+moment a date is picked or cleared. The server applies the same rule as the web
+form (`checkBirthday`: a real date, 1900 on, not in the future) and its message
+is shown as-is. The picker is `ui/common/QuickDatePicker.kt`: the app's own
+pop-up (AnimatedDialog), a Sunday-first month like the calendar, with the month
+and year in the header as buttons — the year opens a year grid, then the month
+grid, then the days. Material's DatePicker offers only a year list, and paging
+back decades month by month is what a birthday needs least. The other date
+pickers in the app are unchanged; this one is in `ui/common` so they can move
+to it.
+
 ## 2026-10 — Widget fixes after first use (v0.399.0 / web 0.588.1)
 
 - **Stray circles** around Thursday and Saturday, with dark text: the launcher

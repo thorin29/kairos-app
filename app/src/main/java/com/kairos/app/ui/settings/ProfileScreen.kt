@@ -39,6 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -112,6 +116,32 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
     var cropNewUri by remember { mutableStateOf<Uri?>(null) }
     var cropInit by remember { mutableStateOf(Xf(0f, 0f, 1f)) }
     var showPicker by remember { mutableStateOf(false) }
+
+    // Birthday: shown on the calendar each year. Loaded here rather than with
+    // the person, and saved the moment a date is picked or cleared.
+    var birthday by remember { mutableStateOf<String?>(null) }
+    var birthdayLoaded by remember { mutableStateOf(false) }
+    var birthdayBusy by remember { mutableStateOf(false) }
+    var birthdayMessage by remember { mutableStateOf<String?>(null) }
+    var pickBirthday by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        runCatching { container.sessionRepository.loadMyBirthday() }
+            .onSuccess { birthday = it; birthdayLoaded = true }
+            .onFailure { birthdayMessage = "Couldn't load your birthday." }
+    }
+    fun saveBirthday(iso: String?) {
+        scope.launch {
+            birthdayBusy = true
+            birthdayMessage = null
+            runCatching { container.sessionRepository.setMyBirthday(iso) }
+                .onSuccess { birthday = it; birthdayMessage = "Saved \u2713" }
+                .onFailure { e ->
+                    birthdayMessage = (e as? com.kairos.app.data.remote.ApiException)?.error?.message
+                        ?: "Couldn't save your birthday. Please try again."
+                }
+            birthdayBusy = false
+        }
+    }
 
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
@@ -258,6 +288,56 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
                 }
 
                 item {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                "Birthday",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "Shown on the calendar every year.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(
+                                    onClick = { pickBirthday = true },
+                                    enabled = birthdayLoaded && !birthdayBusy,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                ) {
+                                    Icon(KairosIcons.Calendar, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        birthday?.let { prettyBirthday(it) } ?: "Add your birthday",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                if (birthday != null) {
+                                    TextButton(
+                                        onClick = { saveBirthday(null) },
+                                        enabled = !birthdayBusy,
+                                    ) { Text("Clear") }
+                                }
+                            }
+                            birthdayMessage?.let { msg ->
+                                Text(
+                                    msg,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 8.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
                     val dirty = !selected.equals(person.color, ignoreCase = true)
                     Button(
                         onClick = {
@@ -290,6 +370,20 @@ fun ProfileScreen(person: PersonDto, onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (pickBirthday) {
+        com.kairos.app.ui.common.QuickDatePickerDialog(
+            initial = birthday?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() },
+            minDate = java.time.LocalDate.of(1900, 1, 1),
+            maxDate = java.time.LocalDate.now(),
+            title = "Birthday",
+            onPick = { d ->
+                pickBirthday = false
+                saveBirthday(d.toString())
+            },
+            onDismiss = { pickBirthday = false },
+        )
     }
 
     cropModel?.let { model ->
@@ -441,3 +535,11 @@ private fun SwatchGrid(
         }
     }
 }
+
+/** "March 4, 1985" from YYYY-MM-DD; the raw value if it won't parse. */
+private fun prettyBirthday(iso: String): String =
+    runCatching {
+        java.time.LocalDate.parse(iso).format(
+            java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy", java.util.Locale.getDefault()),
+        )
+    }.getOrDefault(iso)

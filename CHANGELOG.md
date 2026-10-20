@@ -1,4 +1,9 @@
 # Changelog
+## 0.400.0
+
+- Add your birthday in Profile.
+- Tap the month or year in the date picker to jump straight to it.
+
 ## 0.399.0
 
 - Fixed stray circles around dates on the widget; only today is circled.

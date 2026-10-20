@@ -132,6 +132,12 @@ interface ApiService {
     @GET("notifications/upcoming")
     suspend fun upcoming(): Response<com.kairos.app.data.remote.dto.UpcomingDto>
 
+    @GET("me/birthday")
+    suspend fun myBirthday(): Response<com.kairos.app.data.remote.dto.BirthdayDto>
+
+    @POST("me/birthday")
+    suspend fun setMyBirthday(@Body body: com.kairos.app.data.remote.dto.BirthdayDto): Response<com.kairos.app.data.remote.dto.BirthdayDto>
+
     @POST("me/color")
     suspend fun setColor(@Body body: com.kairos.app.data.remote.dto.ColorRequest): Response<com.kairos.app.data.remote.dto.ColorAckDto>
 
