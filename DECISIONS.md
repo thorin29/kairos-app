@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Anniversary type (v0.403.0 / web 0.591.0)
+
+Anniversary joins the type list and the reminder-defaults list (no reminder by
+default, like Birthday), forces all-day + yearly like Birthday
+(`isOccasionKind`, mirroring the web's `isOccasion`), and has its own color slot
+under Custom colors. The name picker already comes filtered from the server.
+
 ## 2026-10 — No today circle on the widget; repeating events have one end (v0.402.0 / web 0.590.0)
 
 - The widget's day labels are all drawn alike — the date is already in its

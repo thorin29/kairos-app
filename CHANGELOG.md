@@ -1,4 +1,9 @@
 # Changelog
+## 0.403.0
+
+- New event type: Anniversary, all day and every year like Birthday.
+- Birthday and anniversary names are no longer suggested when naming an event.
+
 ## 0.402.0
 
 - Today's date is no longer circled on the widget.

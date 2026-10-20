@@ -15,6 +15,7 @@ object ReminderDefaults {
         "CLASS" to 30,
         "WORK" to 15,
         "BIRTHDAY" to NONE,
+        "ANNIVERSARY" to NONE,
         "OTHER" to NONE,
     )
 
@@ -24,6 +25,7 @@ object ReminderDefaults {
         "CLASS" to "Class",
         "WORK" to "Work shift",
         "BIRTHDAY" to "Birthday",
+        "ANNIVERSARY" to "Anniversary",
         "OTHER" to "Medical / Dental",
     )
 

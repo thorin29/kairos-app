@@ -795,6 +795,7 @@ fun AddEventOverlay(
                 "CLASS" to "Class",
                 "WORK" to "Work shift",
                 "BIRTHDAY" to "Birthday",
+                "ANNIVERSARY" to "Anniversary",
                 "OTHER" to "Medical / Dental",
             ).forEach { (k, label) ->
                 SelectOptionRow(label, eventTypeId == null && kind == k) {
@@ -810,17 +811,18 @@ fun AddEventOverlay(
                         }
                         return@SelectOptionRow
                     }
-                    val wasBirthday = kind == "BIRTHDAY"
+                    val wasBirthday = isOccasionKind(kind)
                     kind = k
                     eventTypeId = null
                     if (!editing && !reminderTouched) {
                         val d = com.kairos.app.data.settings.ReminderDefaults.effective(reminderDefaults ?: emptyMap(), k)
                         reminders = if (d >= 0) listOf(d) else emptyList()
                     }
-                    if (k == "BIRTHDAY") {
+                    if (isOccasionKind(k)) {
                         allDay = true; repeat = "YEARLY"
                     } else if (wasBirthday) {
-                        // Leaving birthday: undo the all-day + yearly it forced on.
+                        // Leaving a birthday or anniversary: undo the all-day +
+                        // yearly it forced on.
                         allDay = false; repeat = "NONE"
                     }
                     endMin = (startMin + typeDurationMin(null, customTypes)).coerceAtMost(23 * 60 + 59)
@@ -829,7 +831,7 @@ fun AddEventOverlay(
             }
             customTypes.forEach { ct ->
                 SelectOptionRow(ct.name, eventTypeId == ct.id) {
-                    val wasBirthday = kind == "BIRTHDAY"
+                    val wasBirthday = isOccasionKind(kind)
                     kind = "OTHER"
                     eventTypeId = ct.id
                     if (wasBirthday) { allDay = false; repeat = "NONE" }
@@ -986,10 +988,14 @@ private fun typeLabel(kind: String, eventTypeId: String?, customTypes: List<com.
         "CLASS" -> "Class"
         "WORK" -> "Work shift"
         "BIRTHDAY" -> "Birthday"
+        "ANNIVERSARY" -> "Anniversary"
         "OTHER" -> "Medical / Dental"
         else -> "Event"
     }
 }
+
+/** Birthdays and anniversaries: all-day, every year (web: occasions.ts). */
+private fun isOccasionKind(kind: String): Boolean = kind == "BIRTHDAY" || kind == "ANNIVERSARY"
 
 private fun reminderLabel(minutes: Int): String {
     if (minutes <= 0) return "At time of event"
