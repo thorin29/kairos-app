@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-10 — No today circle on the widget; repeating events have one end (v0.402.0 / web 0.590.0)
+
+- The widget's day labels are all drawn alike — the date is already in its
+  header. The number box keeps a clear background (reused list rows).
+- New repeating events: the end date beside Starts is hidden (all-day) or
+  reduced to an end time, "Ends the next day" when it runs past midnight, and
+  kept in step with the start. The server applies the same rule on every save
+  (`fitRepeatingSpan`, web DECISIONS), which also covers editing a series here,
+  where the repeat can't be changed.
+- The "all-day events also showing the day before" fix is server-side
+  (web 0.590.0); nothing in the app computes those days itself.
+
 ## 2026-10 — Widget Solid / Accent styles (v0.401.0; renamed from Quiet in 0.401.1)
 
 The second style ("Accent"; briefly "Quiet") is no longer "like Home": the names on each line made it

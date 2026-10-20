@@ -1,4 +1,9 @@
 # Changelog
+## 0.402.0
+
+- Today's date is no longer circled on the widget.
+- A repeating event has one end: each one lasts its day, with just an end time for timed events.
+
 ## 0.401.1
 
 - The Quiet widget style is now called Accent.

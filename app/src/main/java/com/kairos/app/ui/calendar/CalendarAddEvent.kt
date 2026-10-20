@@ -172,6 +172,18 @@ fun AddEventOverlay(
     var notes by remember { mutableStateOf(editEvent?.notes ?: importDraft?.notes ?: "") }
     var noteOpen by remember { mutableStateOf(false) }
     var repeat by remember { mutableStateOf(importDraft?.repeat ?: "NONE") }
+    // A repeating event's occurrences end the day they start (all-day), or the
+    // same day / next morning (timed) — the end date beside Starts is not where
+    // a series stops, and setting it there made each occurrence years long.
+    // The server enforces the same rule (fitRepeatingSpan). Edits can't change
+    // the repeat here, so this is for new events.
+    val repeatingNew = !editing && repeat != "NONE"
+    LaunchedEffect(repeatingNew, allDay, startDateIso, startMin, endMin) {
+        if (!repeatingNew) return@LaunchedEffect
+        val next = if (allDay || endMin > startMin) startDateIso
+        else LocalDate.parse(startDateIso).plusDays(1).toString()
+        if (next != endDateIso) endDateIso = next
+    }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
     var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
     var eventTypeId by remember { mutableStateOf(editEvent?.eventTypeId) }
@@ -431,13 +443,25 @@ fun AddEventOverlay(
                     onDate = { lastEditedStart = true; showStartDate = true },
                     onTime = { showStart = true },
                 )
-                PlainDateTimeRow(
-                    dateText = formatDate(endDateIso),
-                    timeText = if (allDay) null else hhmmLabel(endMin),
-                    timeError = timeInvalid && !lastEditedStart,
-                    onDate = { lastEditedStart = false; showEndDate = true },
-                    onTime = { showEnd = true },
-                )
+                if (!repeatingNew) {
+                    PlainDateTimeRow(
+                        dateText = formatDate(endDateIso),
+                        timeText = if (allDay) null else hhmmLabel(endMin),
+                        timeError = timeInvalid && !lastEditedStart,
+                        onDate = { lastEditedStart = false; showEndDate = true },
+                        onTime = { showEnd = true },
+                    )
+                } else if (!allDay) {
+                    // Repeating: the end is a time only — the same day, or the
+                    // next when it runs past midnight.
+                    PlainDateTimeRow(
+                        dateText = if (endDateIso > startDateIso) "Ends the next day" else "Ends",
+                        timeText = hhmmLabel(endMin),
+                        timeError = false,
+                        onDate = {},
+                        onTime = { showEnd = true },
+                    )
+                }
 
                 if (!allDay && tzOptions.size > 1) {
                     SectionLine()

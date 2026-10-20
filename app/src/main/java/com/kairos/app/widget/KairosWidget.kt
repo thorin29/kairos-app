@@ -353,16 +353,15 @@ private fun DayLine(
     content: @Composable () -> Unit,
 ) {
     val date = runCatching { LocalDate.parse(day) }.getOrNull()
-    val isToday = day == todayIso
     val label = if (first && date != null) {
         date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault())
     } else ""
     val number = if (first && date != null) date.dayOfMonth.toString() else ""
-    val ring = first && isToday
-    // Every line draws the SAME views, with the circle's background set either
-    // way. The launcher reuses list rows, and a row drawn without a background
-    // kept the one it had before — that was the stray circle around Thursday
-    // and Saturday, with dark text, a few days apart.
+    // No circle on today: the date is already at the top of the widget, and
+    // every day reads the same. The number box still sets a (clear)
+    // background — the launcher reuses list rows, and a row drawn without one
+    // kept the last row's, which was the stray circle around Thu and Sat.
+    val ring = false
     Row(
         GlanceModifier.fillMaxWidth().padding(bottom = if (last) 12.dp else 5.dp),
         verticalAlignment = Alignment.Top,
