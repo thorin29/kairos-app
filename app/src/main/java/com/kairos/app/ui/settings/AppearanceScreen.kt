@@ -125,7 +125,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                             )
                             Spacer(Modifier.height(6.dp))
                             Segmented(
-                                options = listOf("SOLID" to "Solid", "BAR" to "Quiet"),
+                                options = listOf("SOLID" to "Solid", "BAR" to "Accent"),
                                 selected = widgetStyle,
                                 onPick = { v -> save { settings.setWidgetStyle(v) } },
                             )

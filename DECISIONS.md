@@ -1,15 +1,15 @@
 # Decisions
 
-## 2026-10 — Widget Solid / Quiet styles (v0.401.0)
+## 2026-10 — Widget Solid / Accent styles (v0.401.0; renamed from Quiet in 0.401.1)
 
-The second style is no longer "like Home": the names on each line made it
-unreadable at widget size. Quiet keeps Solid's content (title, time, place)
+The second style ("Accent"; briefly "Quiet") is no longer "like Home": the names on each line made it
+unreadable at widget size. Accent keeps Solid's content (title, time, place)
 beside a color bar, and outlines tasks in the theme color instead of filling
 them. Tasks draw the same views in both styles (an accent box with an inner box
 inset 1.5dp, since Glance has no border) so reused list rows stay right. The
 month is always written in full, in a normal weight, with the day number bold;
 narrow widgets shrink the font rather than abbreviate. Appearance lost its
-explanatory lines and its labels were shortened (Solid / Quiet, App / System /
+explanatory lines and its labels were shortened (Solid / Accent, App / System /
 Light / Dark), at the owner's request.
 
 ## 2026-10 — Birthday in Profile; a date picker with month and year quick picks (v0.400.0 / web 0.589.0)

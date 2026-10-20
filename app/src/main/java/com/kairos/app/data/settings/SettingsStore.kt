@@ -104,7 +104,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun currentThemeScheme(): String = themeScheme.first()
 
     /** Home-screen widget event style: "SOLID" (filled boxes) or "BAR", shown
-     *  as Quiet (a color bar beside the text; tasks outlined). Per device. */
+     *  as Accent (a color bar beside the text; tasks outlined). Per device. */
     val widgetStyle: Flow<String> = dataStore.data.map { it[KEY_WIDGET_STYLE] ?: "SOLID" }
 
     suspend fun setWidgetStyle(v: String) {

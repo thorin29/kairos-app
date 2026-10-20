@@ -1,4 +1,8 @@
 # Changelog
+## 0.401.1
+
+- The Quiet widget style is now called Accent.
+
 ## 0.401.0
 
 - The widget spells out the month again, in a lighter font.

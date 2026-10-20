@@ -21,7 +21,7 @@ object WidgetStore {
 
     data class State(
         val data: WidgetDto?,
-        /** "SOLID" filled boxes, or "BAR" (shown as Quiet): a color bar, outlined tasks. */
+        /** "SOLID" filled boxes, or "BAR" (shown as Accent): a color bar, outlined tasks. */
         val style: String,
         /** "FAMILY" or "MINE". */
         val scope: String,

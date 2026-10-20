@@ -280,7 +280,7 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
                         style = TextStyle(color = k.muted, fontSize = 14.sp),
                     )
                     is WRow.TaskLine -> DayLine(k, row.day, data?.today, row.first, row.last) {
-                        TaskBox(context, k, row.task, done = st?.done?.contains(row.task.id) == true, quiet = st?.style == "BAR")
+                        TaskBox(context, k, row.task, done = st?.done?.contains(row.task.id) == true, accent = st?.style == "BAR")
                     }
                     is WRow.EventLine -> DayLine(k, row.day, data?.today, row.first, row.last) {
                         if (st?.style == "BAR") EventBar(context, k, row.event, data?.today) else EventBox(context, row.event, data?.today)
@@ -392,20 +392,20 @@ private fun DayLine(
 }
 
 /** A task: a slim theme-color line whose icon is the checkbox, kept shorter
- *  than an event. Solid style fills it; the quiet style outlines it, with the
+ *  than an event. Solid style fills it; the Accent style outlines it, with the
  *  checkbox and name in the theme color. Both draw the same views (an accent
  *  box with an inner box inset 1.5dp — Glance has no border), only the inner
  *  color and the text color change, so reused list rows stay correct. The rest
  *  of the line opens Tasks with this task pointed out. */
 @Composable
-private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boolean, quiet: Boolean) {
-    val fg = if (quiet) k.accent else k.onAccent
+private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boolean, accent: Boolean) {
+    val fg = if (accent) k.accent else k.onAccent
     Box(
         GlanceModifier.fillMaxWidth().height(30.dp).background(k.accent).cornerRadius(8.dp)
-            .padding(if (quiet) 1.5.dp else 0.dp),
+            .padding(if (accent) 1.5.dp else 0.dp),
     ) {
         Row(
-            GlanceModifier.fillMaxSize().background(if (quiet) k.card else k.accent).cornerRadius(7.dp)
+            GlanceModifier.fillMaxSize().background(if (accent) k.card else k.accent).cornerRadius(7.dp)
                 .padding(end = 10.dp)
                 .clickable(openApp(context, "task:${task.id}")),
             verticalAlignment = Alignment.CenterVertically,
@@ -490,7 +490,7 @@ private fun EventBox(context: Context, e: CalEventDto, todayIso: String?) {
     }
 }
 
-/** The quiet style: a color bar, then the same title and time as a solid box —
+/** The Accent style: a color bar, then the same title and time as a solid box —
  *  no names, which crowded the line until it couldn't be read. */
 @Composable
 private fun EventBar(context: Context, k: WColors, e: CalEventDto, todayIso: String?) {
