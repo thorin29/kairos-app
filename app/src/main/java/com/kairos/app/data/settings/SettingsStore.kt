@@ -84,11 +84,46 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_NAV_EXPANDED] = on }
     }
 
-    /** Dark mode, per device; off by default. */
-    val darkMode: Flow<Boolean> = dataStore.data.map { it[KEY_DARK] ?: false }
+    /** Light or dark, per device: "SYSTEM" follows the phone, "LIGHT", "DARK".
+     *  Replaces the old on/off switch, which still decides it for anyone who
+     *  set it: on reads as DARK, off as LIGHT. Never set → SYSTEM. */
+    val themeMode: Flow<String> = dataStore.data.map {
+        it[KEY_THEME_MODE] ?: when (it[KEY_DARK]) {
+            true -> "DARK"
+            false -> "LIGHT"
+            null -> "SYSTEM"
+        }
+    }
 
-    suspend fun setDarkMode(on: Boolean) {
-        dataStore.edit { it[KEY_DARK] = on }
+    suspend fun currentThemeMode(): String = themeMode.first()
+
+    suspend fun setThemeMode(v: String) {
+        dataStore.edit { it[KEY_THEME_MODE] = v }
+    }
+
+    suspend fun currentThemeScheme(): String = themeScheme.first()
+
+    /** Home-screen widget event style: "SOLID" (filled boxes) or "BAR" (the
+     *  home page's color bar). Per device. */
+    val widgetStyle: Flow<String> = dataStore.data.map { it[KEY_WIDGET_STYLE] ?: "SOLID" }
+
+    suspend fun setWidgetStyle(v: String) {
+        dataStore.edit { it[KEY_WIDGET_STYLE] = v }
+    }
+
+    /** Whose events the widget shows: "FAMILY" (everyone) or "MINE". */
+    val widgetScope: Flow<String> = dataStore.data.map { it[KEY_WIDGET_SCOPE] ?: "FAMILY" }
+
+    suspend fun setWidgetScope(v: String) {
+        dataStore.edit { it[KEY_WIDGET_SCOPE] = v }
+    }
+
+    /** The widget's last feed (WidgetDto JSON), so it can draw before — or
+     *  without — the network. */
+    suspend fun widgetCache(): String? = dataStore.data.first()[KEY_WIDGET_CACHE]
+
+    suspend fun setWidgetCache(json: String) {
+        dataStore.edit { it[KEY_WIDGET_CACHE] = json }
     }
 
     /** 24-hour (military) clock on the calendar, per device; off (12-hour) by default. */
@@ -213,6 +248,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
         val KEY_THEME = stringPreferencesKey("theme_scheme")
         val KEY_DARK = booleanPreferencesKey("dark_mode")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_WIDGET_STYLE = stringPreferencesKey("widget_style")
+        val KEY_WIDGET_SCOPE = stringPreferencesKey("widget_scope")
+        val KEY_WIDGET_CACHE = stringPreferencesKey("widget_cache")
         val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
         val KEY_MILITARY = booleanPreferencesKey("military_time")
         val KEY_TIME_FMT = stringPreferencesKey("time_format")

@@ -98,7 +98,11 @@ so avatar requests carry the device token). Reach it in composables with
 
 ## Theme
 
-**Eight colour schemes plus dark mode, per device** (`ui/theme/Theme.kt`).
+**Eight colour schemes plus a light/dark mode, per device** (`ui/theme/Theme.kt`).
+The mode is `SettingsStore.themeMode`: SYSTEM (default; follows the phone),
+LIGHT or DARK — the old on/off `dark_mode` key still decides it for anyone who
+set it. `widgetPalette(scheme, dark)` hands the home-screen widget the same
+colours.
 `ThemeScheme` is the enum — TEAL (default), OLIVE, GREEN, BLUE, PURPLE, PINK,
 ORANGE, RED — resolved from a stored key with `ThemeScheme.fromKey`, and
 `KairosTheme(scheme, darkTheme)` picks `lightScheme(p)` / `darkScheme(p)` and
@@ -162,6 +166,23 @@ alive, and a stopped one must not take the hand-off.
 `src/lib/calendar/ics-import.ts`; the web repo's `scripts/ics-parity/check.sh`
 compiles this file with `kotlinc` and diffs the two over thousands of files.
 Never change one without the other and a parity run.
+
+## Home-screen widget (`widget/`)
+
+Glance (`androidx.glance:glance-appwidget`). `KairosWidget` draws
+`WidgetStore.state`: the last `GET /api/v1/widget` feed (cached in DataStore,
+so it draws offline) plus this phone's theme, colour, event style (SOLID/BAR)
+and scope (FAMILY/MINE) from Settings → Appearance. The server colours events
+exactly as the person's Calendar does (`personalEventRules` on the web) — never
+recolour them here. It refreshes every 30 minutes (`updatePeriodMillis`), when
+the app is left (`MainActivity.onStop`), after a sync, after an Appearance
+change, and on its own button; `KairosWidget.refresh` does nothing when no
+widget is placed. Taps open the app through `Notifications.EXTRA_OPEN`:
+"calendar" (+ `EXTRA_EVENT`, the event as JSON → `pendingCalendarOpen`),
+"tasks", "task:<id>" (→ `highlightTaskId`), "task-new", "calendar-new". A task's
+checkbox completes it with `completeTaskFromNotification`, falling back to
+`CompleteTaskWorker` offline. The + button is `WidgetAddActivity`, a
+see-through activity drawn as a dialog (a widget can't show one itself).
 
 ## Docs that must stay current
 

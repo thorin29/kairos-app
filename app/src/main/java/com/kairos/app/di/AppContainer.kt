@@ -48,6 +48,13 @@ class AppContainer(context: Context) {
      *  Calendar screen to turn it into a New event (see IcsImport.kt). */
     val pendingIcs = MutableStateFlow<PendingIcs?>(null)
 
+    /** From the home-screen widget: open New event, or one event's details, on
+     *  the Calendar screen (which consumes and clears it). */
+    val pendingCalendarOpen = MutableStateFlow<CalendarOpen?>(null)
+
+    /** From the home-screen widget: a task to point out on the Tasks page. */
+    val highlightTaskId = MutableStateFlow<String?>(null)
+
     /** Bumped when the active companion changes outside the character page (a
      *  swap in the gallery), so that page reloads instead of showing the one it
      *  loaded before — its view model outlives the trip to the gallery. */
@@ -154,3 +161,9 @@ class AppContainer(context: Context) {
 
 /** The text of an opened calendar file — or null with [tooBig] / unreadable. */
 data class PendingIcs(val text: String?, val tooBig: Boolean = false)
+
+/** What the widget asked the Calendar screen to open. */
+sealed interface CalendarOpen {
+    data object NewEvent : CalendarOpen
+    data class ShowEvent(val event: com.kairos.app.data.remote.dto.CalEventDto) : CalendarOpen
+}

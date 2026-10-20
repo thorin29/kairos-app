@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Kairos</string>
+    <string name="widget_name">Kairos week</string>
+    <string name="widget_description">The next 7 days of events and your tasks.</string>
 </resources>

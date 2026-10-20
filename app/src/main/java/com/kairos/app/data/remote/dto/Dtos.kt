@@ -2145,3 +2145,28 @@ data class GameTitleDto(
     val game: String = "",
     val minutes: Int = 0,
 )
+
+// --- Home-screen widget ---
+
+/** The widget's feed (`GET /api/v1/widget`): the next 7 days that have
+ *  something on them, events colored as this person's Calendar colors them. */
+@Serializable
+data class WidgetDto(
+    val today: String = "",
+    val scope: String = "family",
+    val overdueTasks: Int = 0,
+    val days: List<WidgetDayDto> = emptyList(),
+)
+
+@Serializable
+data class WidgetDayDto(
+    val date: String = "",
+    val tasks: List<WidgetTaskDto> = emptyList(),
+    val events: List<CalEventDto> = emptyList(),
+)
+
+@Serializable
+data class WidgetTaskDto(
+    val id: String = "",
+    val title: String = "",
+)

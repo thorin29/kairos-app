@@ -417,6 +417,18 @@ class SessionRepository(
         return ok
     }
 
+    /** The home-screen widget's feed. Like [completeTaskFromNotification], it
+     *  can run in a process the app never opened, so it primes the service and
+     *  token itself. Null when it can't reach the server or isn't signed in. */
+    suspend fun loadWidgetFromBackground(scope: String): com.kairos.app.data.remote.dto.WidgetDto? {
+        val base = settings.currentBaseUrl() ?: return null
+        if (service == null) rebuildService(base)
+        if (tokens.current() == null) tokens.load()
+        if (tokens.current() == null) return null
+        val svc = service ?: return null
+        return runCatching { apiCall { svc.widget(scope) } }.getOrNull()
+    }
+
     suspend fun uncompleteTask(id: String): TaskStatusDto =
         runAuthed { requireService().uncompleteTask(id) }
 
@@ -1026,6 +1038,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 454
+        const val CLIENT_BUILD = 455
     }
 }

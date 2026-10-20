@@ -18,8 +18,8 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 454
-        versionName = "0.397.0"
+        versionCode = 455
+        versionName = "0.398.0"
 
         // Baked in at build time so the app can show when this build was made.
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
@@ -135,6 +135,8 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Home-screen widget (calendar + tasks), written in Compose-style Glance.
+    implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 

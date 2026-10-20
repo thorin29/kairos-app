@@ -63,6 +63,16 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: 
     var onlyMine by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
+    // A task tapped on the home-screen widget is tinted for a few seconds so
+    // it can be found in the list, then let go.
+    val highlight by container.highlightTaskId.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(highlight) {
+        if (highlight != null) {
+            vm.load()
+            kotlinx.coroutines.delay(4000)
+            container.highlightTaskId.value = null
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -96,14 +106,14 @@ fun TasksScreen(onOpenDrawer: () -> Unit, onOpenAssign: () -> Unit, onEditTask: 
                         TextButton(onClick = { vm.load() }) { Text("Retry") }
                     }
                 }
-                else -> TasksContent(data, ui, vm, editMode, onEditTask, onlyMine) { onlyMine = !onlyMine }
+                else -> TasksContent(data, ui, vm, editMode, onEditTask, onlyMine, highlight) { onlyMine = !onlyMine }
             }
         }
     }
 }
 
 @Composable
-private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewModel, editMode: Boolean, onEditTask: (String) -> Unit, onlyMine: Boolean, onToggleOnlyMine: () -> Unit) {
+private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewModel, editMode: Boolean, onEditTask: (String) -> Unit, onlyMine: Boolean, highlight: String?, onToggleOnlyMine: () -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -158,7 +168,7 @@ private fun TasksContent(data: TasksListDto, ui: TasksUiState, vm: TasksViewMode
             val isOwn = g.userId == data.meId
             val visibleDone = if (ui.showCompleted) g.done else emptyList()
             if (g.open.isEmpty() && visibleDone.isEmpty()) return@forEach
-            GroupCard(g, isOwn, visibleDone, ui.busy, editMode, data.isParent || isOwn, onEditTask, { vm.complete(it) }, { vm.uncomplete(it) })
+            GroupCard(g, isOwn, visibleDone, ui.busy, editMode, data.isParent || isOwn, onEditTask, { vm.complete(it) }, { vm.uncomplete(it) }, highlight)
         }
     }
 }
@@ -174,6 +184,7 @@ private fun GroupCard(
     onEdit: (String) -> Unit,
     onComplete: (String) -> Unit,
     onUncomplete: (String) -> Unit,
+    highlight: String? = null,
 ) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -186,16 +197,24 @@ private fun GroupCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            g.open.forEach { t -> OpenRow(t, isOwn, busy, editMode && canEdit, onEdit, onComplete) }
+            g.open.forEach { t -> OpenRow(t, isOwn, busy, editMode && canEdit, onEdit, onComplete, highlighted = t.id == highlight) }
             doneShown.forEach { t -> DoneRow(t, isOwn, busy, editMode && canEdit, onEdit, onUncomplete) }
         }
     }
 }
 
 @Composable
-private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, editMode: Boolean, onEdit: (String) -> Unit, onComplete: (String) -> Unit) {
+private fun OpenRow(t: TaskOpenDto, isOwn: Boolean, busy: Boolean, editMode: Boolean, onEdit: (String) -> Unit, onComplete: (String) -> Unit, highlighted: Boolean = false) {
     Row(
-        Modifier.fillMaxWidth().then(if (editMode) Modifier.clickable { onEdit(t.id) } else Modifier),
+        Modifier.fillMaxWidth()
+            .then(
+                if (highlighted) {
+                    Modifier.clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(6.dp)
+                } else Modifier,
+            )
+            .then(if (editMode) Modifier.clickable { onEdit(t.id) } else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {

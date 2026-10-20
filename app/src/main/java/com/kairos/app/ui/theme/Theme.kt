@@ -153,3 +153,34 @@ fun KairosTheme(
         content = content,
     )
 }
+
+/** The colors the home-screen widget paints with — the same palette as the app,
+ *  so the widget matches whichever color theme and mode the phone uses. */
+data class WidgetPalette(
+    val card: Color,
+    val ink: Color,
+    val muted: Color,
+    val chip: Color,
+    val chipIcon: Color,
+    val accent: Color,
+    val onAccent: Color,
+    val soft: Color,
+    val line: Color,
+)
+
+fun widgetPalette(scheme: ThemeScheme, dark: Boolean): WidgetPalette {
+    val p = palette(scheme)
+    return if (dark) {
+        WidgetPalette(
+            card = DarkCard, ink = DarkInk, muted = DarkMuted, chip = DarkChip,
+            chipIcon = Color(0xFFCBD5E1), accent = p.accentD, onAccent = p.onAccentD,
+            soft = p.softD, line = DarkLine,
+        )
+    } else {
+        WidgetPalette(
+            card = CardWhite, ink = Ink, muted = Muted, chip = ChipGrey,
+            chipIcon = Color(0xFF334155), accent = p.accentL, onAccent = Color.White,
+            soft = p.softL, line = LineN,
+        )
+    }
+}

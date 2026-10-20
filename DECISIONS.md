@@ -1,5 +1,33 @@
 # Decisions
 
+## 2026-10 — Home-screen widget; theme follows the phone (v0.398.0 / web 0.588.0)
+
+A calendar + tasks widget, designed on a mockup first. Decided with the owner:
+- **Glance**, not hand-built RemoteViews: one Compose-style file, and the
+  colours come from the app's own palette (`widgetPalette`).
+- **Events colored by the server**: `/api/v1/widget` runs the Calendar's own
+  filter and recolor (`personalEventRules`), so "others grey" under Custom
+  colors applies to the widget unchanged.
+- **Whole family by default**, a per-phone "Only mine" setting. Tasks are always
+  the phone owner's own, because the widget can tick them off.
+- **Event style is a per-phone setting**: solid boxes (default) or the home
+  page's color bar with who it's for.
+- **The task's icon is its checkbox**: an empty rounded square, ticked when
+  done. The rest of the task opens Tasks with that task tinted for a few seconds.
+- **No "no due date" line**: a task always has a due date (blank = today). The
+  top line counts overdue tasks instead and opens Tasks.
+- **+ opens a chooser**: Android widgets can't show a popup, so + starts a
+  see-through activity drawn as a dialog (New task / New event), which opens
+  the app on Assign a task or New event.
+- **7 days**, empty days left out.
+- **Theme mode System / Light / Dark** replaces the dark-mode switch; System is
+  the default for anyone who never touched the switch, and the widget follows
+  the app's setting.
+
+Built without an Android build here: the widget files were compiled with
+`kotlinc` against stubs of the Glance API (Kotlin-level errors only); the first
+real build is the check that the Glance calls match the library.
+
 ## 2026-10 — Reps on a one-off weights log (v0.397.0 / web 0.587.0)
 
 The "log a different workout" wizard took a weight only. Its value step now

@@ -72,6 +72,29 @@
             </intent-filter>
         </activity>
 
+        <!-- Home-screen widget: the week's events and tasks. -->
+        <receiver
+            android:name=".widget.KairosWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kairos_widget_info" />
+        </receiver>
+
+        <!-- The widget's + button: New task / New event, drawn over the home
+             screen in its own task so the app isn't brought forward behind it. -->
+        <activity
+            android:name=".widget.WidgetAddActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Kairos.WidgetDialog" />
+
         <receiver
             android:name=".data.notifications.AlarmReceiver"
             android:exported="false" />

@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -52,8 +54,18 @@ fun AppearanceScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
-    val dark by settings.darkMode.collectAsState(initial = false)
+    val mode by settings.themeMode.collectAsState(initial = "SYSTEM")
+    val widgetStyle by settings.widgetStyle.collectAsState(initial = "SOLID")
+    val widgetScope by settings.widgetScope.collectAsState(initial = "FAMILY")
     val current = ThemeScheme.fromKey(schemeKey)
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    // Every choice here shows on the home-screen widget too, so redraw it.
+    fun save(block: suspend () -> Unit) {
+        scope.launch {
+            block()
+            com.kairos.app.widget.KairosWidget.refresh(ctx.applicationContext)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -80,27 +92,64 @@ fun AppearanceScreen(onBack: () -> Unit) {
             ) {
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    "Dark mode",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    "Darker backgrounds, easier on the eyes at night.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = dark,
-                                onCheckedChange = { on -> scope.launch { settings.setDarkMode(on) } },
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                "Theme",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "System follows your phone's light or dark setting. The widget matches.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Segmented(
+                                options = listOf("SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
+                                selected = mode,
+                                onPick = { v -> save { settings.setThemeMode(v) } },
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                "Home screen widget",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                "Events",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("SOLID" to "Solid boxes", "BAR" to "Like Home"),
+                                selected = widgetStyle,
+                                onPick = { v -> save { settings.setWidgetStyle(v) } },
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                "Show",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("FAMILY" to "Whole family", "MINE" to "Only mine"),
+                                selected = widgetScope,
+                                onPick = { v -> save { settings.setWidgetScope(v) } },
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "Event colors follow your calendar color settings. Tasks are always your own.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -183,7 +232,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 SchemeRow(
                                     scheme = scheme,
                                     selected = scheme == current,
-                                    onPick = { scope.launch { settings.setThemeScheme(scheme.name) } },
+                                    onPick = { save { settings.setThemeScheme(scheme.name) } },
                                 )
                             }
                         }
@@ -224,6 +273,44 @@ private fun SchemeRow(scheme: ThemeScheme, selected: Boolean, onPick: () -> Unit
                 contentDescription = "Selected",
                 tint = scheme.swatch,
             )
+        }
+    }
+}
+
+/** A row of equal choices, one selected — the same shape as the calendar's
+ *  Custom / System switch. */
+@Composable
+private fun Segmented(
+    options: List<Pair<String, String>>,
+    selected: String,
+    onPick: (String) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        options.forEach { (value, label) ->
+            val on = value == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .clickable { if (!on) onPick(value) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
     }
 }

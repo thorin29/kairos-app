@@ -163,6 +163,29 @@ fun CalendarScreen(
         }
     }
 
+    // From the home-screen widget: New event, or one event's details. Waits
+    // for the calendar to load, like a calendar file does.
+    val pendingOpen by container.pendingCalendarOpen.collectAsState()
+    LaunchedEffect(pendingOpen, data != null, onScreen) {
+        if (!onScreen) return@LaunchedEffect
+        val p = pendingOpen ?: return@LaunchedEffect
+        if (data == null) return@LaunchedEffect
+        container.pendingCalendarOpen.value = null
+        showSettings = false
+        editingEvent = null
+        when (p) {
+            com.kairos.app.di.CalendarOpen.NewEvent -> {
+                selectedEvent = null
+                importDraft = null
+                showAdd = true
+            }
+            is com.kairos.app.di.CalendarOpen.ShowEvent -> {
+                showAdd = false
+                selectedEvent = p.event
+            }
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,

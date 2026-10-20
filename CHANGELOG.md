@@ -1,4 +1,11 @@
 # Changelog
+## 0.398.0
+
+- New home-screen widget: your next 7 days of events and tasks.
+- Tick tasks off from the widget; + adds a task or an event.
+- Theme can follow your phone: System, Light or Dark.
+- Choose the widget's event style and whether it shows the whole family under Appearance.
+
 ## 0.397.0
 
 - Logging a different weights workout now has a reps box beside the weight.

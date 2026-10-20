@@ -40,7 +40,13 @@ class MainActivity : ComponentActivity() {
         val settings = container.settingsStore
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
-            val dark by settings.darkMode.collectAsState(initial = false)
+            val mode by settings.themeMode.collectAsState(initial = "SYSTEM")
+            val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+            val dark = when (mode) {
+                "DARK" -> true
+                "LIGHT" -> false
+                else -> systemDark
+            }
             val timeFormat by settings.timeFormat.collectAsState(initial = "SYSTEM")
             val ctx = androidx.compose.ui.platform.LocalContext.current
             LaunchedEffect(timeFormat) {
@@ -71,6 +77,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Leaving the app refreshes the home-screen widget, so anything changed
+     *  in here (a task ticked, an event added) is on it when you get back. */
+    override fun onStop() {
+        super.onStop()
+        com.kairos.app.widget.KairosWidget.refresh(applicationContext)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -80,6 +93,18 @@ class MainActivity : ComponentActivity() {
     /** A notification tap carries a target screen; hand it to AppRoot. */
     private fun handleIntent(intent: Intent?, fresh: Boolean) {
         val container = (application as KairosApp).container
+        // A widget event tap carries the event itself, so the Calendar screen
+        // can open its details whatever day it is showing.
+        intent?.getStringExtra(com.kairos.app.widget.KairosWidget.EXTRA_EVENT)?.let { json ->
+            runCatching {
+                com.kairos.app.data.remote.ApiClient.json.decodeFromString(
+                    com.kairos.app.data.remote.dto.CalEventDto.serializer(),
+                    json,
+                )
+            }.getOrNull()?.let {
+                container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.ShowEvent(it)
+            }
+        }
         // A notification tap carries a target screen.
         intent?.getStringExtra(
             com.kairos.app.data.notifications.Notifications.EXTRA_OPEN,

@@ -160,6 +160,9 @@ interface ApiService {
     @POST("workouts/rest")
     suspend fun workoutRest(@Body body: WorkoutDateRequest): Response<WorkoutAckDto>
 
+    @GET("widget")
+    suspend fun widget(@Query("scope") scope: String): Response<com.kairos.app.data.remote.dto.WidgetDto>
+
     @POST("workouts/skip")
     suspend fun workoutSkip(@Body body: com.kairos.app.data.remote.dto.WorkoutSkipRequest): Response<WorkoutAckDto>
 

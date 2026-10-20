@@ -285,6 +285,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     LaunchedEffect(dataRevision) {
         if (dataRevision > 0) {
             com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(notifCtx)
+            // Offline changes just synced: the home-screen widget catches up too.
+            com.kairos.app.widget.KairosWidget.refresh(notifCtx)
         }
     }
     // After a sync drains the queue (e.g. a color change made offline), re-fetch
@@ -353,6 +355,27 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             "update" -> {
                 navController.navigate(Route.SettingsUpdate)
                 container.pendingRoute.value = null
+            }
+            // From the home-screen widget's + chooser.
+            "task-new" -> {
+                go(Route.Section("tasks"), "tasks")
+                navController.navigate(Route.AssignTask)
+                container.pendingRoute.value = null
+            }
+            "calendar-new" -> {
+                container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.NewEvent
+                go(Route.Section("calendar"), "calendar")
+                container.pendingRoute.value = null
+            }
+            else -> {
+                // A widget task tap: "task:<id>" opens Tasks with that task
+                // pointed out.
+                val r = pendingRoute
+                if (r != null && r.startsWith("task:")) {
+                    container.highlightTaskId.value = r.removePrefix("task:")
+                    go(Route.Section("tasks"), "tasks")
+                    container.pendingRoute.value = null
+                }
             }
         }
     }
