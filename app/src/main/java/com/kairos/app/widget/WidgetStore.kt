@@ -25,7 +25,8 @@ object WidgetStore {
         val style: String,
         /** "FAMILY" or "MINE". */
         val scope: String,
-        /** "SYSTEM", "LIGHT" or "DARK" — the app's own setting. */
+        /** "SYSTEM", "LIGHT" or "DARK": the widget's own setting, or the
+         *  app's when the widget is set to match it. */
         val themeMode: String,
         /** A ThemeScheme name. */
         val scheme: String,
@@ -51,7 +52,7 @@ object WidgetStore {
             data = cached,
             style = s.widgetStyle.first(),
             scope = s.widgetScope.first(),
-            themeMode = s.currentThemeMode(),
+            themeMode = widgetMode(s),
             scheme = s.currentThemeScheme(),
         )
         state.compareAndSet(null, seeded)
@@ -73,7 +74,7 @@ object WidgetStore {
             it?.copy(
                 style = s.widgetStyle.first(),
                 scope = scope,
-                themeMode = s.currentThemeMode(),
+                themeMode = widgetMode(s),
                 scheme = s.currentThemeScheme(),
             )
         }
@@ -87,6 +88,11 @@ object WidgetStore {
             s.setWidgetCache(ApiClient.json.encodeToString(WidgetDto.serializer(), fresh))
         }
         state.update { it?.copy(data = fresh, done = emptySet()) }
+    }
+
+    private suspend fun widgetMode(s: com.kairos.app.data.settings.SettingsStore): String {
+        val own = s.widgetTheme.first()
+        return if (own == "APP") s.currentThemeMode() else own
     }
 
     /** A task ticked on the widget: show it done before the server confirms. */

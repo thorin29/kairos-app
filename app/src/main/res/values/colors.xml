@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+
+    <!-- The widget picker's sample (layout/widget_preview). Dark versions in
+         values-night. -->
+    <color name="wp_card">#FFFFFFFF</color>
+    <color name="wp_ink">#FF0B1220</color>
+    <color name="wp_muted">#FF64748B</color>
+    <color name="wp_chip">#FFEDF1F6</color>
+    <color name="wp_chip_icon">#FF334155</color>
+    <color name="wp_accent">#FF0F5C63</color>
+    <color name="wp_on_accent">#FFFFFFFF</color>
 </resources>

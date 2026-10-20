@@ -1,4 +1,13 @@
 # Changelog
+## 0.399.0
+
+- Fixed stray circles around dates on the widget; only today is circled.
+- Events lasting several days show once, with the day they end.
+- The date fits on a narrow widget.
+- Task lines on the widget are slimmer than events.
+- The widget can follow your phone's light or dark setting on its own.
+- The widget list shows a sample week before you add it.
+
 ## 0.398.0
 
 - New home-screen widget: your next 7 days of events and tasks.

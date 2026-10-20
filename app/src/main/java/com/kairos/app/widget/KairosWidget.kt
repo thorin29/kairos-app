@@ -7,6 +7,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
@@ -21,6 +22,8 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.LocalSize
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -77,6 +80,9 @@ import androidx.glance.color.ColorProvider as DayNightColorProvider
  * and whose events show, are settings under Appearance.
  */
 class KairosWidget : GlanceAppWidget() {
+
+    // Exact, so the header can size itself to the widget's real width.
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         WidgetStore.ensure(context)
@@ -215,6 +221,14 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
     val today = data?.today?.takeIf { it.isNotBlank() }?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         ?: LocalDate.now()
     val rows = rowsFor(data)
+    // Narrow widgets get a smaller header and a short month ("Oct 19"), so
+    // the date fits beside the two buttons instead of being cut off.
+    val width = LocalSize.current.width
+    val narrow = width < 280.dp
+    val tiny = width < 220.dp
+    val monthStyle = if (narrow) java.time.format.TextStyle.SHORT else java.time.format.TextStyle.FULL
+    val dateSize = if (tiny) 18.sp else if (narrow) 20.sp else 24.sp
+    val buttonSize = if (tiny) 34.dp else 40.dp
 
     Column(
         GlanceModifier.fillMaxSize().background(k.card).cornerRadius(24.dp)
@@ -224,23 +238,24 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
             Column(GlanceModifier.defaultWeight().clickable(openApp(context, "calendar"))) {
                 Text(
                     today.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()),
-                    style = TextStyle(color = k.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(color = k.muted, fontSize = if (tiny) 12.sp else 13.sp, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                 )
                 Text(
-                    today.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()) +
+                    today.month.getDisplayName(monthStyle, Locale.getDefault()) +
                         " " + today.dayOfMonth,
-                    style = TextStyle(color = k.ink, fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                    style = TextStyle(color = k.ink, fontSize = dateSize, fontWeight = FontWeight.Bold),
                     maxLines = 1,
                 )
             }
-            RoundButton(R.drawable.ic_widget_refresh, "Refresh", k.chip, k.chipIcon, actionRunCallback<RefreshWidgetAction>())
-            Spacer(GlanceModifier.width(8.dp))
+            RoundButton(R.drawable.ic_widget_refresh, "Refresh", k.chip, k.chipIcon, buttonSize, actionRunCallback<RefreshWidgetAction>())
+            Spacer(GlanceModifier.width(if (tiny) 6.dp else 8.dp))
             RoundButton(
                 R.drawable.ic_widget_plus,
                 "Add a task or event",
                 k.accent,
                 k.onAccent,
+                buttonSize,
                 actionStartActivity(
                     Intent(context, WidgetAddActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
@@ -261,7 +276,7 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
                         TaskBox(context, k, row.task, done = st?.done?.contains(row.task.id) == true)
                     }
                     is WRow.EventLine -> DayLine(k, row.day, data?.today, row.first, row.last) {
-                        if (st?.style == "BAR") EventBar(context, k, row.event) else EventBox(context, row.event)
+                        if (st?.style == "BAR") EventBar(context, k, row.event, data?.today) else EventBox(context, row.event, data?.today)
                     }
                 }
             }
@@ -270,9 +285,9 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
 }
 
 @Composable
-private fun RoundButton(icon: Int, label: String, bg: ColorProvider, tint: ColorProvider, action: Action) {
+private fun RoundButton(icon: Int, label: String, bg: ColorProvider, tint: ColorProvider, size: Dp, action: Action) {
     Box(
-        GlanceModifier.size(40.dp).background(bg).cornerRadius(20.dp).clickable(action),
+        GlanceModifier.size(size).background(bg).cornerRadius(size / 2).clickable(action),
         contentAlignment = Alignment.Center,
     ) {
         Image(
@@ -332,35 +347,36 @@ private fun DayLine(
 ) {
     val date = runCatching { LocalDate.parse(day) }.getOrNull()
     val isToday = day == todayIso
+    val label = if (first && date != null) {
+        date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault())
+    } else ""
+    val number = if (first && date != null) date.dayOfMonth.toString() else ""
+    val ring = first && isToday
+    // Every line draws the SAME views, with the circle's background set either
+    // way. The launcher reuses list rows, and a row drawn without a background
+    // kept the one it had before — that was the stray circle around Thursday
+    // and Saturday, with dark text, a few days apart.
     Row(
         GlanceModifier.fillMaxWidth().padding(bottom = if (last) 12.dp else 5.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Column(GlanceModifier.width(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            if (first && date != null) {
+            Text(
+                label,
+                style = TextStyle(color = if (ring) k.accent else k.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                maxLines = 1,
+            )
+            Box(
+                GlanceModifier.size(30.dp)
+                    .background(if (ring) k.accent else ColorProvider(Color.Transparent))
+                    .cornerRadius(15.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault()),
-                    style = TextStyle(color = if (isToday) k.accent else k.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    number,
+                    style = TextStyle(color = if (ring) k.onAccent else k.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold),
                     maxLines = 1,
                 )
-                if (isToday) {
-                    Box(
-                        GlanceModifier.size(30.dp).background(k.accent).cornerRadius(15.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            date.dayOfMonth.toString(),
-                            style = TextStyle(color = k.onAccent, fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                        )
-                    }
-                } else {
-                    Box(GlanceModifier.height(30.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            date.dayOfMonth.toString(),
-                            style = TextStyle(color = k.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                        )
-                    }
-                }
             }
         }
         Spacer(GlanceModifier.width(8.dp))
@@ -368,18 +384,19 @@ private fun DayLine(
     }
 }
 
-/** A task: a theme-color box whose icon is the checkbox. The rest of the box
+/** A task: a slim theme-color line whose icon is the checkbox — kept shorter
+ *  than an event, so the two read apart at a glance. The rest of the line
  *  opens Tasks with this task pointed out. */
 @Composable
 private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boolean) {
     Row(
-        GlanceModifier.fillMaxWidth().background(k.accent).cornerRadius(10.dp)
-            .padding(start = 4.dp, end = 10.dp, top = 2.dp, bottom = 2.dp)
+        GlanceModifier.fillMaxWidth().height(30.dp).background(k.accent).cornerRadius(8.dp)
+            .padding(end = 10.dp)
             .clickable(openApp(context, "task:${task.id}")),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            GlanceModifier.size(36.dp).clickable(
+            GlanceModifier.width(34.dp).height(30.dp).clickable(
                 actionRunCallback<CompleteTaskWidgetAction>(actionParametersOf(TaskIdKey to task.id)),
             ),
             contentAlignment = Alignment.Center,
@@ -387,7 +404,7 @@ private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boo
             Image(
                 ImageProvider(if (done) R.drawable.ic_widget_task else R.drawable.ic_widget_box),
                 contentDescription = if (done) "Done" else "Mark ${task.title} done",
-                modifier = GlanceModifier.size(20.dp),
+                modifier = GlanceModifier.size(18.dp),
                 colorFilter = ColorFilter.tint(k.onAccent),
             )
         }
@@ -396,7 +413,7 @@ private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boo
             modifier = GlanceModifier.defaultWeight(),
             style = TextStyle(
                 color = k.onAccent,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
             ),
@@ -416,15 +433,35 @@ private fun eventColor(hex: String): Color {
     }.getOrNull() ?: Color(0xFF64748B)
 }
 
-private fun subLine(e: CalEventDto): String = buildString {
+private fun subLine(e: CalEventDto, todayIso: String?): String = buildString {
     append(if (e.allDay) "All day" else e.timeLabel)
+    // A multi-day all-day event is listed once (the server drops the repeats);
+    // say how long it runs instead.
+    throughLabel(e, todayIso)?.let { append(" · through ").append(it) }
     if (!e.location.isNullOrBlank()) append(" · ").append(e.location)
+}
+
+/** The last day of a multi-day all-day event, as "Sat" within the week shown or
+ *  "Oct 31" beyond it. Null for anything that fits in one day. */
+private fun throughLabel(e: CalEventDto, todayIso: String?): String? {
+    if (!e.allDay) return null
+    val end = runCatching { LocalDate.parse(e.endDayISO) }.getOrNull() ?: return null
+    val day = runCatching { LocalDate.parse(e.dayISO) }.getOrNull() ?: return null
+    // All-day ends are exclusive (midnight after the last day).
+    val last = if (e.endMinExact == 0) end.minusDays(1) else end
+    if (!last.isAfter(day)) return null
+    val today = todayIso?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: day
+    return if (last.isBefore(today.plusDays(7))) {
+        last.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault())
+    } else {
+        last.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault()) + " " + last.dayOfMonth
+    }
 }
 
 /** An event as a solid box in its color, the text dark or white — whichever
  *  reads on it. */
 @Composable
-private fun EventBox(context: Context, e: CalEventDto) {
+private fun EventBox(context: Context, e: CalEventDto, todayIso: String?) {
     val bg = eventColor(e.color)
     val fg = ColorProvider(if (bg.luminance() > 0.5f) Color(0xFF0B1220) else Color.White)
     Column(
@@ -433,14 +470,14 @@ private fun EventBox(context: Context, e: CalEventDto) {
             .clickable(openApp(context, "calendar", e)),
     ) {
         Text(e.title, style = TextStyle(color = fg, fontSize = 14.sp, fontWeight = FontWeight.Medium), maxLines = 1)
-        Text(subLine(e), style = TextStyle(color = fg, fontSize = 12.sp), maxLines = 1)
+        Text(subLine(e, todayIso), style = TextStyle(color = fg, fontSize = 12.sp), maxLines = 1)
     }
 }
 
 /** An event the way Today's schedule draws it: a color bar, title and time,
  *  and who it's for. */
 @Composable
-private fun EventBar(context: Context, k: WColors, e: CalEventDto) {
+private fun EventBar(context: Context, k: WColors, e: CalEventDto, todayIso: String?) {
     Row(
         GlanceModifier.fillMaxWidth().padding(vertical = 3.dp).clickable(openApp(context, "calendar", e)),
         verticalAlignment = Alignment.Top,
@@ -449,12 +486,12 @@ private fun EventBar(context: Context, k: WColors, e: CalEventDto) {
         Spacer(GlanceModifier.width(10.dp))
         Column(GlanceModifier.defaultWeight()) {
             Text(e.title, style = TextStyle(color = k.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium), maxLines = 1)
-            Text(subLine(e), style = TextStyle(color = k.muted, fontSize = 12.sp), maxLines = 1)
+            Text(subLine(e, todayIso), style = TextStyle(color = k.muted, fontSize = 12.sp), maxLines = 1)
         }
+        // Always drawn, empty when there's no one to name: list rows are
+        // reused, so every row keeps the same views (see DayLine).
         val who = e.whoLabel.ifBlank { e.ownerName }
-        if (who.isNotBlank()) {
-            Spacer(GlanceModifier.width(6.dp))
-            Text(who, style = TextStyle(color = k.muted, fontSize = 12.sp), maxLines = 1)
-        }
+        Spacer(GlanceModifier.width(6.dp))
+        Text(who, style = TextStyle(color = k.muted, fontSize = 12.sp), maxLines = 1)
     }
 }

@@ -111,6 +111,15 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_WIDGET_STYLE] = v }
     }
 
+    /** The widget's light/dark: "APP" (same as the app), or its own
+     *  "SYSTEM", "LIGHT" or "DARK" — so the app can stay light while the
+     *  widget follows the phone, or the other way round. */
+    val widgetTheme: Flow<String> = dataStore.data.map { it[KEY_WIDGET_THEME] ?: "APP" }
+
+    suspend fun setWidgetTheme(v: String) {
+        dataStore.edit { it[KEY_WIDGET_THEME] = v }
+    }
+
     /** Whose events the widget shows: "FAMILY" (everyone) or "MINE". */
     val widgetScope: Flow<String> = dataStore.data.map { it[KEY_WIDGET_SCOPE] ?: "FAMILY" }
 
@@ -251,6 +260,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_WIDGET_STYLE = stringPreferencesKey("widget_style")
         val KEY_WIDGET_SCOPE = stringPreferencesKey("widget_scope")
+        val KEY_WIDGET_THEME = stringPreferencesKey("widget_theme")
         val KEY_WIDGET_CACHE = stringPreferencesKey("widget_cache")
         val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
         val KEY_MILITARY = booleanPreferencesKey("military_time")

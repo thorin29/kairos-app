@@ -57,6 +57,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
     val mode by settings.themeMode.collectAsState(initial = "SYSTEM")
     val widgetStyle by settings.widgetStyle.collectAsState(initial = "SOLID")
     val widgetScope by settings.widgetScope.collectAsState(initial = "FAMILY")
+    val widgetTheme by settings.widgetTheme.collectAsState(initial = "APP")
     val current = ThemeScheme.fromKey(schemeKey)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     // Every choice here shows on the home-screen widget too, so redraw it.
@@ -132,6 +133,18 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 options = listOf("SOLID" to "Solid boxes", "BAR" to "Like Home"),
                                 selected = widgetStyle,
                                 onPick = { v -> save { settings.setWidgetStyle(v) } },
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                "Light or dark",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("APP" to "Like app", "SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
+                                selected = widgetTheme,
+                                onPick = { v -> save { settings.setWidgetTheme(v) } },
                             )
                             Spacer(Modifier.height(14.dp))
                             Text(

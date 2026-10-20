@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-10 — Widget fixes after first use (v0.399.0 / web 0.588.1)
+
+- **Stray circles** around Thursday and Saturday, with dark text: the launcher
+  reuses list rows, and the day label only set the circle's background on
+  today's row, so a reused row kept it. Every row now draws the same views and
+  sets the background either way (transparent when not today). The same rule
+  now holds for the "who" text on the color-bar style.
+- **Multi-day all-day events** are listed once, on their first day in view,
+  with "through <day>" (server drops the repeats; widget only).
+- **Narrow widgets**: `SizeMode.Exact`; under 280dp the header says "Oct 19" at
+  20sp, under 220dp 18sp with smaller buttons.
+- **Tasks** are 30dp lines with 13sp text, shorter than an event.
+- **Widget light/dark** is its own setting (Like app / System / Light / Dark),
+  so the app can stay light while the widget follows the phone.
+- **Picker preview**: a static sample week (`previewLayout`), made-up events.
+
 ## 2026-10 — Home-screen widget; theme follows the phone (v0.398.0 / web 0.588.0)
 
 A calendar + tasks widget, designed on a mockup first. Decided with the owner:
