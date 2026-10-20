@@ -13,7 +13,7 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" android:gravity="center_vertical" android:orientation="horizontal">
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Monday" android:textColor="@color/wp_muted" android:textSize="13sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:text="Oct 19" android:textColor="@color/wp_ink" android:textSize="22sp" android:textStyle="bold" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:text="October 19" android:textColor="@color/wp_ink" android:textSize="22sp" />
         </LinearLayout>
         <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:layout_marginEnd="8dp" android:background="@drawable/wp_bg_chip">
             <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_widget_refresh" android:tint="@color/wp_chip_icon" />

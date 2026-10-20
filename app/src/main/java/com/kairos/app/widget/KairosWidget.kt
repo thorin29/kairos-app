@@ -38,6 +38,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -221,13 +222,12 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
     val today = data?.today?.takeIf { it.isNotBlank() }?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         ?: LocalDate.now()
     val rows = rowsFor(data)
-    // Narrow widgets get a smaller header and a short month ("Oct 19"), so
-    // the date fits beside the two buttons instead of being cut off.
+    // Narrow widgets get a smaller header, so the full month name ("October
+    // 19") fits beside the two buttons instead of being cut off.
     val width = LocalSize.current.width
     val narrow = width < 280.dp
     val tiny = width < 220.dp
-    val monthStyle = if (narrow) java.time.format.TextStyle.SHORT else java.time.format.TextStyle.FULL
-    val dateSize = if (tiny) 18.sp else if (narrow) 20.sp else 24.sp
+    val dateSize = if (tiny) 17.sp else if (narrow) 20.sp else 24.sp
     val buttonSize = if (tiny) 34.dp else 40.dp
 
     Column(
@@ -241,12 +241,19 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
                     style = TextStyle(color = k.muted, fontSize = if (tiny) 12.sp else 13.sp, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                 )
-                Text(
-                    today.month.getDisplayName(monthStyle, Locale.getDefault()) +
-                        " " + today.dayOfMonth,
-                    style = TextStyle(color = k.ink, fontSize = dateSize, fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                )
+                // The month in a normal weight, the day number bold.
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        today.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()) + " ",
+                        style = TextStyle(color = k.ink, fontSize = dateSize, fontWeight = FontWeight.Normal),
+                        maxLines = 1,
+                    )
+                    Text(
+                        today.dayOfMonth.toString(),
+                        style = TextStyle(color = k.ink, fontSize = dateSize, fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                    )
+                }
             }
             RoundButton(R.drawable.ic_widget_refresh, "Refresh", k.chip, k.chipIcon, buttonSize, actionRunCallback<RefreshWidgetAction>())
             Spacer(GlanceModifier.width(if (tiny) 6.dp else 8.dp))
@@ -273,7 +280,7 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
                         style = TextStyle(color = k.muted, fontSize = 14.sp),
                     )
                     is WRow.TaskLine -> DayLine(k, row.day, data?.today, row.first, row.last) {
-                        TaskBox(context, k, row.task, done = st?.done?.contains(row.task.id) == true)
+                        TaskBox(context, k, row.task, done = st?.done?.contains(row.task.id) == true, quiet = st?.style == "BAR")
                     }
                     is WRow.EventLine -> DayLine(k, row.day, data?.today, row.first, row.last) {
                         if (st?.style == "BAR") EventBar(context, k, row.event, data?.today) else EventBox(context, row.event, data?.today)
@@ -384,41 +391,50 @@ private fun DayLine(
     }
 }
 
-/** A task: a slim theme-color line whose icon is the checkbox — kept shorter
- *  than an event, so the two read apart at a glance. The rest of the line
- *  opens Tasks with this task pointed out. */
+/** A task: a slim theme-color line whose icon is the checkbox, kept shorter
+ *  than an event. Solid style fills it; the quiet style outlines it, with the
+ *  checkbox and name in the theme color. Both draw the same views (an accent
+ *  box with an inner box inset 1.5dp — Glance has no border), only the inner
+ *  color and the text color change, so reused list rows stay correct. The rest
+ *  of the line opens Tasks with this task pointed out. */
 @Composable
-private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boolean) {
-    Row(
+private fun TaskBox(context: Context, k: WColors, task: WidgetTaskDto, done: Boolean, quiet: Boolean) {
+    val fg = if (quiet) k.accent else k.onAccent
+    Box(
         GlanceModifier.fillMaxWidth().height(30.dp).background(k.accent).cornerRadius(8.dp)
-            .padding(end = 10.dp)
-            .clickable(openApp(context, "task:${task.id}")),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(if (quiet) 1.5.dp else 0.dp),
     ) {
-        Box(
-            GlanceModifier.width(34.dp).height(30.dp).clickable(
-                actionRunCallback<CompleteTaskWidgetAction>(actionParametersOf(TaskIdKey to task.id)),
-            ),
-            contentAlignment = Alignment.Center,
+        Row(
+            GlanceModifier.fillMaxSize().background(if (quiet) k.card else k.accent).cornerRadius(7.dp)
+                .padding(end = 10.dp)
+                .clickable(openApp(context, "task:${task.id}")),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                ImageProvider(if (done) R.drawable.ic_widget_task else R.drawable.ic_widget_box),
-                contentDescription = if (done) "Done" else "Mark ${task.title} done",
-                modifier = GlanceModifier.size(18.dp),
-                colorFilter = ColorFilter.tint(k.onAccent),
+            Box(
+                GlanceModifier.width(34.dp).fillMaxHeight().clickable(
+                    actionRunCallback<CompleteTaskWidgetAction>(actionParametersOf(TaskIdKey to task.id)),
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    ImageProvider(if (done) R.drawable.ic_widget_task else R.drawable.ic_widget_box),
+                    contentDescription = if (done) "Done" else "Mark ${task.title} done",
+                    modifier = GlanceModifier.size(18.dp),
+                    colorFilter = ColorFilter.tint(fg),
+                )
+            }
+            Text(
+                task.title,
+                modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(
+                    color = fg,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
+                ),
+                maxLines = 1,
             )
         }
-        Text(
-            task.title,
-            modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(
-                color = k.onAccent,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
-            ),
-            maxLines = 1,
-        )
     }
 }
 
@@ -474,8 +490,8 @@ private fun EventBox(context: Context, e: CalEventDto, todayIso: String?) {
     }
 }
 
-/** An event the way Today's schedule draws it: a color bar, title and time,
- *  and who it's for. */
+/** The quiet style: a color bar, then the same title and time as a solid box —
+ *  no names, which crowded the line until it couldn't be read. */
 @Composable
 private fun EventBar(context: Context, k: WColors, e: CalEventDto, todayIso: String?) {
     Row(
@@ -488,10 +504,5 @@ private fun EventBar(context: Context, k: WColors, e: CalEventDto, todayIso: Str
             Text(e.title, style = TextStyle(color = k.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium), maxLines = 1)
             Text(subLine(e, todayIso), style = TextStyle(color = k.muted, fontSize = 12.sp), maxLines = 1)
         }
-        // Always drawn, empty when there's no one to name: list rows are
-        // reused, so every row keeps the same views (see DayLine).
-        val who = e.whoLabel.ifBlank { e.ownerName }
-        Spacer(GlanceModifier.width(6.dp))
-        Text(who, style = TextStyle(color = k.muted, fontSize = 12.sp), maxLines = 1)
     }
 }

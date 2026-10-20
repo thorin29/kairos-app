@@ -1,4 +1,10 @@
 # Changelog
+## 0.401.0
+
+- The widget spells out the month again, in a lighter font.
+- New Quiet widget style: a color bar beside each event and outlined tasks, with no names.
+- Shorter labels in Appearance.
+
 ## 0.400.0
 
 - Add your birthday in Profile.

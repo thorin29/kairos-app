@@ -187,7 +187,8 @@ Rules learned the hard way: the launcher REUSES list rows, so every row must
 draw the same views with every modifier set both ways (a background left off
 in one branch keeps the last row's — stray "today" circles); light/dark is the
 widget's own setting (`widgetTheme`, default "APP" = follow the app);
-`SizeMode.Exact` + `LocalSize` shrink the header on narrow widgets; the picker
+`SizeMode.Exact` + `LocalSize` shrink the header on narrow widgets (the
+month is always written in full); the picker
 preview is a static `layout/widget_preview.xml` with made-up events
 (`previewLayout`, Android 12+) — never real household data.
 

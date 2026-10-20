@@ -99,11 +99,6 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            Text(
-                                "System follows your phone's light or dark setting. The widget matches.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                             Spacer(Modifier.height(12.dp))
                             Segmented(
                                 options = listOf("SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
@@ -130,7 +125,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                             )
                             Spacer(Modifier.height(6.dp))
                             Segmented(
-                                options = listOf("SOLID" to "Solid boxes", "BAR" to "Like Home"),
+                                options = listOf("SOLID" to "Solid", "BAR" to "Quiet"),
                                 selected = widgetStyle,
                                 onPick = { v -> save { settings.setWidgetStyle(v) } },
                             )
@@ -142,7 +137,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                             )
                             Spacer(Modifier.height(6.dp))
                             Segmented(
-                                options = listOf("APP" to "Like app", "SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
+                                options = listOf("APP" to "App", "SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
                                 selected = widgetTheme,
                                 onPick = { v -> save { settings.setWidgetTheme(v) } },
                             )
@@ -157,12 +152,6 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 options = listOf("FAMILY" to "Whole family", "MINE" to "Only mine"),
                                 selected = widgetScope,
                                 onPick = { v -> save { settings.setWidgetScope(v) } },
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Event colors follow your calendar color settings. Tasks are always your own.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
