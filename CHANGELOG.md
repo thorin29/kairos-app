@@ -1,4 +1,8 @@
 # Changelog
+## 0.404.1
+
+- The widget's + button is grey like refresh, and both icons have lighter lines.
+
 ## 0.404.0
 
 - The widget's + and refresh buttons are larger icons without circles.

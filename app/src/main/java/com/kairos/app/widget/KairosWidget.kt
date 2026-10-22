@@ -255,8 +255,8 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
                     )
                 }
             }
-            // Bare icons, no circles: refresh in the quiet text color so it
-            // blends in, + in the theme color. The tap area stays full size.
+            // Bare icons, no circles, both in the quiet text color so they
+            // blend in. The tap area stays full size.
             HeaderButton(
                 icon = R.drawable.ic_widget_refresh,
                 label = "Refresh",
@@ -269,7 +269,7 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
             HeaderButton(
                 icon = R.drawable.ic_widget_plus,
                 label = "Add a task or event",
-                tint = k.accent,
+                tint = k.muted,
                 size = buttonSize,
                 iconSize = if (tiny) 28.dp else 32.dp,
                 action =

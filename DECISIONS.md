@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Widget header icons: grey, lighter lines (v0.404.1)
+
+The + now uses the same muted color as refresh, and both header icons draw
+with 1.5 strokes (in a 24 viewport) instead of 2. Scaling the icons up to
+28/32dp had scaled the lines with them (about 2.7dp on the +), which read as
+bold; at 1.5 they land near the old icons' line weight while staying large.
+
 ## 2026-10 — Widget header buttons without circles (v0.404.0)
 
 The + and refresh buttons drop their filled circles and are drawn as bare,
