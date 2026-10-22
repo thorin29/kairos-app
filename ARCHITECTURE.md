@@ -182,7 +182,8 @@ widget is placed. Taps open the app through `Notifications.EXTRA_OPEN`:
 "tasks", "task:<id>" (→ `highlightTaskId`), "task-new", "calendar-new". A task's
 checkbox completes it with `completeTaskFromNotification`, falling back to
 `CompleteTaskWorker` offline. The + button is `WidgetAddActivity`, a
-see-through activity drawn as a dialog (a widget can't show one itself).
+see-through activity drawn as a dialog (a widget can't show one itself). Both
+header buttons are bare icons (`HeaderButton`): no fill, full-size tap area.
 Rules learned the hard way: the launcher REUSES list rows, so every row must
 draw the same views with every modifier set both ways (a background left off
 in one branch keeps the last row's — stray "today" circles); light/dark is the

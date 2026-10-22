@@ -15,18 +15,18 @@
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Monday" android:textColor="@color/wp_muted" android:textSize="13sp" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:text="October 19" android:textColor="@color/wp_ink" android:textSize="22sp" />
         </LinearLayout>
-        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:layout_marginEnd="8dp" android:background="@drawable/wp_bg_chip">
-            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_widget_refresh" android:tint="@color/wp_chip_icon" />
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:layout_marginEnd="4dp">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center" android:src="@drawable/ic_widget_refresh" android:tint="@color/wp_muted" />
         </FrameLayout>
-        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/wp_bg_accent">
-            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_widget_plus" android:tint="@color/wp_on_accent" />
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp">
+            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:layout_gravity="center" android:src="@drawable/ic_widget_plus" android:tint="@color/wp_accent" />
         </FrameLayout>
     </LinearLayout>
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="7dp" android:orientation="horizontal">
         <LinearLayout android:layout_width="40dp" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mon" android:textColor="@color/wp_accent" android:textSize="12sp" />
-            <TextView android:layout_width="30dp" android:layout_height="30dp" android:gravity="center" android:background="@drawable/wp_bg_today" android:text="19" android:textColor="@color/wp_on_accent" android:textSize="16sp" android:textStyle="bold" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mon" android:textColor="@color/wp_muted" android:textSize="12sp" />
+            <TextView android:layout_width="30dp" android:layout_height="30dp" android:gravity="center" android:text="19" android:textColor="@color/wp_ink" android:textSize="16sp" android:textStyle="bold" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:orientation="vertical">
             <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:layout_marginBottom="5dp" android:background="@drawable/wp_bg_task" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="8dp" android:paddingEnd="10dp">

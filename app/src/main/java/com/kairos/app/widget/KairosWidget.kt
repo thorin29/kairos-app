@@ -255,14 +255,24 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
                     )
                 }
             }
-            RoundButton(R.drawable.ic_widget_refresh, "Refresh", k.chip, k.chipIcon, buttonSize, actionRunCallback<RefreshWidgetAction>())
-            Spacer(GlanceModifier.width(if (tiny) 6.dp else 8.dp))
-            RoundButton(
-                R.drawable.ic_widget_plus,
-                "Add a task or event",
-                k.accent,
-                k.onAccent,
-                buttonSize,
+            // Bare icons, no circles: refresh in the quiet text color so it
+            // blends in, + in the theme color. The tap area stays full size.
+            HeaderButton(
+                icon = R.drawable.ic_widget_refresh,
+                label = "Refresh",
+                tint = k.muted,
+                size = buttonSize,
+                iconSize = if (tiny) 24.dp else 28.dp,
+                action = actionRunCallback<RefreshWidgetAction>(),
+            )
+            Spacer(GlanceModifier.width(if (tiny) 2.dp else 4.dp))
+            HeaderButton(
+                icon = R.drawable.ic_widget_plus,
+                label = "Add a task or event",
+                tint = k.accent,
+                size = buttonSize,
+                iconSize = if (tiny) 28.dp else 32.dp,
+                action =
                 actionStartActivity(
                     Intent(context, WidgetAddActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
@@ -292,15 +302,16 @@ private fun WidgetBody(context: Context, st: WidgetStore.State?) {
 }
 
 @Composable
-private fun RoundButton(icon: Int, label: String, bg: ColorProvider, tint: ColorProvider, size: Dp, action: Action) {
+private fun HeaderButton(icon: Int, label: String, tint: ColorProvider, size: Dp, iconSize: Dp, action: Action) {
+    // No fill: the corner radius only shapes the press ripple.
     Box(
-        GlanceModifier.size(size).background(bg).cornerRadius(size / 2).clickable(action),
+        GlanceModifier.size(size).cornerRadius(size / 2).clickable(action),
         contentAlignment = Alignment.Center,
     ) {
         Image(
             ImageProvider(icon),
             contentDescription = label,
-            modifier = GlanceModifier.size(20.dp),
+            modifier = GlanceModifier.size(iconSize),
             colorFilter = ColorFilter.tint(tint),
         )
     }

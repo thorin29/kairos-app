@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10 — Widget header buttons without circles (v0.404.0)
+
+The + and refresh buttons drop their filled circles and are drawn as bare,
+larger icons (`HeaderButton`, replacing `RoundButton`): + at 32dp in the
+theme color, refresh at 28dp in the muted text color so it sits quietly in
+the card (28/24dp on tiny widgets). The tap area stays 40dp (34dp tiny), with
+a rounded corner kept only to shape the press ripple. The picker preview
+matches, and loses the today circle the widget itself dropped in 0.402.0.
+
 ## 2026-10 — Anniversary type (v0.403.0 / web 0.591.0)
 
 Anniversary joins the type list and the reminder-defaults list (no reminder by

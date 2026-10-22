@@ -1,4 +1,8 @@
 # Changelog
+## 0.404.0
+
+- The widget's + and refresh buttons are larger icons without circles.
+
 ## 0.403.0
 
 - New event type: Anniversary, all day and every year like Birthday.
