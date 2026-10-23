@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-10 — Body map light-mode grey (v0.405.1 / web 0.594.1)
+
+The near-black light-mode figure from 0.594.0 was too heavy. Light mode now
+uses a mid grey (#b4c1cf) with white seams, pastel assisting muscles (fade
+toward white) and a dark selection ring; dark mode keeps the light figure.
+
 ## 2026-10 — Dark-mode fixes, body map figure, Shopping (v0.405.0 / web 0.594.0)
 
 Screens that hard-coded light colours now follow the theme: Add an item and

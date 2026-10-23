@@ -1,4 +1,8 @@
 # Changelog
+## 0.405.1
+
+- The workout body map in light mode is a softer grey.
+
 ## 0.405.0
 
 - Groceries is now called Shopping.

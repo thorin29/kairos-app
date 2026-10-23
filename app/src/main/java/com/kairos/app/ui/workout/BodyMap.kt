@@ -54,9 +54,9 @@ private val MUSCLE_COLOR: Map<String, Color> = mapOf(
 fun muscleColor(group: String?): Color? = group?.let { MUSCLE_COLOR[it] }
 
 /**
- * The figure's own colours, swapped against the page so the muscles read in
- * both modes: a dark figure on light cards, a light figure on dark cards (the
- * same pair as the web's `--color-figure*`). [fade] is what an assisting
+ * The figure's own colours, so the muscles read in both modes: a mid grey on
+ * light cards, a light figure on dark cards (the same values as the web's
+ * `--color-figure*`). [fade] is what an assisting
  * muscle's colour is mixed toward; [ring] outlines the selected target.
  */
 data class FigureColors(val body: Color, val fade: Color, val ring: Color)
@@ -65,7 +65,7 @@ fun figureColors(dark: Boolean): FigureColors =
     if (dark) {
         FigureColors(body = Color(0xFFDCE3EA), fade = Color.White, ring = Color(0xFF10202F))
     } else {
-        FigureColors(body = Color(0xFF2A3547), fade = Color(0xFF161E2E), ring = Color.White)
+        FigureColors(body = Color(0xFFB4C1CF), fade = Color.White, ring = Color(0xFF10202F))
     }
 
 /** The same colour, faded toward [surface], for a muscle only assisted. */
