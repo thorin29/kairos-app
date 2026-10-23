@@ -1,4 +1,10 @@
 # Changelog
+## 0.407.0
+
+- Shopping icons sit on a small light tile in dark mode, so they look clean on a dark page.
+- Store icons no longer have a white card and border.
+- Removed the feminine care icon.
+
 ## 0.406.0
 
 - 49 new shopping icons: baking, fruit and herbs, more cuts of meat, muffins, bagels and more.

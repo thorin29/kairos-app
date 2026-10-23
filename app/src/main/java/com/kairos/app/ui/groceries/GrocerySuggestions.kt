@@ -129,7 +129,6 @@ val GROCERY_SUGGESTIONS: List<GrocerySuggestion> = listOf(
     GrocerySuggestion("English muffins", "kairos:english-muffins"),
     GrocerySuggestion("Espresso powder", "kairos:espresso-powder"),
     GrocerySuggestion("Fajitas", "kairos:fajitas"),
-    GrocerySuggestion("Feminine care", "kairos:feminine-care"),
     GrocerySuggestion("Feta", "kairos:feta"),
     GrocerySuggestion("Filet mignon", "kairos:filet-mignon"),
     GrocerySuggestion("First aid supplies", "kairos:first-aid"),

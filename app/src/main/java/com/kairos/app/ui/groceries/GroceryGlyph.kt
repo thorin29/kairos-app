@@ -1,15 +1,25 @@
 package com.kairos.app.ui.groceries
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kairos.app.R
+import com.kairos.app.ui.theme.KairosThemeState
+
+private val GLYPH_TILE = Color(0xFFE8EDF3)
 
 private val GLYPH_DRAWABLES: Map<String, Int> = mapOf(
     "ic:napkin" to R.drawable.grocery_napkin,
@@ -91,7 +101,6 @@ private val KAIROS_DRAWABLES: Map<String, Int> = mapOf(
     "kairos:english-muffins" to R.drawable.grocery_english_muffins,
     "kairos:fajitas" to R.drawable.grocery_fajitas,
     "kairos:farmers-market" to R.drawable.grocery_farmers_market,
-    "kairos:feminine-care" to R.drawable.grocery_feminine_care,
     "kairos:feta" to R.drawable.grocery_feta,
     "kairos:filet-mignon" to R.drawable.grocery_filet_mignon,
     "kairos:first-aid" to R.drawable.grocery_first_aid,
@@ -343,7 +352,25 @@ fun GroceryGlyph(
     size: Dp = 22.dp,
 ) {
     val drawable = GLYPH_DRAWABLES[icon] ?: KAIROS_DRAWABLES[icon]
-    if (drawable != null) {
+    if (drawable != null && KairosThemeState.dark) {
+        // Dark mode: the picture sits on a soft light tile (the light page's
+        // ground colour), same as the web. The pictures were drawn for light
+        // pages and many keep a pale edge or grey shadow that only shows on
+        // dark; the tile hides it for every icon at once.
+        Box(
+            Modifier
+                .size(size + 4.dp)
+                .clip(RoundedCornerShape(percent = 24))
+                .background(GLYPH_TILE)
+                .padding(2.dp),
+        ) {
+            Image(
+                painter = painterResource(drawable),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    } else if (drawable != null) {
         Image(
             painter = painterResource(drawable),
             contentDescription = null,
