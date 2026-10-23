@@ -485,10 +485,12 @@ private fun SportPromptCard(
 
 @Composable
 private fun MoneyReminder(m: com.kairos.app.data.remote.dto.DashboardMoneyDto, onReview: () -> Unit) {
-    val amberBg = androidx.compose.ui.graphics.Color(0xFFFFFBEB)
-    val amberBorder = androidx.compose.ui.graphics.Color(0xFFFCD34D)
-    val amberDk = androidx.compose.ui.graphics.Color(0xFFB45309)
-    val amberText = androidx.compose.ui.graphics.Color(0xFF78350F)
+    // Light amber card in light mode, dark amber-tinted card in dark mode.
+    val dk = KairosThemeState.dark
+    val amberBg = androidx.compose.ui.graphics.Color(if (dk) 0xFF2A2214 else 0xFFFFFBEB)
+    val amberBorder = androidx.compose.ui.graphics.Color(if (dk) 0xFF6B4E16 else 0xFFFCD34D)
+    val amberDk = androidx.compose.ui.graphics.Color(if (dk) 0xFFFBBF24 else 0xFFB45309)
+    val amberText = androidx.compose.ui.graphics.Color(if (dk) 0xFFFDE68A else 0xFF78350F)
     val amberBtn = androidx.compose.ui.graphics.Color(0xFFD97706)
     Column(
         Modifier

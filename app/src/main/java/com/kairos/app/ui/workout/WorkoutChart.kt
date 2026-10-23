@@ -112,7 +112,8 @@ fun WorkoutChart(
     // those keep their own blocks below rather than becoming unreachable.
     val orphans = universe.filter { it.navRegion == null }
 
-    val surface = MaterialTheme.colorScheme.surface
+    val figure = figureColors(com.kairos.app.ui.theme.KairosThemeState.dark)
+    val surface = figure.fade
     // Primary wins over secondary: a muscle one shown movement trains should
     // not be dimmed because another merely assists with it.
     // Per figure, because both are always drawn now. A movement's `view` decides
@@ -148,8 +149,8 @@ fun WorkoutChart(
                     fillsBack = fillsBack,
                     onSelect = { picked = it },
                     available = available,
-                    inert = MaterialTheme.colorScheme.surfaceVariant,
-                    ring = MaterialTheme.colorScheme.onSurface,
+                    inert = figure.body,
+                    ring = figure.ring,
                 )
                 if (picked != null) {
                     // The app has no Material Icons dependency; KairosIcons is

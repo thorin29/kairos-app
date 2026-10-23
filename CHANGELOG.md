@@ -1,4 +1,11 @@
 # Changelog
+## 0.405.0
+
+- Groceries is now called Shopping.
+- Add an item, the startup screen, money banners and overdue workouts now follow dark mode.
+- The workout body map is easier to see: a dark figure in light mode, a light one in dark mode.
+- Fixed the paper plates icon in dark mode and the missing ground sausage icon.
+
 ## 0.404.1
 
 - The widget's + button is grey like refresh, and both icons have lighter lines.

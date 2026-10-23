@@ -81,9 +81,11 @@ private val NEG = Color(0xFFDC2626)      // red-600 (payments, negative balances
 private val PENDING_DOT = Color(0xFFFBBF24) // amber-400 (awaiting approval marker)
 private val GREEN600 = Color(0xFF16A34A) // approve button
 private val AMBER = Color(0xFFD97706)    // amber-600 (reward buttons)
-private val AMBER_DK = Color(0xFFB45309) // amber-700 (reward icon/accent)
-private val AMBER_BG = Color(0xFFFFFBEB) // amber-50 (reward/queue banner bg)
-private val AMBER_BORDER = Color(0xFFFCD34D) // amber-300 border
+// Banner tints follow the theme: a light amber card in light mode, a dark
+// amber-tinted one in dark mode (a light card there held light text).
+private val AMBER_DK: Color get() = if (KairosThemeState.dark) Color(0xFFFBBF24) else Color(0xFFB45309) // amber-700 / amber-400
+private val AMBER_BG: Color get() = if (KairosThemeState.dark) Color(0xFF2A2214) else Color(0xFFFFFBEB) // amber-50
+private val AMBER_BORDER: Color get() = if (KairosThemeState.dark) Color(0xFF6B4E16) else Color(0xFFFCD34D) // amber-300
 private val DANGER = Color(0xFFDC2626)
 
 private data class EditTarget(

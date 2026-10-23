@@ -10,7 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
 import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -25,7 +25,7 @@ private val Gentium = FontFamily(Font(R.font.gentium_plus))
 @Composable
 fun LoadingScreen() {
     Column(
-        Modifier.fillMaxSize().background(Color.White),
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-10 — Dark-mode fixes, body map figure, Shopping (v0.405.0 / web 0.594.0)
+
+Screens that hard-coded light colours now follow the theme: Add an item and
+the startup screen use `colorScheme.background` (they were `Color.White`);
+the money banners (Money page, home reminder) and the overdue workout card
+pick dark tinted colours when `KairosThemeState.dark`. The body map's
+figure is swapped against the page by `figureColors(dark)` — dark figure on
+light cards, light on dark — matching the web's `--color-figure*` vars.
+`grocery_paper_plates` gets its plate face back (it had been cut out with
+the sheet's white card) and `grocery_ground_sausage`, which was blank, is
+the ground-meat tray recoloured. The section is labelled Shopping; the route
+and code keep "groceries".
+
 ## 2026-10 — Widget header icons: grey, lighter lines (v0.404.1)
 
 The + now uses the same muted color as refresh, and both header icons draw

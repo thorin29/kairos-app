@@ -81,7 +81,7 @@ fun GroceriesScreen(onOpenDrawer: () -> Unit, onAddItem: () -> Unit, meId: Strin
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Groceries") },
+                title = { Text("Shopping") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
                 actions = {
                     if (hasItems) {

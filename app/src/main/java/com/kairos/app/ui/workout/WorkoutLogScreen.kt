@@ -377,7 +377,9 @@ private fun WorkoutBlockCard(
     OutlinedCard(
         Modifier.fillMaxWidth(),
         colors = if (block.isOverdue) {
-            CardDefaults.outlinedCardColors(containerColor = Color(0xFFFEF2F2))
+            CardDefaults.outlinedCardColors(
+                containerColor = if (KairosThemeState.dark) Color(0xFF3A1A1E) else Color(0xFFFEF2F2),
+            )
         } else {
             CardDefaults.outlinedCardColors()
         },
