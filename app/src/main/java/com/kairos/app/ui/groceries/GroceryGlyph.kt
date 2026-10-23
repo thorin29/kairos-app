@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
@@ -378,6 +380,24 @@ fun GroceryGlyph(
         )
     } else {
         // Unknown prefixed token (ic:/kairos:/other) -> box, never the raw string.
-        Text(if (Regex("^[a-z]+:").containsMatchIn(icon)) "\uD83D\uDCE6" else icon, style = emojiStyle)
+        val emoji = if (Regex("^[a-z]+:").containsMatchIn(icon)) "\uD83D\uDCE6" else icon
+        if (KairosThemeState.dark) {
+            // Emoji get the same tile as the pictures, so a dark list never
+            // mixes tiled and bare icons. Sized from the tile (dp -> sp through
+            // the density, so a large font setting can't overflow it).
+            val box = size + 4.dp
+            val fontSize = with(LocalDensity.current) { (box * 0.66f).toSp() }
+            Box(
+                Modifier
+                    .size(box)
+                    .clip(RoundedCornerShape(percent = 24))
+                    .background(GLYPH_TILE),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(emoji, style = emojiStyle.copy(fontSize = fontSize, lineHeight = fontSize), maxLines = 1)
+            }
+        } else {
+            Text(emoji, style = emojiStyle)
+        }
     }
 }

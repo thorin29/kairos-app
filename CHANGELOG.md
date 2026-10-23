@@ -1,4 +1,8 @@
 # Changelog
+## 0.407.1
+
+- Emoji shopping icons (apples, bread, anything you type in) get the same dark-mode tile.
+
 ## 0.407.0
 
 - Shopping icons sit on a small light tile in dark mode, so they look clean on a dark page.
