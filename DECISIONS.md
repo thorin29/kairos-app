@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Grocery icon batch (v0.406.0 / web 0.595.0)
+
+49 new `grocery_*` PNGs, the same files as the web's
+`public/grocery-icons/kairos/`, mapped in `KAIROS_DRAWABLES` and added to
+`GROCERY_SUGGESTIONS` (kept identical to the web list). How they were cut
+and made dark-mode safe is in the web repo's DECISIONS for 0.595.0.
+
 ## 2026-10 — Body map light-mode grey (v0.405.1 / web 0.594.1)
 
 The near-black light-mode figure from 0.594.0 was too heavy. Light mode now

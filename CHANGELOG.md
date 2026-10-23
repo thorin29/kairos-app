@@ -1,4 +1,8 @@
 # Changelog
+## 0.406.0
+
+- 49 new shopping icons: baking, fruit and herbs, more cuts of meat, muffins, bagels and more.
+
 ## 0.405.1
 
 - The workout body map in light mode is a softer grey.
