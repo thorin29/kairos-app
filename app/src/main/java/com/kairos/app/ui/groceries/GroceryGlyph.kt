@@ -338,6 +338,22 @@ private val KAIROS_DRAWABLES: Map<String, Int> = mapOf(
     "kairos:pumpkin-muffin" to R.drawable.grocery_pumpkin_muffin,
     "kairos:croissant" to R.drawable.grocery_croissant,
     "kairos:bagels" to R.drawable.grocery_bagels,
+    "kairos:naan" to R.drawable.grocery_naan,
+    "kairos:couscous" to R.drawable.grocery_couscous,
+    "kairos:pumpkin-cereal" to R.drawable.grocery_pumpkin_cereal,
+    "kairos:sandwich-cookies" to R.drawable.grocery_sandwich_cookies,
+    "kairos:buttermilk" to R.drawable.grocery_buttermilk,
+    "kairos:chocolate-syrup" to R.drawable.grocery_chocolate_syrup,
+    "kairos:sprinkles" to R.drawable.grocery_sprinkles,
+    "kairos:candy" to R.drawable.grocery_candy,
+    "kairos:electrolyte-packets" to R.drawable.grocery_electrolyte_packets,
+    "kairos:plastic-cups" to R.drawable.grocery_plastic_cups,
+    "kairos:styrofoam-cups" to R.drawable.grocery_styrofoam_cups,
+    "kairos:mens-deodorant" to R.drawable.grocery_mens_deodorant,
+    "kairos:toilet-wipes" to R.drawable.grocery_toilet_wipes,
+    "kairos:pore-strips" to R.drawable.grocery_pore_strips,
+    "kairos:pens" to R.drawable.grocery_pens,
+    "kairos:gift-card" to R.drawable.grocery_gift_card,
 )
 
 

@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Grocery icon batch 2 (v0.408.0 / web 0.598.0)
+
+16 more `grocery_*` PNGs (same files as the web), mapped in `KAIROS_DRAWABLES`
+and added to `GROCERY_SUGGESTIONS`. `kairos:deodorant` (blue) is now listed as
+"Women's deodorant"; the new `kairos:mens-deodorant` is "Men's deodorant".
+Details in the web repo's DECISIONS for 0.598.0.
+
 ## 2026-10 — Emoji grocery icons get the dark-mode tile too (v0.407.1 / web 0.596.1)
 
 0.596.0 tiled only the pictures, so a dark list mixed tiled pictures with

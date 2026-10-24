@@ -1,4 +1,9 @@
 # Changelog
+## 0.408.0
+
+- 16 more shopping icons: naan, couscous, sandwich cookies, buttermilk, sprinkles, candy, party and foam cups, pens, gift cards and more.
+- Men's and women's deodorant each have their own icon.
+
 ## 0.407.1
 
 - Emoji shopping icons (apples, bread, anything you type in) get the same dark-mode tile.
