@@ -115,6 +115,7 @@ fun CalendarScreen(
     // New event filled in from a calendar file, and what to say when a file
     // gives nothing to fill in (see the pendingIcs effect below).
     var importDraft by remember { mutableStateOf<IcsDraft?>(null) }
+    var importTypeId by remember { mutableStateOf<String?>(null) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var selectedEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
     var editingEvent by remember { mutableStateOf<com.kairos.app.data.remote.dto.CalEventDto?>(null) }
@@ -124,7 +125,7 @@ fun CalendarScreen(
         when {
             selectedEvent != null -> { selectedEvent = null; vm.clearDeleteError() }
             editingEvent != null -> { editingEvent = null; vm.clearCreateError() }
-            showAdd -> { showAdd = false; importDraft = null; vm.clearCreateError() }
+            showAdd -> { showAdd = false; importDraft = null; importTypeId = null; vm.clearCreateError() }
         }
     }
     val data = ui.data
@@ -151,6 +152,7 @@ fun CalendarScreen(
                     editingEvent = null
                     showSettings = false
                     importDraft = r.draft
+                    importTypeId = null
                     showAdd = true
                 }
                 is IcsImport.Many -> importMessage =
@@ -177,6 +179,13 @@ fun CalendarScreen(
             com.kairos.app.di.CalendarOpen.NewEvent -> {
                 selectedEvent = null
                 importDraft = null
+                importTypeId = null
+                showAdd = true
+            }
+            is com.kairos.app.di.CalendarOpen.NewFromDraft -> {
+                selectedEvent = null
+                importDraft = p.draft
+                importTypeId = p.eventTypeId
                 showAdd = true
             }
             is com.kairos.app.di.CalendarOpen.ShowEvent -> {
@@ -312,9 +321,10 @@ fun CalendarScreen(
             AddEventOverlay(
                 vm, data, ui,
                 importDraft = importDraft,
-                onClose = { showAdd = false; importDraft = null; vm.clearCreateError() },
+                presetEventTypeId = importTypeId,
+                onClose = { showAdd = false; importDraft = null; importTypeId = null; vm.clearCreateError() },
                 onAddClass = { rid, subj, sm, em, day, loc, sw ->
-                    showAdd = false; importDraft = null; onAddClass(rid, subj, sm, em, day, loc, sw)
+                    showAdd = false; importDraft = null; importTypeId = null; onAddClass(rid, subj, sm, em, day, loc, sw)
                 },
             )
         }

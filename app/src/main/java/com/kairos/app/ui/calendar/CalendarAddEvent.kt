@@ -77,6 +77,8 @@ fun AddEventOverlay(
     // A calendar file's event (opened from an email) to start a NEW event from.
     // Times are already on the household clock, which a new event defaults to.
     importDraft: IcsDraft? = null,
+    // An event type to start a NEW event on (Hockey's "Hockey practice").
+    presetEventTypeId: String? = null,
     onClose: () -> Unit,
     onAddClass: (String?, String, Int, Int, String?, String, String) -> Unit = { _, _, _, _, _, _, _ -> },
 ) {
@@ -185,8 +187,12 @@ fun AddEventOverlay(
         if (next != endDateIso) endDateIso = next
     }
     var isFamily by remember { mutableStateOf(editEvent?.isFamily ?: false) }
-    var kind by remember { mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: "APPOINTMENT") }
-    var eventTypeId by remember { mutableStateOf(editEvent?.eventTypeId) }
+    // A preset only applies when that type still exists on the server.
+    val preset = presetEventTypeId?.takeIf { id -> !editing && data.options.eventTypes.any { it.id == id } }
+    var kind by remember {
+        mutableStateOf(editEvent?.kind?.ifBlank { "APPOINTMENT" } ?: if (preset != null) "OTHER" else "APPOINTMENT")
+    }
+    var eventTypeId by remember { mutableStateOf(editEvent?.eventTypeId ?: preset) }
     var participants by remember {
         mutableStateOf(
             editEvent?.let { e -> e.memberIds.filter { it != e.ownerId }.toSet() } ?: emptySet(),
@@ -905,7 +911,7 @@ private fun SelectRow(icon: ImageVector, value: String, muted: Boolean = false, 
     }
 }
 
-/** "My calendar" / "Family calendar" / "Aaron's calendar". */
+/** "My calendar" / "Family calendar" / "P1's calendar". */
 private fun calendarLabel(
     isFamily: Boolean,
     ownerId: String?,

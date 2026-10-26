@@ -167,6 +167,13 @@ alive, and a stopped one must not take the hand-off.
 compiles this file with `kotlinc` and diffs the two over thousands of files.
 Never change one without the other and a parity run.
 
+## Hockey (`ui/hockey/`)
+
+A read-only client of `GET /api/v1/hockey`; the server does all the shaping
+(web `buildHockeyView`). Add to calendar goes through
+`container.pendingCalendarOpen` (`CalendarOpen.NewFromDraft`) to the Calendar's
+New event, with the event type preset via `AddEventOverlay(presetEventTypeId)`.
+
 ## Home-screen widget (`widget/`)
 
 Glance (`androidx.glance:glance-appwidget`). `KairosWidget` draws

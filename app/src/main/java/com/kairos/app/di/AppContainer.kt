@@ -166,4 +166,10 @@ data class PendingIcs(val text: String?, val tooBig: Boolean = false)
 sealed interface CalendarOpen {
     data object NewEvent : CalendarOpen
     data class ShowEvent(val event: com.kairos.app.data.remote.dto.CalEventDto) : CalendarOpen
+    /** New event filled in from elsewhere (a Hockey session), with an event
+     *  type to preselect when there is one. */
+    data class NewFromDraft(
+        val draft: com.kairos.app.ui.calendar.IcsDraft,
+        val eventTypeId: String? = null,
+    ) : CalendarOpen
 }

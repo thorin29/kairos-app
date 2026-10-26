@@ -74,6 +74,7 @@ import com.kairos.app.ui.tasks.AssignTaskScreen
 import com.kairos.app.ui.groceries.AddGroceryScreen
 import com.kairos.app.ui.reading.ReadingScreen
 import com.kairos.app.ui.games.GamesScreen
+import com.kairos.app.ui.hockey.HockeyScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
@@ -492,6 +493,17 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         ReadingScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
                     } else if (key == "games") {
                         GamesScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
+                    } else if (key == "hockey") {
+                        HockeyScreen(
+                            onOpenDrawer = { openDrawer() },
+                            // Add opens the calendar's New event, filled in.
+                            onAdd = { draft, typeId ->
+                                container.pendingCalendarOpen.value =
+                                    com.kairos.app.di.CalendarOpen.NewFromDraft(draft = draft, eventTypeId = typeId)
+                                go(Route.Section("calendar"), "calendar")
+                            },
+                            refreshKey = dataRevision,
+                        )
                     } else if (key == "tasks") {
                         TasksScreen(
                             onOpenDrawer = { openDrawer() },

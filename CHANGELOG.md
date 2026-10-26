@@ -1,4 +1,9 @@
 # Changelog
+## 0.409.0
+
+- New Hockey section: the week's stick & puck, drop-in, parent & child and youth open hockey, with sign-up counts.
+- Add a session to your calendar in one tap.
+
 ## 0.408.0
 
 - 16 more shopping icons: naan, couscous, sandwich cookies, buttermilk, sprinkles, candy, party and foam cups, pens, gift cards and more.

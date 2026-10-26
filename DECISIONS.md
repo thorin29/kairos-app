@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-10 — Hockey section (v0.409.0 / web 0.600.0)
+
+`GET /api/v1/hockey` returns the week already shaped by the server's
+`buildHockeyView` (event name, button label, saved location, the "Hockey
+practice" type id), so `ui/hockey/HockeyScreen.kt` only draws it — no rule is
+copied onto the phone. Empty days are left out (the web lists all seven). Add
+hands an `IcsDraft` plus the type id to the Calendar through
+`CalendarOpen.NewFromDraft`, the same pending-open path the widget uses, so the
+normal New event form opens filled in, owned by the person on this phone, with
+participants addable. `AddEventOverlay` takes `presetEventTypeId`, applied only
+on a new event and only if the type still exists. The section is always in the
+drawer; on a server without ice-time it says Hockey isn't set up (the web hides
+it — the app has no feature flag from the server yet). The last good week is
+cached and stays on screen if ice-time can't be reached.
+
 ## 2026-10 — Grocery icon batch 2 (v0.408.0 / web 0.598.0)
 
 16 more `grocery_*` PNGs (same files as the web), mapped in `KAIROS_DRAWABLES`
