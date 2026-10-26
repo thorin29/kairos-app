@@ -1,4 +1,9 @@
 # Changelog
+## 0.410.0
+
+- Hockey sections collapse and expand. They start collapsed and stay how you leave them.
+- Arrange puts the Hockey sections in your own order.
+
 ## 0.409.0
 
 - New Hockey section: the week's stick & puck, drop-in, parent & child and youth open hockey, with sign-up counts.

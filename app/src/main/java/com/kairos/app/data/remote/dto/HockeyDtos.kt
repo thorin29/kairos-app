@@ -26,6 +26,9 @@ data class HockeySectionDto(
     val colB: String? = null,
     val link: String? = null,
     val rink: String? = null,
+    /** This person's layout (web 0.601+): sections come in their order; all
+     *  start collapsed until opened. */
+    val open: Boolean = false,
     val rows: List<HockeyRowDto> = emptyList(),
 )
 
@@ -56,4 +59,17 @@ data class HockeyAddDto(
     val title: String,
     val label: String = "Add to calendar",
     val location: String? = null,
+)
+
+/** POST /api/v1/hockey/prefs — the whole layout each time (safe to replay). */
+@Serializable
+data class HockeyPrefsRequest(
+    val order: List<String>,
+    val open: List<String>,
+)
+
+/** `{}` when the write was queued offline, so everything is defaulted. */
+@Serializable
+data class HockeyPrefsAckDto(
+    val ok: Boolean = true,
 )

@@ -17,6 +17,8 @@ data class HockeyUiState(
     val loadError: String? = null,
     val data: HockeyDto? = null,
     val refreshing: Boolean = false,
+    /** Showing the up/down arrows to reorder sections. */
+    val arranging: Boolean = false,
 )
 
 /** The week of ice times, asked of the server (which asks ice-time) each time
@@ -49,6 +51,36 @@ class HockeyViewModel(private val session: SessionRepository, private val cache:
                 }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, refreshing = false, loadError = e.error.message) }
+            }
+        }
+    }
+
+    fun setArranging(on: Boolean) = _ui.update { it.copy(arranging = on) }
+
+    /** Open or collapse a section; remembered for this person. */
+    fun toggle(name: String) = relayout { list -> list.map { if (it.name == name) it.copy(open = !it.open) else it } }
+
+    /** Move a section up (-1) or down (+1); remembered for this person. */
+    fun move(index: Int, by: Int) = relayout { list ->
+        val j = index + by
+        if (index !in list.indices || j !in list.indices) list
+        else list.toMutableList().also { val t = it[index]; it[index] = it[j]; it[j] = t }
+    }
+
+    /** Apply a layout change on screen at once, keep it in the Room cache so
+     *  it holds offline, and save it to the server (queued when offline). */
+    private fun relayout(change: (List<com.kairos.app.data.remote.dto.HockeySectionDto>) -> List<com.kairos.app.data.remote.dto.HockeySectionDto>) {
+        val cur = _ui.value.data ?: return
+        val next = cur.copy(sections = change(cur.sections))
+        _ui.update { it.copy(data = next) }
+        viewModelScope.launch {
+            val pid = session.currentPersonId() ?: PayloadCacheStore.HOUSEHOLD
+            runCatching { cache.writeAs("hockey", "main", pid, HockeyDto.serializer(), next) }
+            runCatching {
+                session.saveHockeyPrefs(
+                    order = next.sections.map { it.name },
+                    open = next.sections.filter { it.open }.map { it.name },
+                )
             }
         }
     }

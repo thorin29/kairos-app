@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-10 — Hockey layout per person (v0.410.0 / web 0.601.0)
+
+Sections arrive from `/api/v1/hockey` already in the person's order with
+`open` set (the server's `arrangeSections`); the app draws them and changes
+them in place. A toggle or an Arrange move updates the screen at once, rewrites
+the Room page cache (so the layout holds offline and on the next cold open),
+and posts the whole layout to `/api/v1/hockey/prefs`. Offline, that post is
+queued by the normal write queue and replayed — safe because it is the whole
+layout, not a delta. Collapsed sections show their session count; the
+explanatory footer was removed.
+
 ## 2026-10 — Hockey section (v0.409.0 / web 0.600.0)
 
 `GET /api/v1/hockey` returns the week already shaped by the server's

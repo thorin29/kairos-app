@@ -2,6 +2,7 @@ package com.kairos.app.ui.hockey
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -84,6 +87,13 @@ fun HockeyScreen(
             TopAppBar(
                 title = { Text("Hockey") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
+                actions = {
+                    if (ui.data?.state == "ok" && (ui.data?.sections?.size ?: 0) > 1) {
+                        TextButton(onClick = { vm.setArranging(!ui.arranging) }) {
+                            Text(if (ui.arranging) "Done" else "Arrange")
+                        }
+                    }
+                },
             )
         },
     ) { inner ->
@@ -106,7 +116,11 @@ fun HockeyScreen(
                         },
                         onRetry = { vm.load() },
                     )
-                    else -> Week(data, ui.loadError, onAdd)
+                    else -> Week(
+                        data, ui.loadError, ui.arranging, onAdd,
+                        onToggle = vm::toggle,
+                        onMove = vm::move,
+                    )
                 }
             }
         }
@@ -128,11 +142,18 @@ private fun Message(text: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun Week(data: HockeyDto, staleError: String?, onAdd: (IcsDraft, String?) -> Unit) {
+private fun Week(
+    data: HockeyDto,
+    staleError: String?,
+    arranging: Boolean,
+    onAdd: (IcsDraft, String?) -> Unit,
+    onToggle: (String) -> Unit,
+    onMove: (Int, Int) -> Unit,
+) {
     val uri = LocalUriHandler.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         val sub = listOfNotNull(
             data.rinks.joinToString(", ").ifBlank { null },
@@ -148,37 +169,80 @@ private fun Week(data: HockeyDto, staleError: String?, onAdd: (IcsDraft, String?
         if (data.sections.isEmpty()) {
             Text("No ice times this week.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        data.sections.forEach { s ->
-            SectionBlock(s, onAdd = { r -> onAdd(draftFor(r), data.eventTypeId) }, onOpen = { link ->
-                runCatching { uri.openUri(link) }
-            })
+        val last = data.sections.lastIndex
+        data.sections.forEachIndexed { i, s ->
+            SectionBlock(
+                s,
+                arranging = arranging,
+                onToggle = { onToggle(s.name) },
+                onUp = if (i > 0) ({ onMove(i, -1) }) else null,
+                onDown = if (i < last) ({ onMove(i, 1) }) else null,
+                onAdd = { r -> onAdd(draftFor(r), data.eventTypeId) },
+                onOpen = { link -> runCatching { uri.openUri(link) } },
+            )
         }
-        Text(
-            "Counts come from the rink’s registration pages and can lag a few minutes. Sign-ups happen there.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
 @Composable
-private fun SectionBlock(s: HockeySectionDto, onAdd: (HockeyRowDto) -> Unit, onOpen: (String) -> Unit) {
+private fun SectionBlock(
+    s: HockeySectionDto,
+    arranging: Boolean,
+    onToggle: () -> Unit,
+    onUp: (() -> Unit)?,
+    onDown: (() -> Unit)?,
+    onAdd: (HockeyRowDto) -> Unit,
+    onOpen: (String) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                s.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            val link = s.link
-            if (link != null) {
-                TextButton(onClick = { onOpen(link) }) { Text("Sign up ↗") }
+            Row(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onToggle)
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    KairosIcons.ChevronDown,
+                    contentDescription = if (s.open) "Collapse ${s.name}" else "Expand ${s.name}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp).rotate(if (s.open) 0f else -90f),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    s.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.width(8.dp))
+                val n = s.rows.size
+                Text(
+                    if (n == 0) "none this week" else if (n == 1) "1 session" else "$n sessions",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (arranging) {
+                IconButton(onClick = { onUp?.invoke() }, enabled = onUp != null) {
+                    Icon(KairosIcons.ChevronDown, "Move ${s.name} up", modifier = Modifier.rotate(180f))
+                }
+                IconButton(onClick = { onDown?.invoke() }, enabled = onDown != null) {
+                    Icon(KairosIcons.ChevronDown, "Move ${s.name} down")
+                }
+            } else {
+                val link = s.link
+                if (link != null && s.open) {
+                    TextButton(onClick = { onOpen(link) }) { Text("Sign up ↗") }
+                }
             }
         }
+        if (!s.open) return@Column
         if (s.rows.isEmpty()) {
             Text(
                 "Nothing scheduled this week.",

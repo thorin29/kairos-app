@@ -173,6 +173,9 @@ A read-only client of `GET /api/v1/hockey`; the server does all the shaping
 (web `buildHockeyView`). Add to calendar goes through
 `container.pendingCalendarOpen` (`CalendarOpen.NewFromDraft`) to the Calendar's
 New event, with the event type preset via `AddEventOverlay(presetEventTypeId)`.
+Layout (order, open sections) comes from the server per person; changes are
+applied locally, written to the Room page cache and posted to
+`/api/v1/hockey/prefs` (queued when offline).
 
 ## Home-screen widget (`widget/`)
 

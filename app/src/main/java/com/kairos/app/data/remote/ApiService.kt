@@ -299,6 +299,11 @@ interface ApiService {
     @GET("hockey")
     suspend fun hockey(): Response<com.kairos.app.data.remote.dto.HockeyDto>
 
+    @POST("hockey/prefs")
+    suspend fun saveHockeyPrefs(
+        @Body body: com.kairos.app.data.remote.dto.HockeyPrefsRequest,
+    ): Response<com.kairos.app.data.remote.dto.HockeyPrefsAckDto>
+
     @POST("reading/plan")
     suspend fun createReadingPlan(@Body body: PersonalPlanRequest): Response<TaskStatusDto>
 
