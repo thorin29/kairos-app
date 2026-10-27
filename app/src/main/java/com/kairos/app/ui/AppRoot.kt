@@ -217,7 +217,21 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         androidx.compose.material3.DrawerValue.Closed,
     )
     val drawerScope = rememberCoroutineScope()
-    fun openDrawer() { drawerScope.launch { drawerState.open() } }
+    // Which drawer sections to hide, from the server (the web sidebar's rule).
+    // Cached, so it's right offline; re-asked on start, after a sync, and each
+    // time the drawer opens, so connecting ice-time shows Hockey straight away.
+    val navHidden by container.settingsStore.navHidden.collectAsState(initial = emptySet())
+    fun refreshNav() {
+        drawerScope.launch {
+            runCatching { container.sessionRepository.loadNav() }
+                .onSuccess { container.settingsStore.setNavHidden(it.hidden) }
+        }
+    }
+    LaunchedEffect(Unit) { refreshNav() }
+    fun openDrawer() {
+        refreshNav()
+        drawerScope.launch { drawerState.open() }
+    }
     fun closeDrawer() { drawerScope.launch { drawerState.close() } }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
@@ -293,7 +307,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     // After a sync drains the queue (e.g. a color change made offline), re-fetch
     // the person so the drawer ring and profile reflect it.
     LaunchedEffect(syncRevision) {
-        if (syncRevision > 0) container.sessionRepository.refreshPerson()
+        if (syncRevision > 0) {
+            container.sessionRepository.refreshPerson()
+            refreshNav()
+        }
     }
 
     // The blur needs a 0..1 "how open is it". The stock drawer owns the panel's
@@ -400,6 +417,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         if (section.key == "home") go(Route.Home, "home")
                         else go(Route.Section(section.key), section.key)
                     },
+                    hiddenKeys = navHidden,
                     onToggleExpanded = { container.setNavExpanded(!expanded) },
                     onLogoClick = { closeDrawer() },
                     onSignOut = { confirmSignOut = true },

@@ -1,4 +1,8 @@
 # Changelog
+## 0.412.0
+
+- The menu hides Hockey until it's set up, and Money when there's nothing in it.
+
 ## 0.411.0
 
 - Characters grow from every day, not just perfect ones.

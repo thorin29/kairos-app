@@ -2202,3 +2202,7 @@ data class ScoringGuideDto(val sections: List<ScoringGuideSectionDto> = emptyLis
 
 @Serializable
 data class ScoringGuideSectionDto(val title: String = "", val lines: List<String> = emptyList())
+
+/** GET /api/v1/nav — drawer sections to hide for this person (web 0.604+). */
+@Serializable
+data class NavDto(val hidden: List<String> = emptyList())

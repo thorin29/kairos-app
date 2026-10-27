@@ -69,6 +69,8 @@ fun KairosRail(
     updateAvailable: Boolean = false,
     approvalsBadge: Boolean = false,
     onOpenUpdate: () -> Unit = {},
+    /** Section keys the server says to hide (Hockey not set up; no Money). */
+    hiddenKeys: Set<String> = emptySet(),
 ) {
     Column(modifier) {
         // Teal starts at the status-bar bottom (right under the top bar) with the
@@ -113,7 +115,7 @@ fun KairosRail(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                APP_SECTIONS.forEach { section ->
+                APP_SECTIONS.filter { it.key !in hiddenKeys }.forEach { section ->
                     RailRow(section, section.key == selectedKey, expanded) { onSection(section) }
                 }
             }

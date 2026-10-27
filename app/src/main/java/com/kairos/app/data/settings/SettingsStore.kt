@@ -120,6 +120,17 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_WIDGET_THEME] = v }
     }
 
+    /** Drawer sections the server says to hide for this person ("hockey",
+     *  "money"), from /api/v1/nav. Kept so the drawer is right offline and on a
+     *  cold start; empty until the first answer, so nothing hides by guesswork. */
+    val navHidden: Flow<Set<String>> = dataStore.data.map {
+        (it[KEY_NAV_HIDDEN] ?: "").split(',').map { s -> s.trim() }.filter { s -> s.isNotEmpty() }.toSet()
+    }
+
+    suspend fun setNavHidden(keys: List<String>) {
+        dataStore.edit { it[KEY_NAV_HIDDEN] = keys.joinToString(",") }
+    }
+
     /** Whose events the widget shows: "FAMILY" (everyone) or "MINE". */
     val widgetScope: Flow<String> = dataStore.data.map { it[KEY_WIDGET_SCOPE] ?: "FAMILY" }
 
@@ -263,6 +274,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_WIDGET_THEME = stringPreferencesKey("widget_theme")
         val KEY_WIDGET_CACHE = stringPreferencesKey("widget_cache")
         val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
+        val KEY_NAV_HIDDEN = stringPreferencesKey("nav_hidden")
         val KEY_MILITARY = booleanPreferencesKey("military_time")
         val KEY_TIME_FMT = stringPreferencesKey("time_format")
         val KEY_SEEN_RECUR_NODUE = booleanPreferencesKey("seen_recur_nodue")

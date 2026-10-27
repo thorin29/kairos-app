@@ -299,6 +299,9 @@ interface ApiService {
     @GET("hockey")
     suspend fun hockey(): Response<com.kairos.app.data.remote.dto.HockeyDto>
 
+    @GET("nav")
+    suspend fun nav(): Response<com.kairos.app.data.remote.dto.NavDto>
+
     @GET("scoring/guide")
     suspend fun scoringGuide(): Response<com.kairos.app.data.remote.dto.ScoringGuideDto>
 

@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10 — Drawer hides sections the server says to (v0.412.0 / web 0.604.0)
+
+`GET /api/v1/nav` returns section keys to hide (the web sidebar's rule,
+`hiddenNavFor`). Stored in DataStore (`nav_hidden`) so the drawer is right
+offline and on a cold start; re-fetched on start, after a sync and whenever the
+drawer is opened from the menu button. Empty until the first answer, so nothing
+is hidden by guesswork; an older server (404) leaves everything shown.
+Supersedes "the section is always in the drawer" from 0.409.
+
 ## 2026-10 — Scoring rework on the phone (v0.411.0 / web 0.603.0)
 
 The rules live on the server (web docs/SCORING.md); the phone draws what it is
