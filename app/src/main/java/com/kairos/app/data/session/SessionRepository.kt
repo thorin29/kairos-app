@@ -696,6 +696,13 @@ class SessionRepository(
     suspend fun loadHockey(): com.kairos.app.data.remote.dto.HockeyDto =
         runAuthed { requireService().hockey() }
 
+    suspend fun changePassword(current: String, next: String): com.kairos.app.data.remote.dto.ChangePasswordResultDto =
+        runAuthed {
+            requireService().changePassword(
+                com.kairos.app.data.remote.dto.ChangePasswordRequest(current = current, next = next),
+            )
+        }
+
     suspend fun loadNav(): com.kairos.app.data.remote.dto.NavDto =
         runAuthed { requireService().nav() }
 
@@ -1064,6 +1071,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 473
+        const val CLIENT_BUILD = 474
     }
 }

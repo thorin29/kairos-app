@@ -1,4 +1,8 @@
 # Changelog
+## 0.413.0
+
+- Change your password in Settings.
+
 ## 0.412.0
 
 - The menu hides Hockey until it's set up, and Money when there's nothing in it.

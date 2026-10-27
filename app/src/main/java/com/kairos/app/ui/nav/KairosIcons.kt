@@ -190,6 +190,12 @@ object KairosIcons {
         "M15.5 12h.01M17.5 14h.01",
     )
 
+    val Lock = stroked(
+        "Lock",
+        "M7 11h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z",
+        "M8 11V8a4 4 0 0 1 8 0v3",
+    )
+
     val Hockey = stroked(
         "Hockey",
         "M8 3l5.6 12.4",

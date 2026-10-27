@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Change your password (v0.413.0 / web 0.605.0)
+
+Settings → Password posts `{ current, next }` to `/api/v1/auth/password`; the
+server checks everything and returns a message to show. Under `auth/` so the
+offline queue never stores it (ApiClient skips `/auth/`); offline, the change
+simply fails with "Couldn't reach the server". This phone stays signed in.
+
 ## 2026-10 — Drawer hides sections the server says to (v0.412.0 / web 0.604.0)
 
 `GET /api/v1/nav` returns section keys to hide (the web sidebar's rule,

@@ -52,6 +52,7 @@ fun SettingsScreen(
     onOpenReminders: () -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
     onOpenScoring: () -> Unit = {},
+    onOpenPassword: () -> Unit = {},
     onOpenApprovals: (() -> Unit)? = null,
     approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
@@ -70,6 +71,13 @@ fun SettingsScreen(
             "Edit profile color and image",
             ready = true,
             onOpen = onOpenProfile,
+        ),
+        Section(
+            KairosIcons.Lock,
+            "Password",
+            "Change the password you sign in with",
+            ready = true,
+            onOpen = onOpenPassword,
         ),
         Section(
             KairosIcons.Bell,

@@ -42,6 +42,9 @@ sealed interface Route {
     data object SettingsScoring : Route
 
     @Serializable
+    data object SettingsPassword : Route
+
+    @Serializable
     data class AddClass(
         val replaceEventId: String? = null,
         val subject: String = "",

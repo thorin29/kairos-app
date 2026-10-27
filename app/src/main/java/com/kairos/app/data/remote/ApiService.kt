@@ -299,6 +299,12 @@ interface ApiService {
     @GET("hockey")
     suspend fun hockey(): Response<com.kairos.app.data.remote.dto.HockeyDto>
 
+    /** Under auth/ so it's never put on the offline queue (it carries passwords). */
+    @POST("auth/password")
+    suspend fun changePassword(
+        @Body body: com.kairos.app.data.remote.dto.ChangePasswordRequest,
+    ): Response<com.kairos.app.data.remote.dto.ChangePasswordResultDto>
+
     @GET("nav")
     suspend fun nav(): Response<com.kairos.app.data.remote.dto.NavDto>
 

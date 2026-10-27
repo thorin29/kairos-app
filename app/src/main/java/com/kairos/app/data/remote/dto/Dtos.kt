@@ -2206,3 +2206,10 @@ data class ScoringGuideSectionDto(val title: String = "", val lines: List<String
 /** GET /api/v1/nav — drawer sections to hide for this person (web 0.604+). */
 @Serializable
 data class NavDto(val hidden: List<String> = emptyList())
+
+/** POST /api/v1/auth/password (web 0.605+). */
+@Serializable
+data class ChangePasswordRequest(val current: String, val next: String)
+
+@Serializable
+data class ChangePasswordResultDto(val ok: Boolean = false, val error: String? = null)
