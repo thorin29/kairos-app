@@ -1,4 +1,8 @@
 # Changelog
+## 0.413.1
+
+- The paper plates picture is no longer cut off at the bottom.
+
 ## 0.413.0
 
 - Change your password in Settings.

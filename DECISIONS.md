@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-10 — Paper plates picture redrawn (v0.413.1 / web 0.605.1)
+
+`grocery_paper_plates.png` replaced with the web's redrawn picture (same
+160x134 size); the old one was cut off at the bottom. See the web's DECISIONS.
+
 ## 2026-10 — Change your password (v0.413.0 / web 0.605.0)
 
 Settings → Password posts `{ current, next }` to `/api/v1/auth/password`; the
