@@ -1,4 +1,12 @@
 # Changelog
+## 0.411.0
+
+- Characters grow from every day, not just perfect ones.
+- Today's growth shows straight away, in a lighter colour.
+- The bar's colours show what you did to grow your character.
+- This month shows your days of work toward the family goal.
+- New: How scoring works, in Settings.
+
 ## 0.410.0
 
 - Hockey sections collapse and expand. They start collapsed and stay how you leave them.

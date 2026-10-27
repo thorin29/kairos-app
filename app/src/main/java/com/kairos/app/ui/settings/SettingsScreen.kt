@@ -51,6 +51,7 @@ fun SettingsScreen(
     onOpenUpdate: () -> Unit = {},
     onOpenReminders: () -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
+    onOpenScoring: () -> Unit = {},
     onOpenApprovals: (() -> Unit)? = null,
     approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
@@ -83,6 +84,13 @@ fun SettingsScreen(
             "Default reminder for each event type",
             ready = true,
             onOpen = onOpenReminders,
+        ),
+        Section(
+            KairosIcons.Trophy,
+            "How scoring works",
+            "Levels, characters, eggs and the family goal",
+            ready = true,
+            onOpen = onOpenScoring,
         ),
         onOpenApprovals?.let {
             Section(

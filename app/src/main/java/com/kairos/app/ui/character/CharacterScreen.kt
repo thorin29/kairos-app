@@ -265,7 +265,14 @@ private fun CompanionCard(c: CharCompanionDto) {
             // so the cells tie directly to raising the creature instead of
             // needing a second rail underneath to say so. The colours still come
             // from what earned it, which was always the point of them.
-            XpCells(c.xpCells, c.cellGaps)
+            XpCells(c.xpCells, c.cellGaps, c.pendingFrom)
+            if (c.phase == "growing" && c.growthLabel != null) {
+                Text(
+                    c.growthLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             // Deepening is the exception: a smaller, separate job, so it gets a
             // short rail of its own rather than reusing the stage row, which is
             // about growth it has already finished.
@@ -277,7 +284,7 @@ private fun CompanionCard(c: CharCompanionDto) {
                     modifier = Modifier.width(110.dp),
                 )
                 Text(
-                    "deepening",
+                    if (c.growthLabel != null) "deepening \u00b7 ${c.growthLabel}" else "deepening",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -300,7 +307,7 @@ private fun CompanionCard(c: CharCompanionDto) {
 /** The web's segmented level bar: 20 little squares, filled ones colored by
  *  which domain earned the XP. */
 @Composable
-private fun XpCells(cells: List<String>, gaps: List<Int> = emptyList()) {
+private fun XpCells(cells: List<String>, gaps: List<Int> = emptyList(), pendingFrom: Int = Int.MAX_VALUE) {
     val slots = if (cells.isEmpty()) List(20) { "" } else cells
     // The break is extra spacing after a cell rather than an inserted element:
     // an element would take its own width and knock the squares out of a grid.
@@ -309,7 +316,14 @@ private fun XpCells(cells: List<String>, gaps: List<Int> = emptyList()) {
             val filled = hex.isNotBlank()
             Box(
                 Modifier.size(10.dp).clip(RoundedCornerShape(2.dp))
-                    .background(if (filled) parseHex(hex) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
+                    .background(
+                        when {
+                            !filled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+                            // Today's growth: lighter, it can still change today.
+                            i >= pendingFrom -> parseHex(hex).copy(alpha = 0.45f)
+                            else -> parseHex(hex)
+                        },
+                    ),
             )
             if (gaps.contains(i + 1)) Spacer(Modifier.width(5.dp))
         }
@@ -343,31 +357,50 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
                 )
             }
 
-            // This month's tier
+            // This month: days of work against the family goal (web 0.603+);
+            // the old season tier only for an older server.
+            val month = data.month
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "This month \u00b7 Tier ${data.season.tier} / ${data.season.maxTier}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f),
+                if (month != null) {
+                    val reached = month.target > 0 && month.credit >= month.target
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "This month",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            "${fmtDays(month.credit)} / ${month.target} days",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (reached) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Bar(
+                        if (month.target > 0) (month.credit / month.target).toFloat().coerceIn(0f, 1f) else 0f,
+                        if (reached) Color(0xFF10B981) else KairosThemeState.accent,
+                        Modifier.fillMaxWidth(),
                     )
-                    Text(
-                        if (data.season.complete) "Complete" else "Next: Tier ${data.season.tier + 1}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "This month \u00b7 Tier ${data.season.tier} / ${data.season.maxTier}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Bar(
+                        data.season.pct.toFloat() / 100f,
+                        if (data.season.complete) Color(0xFF10B981) else KairosThemeState.accent,
+                        Modifier.fillMaxWidth(),
                     )
                 }
-                Bar(
-                    data.season.pct.toFloat() / 100f,
-                    if (data.season.complete) Color(0xFF10B981) else KairosThemeState.accent,
-                    Modifier.fillMaxWidth(),
-                )
             }
 
             // Stats grid
@@ -393,7 +426,10 @@ private fun PersonCard(person: PersonDto, data: CharacterDto) {
             // Streak + badges
             val chips = buildList {
                 if (data.currentStreak > 0) add("\uD83D\uDD25 ${data.currentStreak}-day streak")
-                if (data.season.complete) add("\uD83C\uDFC6 Month complete")
+                val m = data.month
+                if (m != null) {
+                    if (m.target > 0 && m.credit >= m.target) add("\uD83C\uDFC6 Month goal reached")
+                } else if (data.season.complete) add("\uD83C\uDFC6 Month complete")
                 if (data.perfectWeeks > 0) add("\u2B50 ${data.perfectWeeks} perfect ${if (data.perfectWeeks == 1) "week" else "weeks"}")
                 data.milestones.forEach { add("\uD83D\uDD25 $it-day streak") }
                 data.bestWeekPct?.let { add("\u2B50 Best week ${it.toInt()}%") }
@@ -504,4 +540,10 @@ private fun PhaseBar(
             }
         }
     }
+}
+
+/** Days of work, one decimal rounded down ("7.4"; whole numbers bare). */
+internal fun fmtDays(v: Double): String {
+    val r = kotlin.math.floor(v * 10 + 1e-9) / 10
+    return if (r == kotlin.math.floor(r)) r.toInt().toString() else "%.1f".format(r)
 }

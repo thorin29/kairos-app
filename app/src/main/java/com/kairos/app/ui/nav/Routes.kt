@@ -39,6 +39,9 @@ sealed interface Route {
     data object SettingsDiagnostics : Route
 
     @Serializable
+    data object SettingsScoring : Route
+
+    @Serializable
     data class AddClass(
         val replaceEventId: String? = null,
         val subject: String = "",

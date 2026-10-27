@@ -1628,7 +1628,13 @@ data class CharacterDto(
     val bestWeekPct: Double? = null,
     val masteries: List<CharMasteryDto> = emptyList(),
     val companion: CharCompanionDto = CharCompanionDto(),
+    /** This month's days of work against the family-goal target (web 0.603+).
+     *  Null from an older server, which falls back to the season tier. */
+    val month: CharMonthDto? = null,
 )
+
+@Serializable
+data class CharMonthDto(val credit: Double = 0.0, val target: Int = 0)
 
 @Serializable
 data class CharLevelDto(val level: Int = 1, val pct: Double = 0.0, val toNext: Int = 0)
@@ -1662,6 +1668,11 @@ data class CharCompanionDto(
     /** Cell counts to break [xpCells] after, so one row of squares shows where
      *  each stage ends. Empty from an older server, which just draws no breaks. */
     val cellGaps: List<Int> = emptyList(),
+    /** Squares from this index on are today's growth, drawn lighter (web 0.603+).
+     *  Defaults past the end, so an older server draws everything solid. */
+    val pendingFrom: Int = Int.MAX_VALUE,
+    /** "7.4 / 12" while growing or deepening; null otherwise (web 0.603+). */
+    val growthLabel: String? = null,
 )
 
 @Serializable
@@ -1750,7 +1761,15 @@ data class CarriedGoalDto(
 )
 
 @Serializable
-data class CoopChildDto(val name: String = "", val color: String? = null, val tier: Int = 0, val cleanDays: Int = 0, val meets: Boolean = false)
+data class CoopChildDto(
+    val name: String = "",
+    val color: String? = null,
+    val tier: Int = 0,
+    val cleanDays: Int = 0,
+    val meets: Boolean = false,
+    /** Days of work this month, one decimal (web 0.603+); null from older servers. */
+    val credit: Double? = null,
+)
 
 @Serializable
 data class CoopProposalDto(
@@ -2176,3 +2195,10 @@ data class WidgetTaskDto(
 data class BirthdayDto(
     val birthday: String? = null,
 )
+
+/** GET /api/v1/scoring/guide — "How scoring works", with the live numbers. */
+@Serializable
+data class ScoringGuideDto(val sections: List<ScoringGuideSectionDto> = emptyList())
+
+@Serializable
+data class ScoringGuideSectionDto(val title: String = "", val lines: List<String> = emptyList())

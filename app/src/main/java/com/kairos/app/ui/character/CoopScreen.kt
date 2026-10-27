@@ -189,7 +189,7 @@ private fun ChildRow(c: CoopChildDto, target: Int) {
         Box(Modifier.size(10.dp).clip(RoundedCornerShape(999.dp)).background(parseChildColor(c.color)))
         Text(c.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(
-            if (c.meets) "\u2713" else "${c.cleanDays} / $target",
+            if (c.meets) "\u2713" else "${c.credit?.let { fmtDays(it) } ?: c.cleanDays} / $target",
             style = MaterialTheme.typography.labelMedium,
             color = if (c.meets) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
         )

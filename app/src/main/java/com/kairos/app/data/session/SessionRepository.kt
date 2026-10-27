@@ -696,6 +696,9 @@ class SessionRepository(
     suspend fun loadHockey(): com.kairos.app.data.remote.dto.HockeyDto =
         runAuthed { requireService().hockey() }
 
+    suspend fun loadScoringGuide(): com.kairos.app.data.remote.dto.ScoringGuideDto =
+        runAuthed { requireService().scoringGuide() }
+
     suspend fun saveHockeyPrefs(order: List<String>, open: List<String>) {
         runAuthed {
             requireService().saveHockeyPrefs(
@@ -1058,6 +1061,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 471
+        const val CLIENT_BUILD = 472
     }
 }

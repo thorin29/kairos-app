@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-10 — Scoring rework on the phone (v0.411.0 / web 0.603.0)
+
+The rules live on the server (web docs/SCORING.md); the phone draws what it is
+sent. Character card: squares from `pendingFrom` on are today's growth (alpha
+0.45), `growthLabel` ("7.4 / 12") under the row while growing and beside the
+deepening rail; "This month" shows `month.credit / month.target` days (falls back
+to the season tier when an older server omits `month`). Family goal rows show
+`credit` (one decimal, rounded down, `fmtDays`). Settings → How scoring works
+draws `GET /api/v1/scoring/guide` (the same text as the web's /scoring page) and
+caches it in the Room page cache so it opens offline.
+
 ## 2026-10 — Hockey layout per person (v0.410.0 / web 0.601.0)
 
 Sections arrive from `/api/v1/hockey` already in the person's order with

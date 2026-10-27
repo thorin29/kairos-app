@@ -167,6 +167,12 @@ alive, and a stopped one must not take the hand-off.
 compiles this file with `kotlinc` and diffs the two over thousands of files.
 Never change one without the other and a parity run.
 
+## Scoring (`ui/character/`, `ui/settings/ScoringGuideScreen.kt`)
+
+The phone computes no scoring. `/api/v1/characters` sends the growth row
+(`xpCells`, `cellGaps`, `pendingFrom`, `growthLabel`) and `month`; the How
+scoring works screen draws `/api/v1/scoring/guide`. Rules: web docs/SCORING.md.
+
 ## Hockey (`ui/hockey/`)
 
 A read-only client of `GET /api/v1/hockey`; the server does all the shaping
