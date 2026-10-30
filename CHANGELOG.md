@@ -1,4 +1,10 @@
 # Changelog
+## 0.415.0
+
+- Log workout has a new look: the day, what you're training and how far through you are, then each section with a card per movement.
+- Logging sets has a new look, with Skip, Calculator and Log along the bottom.
+- Planks and other holds log time when added to a plan.
+
 ## 0.414.0
 
 - Strength workouts log every set. Tap a movement to log its sets; last time's show as hints.

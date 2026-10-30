@@ -220,9 +220,10 @@ is what that rule exists to prevent.
 ## Where things live
 
 - `ui/<section>/` — screens + view models per feature (e.g. `ui/workout/`).
-- `ui/workout/MovementSetsScreen.kt` — one planned movement's sets for a day;
-  `opensSetLogger` in `WorkoutLogScreen.kt` mirrors the web's `daySections` split
-  rule and the week strip mirrors `stripState`; keep them in step.
+- `ui/workout/MovementSetsScreen.kt` — one planned movement's sets for a day.
+  `WorkoutLogScreen.kt` mirrors the web's blocks.ts: `daySections` / `blockKind`
+  (sections and order), `opensSetLogger` (the split rule), `dayProgress` and
+  `stripState`; keep them in step.
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables.

@@ -355,5 +355,11 @@ class MovementSetsViewModel(
     companion object {
         fun fmt(d: Double): String =
             if (d % 1.0 == 0.0) d.toLong().toString() else ((d * 10).toLong() / 10.0).toString()
+        /** "185 × 5", "12 reps", "45 s" — the web's lastText. */
+        fun fmtSet(s: MovementSetDto, metric: String): String = when (metric) {
+            "WEIGHT" -> (s.weight?.let { fmt(it) } ?: "\u2014") + (s.reps?.let { " \u00d7 $it" } ?: "")
+            "DURATION" -> s.seconds?.let { "$it s" } ?: "\u2014"
+            else -> s.reps?.let { "$it reps" } ?: "\u2014"
+        }
     }
 }

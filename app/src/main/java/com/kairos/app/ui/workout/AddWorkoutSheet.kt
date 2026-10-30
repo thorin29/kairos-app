@@ -69,6 +69,7 @@ fun AddWorkoutSheet(
     val exercises = options.exercises.filter {
         it.category == categoryKey && (kind != "weights" || (it.muscleGroup ?: "") == muscleKey)
     }
+    val ownMetrics = exercises.mapNotNull { e -> e.metric?.let { e.id to it } }.toMap()
 
     val canSave = when {
         rest -> true
@@ -134,7 +135,13 @@ fun AddWorkoutSheet(
                             listOf("" to NO_GROUP_LABEL),
                         onSelect = { muscleKey = it; picked = emptyMap() },
                     )
-                    ExerciseList(exercises.map { it.id to it.name }, picked, metrics, defMetric) { picked = it }
+                    ExerciseList(
+                        items = exercises.map { it.id to it.name },
+                        picked = picked,
+                        metrics = metrics,
+                        defMetric = defMetric,
+                        own = ownMetrics,
+                    ) { picked = it }
                 }
                 kind == "hiit" -> {
                     if (options.hiitWorkouts.isEmpty()) {
@@ -151,7 +158,13 @@ fun AddWorkoutSheet(
                 kind == "metricOnly" -> Note("Adds a ${category?.label?.lowercase() ?: ""} day — you'll log it on completion.")
                 else -> {
                     if (exercises.isEmpty()) Note("No ${category?.label?.lowercase() ?: ""} movements in the pool yet.")
-                    else ExerciseList(exercises.map { it.id to it.name }, picked, metrics, defMetric) { picked = it }
+                    else ExerciseList(
+                        items = exercises.map { it.id to it.name },
+                        picked = picked,
+                        metrics = metrics,
+                        defMetric = defMetric,
+                        own = ownMetrics,
+                    ) { picked = it }
                 }
             }
 
@@ -182,6 +195,7 @@ private fun ExerciseList(
     picked: Map<String, Pick>,
     metrics: List<com.kairos.app.data.remote.dto.PlanMetricDto>,
     defMetric: String,
+    own: Map<String, String> = emptyMap(),
     onChange: (Map<String, Pick>) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -205,7 +219,14 @@ private fun ExerciseList(
                         onCheckedChange = {
                             onChange(
                                 if (p != null) picked - id
-                                else picked + (id to Pick(true, defMetric)),
+                                // The movement's own "Logs as" (a plank is
+                                // timed), else the category's default.
+                                else picked + (
+                                    id to Pick(
+                                        tracked = true,
+                                        metric = own[id]?.takeIf { m -> metrics.any { it.key == m } } ?: defMetric,
+                                    )
+                                ),
                             )
                         },
                     )

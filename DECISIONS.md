@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-10 — Day page and set logger follow the mockup (v0.415.0 / web 0.609.0)
+
+0.414.0 bolted the new rows onto the old card layout. The log page now follows
+the mockup and the web day page, built from the app's own parts (OutlinedCard,
+WorkoutActionTile, the swap pill): a header card (the day, tap to pick another;
+the title; "N of M done"; the week strip), then sections in the web's order
+(`daySections` mirrored in `WorkoutLogScreen.kt`: warm-up, cardio, strength by
+muscle group, conditioning, sport). A set-by-set movement is its own card with
+today's sets or last time's and a Logged / Skipped chip; other plans keep their
+existing card. Overdue days use the same sections, tinted and labelled with the
+day. The set logger: a column header, a card per set (✓ fills when saved, "Last
+time …" or "Added today" under it), Add set and Same as last time as pills,
+Remaining sets with −/+, and Skip / Calculator / Log pinned to the bottom.
+
+Adding a movement to a plan preselects the movement's own "Logs as" (server
+0.609 `metric` on plan options), so a plank starts as time.
+
 ## 2026-10 — Every-set logging on the phone (v0.414.0 / web 0.608.0)
 
 The log page uses the web's day-page rule (blocks.ts `daySections`): a strength

@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.height
@@ -34,7 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.theme.KairosThemeState
 import kotlinx.coroutines.delay
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -64,7 +63,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.mutableStateOf
@@ -169,27 +167,6 @@ fun WorkoutLogScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    ui.date?.let { d ->
-                        OutlinedButton(
-                            onClick = { showDatePicker = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                            ),
-                        ) {
-                            Icon(
-                                KairosIcons.Calendar,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Logging for ${longDate(d)}")
-                        }
-                    }
-                    ui.strip?.takeIf { it.days.isNotEmpty() }?.let { strip ->
-                        WeekStrip(strip = strip, selected = ui.date, onPick = { vm.setDate(it) })
-                    }
-
                     val overdueBlocks = ui.blocks.filter { it.isOverdue }
                     val todayBlocks = ui.blocks.filter { !it.isOverdue }
                     val openCalc: (String, String) -> Unit = { blockKey, exId ->
@@ -212,63 +189,44 @@ fun WorkoutLogScreen(
                         )
                     }
 
-                    if (overdueBlocks.isNotEmpty()) {
-                        Text(
-                            if (overdueBlocks.size == 1) "Overdue workout" else "Overdue workouts",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.error,
+                    ui.date?.let { d ->
+                        DayHeader(
+                            date = d,
+                            today = today,
+                            title = ui.title.ifBlank { ui.planName ?: if (todayBlocks.isEmpty()) "Nothing planned" else "Workout" },
+                            progress = dayProgress(todayBlocks),
+                            strip = ui.strip,
+                            onPickDate = { showDatePicker = true },
+                            onPickDay = { vm.setDate(it) },
                         )
-                        overdueBlocks.forEach { block ->
-                            WorkoutBlockCard(block, vm, openCalc, openSets)
+                    }
+
+                    // Past days still open: the same sections, tinted, each
+                    // labelled with its day.
+                    overdueBlocks.groupBy { it.date ?: "" }.forEach { (d, blocks) ->
+                        daySections(blocks).forEach { section ->
+                            DaySectionView(
+                                label = "${shortDay(d)} \u00b7 ${section.title}",
+                                section = section,
+                                overdue = true,
+                                vm = vm,
+                                onOpenCalculatorFor = openCalc,
+                                onOpenSets = openSets,
+                            )
                         }
                     }
 
                     if (todayBlocks.isNotEmpty()) {
-                        Text(
-                            ui.title.ifBlank { "Today's plan" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        // Plans sharing a muscle group go on ONE card — "Chest"
-                        // once at the top, each workout with its own fields and
-                        // buttons under a divider. A plan with no muscle group
-                        // keeps its own card (grouping by name would merge two
-                        // unrelated plans both called "Workout").
-                        groupByMuscle(todayBlocks).forEach { group ->
-                            if (group.blocks.size == 1) {
-                                WorkoutBlockCard(group.blocks.first(), vm, openCalc, openSets)
-                            } else {
-                                OutlinedCard(Modifier.fillMaxWidth()) {
-                                    Column(
-                                        Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        Text(
-                                            group.label,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
-                                        group.blocks.forEach { block ->
-                                            // No divider here: BlockBody draws its
-                                            // own above the fields, and two rules
-                                            // together read as a double line.
-                                            // hideName is always on — the group is
-                                            // named at the top and each movement
-                                            // names itself, so the plan name would
-                                            // be a third copy ("Chest / Chest").
-                                            BlockBody(block, vm, openCalc, onOpenSets = openSets, hideName = true)
-                                        }
-                                    }
-                                }
-                            }
+                        daySections(todayBlocks).forEach { section ->
+                            DaySectionView(
+                                label = section.title,
+                                section = section,
+                                overdue = false,
+                                vm = vm,
+                                onOpenCalculatorFor = openCalc,
+                                onOpenSets = openSets,
+                            )
                         }
-                    } else if (overdueBlocks.isEmpty()) {
-                        Text(
-                            "No scheduled workouts today.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
 
                     if (ui.actionError != null) {
@@ -400,7 +358,6 @@ private fun WorkoutBlockCard(
     block: WorkoutBlock,
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
-    onOpenSets: (WorkoutBlock, MovementInput) -> Unit,
 ) {
     // Overdue and today's cards are the same card. The only difference is the
     // background; they used to be two bodies with different button sizes and
@@ -416,13 +373,10 @@ private fun WorkoutBlockCard(
         },
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            BlockBody(block, vm, onOpenCalculatorFor, onOpenSets = onOpenSets)
+            BlockBody(block, vm, onOpenCalculatorFor)
         }
     }
 }
-
-/** Same-muscle plans share a card; anything without a muscle group stands alone. */
-private data class MuscleGroupCard(val key: String, val label: String, val blocks: List<WorkoutBlock>)
 
 /** One muscle group's movements in the swap picker, under its own heading. */
 private data class SwapGroup(
@@ -430,28 +384,6 @@ private data class SwapGroup(
     val label: String,
     val items: List<PoolExerciseDto>,
 )
-
-private fun groupByMuscle(blocks: List<WorkoutBlock>): List<MuscleGroupCard> {
-    val out = mutableListOf<MuscleGroupCard>()
-    val index = mutableMapOf<String, Int>()
-    blocks.forEach { b ->
-        val key = b.muscleGroup?.takeIf { it.isNotBlank() }?.let { "mg:$it" } ?: "solo:${b.key}"
-        val at = index[key]
-        if (at == null) {
-            index[key] = out.size
-            out.add(
-                MuscleGroupCard(
-                    key = key,
-                    label = b.muscleGroup?.takeIf { it.isNotBlank() }?.let { muscleLabel(it) } ?: b.name,
-                    blocks = listOf(b),
-                ),
-            )
-        } else {
-            out[at] = out[at].copy(blocks = out[at].blocks + b)
-        }
-    }
-    return out
-}
 
 /** "UPPER_BACK" -> "Upper back". The server sends the enum name. */
 private fun muscleLabel(raw: String): String =
@@ -465,7 +397,6 @@ private fun BlockBody(
     block: WorkoutBlock,
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
-    onOpenSets: ((WorkoutBlock, MovementInput) -> Unit)? = null,
     hideName: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -494,12 +425,6 @@ private fun BlockBody(
             if (block.inputs.isEmpty()) {
                 // Nothing to enter, so the buttons belong to the plan itself.
                 BlockActions(block, vm, onOpenCalculatorFor)
-            } else if (onOpenSets != null && opensSetLogger(block)) {
-                // Strength: one row per movement, each opening its set logger.
-                block.inputs.forEachIndexed { i, m ->
-                    if (i > 0) HorizontalDivider()
-                    SetLoggerRow(m = m, onOpen = if (m.tracked) ({ onOpenSets(block, m) }) else null)
-                }
             } else {
                 // Every movement gets its own fields AND its own buttons, under
                 // a rule of its own. Two movements added to one plan in a single
@@ -514,91 +439,277 @@ private fun BlockBody(
     }
 }
 
+/** One section of the day: "Chest", "Cardio"… and what's in it. */
+private data class DaySectionUi(val key: String, val title: String, val blocks: List<WorkoutBlock>)
+
+private val SECTION_ORDER = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "SPORT", "OTHER")
+
+/** Which section a plan belongs in, from its category — blocks.ts blockKind. */
+private fun blockKind(b: WorkoutBlock): String = when (b.category) {
+    "HIIT" -> "CONDITIONING"
+    "ROWING", "RUNNING", "RUCKING" -> "CARDIO"
+    "STRETCHING" -> "WARMUP"
+    "SPORT" -> "SPORT"
+    null, "WEIGHTS", "ISOMETRIC" -> "STRENGTH"
+    else -> "OTHER"
+}
+
+private val KIND_TITLE = mapOf(
+    "WARMUP" to "Warm-up",
+    "CARDIO" to "Cardio",
+    "CONDITIONING" to "Conditioning",
+    "SPORT" to "Sport",
+    "OTHER" to "Other",
+)
+
+/** The day's sections, in the web's order (blocks.ts daySections): strength
+ *  by muscle group, two plans for the same group in one section. */
+private fun daySections(blocks: List<WorkoutBlock>): List<DaySectionUi> {
+    val seen = LinkedHashMap<String, Pair<String, DaySectionUi>>()
+    blocks.forEach { b ->
+        val kind = blockKind(b)
+        val mg = b.muscleGroup?.takeIf { it.isNotBlank() }
+        val key = when {
+            kind != "STRENGTH" -> "k:$kind"
+            mg != null -> "mg:$mg"
+            else -> "w:${b.key}"
+        }
+        val title = when {
+            kind != "STRENGTH" -> KIND_TITLE[kind] ?: b.name
+            mg != null -> muscleLabel(mg)
+            else -> b.name
+        }
+        val cur = seen[key]?.second
+        seen[key] = kind to (
+            if (cur != null) cur.copy(blocks = cur.blocks + b)
+            else DaySectionUi(key = key, title = title, blocks = listOf(b))
+            )
+    }
+    return SECTION_ORDER.flatMap { k -> seen.values.filter { it.first == k }.map { it.second } }
+}
+
 /** A strength plan whose every tracked movement is logged set by set — the
  *  same rule the web day page uses (blocks.ts daySections). */
 internal fun opensSetLogger(b: WorkoutBlock): Boolean {
-    val strength = b.category == null || b.category == "WEIGHTS" || b.category == "ISOMETRIC"
     val tracked = b.inputs.filter { it.tracked }
-    return strength && tracked.isNotEmpty() &&
+    return blockKind(b) == "STRENGTH" && tracked.isNotEmpty() &&
         tracked.all { it.metric == "WEIGHT" || it.metric == "REPS" || it.metric == "DURATION" }
 }
 
-/** A movement on the day page: name, today's sets or last time's, and a
- *  chevron into its set logger. Untracked movements are listed only. */
+private fun movementDone(m: MovementInput) = m.setCount > 0 || m.skipped || m.logged
+
+/** Items done of items to do — blocks.ts dayProgress. */
+private fun dayProgress(blocks: List<WorkoutBlock>): Pair<Int, Int> {
+    var done = 0
+    var total = 0
+    blocks.forEach { b ->
+        if (opensSetLogger(b)) {
+            b.inputs.filter { it.tracked }.forEach { m ->
+                total++
+                if (movementDone(m)) done++
+            }
+        } else {
+            total++
+            if (b.logged) done++
+        }
+    }
+    return done to total
+}
+
+/** "2026-10-29" -> "Thu 10/29". */
+private fun shortDay(iso: String): String = try {
+    val d = LocalDate.parse(iso)
+    d.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()) +
+        " ${d.monthValue}/${d.dayOfMonth}"
+} catch (_: Exception) {
+    iso
+}
+
+/** "Today", or "Thursday, October 29". */
+private fun dayLine(iso: String, today: String): String = if (iso == today) "Today" else try {
+    LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+} catch (_: Exception) {
+    iso
+}
+
+/** The page header: the day, what's being trained, how far through it is, and
+ *  the last 8 days. Tapping the day opens the date picker. */
 @Composable
-private fun SetLoggerRow(m: MovementInput, onOpen: (() -> Unit)?) {
-    val done = m.setCount > 0
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .then(if (onOpen != null) Modifier.clickable { onOpen() } else Modifier)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
-            when {
-                m.skipped -> Icon(
-                    KairosIcons.Moon,
-                    contentDescription = "Skipped",
+private fun DayHeader(
+    date: String,
+    today: String,
+    title: String,
+    progress: Pair<Int, Int>,
+    strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
+    onPickDate: () -> Unit,
+    onPickDay: (String) -> Unit,
+) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onPickDate() }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    KairosIcons.Calendar,
+                    contentDescription = "Pick a day",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
                 )
-                done -> Icon(
-                    KairosIcons.Check,
-                    contentDescription = "Logged",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
+                Text(
+                    dayLine(date, today) + if (date < today) " \u00b7 logging late" else "",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (date < today) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                else -> Box(
-                    Modifier
-                        .size(14.dp)
-                        .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(7.dp)),
-                )
+            }
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            val (done, total) = progress
+            if (total > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LinearProgressIndicator(
+                        progress = { done / total.toFloat() },
+                        modifier = Modifier.weight(1f),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Text(
+                        "$done of $total done",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            strip?.takeIf { it.days.isNotEmpty() }?.let {
+                Spacer(Modifier.height(2.dp))
+                WeekStrip(strip = it, selected = date, onPick = onPickDay)
             }
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                m.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val sub = when {
-                m.skipped -> ""
-                done -> m.summary
-                m.last.isNotBlank() -> "Last: ${m.last}"
-                else -> ""
+    }
+}
+
+/** A section: its label, then a card per movement (strength) or per plan. */
+@Composable
+private fun DaySectionView(
+    label: String,
+    section: DaySectionUi,
+    overdue: Boolean,
+    vm: WorkoutLogViewModel,
+    onOpenCalculatorFor: (String, String) -> Unit,
+    onOpenSets: (WorkoutBlock, MovementInput) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
+            color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp, start = 2.dp),
+        )
+        section.blocks.forEach { block ->
+            if (opensSetLogger(block)) {
+                block.inputs.forEach { m ->
+                    MovementCard(
+                        m = m,
+                        overdue = overdue,
+                        onOpen = if (m.tracked) ({ onOpenSets(block, m) }) else null,
+                    )
+                }
+            } else {
+                WorkoutBlockCard(block, vm, onOpenCalculatorFor)
             }
-            if (m.swappedFromName != null) {
+        }
+    }
+}
+
+private fun overdueTint(): Color = if (KairosThemeState.dark) Color(0xFF3A1A1E) else Color(0xFFFEF2F2)
+
+/** One movement on the day page: name, today's sets or last time's, a Logged /
+ *  Skipped chip, and a chevron into its set logger. */
+@Composable
+private fun MovementCard(m: MovementInput, overdue: Boolean, onOpen: (() -> Unit)?) {
+    val logged = m.setCount > 0 || (m.logged && !m.skipped)
+    val skipped = m.skipped && !logged
+    val planned = m.swappedFromName ?: m.name
+    val detail = when {
+        onOpen == null -> "No log needed"
+        logged -> (if (m.swappedFromName != null) "${m.name} \u00b7 " else "") + m.summary.ifBlank { "Logged" }
+        skipped -> "Skipped today"
+        m.last.isNotBlank() -> "Last time ${m.last}"
+        else -> "Not logged yet"
+    }
+    val colors = if (overdue) CardDefaults.outlinedCardColors(containerColor = overdueTint())
+    else CardDefaults.outlinedCardColors()
+    val body: @Composable () -> Unit = {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    "instead of ${m.swappedFromName}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    planned,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-            if (sub.isNotBlank()) {
                 Text(
-                    sub,
+                    detail,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        if (onOpen != null) {
-            Icon(
-                KairosIcons.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
+            if (logged) StatusChip("Logged", positive = true)
+            if (skipped) StatusChip("Skipped", positive = false)
+            if (onOpen != null) {
+                Icon(
+                    KairosIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
+    if (onOpen != null) {
+        OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth(), colors = colors) { body() }
+    } else {
+        OutlinedCard(modifier = Modifier.fillMaxWidth(), colors = colors) { body() }
+    }
+}
+
+/** Logged (green) / Skipped (grey), as on the web day page. */
+@Composable
+internal fun StatusChip(label: String, positive: Boolean) {
+    val bg = when {
+        positive && KairosThemeState.dark -> Color(0xFF0F2E25)
+        positive -> Color(0xFFECFDF5)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val fg = when {
+        positive && KairosThemeState.dark -> Color(0xFF6EE7B7)
+        positive -> Color(0xFF047857)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = fg,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .padding(horizontal = 9.dp, vertical = 3.dp),
+    )
 }
 
 /** The last 8 days: tap one to log it. Done, part-done, rest, open and
@@ -613,14 +724,16 @@ private fun WeekStrip(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         strip.days.forEach { d ->
             val state = stripState(d, strip.today, overdue)
-            val pickable = state != "expired"
             val isSel = d.date == selected
-            val dow = runCatching { LocalDate.parse(d.date).dayOfWeek.name.take(1) }.getOrDefault("")
+            val dow = runCatching {
+                LocalDate.parse(d.date).dayOfWeek
+                    .getDisplayName(java.time.format.TextStyle.NARROW, java.util.Locale.getDefault())
+            }.getOrDefault("")
             val num = d.date.takeLast(2).trimStart('0')
             val fill = when (state) {
                 "done" -> MaterialTheme.colorScheme.primary
-                "partial" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                "open" -> MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                "partial" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                "open" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                 else -> Color.Transparent
             }
             val fg = when (state) {
@@ -633,26 +746,36 @@ private fun WeekStrip(
                 Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .border(
-                        if (isSel) 2.dp else 1.dp,
-                        if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                        RoundedCornerShape(10.dp),
+                    .background(
+                        if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent,
                     )
-                    .then(if (pickable) Modifier.clickable { onPick(d.date) } else Modifier)
-                    .padding(vertical = 6.dp),
+                    .then(if (state != "expired") Modifier.clickable { onPick(d.date) } else Modifier)
+                    .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(dow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box(
                     Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(fill),
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(fill)
+                        .border(
+                            if (isSel) 1.5.dp else 0.dp,
+                            if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            RoundedCornerShape(14.dp),
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    when (state) {
-                        "rest" -> Icon(KairosIcons.Moon, contentDescription = "Rest", tint = fg, modifier = Modifier.size(14.dp))
-                        else -> Text(num, style = MaterialTheme.typography.labelMedium, color = fg, fontWeight = if (isSel) FontWeight.Bold else null)
+                    if (state == "rest") {
+                        Icon(KairosIcons.Moon, contentDescription = "Rest", tint = fg, modifier = Modifier.size(14.dp))
+                    } else {
+                        Text(
+                            num,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = fg,
+                            fontWeight = if (isSel || state == "today") FontWeight.Bold else FontWeight.Normal,
+                        )
                     }
                 }
             }
@@ -1118,14 +1241,6 @@ private fun logNoun(inputs: List<MovementInput>): String {
         "DURATION" -> "time"
         else -> "workout"
     }
-}
-
-/** "2026-09-03" -> "9/3/2026". */
-private fun longDate(iso: String): String = try {
-    val p = iso.split("-")
-    "${p[1].toInt()}/${p[2].toInt()}/${p[0]}"
-} catch (e: Exception) {
-    iso
 }
 
 /**

@@ -653,6 +653,9 @@ data class PlanExerciseDto(
     val name: String,
     val category: String,
     val muscleGroup: String? = null,
+    /** How the movement is logged (a plank is timed); null = the category's
+     *  default. Server 0.609+. */
+    val metric: String? = null,
 )
 
 @Serializable

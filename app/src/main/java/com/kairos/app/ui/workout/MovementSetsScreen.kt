@@ -1,25 +1,32 @@
 package com.kairos.app.ui.workout
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -27,8 +34,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,8 +51,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,14 +65,20 @@ import com.kairos.app.data.remote.dto.PoolExerciseDto
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
-private val SET_FIELD_W = 76.dp
+/** Column widths shared by the header row and every set row, so they line up. */
+private val COL_SET = 24.dp
+private val COL_DONE = 44.dp
+private val COL_REMOVE = 40.dp
 
 /**
- * One planned movement's sets for a day. Last time's sets sit in the boxes as
- * grey hints and are never typed over; ✓ saves a set, × removes one (a saved
- * set asks first), Add set goes at the bottom. Log and Back both keep anything
- * typed but not ticked.
+ * One planned movement's sets for a day (the mockup's phone logger). Last
+ * time's sets sit in the boxes as grey hints and are never typed over; ✓ saves
+ * a set, × removes one (a saved set asks first), Add set goes at the bottom.
+ * Skip / Calculator / Log stay pinned to the bottom. Log and Back both keep
+ * anything typed but not ticked.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,13 +126,17 @@ fun MovementSetsScreen(
     BackHandler { vm.leave() }
 
     val isWeight = metric == "WEIGHT"
-    val isTime = metric == "DURATION"
+    val swapped = ui.doingId != null && ui.doingId != slotId
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(ui.doingName ?: name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        if (swapped) ui.doingName ?: name else name,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { vm.leave() }) {
@@ -123,134 +145,215 @@ fun MovementSetsScreen(
                 },
             )
         },
+        bottomBar = {
+            if (!ui.loading) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    Column {
+                        HorizontalDivider()
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            WorkoutActionTile(
+                                icon = KairosIcons.Moon,
+                                label = if (ui.skipped) "Skipped" else "Skip",
+                                modifier = Modifier.weight(1f),
+                                highlighted = !ui.skipped,
+                                compact = true,
+                            ) { vm.toggleSkip() }
+                            WorkoutActionTile(
+                                icon = KairosIcons.Dumbbell,
+                                label = "Calculator",
+                                modifier = Modifier.weight(1f),
+                                highlighted = isWeight && !ui.skipped,
+                                enabled = isWeight && !ui.skipped,
+                                compact = true,
+                            ) { onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}") }
+                            WorkoutActionTile(
+                                icon = KairosIcons.Check,
+                                label = "Log",
+                                modifier = Modifier.weight(1f),
+                                highlighted = vm.canLog() || ui.skipped,
+                                enabled = !ui.leaving,
+                                loading = ui.leaving,
+                                filled = true,
+                                compact = true,
+                            ) { vm.leave() }
+                        }
+                    }
+                }
+            }
+        },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
             if (ui.loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                return@Box
-            }
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                // Swap for the day, or what it replaced and Undo.
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (ui.doingId != null && ui.doingId != slotId) {
+            } else {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (late) {
                         Text(
-                            "instead of $name",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            "${dayName(date)} · logging late",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.error,
                         )
-                        Pill(label = "Undo") { vm.swapTo(null) }
-                    } else if (!ui.skipped) {
-                        Pill(label = "Swap", withIcon = true) { vm.loadPool(); swapping = true }
                     }
-                }
 
-                ui.rows.forEachIndexed { i, r ->
-                    SetRowView(
-                        index = i + 1,
-                        row = r,
-                        vm = vm,
-                        isWeight = isWeight,
-                        isTime = isTime,
-                        unit = unit,
-                        shift = ui.shift,
-                        enabled = !ui.skipped,
-                    )
-                }
+                    // Swap / Undo, what it replaced, and the save status or
+                    // when this was last done.
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (swapped) {
+                            Pill(label = "Undo swap", withIcon = true) { vm.swapTo(null) }
+                            Text(
+                                "instead of $name",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                        } else if (!ui.skipped) {
+                            Pill(label = "Swap", withIcon = true) { vm.loadPool(); swapping = true }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        val status = when {
+                            ui.status.isNotBlank() -> ui.status
+                            ui.lastDate != null -> "Last time ${shortDate(ui.lastDate!!)}"
+                            else -> ""
+                        }
+                        if (status.isNotBlank()) {
+                            Text(
+                                status,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (status.startsWith("Not")) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
 
-                if (!ui.skipped) {
+                    // Column headings, on the same grid as the rows.
                     Row(
                         Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { vm.addSet() }
-                            .padding(horizontal = 4.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            .fillMaxWidth()
+                            .padding(horizontal = 9.dp)
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Text("Add set", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        HeadCell("Set", Modifier.width(COL_SET), center = true)
+                        when (metric) {
+                            "WEIGHT" -> {
+                                HeadCell(unit.ifBlank { "Weight" }, Modifier.weight(1f))
+                                HeadCell("Reps", Modifier.weight(1f))
+                            }
+                            "DURATION" -> HeadCell("Seconds", Modifier.weight(1f))
+                            else -> HeadCell("Reps", Modifier.weight(1f))
+                        }
+                        HeadCell("Done", Modifier.width(COL_DONE), center = true)
+                        Spacer(Modifier.width(COL_REMOVE))
                     }
 
-                    val anyUnentered = ui.rows.any { !it.saved && it.w.isBlank() && it.hintW != null }
-                    if (isWeight && anyUnentered) {
+                    ui.rows.forEachIndexed { i, r ->
+                        SetCard(
+                            index = i + 1,
+                            row = r,
+                            vm = vm,
+                            metric = metric,
+                            sub = when {
+                                r.added -> "Added today"
+                                ui.lastSets.getOrNull(i) != null ->
+                                    "Last time " + MovementSetsViewModel.fmtSet(ui.lastSets[i], metric)
+                                else -> ""
+                            },
+                            enabled = !ui.skipped,
+                        )
+                    }
+
+                    if (!ui.skipped) {
                         Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
+                            Modifier.padding(top = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            OutlinedButton(onClick = { vm.shiftBy(-vm.step) }) { Text("−${MovementSetsViewModel.fmt(vm.step)}") }
-                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Remaining sets", style = MaterialTheme.typography.labelMedium)
-                                if (ui.shift != 0.0) {
-                                    Text(
-                                        (if (ui.shift > 0) "+" else "−") + MovementSetsViewModel.fmt(kotlin.math.abs(ui.shift)) + " " + unit,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
+                            OutlinedButton(
+                                onClick = { vm.addSet() },
+                                contentPadding = PaddingValues(horizontal = 14.dp),
+                                modifier = Modifier.heightIn(min = 44.dp),
+                            ) {
+                                Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Add set")
                             }
-                            OutlinedButton(onClick = { vm.shiftBy(vm.step) }) { Text("+${MovementSetsViewModel.fmt(vm.step)}") }
+                            if (!vm.anyEntered() && vm.hasHints()) {
+                                OutlinedButton(
+                                    onClick = { vm.sameAsLast() },
+                                    contentPadding = PaddingValues(horizontal = 14.dp),
+                                    modifier = Modifier.heightIn(min = 44.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                ) { Text("Same as last time") }
+                            }
+                        }
+
+                        val anyUnentered = ui.rows.any { !it.saved && it.w.isBlank() && it.hintW != null }
+                        if (isWeight && anyUnentered) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    "Remaining sets",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                RoundStep("−${MovementSetsViewModel.fmt(vm.step)}") { vm.shiftBy(-vm.step) }
+                                Text(
+                                    when {
+                                        ui.shift == 0.0 -> "0"
+                                        ui.shift > 0 -> "+${MovementSetsViewModel.fmt(ui.shift)} $unit"
+                                        else -> "−${MovementSetsViewModel.fmt(-ui.shift)} $unit"
+                                    },
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = TextAlign.Center,
+                                    color = if (ui.shift == 0.0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.widthIn(min = 52.dp),
+                                )
+                                RoundStep("+${MovementSetsViewModel.fmt(vm.step)}") { vm.shiftBy(vm.step) }
+                            }
                         }
                     }
-
-                    if (!vm.anyEntered() && vm.hasHints()) {
-                        OutlinedButton(onClick = { vm.sameAsLast() }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Same as last time")
-                        }
-                    }
-                }
-
-                if (ui.status.isNotBlank()) {
-                    Text(
-                        ui.status,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (ui.status.startsWith("Not")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WorkoutActionTile(
-                        icon = KairosIcons.Moon,
-                        label = if (ui.skipped) "Skipped" else "Skip",
-                        modifier = Modifier.weight(1f),
-                        highlighted = !ui.skipped,
-                    ) { vm.toggleSkip() }
-                    if (isWeight) {
-                        WorkoutActionTile(
-                            icon = KairosIcons.Dumbbell,
-                            label = "Calculator",
-                            modifier = Modifier.weight(1f),
-                            highlighted = !ui.skipped,
-                            enabled = !ui.skipped,
-                        ) { onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}") }
-                    }
-                    WorkoutActionTile(
-                        icon = KairosIcons.Check,
-                        label = "Log",
-                        modifier = Modifier.weight(1f),
-                        highlighted = vm.canLog() || ui.skipped,
-                        enabled = !ui.leaving,
-                        loading = ui.leaving,
-                        filled = true,
-                    ) { vm.leave() }
                 }
             }
         }
     }
 
     ui.confirmKey?.let { key ->
-        val n = ui.rows.indexOfFirst { it.key == key } + 1
+        val i = ui.rows.indexOfFirst { it.key == key }
+        val row = ui.rows.getOrNull(i)
         AlertDialog(
             onDismissRequest = { vm.keep() },
-            title = { Text("Remove set $n?") },
-            confirmButton = { TextButton(onClick = { vm.remove(key) }) { Text("Remove") } },
+            title = { Text("Remove set ${i + 1}?") },
+            text = { if (row != null) Text(MovementSetsViewModel.fmtSet(vm.valueOf(row), metric)) },
+            confirmButton = {
+                TextButton(onClick = { vm.remove(key) }) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
+            },
             dismissButton = { TextButton(onClick = { vm.keep() }) { Text("Keep") } },
         )
     }
@@ -267,67 +370,129 @@ fun MovementSetsScreen(
 }
 
 @Composable
-private fun SetRowView(
+private fun HeadCell(label: String, modifier: Modifier, center: Boolean = false) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = if (center) TextAlign.Center else TextAlign.Start,
+        modifier = modifier,
+    )
+}
+
+/** One set: number, the boxes, ✓ and ×, and what it was last time. */
+@Composable
+private fun SetCard(
     index: Int,
     row: SetRow,
     vm: MovementSetsViewModel,
-    isWeight: Boolean,
-    isTime: Boolean,
-    unit: String,
-    shift: Double,
+    metric: String,
+    sub: String,
     enabled: Boolean,
 ) {
-    val hintW = vm.hintW(row, shift)?.let { MovementSetsViewModel.fmt(it) }
-    Row(
+    OutlinedCard(
         Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (row.saved) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+            else MaterialTheme.colorScheme.surface,
+        ),
     ) {
-        Text(
-            "$index",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(20.dp),
-        )
-        if (isWeight) {
-            SetField(value = row.w, hint = hintW ?: unit, enabled = enabled, decimal = true) { vm.onWeight(row.key, it) }
-            Text("×", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            SetField(value = row.r, hint = row.hintR?.toString() ?: "reps", enabled = enabled, decimal = false) { vm.onReps(row.key, it) }
-        } else if (isTime) {
-            SetField(value = row.s, hint = row.hintS?.toString() ?: "0", enabled = enabled, decimal = false) { vm.onSeconds(row.key, it) }
-            Text("sec", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            SetField(value = row.r, hint = row.hintR?.toString() ?: "reps", enabled = enabled, decimal = false) { vm.onReps(row.key, it) }
-            Text("reps", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = { vm.tick(row.key) }, enabled = enabled) {
-            Box(
-                Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .then(
-                        if (row.saved) Modifier.padding(0.dp)
-                        else Modifier.border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
-                    ),
-                contentAlignment = Alignment.Center,
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(
-                    KairosIcons.Check,
-                    contentDescription = if (row.saved) "Saved" else "Save set",
-                    tint = if (row.saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(if (row.saved) 24.dp else 18.dp),
+                Text(
+                    "$index",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(COL_SET),
+                )
+                when (metric) {
+                    "WEIGHT" -> {
+                        SetField(
+                            value = row.w,
+                            hint = vm.hintW(row)?.let { MovementSetsViewModel.fmt(it) } ?: "",
+                            label = "Weight, set $index",
+                            decimal = true,
+                            enabled = enabled,
+                            modifier = Modifier.weight(1f),
+                        ) { vm.onWeight(row.key, it) }
+                        SetField(
+                            value = row.r,
+                            hint = row.hintR?.toString() ?: "",
+                            label = "Reps, set $index",
+                            decimal = false,
+                            enabled = enabled,
+                            modifier = Modifier.weight(1f),
+                        ) { vm.onReps(row.key, it) }
+                    }
+                    "DURATION" -> SetField(
+                        value = row.s,
+                        hint = row.hintS?.toString() ?: "",
+                        label = "Seconds, set $index",
+                        decimal = false,
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                    ) { vm.onSeconds(row.key, it) }
+                    else -> SetField(
+                        value = row.r,
+                        hint = row.hintR?.toString() ?: "",
+                        label = "Reps, set $index",
+                        decimal = false,
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                    ) { vm.onReps(row.key, it) }
+                }
+                // ✓: filled once saved.
+                Box(
+                    Modifier
+                        .size(COL_DONE)
+                        .clip(CircleShape)
+                        .background(if (row.saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                        .border(
+                            1.dp,
+                            if (row.saved) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            CircleShape,
+                        )
+                        .clickable(enabled = enabled) { vm.tick(row.key) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        KairosIcons.Check,
+                        contentDescription = if (row.saved) "Undo set $index" else "Done: set $index",
+                        tint = if (row.saved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Box(
+                    Modifier
+                        .width(COL_REMOVE)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(enabled = enabled) { vm.askRemove(row.key) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        KairosIcons.Close,
+                        contentDescription = "Remove set $index",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+            if (sub.isNotBlank()) {
+                Text(
+                    sub,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = COL_SET + 8.dp),
                 )
             }
-        }
-        IconButton(onClick = { vm.askRemove(row.key) }, enabled = enabled) {
-            Icon(
-                KairosIcons.Close,
-                contentDescription = "Remove set",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
         }
     }
 }
@@ -336,21 +501,36 @@ private fun SetRowView(
 private fun SetField(
     value: String,
     hint: String,
-    enabled: Boolean,
+    label: String,
     decimal: Boolean,
+    enabled: Boolean,
+    modifier: Modifier,
     onChange: (String) -> Unit,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        placeholder = { Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+        placeholder = { Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
         singleLine = true,
         enabled = enabled,
+        textStyle = MaterialTheme.typography.bodyLarge,
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
-        modifier = Modifier.widthIn(max = SET_FIELD_W),
+        modifier = modifier.semantics { contentDescription = label },
     )
 }
 
+/** −5 / +5 for the remaining sets. */
+@Composable
+private fun RoundStep(label: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = CircleShape,
+        contentPadding = PaddingValues(0.dp),
+        modifier = Modifier.size(44.dp),
+    ) { Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
+}
+
+/** The outlined pill used for Swap on the log page. */
 @Composable
 private fun Pill(label: String, withIcon: Boolean = false, onClick: () -> Unit) {
     Row(
@@ -369,7 +549,23 @@ private fun Pill(label: String, withIcon: Boolean = false, onClick: () -> Unit) 
     }
 }
 
-/** Same-category movements, by muscle group, with a search box. */
+/** "2026-10-19" -> "10/19". */
+private fun shortDate(iso: String): String = try {
+    val d = LocalDate.parse(iso)
+    "${d.monthValue}/${d.dayOfMonth}"
+} catch (_: Exception) {
+    iso
+}
+
+/** "Thursday, October 29". */
+private fun dayName(iso: String): String = try {
+    LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+} catch (_: Exception) {
+    iso
+}
+
+/** Same-category movements, by muscle group, with a search box — the log
+ *  page's swap picker. */
 @Composable
 private fun SetsSwapDialog(
     pool: List<PoolExerciseDto>,
