@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-10 — Set logger: the mockup's top, and a fix for Remaining sets (v0.417.0)
+
+0.416.0 put "Log workout" in the top bar and the movement's name in the page.
+The name is the top bar's title again (the mockup), with "Last: Oct 23" (or
+the save status, or "instead of …" after a swap) under it and Swap / Undo as
+the top bar's action, since a swap changes what the title says. The "[165] lb ×
+[3]" rows stay, with the boxes filling the row as in the mockup.
+
+Remaining sets −/+ never visibly did anything: `SetCard` read the shift
+through the view model (`vm.hintW(row)` with a default argument), and Compose
+skipped the cards because none of their parameters changed. The shift is now
+a parameter, so the grey weights move with it; the middle reads "+5 lb".
+
 ## 2026-10 — Web fonts in the app; set logger back to the card's style (v0.416.0)
 
 The app used Material's default type (Roboto, regular weight), which read thin

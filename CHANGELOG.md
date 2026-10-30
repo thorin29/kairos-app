@@ -1,4 +1,9 @@
 # Changelog
+## 0.417.0
+
+- Logging sets: the movement's name is back at the top, with Swap beside it.
+- Remaining sets −5 / +5 now changes the grey weights in the sets you haven't entered.
+
 ## 0.416.0
 
 - The app uses the same fonts as the website.

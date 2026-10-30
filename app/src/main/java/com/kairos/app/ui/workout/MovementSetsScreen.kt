@@ -64,14 +64,11 @@ import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-/** The same box width as the Log workout card's weight and reps fields. */
-private val SET_FIELD_W = 72.dp
-
 /**
- * One planned movement's sets for a day: the mockup's layout in the Log
- * workout card's style. The movement names itself with Swap beside it; each
- * set is a small card with the boxes labelled the way the old card did
- * ("165 lb × 3"), last time's numbers greyed inside them and never typed over.
+ * One planned movement's sets for a day, laid out as the mockup: the movement's
+ * name in the top bar with Swap beside it and "Last: Oct 23" under it; each set
+ * a small card reading "[165] lb × [3]" (the boxes fill the row), last time's
+ * numbers greyed inside them and never typed over.
  * ✓ saves a set, × removes one (a saved set asks first). Skip / Calculator /
  * Log stay along the bottom, above the system bar. Log and Back both keep
  * anything typed but not ticked.
@@ -126,11 +123,50 @@ fun MovementSetsScreen(
 
     Scaffold(
         topBar = {
+            // The movement is the page: its name up top with Swap beside it
+            // (you're swapping what the title says), and when it was last done
+            // or the save status under it.
             TopAppBar(
-                title = { Text("Log workout") },
+                title = {
+                    Column {
+                        Text(
+                            if (swapped) ui.doingName ?: name else name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        val status = when {
+                            ui.status.isNotBlank() -> ui.status
+                            ui.lastDate != null -> "Last: ${shortDate(ui.lastDate!!)}"
+                            else -> ""
+                        }
+                        val sub = listOfNotNull(
+                            if (swapped) "instead of $name" else null,
+                            status.ifBlank { null },
+                        ).joinToString(" · ")
+                        if (sub.isNotBlank()) {
+                            Text(
+                                sub,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (status.startsWith("Not")) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { vm.leave() }) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    Box(Modifier.padding(end = 12.dp)) {
+                        if (swapped) {
+                            SmallPill(label = "Undo", icon = false) { vm.swapTo(null) }
+                        } else if (!ui.skipped && !ui.loading) {
+                            SmallPill(label = "Swap", icon = true) { vm.loadPool(); swapping = true }
+                        }
                     }
                 },
             )
@@ -190,19 +226,13 @@ fun MovementSetsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    MovementHeader(
-                        name = if (swapped) ui.doingName ?: name else name,
-                        insteadOf = if (swapped) name else null,
-                        status = when {
-                            ui.status.isNotBlank() -> ui.status
-                            ui.lastDate != null -> "Last: ${shortDate(ui.lastDate!!)}"
-                            else -> ""
-                        },
-                        late = if (late) "${dayName(date)} · logging late" else null,
-                        showSwap = !ui.skipped,
-                        onSwap = { vm.loadPool(); swapping = true },
-                        onUndo = { vm.swapTo(null) },
-                    )
+                    if (late) {
+                        Text(
+                            "${dayName(date)} · logging late",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
 
                     ui.rows.forEachIndexed { i, r ->
                         SetCard(
@@ -211,6 +241,7 @@ fun MovementSetsScreen(
                             vm = vm,
                             metric = metric,
                             unit = unit,
+                            shift = ui.shift,
                             sub = when {
                                 r.added -> "Added today"
                                 ui.lastSets.getOrNull(i) != null ->
@@ -249,8 +280,8 @@ fun MovementSetsScreen(
                                 Text(
                                     when {
                                         ui.shift == 0.0 -> "0"
-                                        ui.shift > 0 -> "+${MovementSetsViewModel.fmt(ui.shift)}"
-                                        else -> "−${MovementSetsViewModel.fmt(-ui.shift)}"
+                                        ui.shift > 0 -> "+${MovementSetsViewModel.fmt(ui.shift)} $unit"
+                                        else -> "−${MovementSetsViewModel.fmt(-ui.shift)} $unit"
                                     },
                                     style = MaterialTheme.typography.titleSmall,
                                     textAlign = TextAlign.Center,
@@ -294,59 +325,6 @@ fun MovementSetsScreen(
     }
 }
 
-/** The movement's name with Swap (or Undo) right after it — as on the Log
- *  workout card — and when it was last done, or the save status. */
-@Composable
-private fun MovementHeader(
-    name: String,
-    insteadOf: String?,
-    status: String,
-    late: String?,
-    showSwap: Boolean,
-    onSwap: () -> Unit,
-    onUndo: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(bottom = 4.dp)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                name,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            if (insteadOf != null) {
-                SmallPill(label = "Undo", icon = false, onClick = onUndo)
-            } else if (showSwap) {
-                SmallPill(label = "Swap", icon = true, onClick = onSwap)
-            }
-            Spacer(Modifier.weight(1f))
-            if (status.isNotBlank()) {
-                Text(
-                    status,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (status.startsWith("Not")) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (insteadOf != null) {
-            Text(
-                "instead of $insteadOf",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (late != null) {
-            Text(late, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
-        }
-    }
-}
-
 /** One set: its number, "[165] lb × [3]", ✓ and ×, and last time's set. */
 @Composable
 private fun SetCard(
@@ -355,6 +333,7 @@ private fun SetCard(
     vm: MovementSetsViewModel,
     metric: String,
     unit: String,
+    shift: Double,
     sub: String,
     enabled: Boolean,
 ) {
@@ -384,10 +363,11 @@ private fun SetCard(
                     "WEIGHT" -> {
                         SetField(
                             value = row.w,
-                            hint = vm.hintW(row)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
+                            hint = vm.hintW(row, shift)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
                             label = "Weight, set $index",
                             decimal = true,
                             enabled = enabled,
+                            modifier = Modifier.weight(1f),
                         ) { vm.onWeight(row.key, it) }
                         UnitText(unit)
                         UnitText("×")
@@ -397,6 +377,7 @@ private fun SetCard(
                             label = "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
+                            modifier = Modifier.weight(1f),
                         ) { vm.onReps(row.key, it) }
                     }
                     "DURATION" -> {
@@ -406,6 +387,7 @@ private fun SetCard(
                             label = "Seconds, set $index",
                             decimal = false,
                             enabled = enabled,
+                            modifier = Modifier.weight(1f),
                         ) { vm.onSeconds(row.key, it) }
                         UnitText("sec")
                     }
@@ -416,11 +398,11 @@ private fun SetCard(
                             label = "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
+                            modifier = Modifier.weight(1f),
                         ) { vm.onReps(row.key, it) }
                         UnitText("reps")
                     }
                 }
-                Spacer(Modifier.weight(1f))
                 // ✓ fills in once the set is saved.
                 Box(
                     Modifier
@@ -487,6 +469,7 @@ private fun SetField(
     label: String,
     decimal: Boolean,
     enabled: Boolean,
+    modifier: Modifier,
     onChange: (String) -> Unit,
 ) {
     OutlinedTextField(
@@ -496,9 +479,7 @@ private fun SetField(
         singleLine = true,
         enabled = enabled,
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
-        modifier = Modifier
-            .width(SET_FIELD_W)
-            .semantics { contentDescription = label },
+        modifier = modifier.semantics { contentDescription = label },
     )
 }
 
