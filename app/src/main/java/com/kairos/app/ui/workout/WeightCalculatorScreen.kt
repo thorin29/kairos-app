@@ -75,7 +75,11 @@ private val OUTLINE = Color(0x596F767E) // #6f767e @ 0.35
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WeightCalculatorScreen(onBack: () -> Unit, onUseWeight: ((String) -> Unit)? = null) {
+fun WeightCalculatorScreen(
+    onBack: () -> Unit,
+    onUseWeight: ((String) -> Unit)? = null,
+    useLabel: String = "",
+) {
     var bar by remember { mutableStateOf(BARS[0]) }
     var loaded by remember { mutableStateOf(listOf<String>()) } // plate ids, one entry = one pair
 
@@ -124,7 +128,7 @@ fun WeightCalculatorScreen(onBack: () -> Unit, onUseWeight: ((String) -> Unit)? 
                 )
                 if (onUseWeight != null) {
                     Button(onClick = { onUseWeight(fmtWeight(total)) }) {
-                        Text("Use this weight")
+                        Text(useLabel.ifBlank { "Use this weight" })
                     }
                 }
             }

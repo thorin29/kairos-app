@@ -78,6 +78,7 @@ import com.kairos.app.ui.hockey.HockeyScreen
 import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
+import com.kairos.app.ui.workout.MovementSetsScreen
 import com.kairos.app.ui.calendar.CalendarAddClassScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.CreatePersonalWorkoutScreen
@@ -558,8 +559,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.WeightCalculator> { entry ->
-                    val forLog = entry.toRoute<Route.WeightCalculator>().forLog
+                    val calc = entry.toRoute<Route.WeightCalculator>()
+                    val forLog = calc.forLog
                     WeightCalculatorScreen(
+                        useLabel = calc.useLabel,
                         onBack = { navController.popBackStack() },
                         onUseWeight = if (forLog) {
                             { w ->
@@ -686,10 +689,40 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     val usedWeight by entry.savedStateHandle
                         .getStateFlow<String?>("useWeight", null)
                         .collectAsState()
+                    val setsSaved by entry.savedStateHandle
+                        .getStateFlow("setsSaved", false)
+                        .collectAsState()
                     WorkoutLogScreen(
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
                         onOpenCalculator = { navController.navigate(Route.WeightCalculator(forLog = true)) },
+                        usedWeight = usedWeight,
+                        onWeightConsumed = { entry.savedStateHandle["useWeight"] = null },
+                        onOpenSets = { route -> navController.navigate(route) },
+                        setsSaved = setsSaved,
+                        onSetsConsumed = { entry.savedStateHandle["setsSaved"] = false },
+                    )
+                }
+                composable<Route.MovementSets> { entry ->
+                    val r = entry.toRoute<Route.MovementSets>()
+                    val usedWeight by entry.savedStateHandle
+                        .getStateFlow<String?>("useWeight", null)
+                        .collectAsState()
+                    MovementSetsScreen(
+                        date = r.date,
+                        plannedWorkoutId = r.plannedWorkoutId,
+                        slotId = r.slotId,
+                        name = r.name,
+                        metric = r.metric,
+                        unit = r.unit,
+                        late = r.late,
+                        onDone = {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("setsSaved", true)
+                            navController.popBackStack()
+                        },
+                        onOpenCalculator = { label ->
+                            navController.navigate(Route.WeightCalculator(forLog = true, useLabel = label))
+                        },
                         usedWeight = usedWeight,
                         onWeightConsumed = { entry.savedStateHandle["useWeight"] = null },
                     )

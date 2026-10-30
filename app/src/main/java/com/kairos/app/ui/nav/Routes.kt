@@ -58,11 +58,28 @@ sealed interface Route {
     @Serializable
     data class WorkoutLog(val date: String) : Route
 
+    /** One planned movement's sets for a day (every-set logging). */
+    @Serializable
+    data class MovementSets(
+        val date: String,
+        val plannedWorkoutId: String,
+        val slotId: String,
+        val name: String,
+        val metric: String,
+        val unit: String,
+        /** The day is being logged late (counts for [date], done today). */
+        val late: Boolean = false,
+    ) : Route
+
     @Serializable
     data object RecentWorkouts : Route
 
     @Serializable
-    data class WeightCalculator(val forLog: Boolean = false) : Route
+    data class WeightCalculator(
+        val forLog: Boolean = false,
+        /** The use button's label ("Use for set 3"); blank = the default. */
+        val useLabel: String = "",
+    ) : Route
 
     @Serializable
     data object BrowseWorkouts : Route

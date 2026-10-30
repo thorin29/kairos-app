@@ -1,6 +1,7 @@
 package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
@@ -95,6 +96,9 @@ fun WorkoutLogScreen(
     onOpenCalculator: () -> Unit,
     usedWeight: String?,
     onWeightConsumed: () -> Unit,
+    onOpenSets: (com.kairos.app.ui.nav.Route.MovementSets) -> Unit = {},
+    setsSaved: Boolean = false,
+    onSetsConsumed: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -117,6 +121,14 @@ fun WorkoutLogScreen(
     ) { mutableStateOf<Pair<String, String>?>(null) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
+
+    // Back from a movement's set logger: refresh its row.
+    LaunchedEffect(setsSaved) {
+        if (setsSaved) {
+            vm.load()
+            onSetsConsumed()
+        }
+    }
 
     LaunchedEffect(usedWeight) {
         val w = usedWeight
@@ -174,12 +186,30 @@ fun WorkoutLogScreen(
                             Text("Logging for ${longDate(d)}")
                         }
                     }
+                    ui.strip?.takeIf { it.days.isNotEmpty() }?.let { strip ->
+                        WeekStrip(strip = strip, selected = ui.date, onPick = { vm.setDate(it) })
+                    }
 
                     val overdueBlocks = ui.blocks.filter { it.isOverdue }
                     val todayBlocks = ui.blocks.filter { !it.isOverdue }
                     val openCalc: (String, String) -> Unit = { blockKey, exId ->
                         pendingTarget = blockKey to exId
                         onOpenCalculator()
+                    }
+                    val today = ui.strip?.today?.takeIf { it.isNotBlank() } ?: LocalDate.now().toString()
+                    val openSets: (WorkoutBlock, MovementInput) -> Unit = { block, m ->
+                        val day = block.date ?: ui.date ?: today
+                        onOpenSets(
+                            com.kairos.app.ui.nav.Route.MovementSets(
+                                date = day,
+                                plannedWorkoutId = block.plannedWorkoutId,
+                                slotId = m.plannedExerciseId ?: m.poolExerciseId,
+                                name = m.swappedFromName ?: m.name,
+                                metric = m.metric,
+                                unit = m.unit,
+                                late = day < today,
+                            ),
+                        )
                     }
 
                     if (overdueBlocks.isNotEmpty()) {
@@ -190,13 +220,13 @@ fun WorkoutLogScreen(
                             color = MaterialTheme.colorScheme.error,
                         )
                         overdueBlocks.forEach { block ->
-                            WorkoutBlockCard(block, vm, openCalc)
+                            WorkoutBlockCard(block, vm, openCalc, openSets)
                         }
                     }
 
                     if (todayBlocks.isNotEmpty()) {
                         Text(
-                            "Today's plan",
+                            ui.title.ifBlank { "Today's plan" },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -207,7 +237,7 @@ fun WorkoutLogScreen(
                         // unrelated plans both called "Workout").
                         groupByMuscle(todayBlocks).forEach { group ->
                             if (group.blocks.size == 1) {
-                                WorkoutBlockCard(group.blocks.first(), vm, openCalc)
+                                WorkoutBlockCard(group.blocks.first(), vm, openCalc, openSets)
                             } else {
                                 OutlinedCard(Modifier.fillMaxWidth()) {
                                     Column(
@@ -227,7 +257,7 @@ fun WorkoutLogScreen(
                                             // named at the top and each movement
                                             // names itself, so the plan name would
                                             // be a third copy ("Chest / Chest").
-                                            BlockBody(block, vm, openCalc, hideName = true)
+                                            BlockBody(block, vm, openCalc, onOpenSets = openSets, hideName = true)
                                         }
                                     }
                                 }
@@ -289,7 +319,7 @@ fun WorkoutLogScreen(
 }
 
 @Composable
-private fun WorkoutActionTile(
+internal fun WorkoutActionTile(
     icon: ImageVector,
     label: String,
     modifier: Modifier = Modifier,
@@ -370,6 +400,7 @@ private fun WorkoutBlockCard(
     block: WorkoutBlock,
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
+    onOpenSets: (WorkoutBlock, MovementInput) -> Unit,
 ) {
     // Overdue and today's cards are the same card. The only difference is the
     // background; they used to be two bodies with different button sizes and
@@ -385,7 +416,7 @@ private fun WorkoutBlockCard(
         },
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            BlockBody(block, vm, onOpenCalculatorFor)
+            BlockBody(block, vm, onOpenCalculatorFor, onOpenSets = onOpenSets)
         }
     }
 }
@@ -434,6 +465,7 @@ private fun BlockBody(
     block: WorkoutBlock,
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
+    onOpenSets: ((WorkoutBlock, MovementInput) -> Unit)? = null,
     hideName: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -462,6 +494,12 @@ private fun BlockBody(
             if (block.inputs.isEmpty()) {
                 // Nothing to enter, so the buttons belong to the plan itself.
                 BlockActions(block, vm, onOpenCalculatorFor)
+            } else if (onOpenSets != null && opensSetLogger(block)) {
+                // Strength: one row per movement, each opening its set logger.
+                block.inputs.forEachIndexed { i, m ->
+                    if (i > 0) HorizontalDivider()
+                    SetLoggerRow(m = m, onOpen = if (m.tracked) ({ onOpenSets(block, m) }) else null)
+                }
             } else {
                 // Every movement gets its own fields AND its own buttons, under
                 // a rule of its own. Two movements added to one plan in a single
@@ -474,6 +512,171 @@ private fun BlockBody(
                 }
             }
     }
+}
+
+/** A strength plan whose every tracked movement is logged set by set — the
+ *  same rule the web day page uses (blocks.ts daySections). */
+internal fun opensSetLogger(b: WorkoutBlock): Boolean {
+    val strength = b.category == null || b.category == "WEIGHTS" || b.category == "ISOMETRIC"
+    val tracked = b.inputs.filter { it.tracked }
+    return strength && tracked.isNotEmpty() &&
+        tracked.all { it.metric == "WEIGHT" || it.metric == "REPS" || it.metric == "DURATION" }
+}
+
+/** A movement on the day page: name, today's sets or last time's, and a
+ *  chevron into its set logger. Untracked movements are listed only. */
+@Composable
+private fun SetLoggerRow(m: MovementInput, onOpen: (() -> Unit)?) {
+    val done = m.setCount > 0
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .then(if (onOpen != null) Modifier.clickable { onOpen() } else Modifier)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+            when {
+                m.skipped -> Icon(
+                    KairosIcons.Moon,
+                    contentDescription = "Skipped",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+                done -> Icon(
+                    KairosIcons.Check,
+                    contentDescription = "Logged",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                else -> Box(
+                    Modifier
+                        .size(14.dp)
+                        .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(7.dp)),
+                )
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                m.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (m.skipped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (m.skipped) TextDecoration.LineThrough else null,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val sub = when {
+                m.skipped -> ""
+                done -> m.summary
+                m.last.isNotBlank() -> "Last: ${m.last}"
+                else -> ""
+            }
+            if (m.swappedFromName != null) {
+                Text(
+                    "instead of ${m.swappedFromName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (sub.isNotBlank()) {
+                Text(
+                    sub,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (onOpen != null) {
+            Icon(
+                KairosIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/** The last 8 days: tap one to log it. Done, part-done, rest, open and
+ *  expired days read the same as on the web. */
+@Composable
+private fun WeekStrip(
+    strip: com.kairos.app.data.remote.dto.WorkoutStripDto,
+    selected: String?,
+    onPick: (String) -> Unit,
+) {
+    val overdue = strip.overdue.toSet()
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        strip.days.forEach { d ->
+            val state = stripState(d, strip.today, overdue)
+            val pickable = state != "expired"
+            val isSel = d.date == selected
+            val dow = runCatching { LocalDate.parse(d.date).dayOfWeek.name.take(1) }.getOrDefault("")
+            val num = d.date.takeLast(2).trimStart('0')
+            val fill = when (state) {
+                "done" -> MaterialTheme.colorScheme.primary
+                "partial" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                "open" -> MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                else -> Color.Transparent
+            }
+            val fg = when (state) {
+                "done" -> MaterialTheme.colorScheme.onPrimary
+                "expired", "none" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                "open" -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurface
+            }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(
+                        if (isSel) 2.dp else 1.dp,
+                        if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(10.dp),
+                    )
+                    .then(if (pickable) Modifier.clickable { onPick(d.date) } else Modifier)
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(dow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(fill),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when (state) {
+                        "rest" -> Icon(KairosIcons.Moon, contentDescription = "Rest", tint = fg, modifier = Modifier.size(14.dp))
+                        else -> Text(num, style = MaterialTheme.typography.labelMedium, color = fg, fontWeight = if (isSel) FontWeight.Bold else null)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One strip day's look — mirrors blocks.ts stripState. */
+private fun stripState(
+    d: com.kairos.app.data.remote.dto.WorkoutStripDayDto,
+    today: String,
+    overdue: Set<String>,
+): String = when {
+    d.rested -> "rest"
+    d.task == "COMPLETE" -> "done"
+    d.task == "SKIPPED" -> if (d.logged) "done" else "rest"
+    d.task == "PENDING" -> when {
+        d.date == today -> if (d.logged) "partial" else "today"
+        d.date in overdue -> if (d.logged) "partial" else "open"
+        else -> if (d.logged) "partial" else "expired"
+    }
+    d.logged -> "done"
+    d.date == today -> "today"
+    else -> "none"
 }
 
 /** One movement's three tiles: skip it, open the calculator for it, log it. */

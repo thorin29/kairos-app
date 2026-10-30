@@ -333,6 +333,9 @@ data class WorkoutBlockDto(
     /** Plans sharing a muscle group are shown on one card. */
     val muscleGroup: String? = null,
     val exercises: List<PlannedMovementDto> = emptyList(),
+    /** The plan's category (WEIGHTS, ROWING, HIIT...). Decides whether its
+     *  movements open the set logger. Appended, nullable: older servers omit it. */
+    val category: String? = null,
 )
 
 @Serializable
@@ -347,6 +350,64 @@ data class WorkoutPlanDto(
     val plannedWorkoutId: String? = null,
     val name: String? = null,
     val exercises: List<PlannedMovementDto> = emptyList(),
+    /** "Chest · Legs · Arms": the same title the web's day page shows. */
+    val title: String = "",
+    /** The last 8 days for the week strip (server 0.608+). */
+    val strip: WorkoutStripDto? = null,
+)
+
+@Serializable
+data class WorkoutStripDto(
+    val today: String = "",
+    val days: List<WorkoutStripDayDto> = emptyList(),
+    /** Past days still open for logging (inside the overdue window). */
+    val overdue: List<String> = emptyList(),
+)
+
+@Serializable
+data class WorkoutStripDayDto(
+    val date: String = "",
+    /** The day's workout task: PENDING, COMPLETE, SKIPPED, or null (nothing planned). */
+    val task: String? = null,
+    val rested: Boolean = false,
+    val logged: Boolean = false,
+)
+
+/** One set as stored: weight and reps, reps alone, or seconds. */
+@Serializable
+data class MovementSetDto(
+    val weight: Double? = null,
+    val reps: Int? = null,
+    val seconds: Int? = null,
+)
+
+@Serializable
+data class MovementLastDto(
+    val date: String = "",
+    val sets: List<MovementSetDto> = emptyList(),
+)
+
+/** GET workouts/sets: one planned movement's sets for a day, and last time's. */
+@Serializable
+data class MovementLogDto(
+    val sets: List<MovementSetDto> = emptyList(),
+    val loggedAs: LoggedAsDto? = null,
+    val last: MovementLastDto? = null,
+    val skipped: Boolean = false,
+)
+
+/** POST workouts/sets: every saved set of one planned movement, in order.
+ *  Replaces what the movement had, so a queued copy is safe to replay. */
+@Serializable
+data class SaveSetsRequest(
+    val date: String,
+    val plannedWorkoutId: String,
+    val slotId: String,
+    val loggedId: String,
+    val metric: String,
+    val unit: String,
+    val sets: List<MovementSetDto>,
+    val completedOn: String? = null,
 )
 
 @Serializable
@@ -378,6 +439,12 @@ data class PlannedMovementDto(
     val reps: Int? = null,
     /** Skipped for this day. Counts as done for this movement. */
     val skipped: Boolean = false,
+    /** Sets logged for the day (every-set logging, server 0.608+). */
+    val setCount: Int = 0,
+    /** The day's sets in a few words: "5 sets · top 185 × 1". */
+    val summary: String = "",
+    /** Last time's sets in a few words, for a movement not done yet. */
+    val last: String = "",
 )
 
 /** The three-line history summary under a movement's entry fields. */

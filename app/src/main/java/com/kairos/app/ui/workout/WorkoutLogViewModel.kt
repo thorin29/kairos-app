@@ -59,6 +59,11 @@ data class MovementInput(
     /** False for a movement the plan lists without asking a number for. It
      *  never holds up the plan's tick. */
     val tracked: Boolean = true,
+    /** Sets logged for the day, and the day's sets / last time's in a few
+     *  words. Appended last; read by the set-logger rows. */
+    val setCount: Int = 0,
+    val summary: String = "",
+    val last: String = "",
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -76,6 +81,8 @@ data class WorkoutBlock(
     // The day this block logs to (null = the screen's date).
     val date: String? = null,
     val isOverdue: Boolean = false,
+    /** The plan's category; strength plans open each movement's set logger. */
+    val category: String? = null,
 )
 
 data class WorkoutLogUiState(
@@ -99,6 +106,10 @@ data class WorkoutLogUiState(
      *  most logging never opens it. */
     val pool: List<PoolExerciseDto> = emptyList(),
     val poolLoading: Boolean = false,
+    /** "Chest · Legs": the server's day title (blank on an older server). */
+    val title: String = "",
+    /** The last 8 days, for the week strip. */
+    val strip: com.kairos.app.data.remote.dto.WorkoutStripDto? = null,
 )
 
 /**
@@ -207,9 +218,13 @@ class WorkoutLogViewModel(
                         // already recorded for the day, so its button offers an
                         // edit rather than a first log — the same reading the
                         // web takes from its prefill.
-                        logged = e.value != null,
+                        logged = e.value != null || e.setCount > 0,
+                        setCount = e.setCount,
+                        summary = e.summary,
+                        last = e.last,
                     )
                 },
+                category = b.category,
                 key = blockKey,
                 date = day,
                 isOverdue = overdue,
@@ -231,7 +246,15 @@ class WorkoutLogViewModel(
         val planName = if (todayBlocks.isEmpty()) null
         else todayBlocks.map { it.name }.distinctBy { it.lowercase() }.joinToString(" \u00b7 ")
         _ui.update {
-            it.copy(loading = false, loggable = plan.loggable, date = plan.date, blocks = blocks, planName = planName)
+            it.copy(
+                loading = false,
+                loggable = plan.loggable,
+                date = plan.date,
+                blocks = blocks,
+                planName = planName,
+                title = plan.title,
+                strip = plan.strip,
+            )
         }
     }
 
@@ -265,7 +288,12 @@ class WorkoutLogViewModel(
 
     private fun applyPending(plan: WorkoutPlanDto, pending: List<PendingWrite>): WorkoutPlanDto {
         var loggable = plan.loggable
+        var out = plan
         for (w in pending) {
+            if (w.url.substringAfter("/api/v1/", "").substringBefore("?") == "workouts/sets") {
+                parse(w.body, com.kairos.app.data.remote.dto.SaveSetsRequest.serializer())?.let { out = withQueuedSets(out, it) }
+                continue
+            }
             val path = w.url.substringAfter("/api/v1/", "")
             val d = when (path) {
                 "workouts/complete", "workouts/uncomplete", "workouts/rest", "workouts/expire" ->
@@ -277,7 +305,31 @@ class WorkoutLogViewModel(
                 loggable = path == "workouts/uncomplete"
             }
         }
-        return plan.copy(loggable = loggable)
+        return out.copy(loggable = loggable)
+    }
+
+    /** A set-logger save still queued offline: show its set count on the row. */
+    private fun withQueuedSets(
+        plan: WorkoutPlanDto,
+        q: com.kairos.app.data.remote.dto.SaveSetsRequest,
+    ): WorkoutPlanDto {
+        fun patch(b: WorkoutBlockDto) =
+            if (b.plannedWorkoutId != q.plannedWorkoutId) b
+            else b.copy(
+                exercises = b.exercises.map { e ->
+                    if (e.poolExerciseId != q.slotId) e
+                    else e.copy(
+                        setCount = q.sets.size,
+                        summary = if (q.sets.isEmpty()) "" else if (q.sets.size == 1) "1 set" else "${q.sets.size} sets",
+                    )
+                },
+            )
+        return if (q.date == plan.date) plan.copy(workouts = plan.workouts.map { patch(it) })
+        else plan.copy(
+            overdue = plan.overdue.map { od ->
+                if (od.date == q.date) od.copy(workouts = od.workouts.map { patch(it) }) else od
+            },
+        )
     }
 
     /** Reps for a movement's top set. Digits only, two of them — nobody logs a

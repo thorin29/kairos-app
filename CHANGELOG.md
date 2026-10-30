@@ -1,4 +1,10 @@
 # Changelog
+## 0.414.0
+
+- Strength workouts log every set. Tap a movement to log its sets; last time's show as hints.
+- The week strip shows the last 8 days. Tap a day to log it.
+- The page is titled by what you're training.
+
 ## 0.413.1
 
 - The paper plates picture is no longer cut off at the bottom.

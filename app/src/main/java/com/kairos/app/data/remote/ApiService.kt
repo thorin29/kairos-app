@@ -181,6 +181,16 @@ interface ApiService {
     @POST("workouts/log")
     suspend fun logWorkout(@Body body: WorkoutLogRequest): Response<WorkoutAckDto>
 
+    @GET("workouts/sets")
+    suspend fun movementSets(
+        @Query("date") date: String,
+        @Query("slot") slot: String,
+        @Query("doing") doing: String? = null,
+    ): Response<com.kairos.app.data.remote.dto.MovementLogDto>
+
+    @POST("workouts/sets")
+    suspend fun saveMovementSets(@Body body: com.kairos.app.data.remote.dto.SaveSetsRequest): Response<WorkoutAckDto>
+
     @GET("workouts/progress")
     suspend fun workoutProgress(): Response<WorkoutProgressDto>
 

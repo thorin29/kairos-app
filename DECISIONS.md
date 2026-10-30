@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-10 — Every-set logging on the phone (v0.414.0 / web 0.608.0)
+
+The log page uses the web's day-page rule (blocks.ts `daySections`): a strength
+plan (WEIGHTS, ISOMETRIC or no category) whose tracked movements are all
+WEIGHT, REPS or DURATION shows one row per movement that opens
+`MovementSetsScreen`; everything else keeps its card. The set logger mirrors the
+web: hints never become values until ✓; each save sends the movement's whole
+saved list to `POST workouts/sets` (a replace, so a queued offline copy is safe to
+replay); saves are sent one at a time with the newest rows; Back and Log keep
+typed-but-unticked sets; a late day sends `completedOn`. A queued save is
+re-applied on reload (the set screen's rows, the log page's set count). The week
+strip mirrors `stripState`. Needs web 0.608.0 (older servers have no
+`workouts/sets`).
+
 ## 2026-10 — Paper plates picture redrawn (v0.413.1 / web 0.605.1)
 
 `grocery_paper_plates.png` replaced with the web's redrawn picture (same
