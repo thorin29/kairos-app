@@ -286,9 +286,11 @@ internal fun WorkoutActionTile(
     loading: Boolean = false,
     filled: Boolean = false,
     compact: Boolean = false,
+    /** Overrides the tile's height (the set logger's bottom bar). */
+    fixedHeight: androidx.compose.ui.unit.Dp? = null,
     onClick: () -> Unit,
 ) {
-    val tileHeight = if (compact) 56.dp else 84.dp
+    val tileHeight = fixedHeight ?: if (compact) 56.dp else 84.dp
     // Icon/text color. A filled tile reads white on the system-color fill while
     // it's the primary action, then settles to the theme color once it greys out.
     // An outlined tile is the theme color while actionable and eases to grey after.

@@ -1,4 +1,9 @@
 # Changelog
+## 0.416.0
+
+- The app uses the same fonts as the website.
+- Logging sets is tidier: "lb" and "×" sit beside the boxes, Swap is next to the name, and the buttons along the bottom are no longer cut off.
+
 ## 0.415.0
 
 - Log workout has a new look: the day, what you're training and how far through you are, then each section with a card per movement.

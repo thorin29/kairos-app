@@ -98,6 +98,12 @@ so avatar requests carry the device token). Reach it in composables with
 
 ## Theme
 
+**Type matches the web** (`ui/theme/Type.kt`): IBM Plex Sans for text and
+Bricolage Grotesque for headings (display, headline, `titleLarge`), from the
+web's own font files converted to TTF in `res/font/` (Bricolage cut to 600 and
+700). Titles and labels are a step heavier than Material's defaults. Plain
+`Text` picks it up through `MaterialTheme`; don't set `fontFamily` per screen.
+
 **Eight colour schemes plus a light/dark mode, per device** (`ui/theme/Theme.kt`).
 The mode is `SettingsStore.themeMode`: SYSTEM (default; follows the phone),
 LIGHT or DARK — the old on/off `dark_mode` key still decides it for anyone who

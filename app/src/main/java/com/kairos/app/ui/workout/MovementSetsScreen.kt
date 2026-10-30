@@ -1,20 +1,18 @@
 package com.kairos.app.ui.workout
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,7 +30,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -68,16 +64,16 @@ import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-/** Column widths shared by the header row and every set row, so they line up. */
-private val COL_SET = 24.dp
-private val COL_DONE = 44.dp
-private val COL_REMOVE = 40.dp
+/** The same box width as the Log workout card's weight and reps fields. */
+private val SET_FIELD_W = 72.dp
 
 /**
- * One planned movement's sets for a day (the mockup's phone logger). Last
- * time's sets sit in the boxes as grey hints and are never typed over; ✓ saves
- * a set, × removes one (a saved set asks first), Add set goes at the bottom.
- * Skip / Calculator / Log stay pinned to the bottom. Log and Back both keep
+ * One planned movement's sets for a day: the mockup's layout in the Log
+ * workout card's style. The movement names itself with Swap beside it; each
+ * set is a small card with the boxes labelled the way the old card did
+ * ("165 lb × 3"), last time's numbers greyed inside them and never typed over.
+ * ✓ saves a set, × removes one (a saved set asks first). Skip / Calculator /
+ * Log stay along the bottom, above the system bar. Log and Back both keep
  * anything typed but not ticked.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,13 +127,7 @@ fun MovementSetsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        if (swapped) ui.doingName ?: name else name,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
+                title = { Text("Log workout") },
                 navigationIcon = {
                     IconButton(onClick = { vm.leave() }) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
@@ -148,12 +138,14 @@ fun MovementSetsScreen(
         bottomBar = {
             if (!ui.loading) {
                 Surface(color = MaterialTheme.colorScheme.surface) {
-                    Column {
+                    // Above the gesture bar, so rounded screen corners never
+                    // clip the tiles.
+                    Column(Modifier.navigationBarsPadding()) {
                         HorizontalDivider()
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             WorkoutActionTile(
@@ -161,7 +153,7 @@ fun MovementSetsScreen(
                                 label = if (ui.skipped) "Skipped" else "Skip",
                                 modifier = Modifier.weight(1f),
                                 highlighted = !ui.skipped,
-                                compact = true,
+                                fixedHeight = 64.dp,
                             ) { vm.toggleSkip() }
                             WorkoutActionTile(
                                 icon = KairosIcons.Dumbbell,
@@ -169,17 +161,17 @@ fun MovementSetsScreen(
                                 modifier = Modifier.weight(1f),
                                 highlighted = isWeight && !ui.skipped,
                                 enabled = isWeight && !ui.skipped,
-                                compact = true,
+                                fixedHeight = 64.dp,
                             ) { onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}") }
                             WorkoutActionTile(
                                 icon = KairosIcons.Check,
                                 label = "Log",
                                 modifier = Modifier.weight(1f),
-                                highlighted = vm.canLog() || ui.skipped,
+                                highlighted = !ui.skipped,
                                 enabled = !ui.leaving,
                                 loading = ui.leaving,
                                 filled = true,
-                                compact = true,
+                                fixedHeight = 64.dp,
                             ) { vm.leave() }
                         }
                     }
@@ -198,70 +190,19 @@ fun MovementSetsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (late) {
-                        Text(
-                            "${dayName(date)} · logging late",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-
-                    // Swap / Undo, what it replaced, and the save status or
-                    // when this was last done.
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        if (swapped) {
-                            Pill(label = "Undo swap", withIcon = true) { vm.swapTo(null) }
-                            Text(
-                                "instead of $name",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                        } else if (!ui.skipped) {
-                            Pill(label = "Swap", withIcon = true) { vm.loadPool(); swapping = true }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        val status = when {
+                    MovementHeader(
+                        name = if (swapped) ui.doingName ?: name else name,
+                        insteadOf = if (swapped) name else null,
+                        status = when {
                             ui.status.isNotBlank() -> ui.status
-                            ui.lastDate != null -> "Last time ${shortDate(ui.lastDate!!)}"
+                            ui.lastDate != null -> "Last: ${shortDate(ui.lastDate!!)}"
                             else -> ""
-                        }
-                        if (status.isNotBlank()) {
-                            Text(
-                                status,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (status.startsWith("Not")) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    // Column headings, on the same grid as the rows.
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 9.dp)
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        HeadCell("Set", Modifier.width(COL_SET), center = true)
-                        when (metric) {
-                            "WEIGHT" -> {
-                                HeadCell(unit.ifBlank { "Weight" }, Modifier.weight(1f))
-                                HeadCell("Reps", Modifier.weight(1f))
-                            }
-                            "DURATION" -> HeadCell("Seconds", Modifier.weight(1f))
-                            else -> HeadCell("Reps", Modifier.weight(1f))
-                        }
-                        HeadCell("Done", Modifier.width(COL_DONE), center = true)
-                        Spacer(Modifier.width(COL_REMOVE))
-                    }
+                        },
+                        late = if (late) "${dayName(date)} · logging late" else null,
+                        showSwap = !ui.skipped,
+                        onSwap = { vm.loadPool(); swapping = true },
+                        onUndo = { vm.swapTo(null) },
+                    )
 
                     ui.rows.forEachIndexed { i, r ->
                         SetCard(
@@ -269,6 +210,7 @@ fun MovementSetsScreen(
                             row = r,
                             vm = vm,
                             metric = metric,
+                            unit = unit,
                             sub = when {
                                 r.added -> "Added today"
                                 ui.lastSets.getOrNull(i) != null ->
@@ -281,29 +223,12 @@ fun MovementSetsScreen(
 
                     if (!ui.skipped) {
                         Row(
-                            Modifier.padding(top = 4.dp),
+                            Modifier.padding(top = 2.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            OutlinedButton(
-                                onClick = { vm.addSet() },
-                                contentPadding = PaddingValues(horizontal = 14.dp),
-                                modifier = Modifier.heightIn(min = 44.dp),
-                            ) {
-                                Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Add set")
-                            }
+                            PillButton(label = "Add set", icon = true) { vm.addSet() }
                             if (!vm.anyEntered() && vm.hasHints()) {
-                                OutlinedButton(
-                                    onClick = { vm.sameAsLast() },
-                                    contentPadding = PaddingValues(horizontal = 14.dp),
-                                    modifier = Modifier.heightIn(min = 44.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                                        contentColor = MaterialTheme.colorScheme.primary,
-                                    ),
-                                ) { Text("Same as last time") }
+                                PillButton(label = "Same as last time", tinted = true) { vm.sameAsLast() }
                             }
                         }
 
@@ -324,14 +249,14 @@ fun MovementSetsScreen(
                                 Text(
                                     when {
                                         ui.shift == 0.0 -> "0"
-                                        ui.shift > 0 -> "+${MovementSetsViewModel.fmt(ui.shift)} $unit"
-                                        else -> "−${MovementSetsViewModel.fmt(-ui.shift)} $unit"
+                                        ui.shift > 0 -> "+${MovementSetsViewModel.fmt(ui.shift)}"
+                                        else -> "−${MovementSetsViewModel.fmt(-ui.shift)}"
                                     },
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.titleSmall,
                                     textAlign = TextAlign.Center,
-                                    color = if (ui.shift == 0.0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.widthIn(min = 52.dp),
+                                    color = if (ui.shift == 0.0) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.widthIn(min = 36.dp),
                                 )
                                 RoundStep("+${MovementSetsViewModel.fmt(vm.step)}") { vm.shiftBy(vm.step) }
                             }
@@ -369,25 +294,67 @@ fun MovementSetsScreen(
     }
 }
 
+/** The movement's name with Swap (or Undo) right after it — as on the Log
+ *  workout card — and when it was last done, or the save status. */
 @Composable
-private fun HeadCell(label: String, modifier: Modifier, center: Boolean = false) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = if (center) TextAlign.Center else TextAlign.Start,
-        modifier = modifier,
-    )
+private fun MovementHeader(
+    name: String,
+    insteadOf: String?,
+    status: String,
+    late: String?,
+    showSwap: Boolean,
+    onSwap: () -> Unit,
+    onUndo: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(bottom = 4.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                name,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (insteadOf != null) {
+                SmallPill(label = "Undo", icon = false, onClick = onUndo)
+            } else if (showSwap) {
+                SmallPill(label = "Swap", icon = true, onClick = onSwap)
+            }
+            Spacer(Modifier.weight(1f))
+            if (status.isNotBlank()) {
+                Text(
+                    status,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (status.startsWith("Not")) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (insteadOf != null) {
+            Text(
+                "instead of $insteadOf",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (late != null) {
+            Text(late, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
-/** One set: number, the boxes, ✓ and ×, and what it was last time. */
+/** One set: its number, "[165] lb × [3]", ✓ and ×, and last time's set. */
 @Composable
 private fun SetCard(
     index: Int,
     row: SetRow,
     vm: MovementSetsViewModel,
     metric: String,
+    unit: String,
     sub: String,
     enabled: Boolean,
 ) {
@@ -398,65 +365,72 @@ private fun SetCard(
             else MaterialTheme.colorScheme.surface,
         ),
     ) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            Modifier.padding(start = 10.dp, end = 4.dp, top = 8.dp, bottom = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     "$index",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.width(COL_SET),
+                    modifier = Modifier.width(18.dp),
                 )
                 when (metric) {
                     "WEIGHT" -> {
                         SetField(
                             value = row.w,
-                            hint = vm.hintW(row)?.let { MovementSetsViewModel.fmt(it) } ?: "",
+                            hint = vm.hintW(row)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
                             label = "Weight, set $index",
                             decimal = true,
                             enabled = enabled,
-                            modifier = Modifier.weight(1f),
                         ) { vm.onWeight(row.key, it) }
+                        UnitText(unit)
+                        UnitText("×")
                         SetField(
                             value = row.r,
-                            hint = row.hintR?.toString() ?: "",
+                            hint = row.hintR?.toString() ?: "rep",
                             label = "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
-                            modifier = Modifier.weight(1f),
                         ) { vm.onReps(row.key, it) }
                     }
-                    "DURATION" -> SetField(
-                        value = row.s,
-                        hint = row.hintS?.toString() ?: "",
-                        label = "Seconds, set $index",
-                        decimal = false,
-                        enabled = enabled,
-                        modifier = Modifier.weight(1f),
-                    ) { vm.onSeconds(row.key, it) }
-                    else -> SetField(
-                        value = row.r,
-                        hint = row.hintR?.toString() ?: "",
-                        label = "Reps, set $index",
-                        decimal = false,
-                        enabled = enabled,
-                        modifier = Modifier.weight(1f),
-                    ) { vm.onReps(row.key, it) }
+                    "DURATION" -> {
+                        SetField(
+                            value = row.s,
+                            hint = row.hintS?.toString() ?: "0",
+                            label = "Seconds, set $index",
+                            decimal = false,
+                            enabled = enabled,
+                        ) { vm.onSeconds(row.key, it) }
+                        UnitText("sec")
+                    }
+                    else -> {
+                        SetField(
+                            value = row.r,
+                            hint = row.hintR?.toString() ?: "0",
+                            label = "Reps, set $index",
+                            decimal = false,
+                            enabled = enabled,
+                        ) { vm.onReps(row.key, it) }
+                        UnitText("reps")
+                    }
                 }
-                // ✓: filled once saved.
+                Spacer(Modifier.weight(1f))
+                // ✓ fills in once the set is saved.
                 Box(
                     Modifier
-                        .size(COL_DONE)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(if (row.saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
                         .border(
                             1.dp,
                             if (row.saved) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
                             CircleShape,
                         )
                         .clickable(enabled = enabled) { vm.tick(row.key) },
@@ -471,9 +445,8 @@ private fun SetCard(
                 }
                 Box(
                     Modifier
-                        .width(COL_REMOVE)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .size(36.dp)
+                        .clip(CircleShape)
                         .clickable(enabled = enabled) { vm.askRemove(row.key) },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -490,7 +463,7 @@ private fun SetCard(
                     sub,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = COL_SET + 8.dp),
+                    modifier = Modifier.padding(start = 24.dp),
                 )
             }
         }
@@ -498,41 +471,89 @@ private fun SetCard(
 }
 
 @Composable
+private fun UnitText(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** The Log workout card's number box: same width, hint greyed inside. */
+@Composable
 private fun SetField(
     value: String,
     hint: String,
     label: String,
     decimal: Boolean,
     enabled: Boolean,
-    modifier: Modifier,
     onChange: (String) -> Unit,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        placeholder = { Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
+        placeholder = { Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
         singleLine = true,
         enabled = enabled,
-        textStyle = MaterialTheme.typography.bodyLarge,
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
-        modifier = modifier.semantics { contentDescription = label },
+        modifier = Modifier
+            .width(SET_FIELD_W)
+            .semantics { contentDescription = label },
     )
 }
 
-/** −5 / +5 for the remaining sets. */
+/** −5 / +5 for the remaining sets: white circles, as in the mockup. */
 @Composable
 private fun RoundStep(label: String, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = CircleShape,
-        contentPadding = PaddingValues(0.dp),
-        modifier = Modifier.size(44.dp),
-    ) { Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+    }
 }
 
-/** The outlined pill used for Swap on the log page. */
+/** Add set / Same as last time: the Swap pill's shape, a size up. */
 @Composable
-private fun Pill(label: String, withIcon: Boolean = false, onClick: () -> Unit) {
+private fun PillButton(label: String, icon: Boolean = false, tinted: Boolean = false, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        Modifier
+            .heightIn(min = 36.dp)
+            .clip(shape)
+            .background(
+                if (tinted) MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
+                else MaterialTheme.colorScheme.surface,
+            )
+            .border(
+                1.dp,
+                if (tinted) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.outline,
+                shape,
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (icon) {
+            Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(14.dp))
+        }
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (tinted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** The Log workout card's Swap pill. */
+@Composable
+private fun SmallPill(label: String, icon: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -542,17 +563,16 @@ private fun Pill(label: String, withIcon: Boolean = false, onClick: () -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        if (withIcon) {
+        if (icon) {
             Icon(KairosIcons.Swap, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
         }
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
     }
 }
 
-/** "2026-10-19" -> "10/19". */
+/** "2026-10-19" -> "Oct 19". */
 private fun shortDate(iso: String): String = try {
-    val d = LocalDate.parse(iso)
-    "${d.monthValue}/${d.dayOfMonth}"
+    LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("MMM d"))
 } catch (_: Exception) {
     iso
 }

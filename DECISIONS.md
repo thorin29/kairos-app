@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-10 — Web fonts in the app; set logger back to the card's style (v0.416.0)
+
+The app used Material's default type (Roboto, regular weight), which read thin
+next to the web and the mockups. `KairosTypography` now uses the web's fonts
+(the same files, converted with fontTools; the variable Bricolage is
+instantiated at 600 and 700 because Compose static fonts are simpler and
+minSdk 26 gains nothing from the variable file). Glyphs they lack fall back to
+the system font.
+
+0.415.0's set logger drifted from the Log workout card: a column-heading row,
+stretched boxes, and a bottom bar under the gesture bar. It now keeps the
+mockup's layout in the card's own idiom: the movement names itself with the
+Swap pill beside it (Undo when swapped) and "Last: Oct 23" on the right; each
+set is a small card reading "[165] lb × [3]" with the card's 72dp boxes; Add set
+and Same as last time are pills; −/+ are white circles; Skip / Calculator / Log
+sit above the navigation bar (`navigationBarsPadding`), Log filled. The day page
+is unchanged.
+
 ## 2026-10 — Day page and set logger follow the mockup (v0.415.0 / web 0.609.0)
 
 0.414.0 bolted the new rows onto the old card layout. The log page now follows
