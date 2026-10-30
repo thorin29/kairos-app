@@ -239,6 +239,19 @@ fun MovementSetsScreen(
 
                     // Best weight at the usual rep counts; a chip turns green
                     // with today's weight once it's beaten.
+                    // The program's plan for today: "Today Work up to a top set ·
+                    // Strength waves · Week 2 of 4".
+                    if (ui.targetScheme.isNotBlank()) {
+                        Text(
+                            buildString {
+                                append("Today ")
+                                append(ui.targetScheme)
+                                if (ui.targetTitle.isNotBlank()) append(" · ").append(ui.targetTitle)
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+
                     val chips = if (isWeight) vm.recordChips() else emptyList()
                     if (chips.isNotEmpty()) {
                         val now = vm.todayAt(ui.shift)
@@ -388,12 +401,17 @@ private fun SetCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(
-                    "$index",
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.width(18.dp),
-                )
+                Column(Modifier.width(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("$index", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                    if (row.top) {
+                        Text(
+                            "TOP",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 when (metric) {
                     "WEIGHT" -> {
                         SetField(
@@ -476,7 +494,7 @@ private fun SetCard(
                 }
             }
             if (sub.isNotBlank() || newBest != null) {
-                Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp)) {
+                Row(Modifier.fillMaxWidth().padding(start = 28.dp, end = 8.dp)) {
                     Text(
                         sub,
                         style = MaterialTheme.typography.labelSmall,

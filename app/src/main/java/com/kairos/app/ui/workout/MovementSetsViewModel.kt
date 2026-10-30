@@ -33,6 +33,8 @@ data class SetRow(
     val saved: Boolean = false,
     /** Added today: no "last time" of its own. */
     val added: Boolean = false,
+    /** The program's top set (work up to a top set). */
+    val top: Boolean = false,
 )
 
 data class MovementSetsUi(
@@ -58,6 +60,10 @@ data class MovementSetsUi(
     /** How it felt (EASY / SOLID / HARD / TOO_HARD) and where it hurt. */
     val effort: String? = null,
     val hurt: String? = null,
+    /** "Work up to a top set" and "Strength waves · Week 2 of 4", when the
+     *  planned movement has a set scheme. */
+    val targetScheme: String = "",
+    val targetTitle: String = "",
 )
 
 /**
@@ -104,7 +110,9 @@ class MovementSetsViewModel(
             _ui.update {
                 it.copy(
                     loading = false,
-                    rows = rowsFrom(today, last),
+                    rows = rowsFrom(today, last, log.target?.sets ?: emptyList()),
+                    targetScheme = log.target?.scheme ?: "",
+                    targetTitle = log.target?.title ?: "",
                     lastSets = last,
                     lastDate = log.last?.date,
                     skipped = log.skipped,
@@ -190,20 +198,40 @@ class MovementSetsViewModel(
         }
     }
 
-    private fun rowsFrom(today: List<MovementSetDto>, last: List<MovementSetDto>): List<SetRow> {
+    /** Today's sets, else the targets, else last time's: the targets fill the
+     *  hints in place of last time, and a target with no weight yet (no
+     *  training max) takes last time's weight. */
+    private fun rowsFrom(
+        today: List<MovementSetDto>,
+        last: List<MovementSetDto>,
+        target: List<com.kairos.app.data.remote.dto.TargetSetDto> = emptyList(),
+    ): List<SetRow> {
         var k = 0
         if (today.isNotEmpty()) {
             return today.mapIndexed { i, s ->
+                val t = target.getOrNull(i)
                 SetRow(
                     key = k++,
                     w = s.weight?.let { fmt(it) } ?: "",
                     r = s.reps?.toString() ?: "",
                     s = s.seconds?.toString() ?: "",
-                    hintW = last.getOrNull(i)?.weight,
-                    hintR = last.getOrNull(i)?.reps,
+                    hintW = t?.weight ?: last.getOrNull(i)?.weight,
+                    hintR = t?.reps ?: last.getOrNull(i)?.reps,
                     hintS = last.getOrNull(i)?.seconds,
                     saved = true,
-                    added = i >= last.size,
+                    added = i >= maxOf(last.size, target.size),
+                    top = t?.top ?: false,
+                )
+            }
+        }
+        if (target.isNotEmpty()) {
+            return target.mapIndexed { i, t ->
+                SetRow(
+                    key = k++,
+                    hintW = t.weight ?: last.getOrNull(i)?.weight,
+                    hintR = t.reps,
+                    hintS = last.getOrNull(i)?.seconds,
+                    top = t.top,
                 )
             }
         }

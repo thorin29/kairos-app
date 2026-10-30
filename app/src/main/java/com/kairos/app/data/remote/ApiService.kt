@@ -194,6 +194,24 @@ interface ApiService {
     @POST("workouts/feedback")
     suspend fun saveFeedback(@Body body: com.kairos.app.data.remote.dto.FeedbackRequest): Response<WorkoutAckDto>
 
+    @GET("workouts/programs")
+    suspend fun programs(): Response<com.kairos.app.data.remote.dto.ProgramsDto>
+
+    @POST("workouts/programs/start")
+    suspend fun startProgram(@Body body: com.kairos.app.data.remote.dto.StartProgramRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/programs/end")
+    suspend fun endProgram(@Body body: com.kairos.app.data.remote.dto.EndProgramRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/programs/block")
+    suspend fun nextBlock(@Body body: com.kairos.app.data.remote.dto.NextBlockRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/programs/max")
+    suspend fun trainingMax(@Body body: com.kairos.app.data.remote.dto.TrainingMaxRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/invite")
+    suspend fun answerInvite(@Body body: com.kairos.app.data.remote.dto.InviteAnswerRequest): Response<WorkoutAckDto>
+
     @GET("workouts/weekly")
     suspend fun weeklyTraining(): Response<com.kairos.app.data.remote.dto.WeeklyTrainingDto>
 

@@ -110,6 +110,8 @@ data class WorkoutLogUiState(
     val title: String = "",
     /** The last 8 days, for the week strip. */
     val strip: com.kairos.app.data.remote.dto.WorkoutStripDto? = null,
+    /** "Strength waves · Week 2 of 4", when a program is running. */
+    val programLine: String = "",
 )
 
 /**
@@ -254,6 +256,7 @@ class WorkoutLogViewModel(
                 planName = planName,
                 title = plan.title,
                 strip = plan.strip,
+                programLine = plan.program?.let { "${it.name} \u00b7 ${it.label}" } ?: "",
             )
         }
     }

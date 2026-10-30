@@ -590,6 +590,29 @@ class SessionRepository(
     suspend fun saveFeedback(body: com.kairos.app.data.remote.dto.FeedbackRequest): WorkoutAckDto =
         runAuthed { requireService().saveFeedback(body) }
 
+    /** Programs to choose from, the running one, and whether to invite. */
+    suspend fun loadPrograms(): com.kairos.app.data.remote.dto.ProgramsDto =
+        runAuthed { requireService().programs() }
+
+    suspend fun startProgram(body: com.kairos.app.data.remote.dto.StartProgramRequest): WorkoutAckDto =
+        runAuthed { requireService().startProgram(body) }
+
+    suspend fun endProgram(restore: Boolean): WorkoutAckDto =
+        runAuthed { requireService().endProgram(com.kairos.app.data.remote.dto.EndProgramRequest(restore = restore)) }
+
+    suspend fun nextProgramBlock(raise: Boolean): WorkoutAckDto =
+        runAuthed { requireService().nextBlock(com.kairos.app.data.remote.dto.NextBlockRequest(raise = raise)) }
+
+    suspend fun setTrainingMax(poolExerciseId: String, weight: Double): WorkoutAckDto =
+        runAuthed {
+            requireService().trainingMax(
+                com.kairos.app.data.remote.dto.TrainingMaxRequest(poolExerciseId = poolExerciseId, weight = weight),
+            )
+        }
+
+    suspend fun answerProgramInvite(answer: String): WorkoutAckDto =
+        runAuthed { requireService().answerInvite(com.kairos.app.data.remote.dto.InviteAnswerRequest(answer = answer)) }
+
     /** The last 12 weeks of training and weeks trained in a row. */
     suspend fun loadWeeklyTraining(): com.kairos.app.data.remote.dto.WeeklyTrainingDto =
         runAuthed { requireService().weeklyTraining() }
@@ -1089,6 +1112,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 480
+        const val CLIENT_BUILD = 481
     }
 }

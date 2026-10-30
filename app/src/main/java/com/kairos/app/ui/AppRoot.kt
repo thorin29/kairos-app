@@ -79,6 +79,7 @@ import com.kairos.app.ui.reauth.ReauthScreen
 import com.kairos.app.ui.setup.SetupScreen
 import com.kairos.app.ui.workout.WorkoutLogScreen
 import com.kairos.app.ui.workout.MovementSetsScreen
+import com.kairos.app.ui.workout.ProgramsScreen
 import com.kairos.app.ui.calendar.CalendarAddClassScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.CreatePersonalWorkoutScreen
@@ -484,6 +485,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 composable<Route.Section> { entry ->
                     val key = entry.toRoute<Route.Section>().key
                     if (key == "workouts") {
+                        // Bumped by Programs on the way back: a program rewrites the plan.
+                        val programsChanged by entry.savedStateHandle
+                            .getStateFlow("programsChanged", 0)
+                            .collectAsState()
                         WorkoutsScreen(
                             onOpenDrawer = { openDrawer() },
                             onLogWorkout = { date -> navController.navigate(Route.WorkoutLog(date)) },
@@ -492,7 +497,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenBrowse = { navController.navigate(Route.BrowseWorkouts) },
                             onOpenCreatePersonal = { navController.navigate(Route.CreatePersonalWorkout) },
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
-                            refreshKey = dataRevision,
+                            onOpenPrograms = { navController.navigate(Route.Programs) },
+                            refreshKey = dataRevision + programsChanged,
                         )
                     } else if (key == "bible") {
                         BibleScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
@@ -554,6 +560,17 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     } else {
                         PlaceholderScreen(title = sectionFor(key).label, onOpenDrawer = { openDrawer() })
                     }
+                }
+                composable<Route.Programs> {
+                    // Back to Workouts either way, and have it reload: starting or
+                    // ending a program rewrites the plan, and maxes may have changed.
+                    val back: () -> Unit = {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { h ->
+                            h["programsChanged"] = (h.get<Int>("programsChanged") ?: 0) + 1
+                        }
+                        navController.popBackStack()
+                    }
+                    ProgramsScreen(onBack = back, onDone = back)
                 }
                 composable<Route.RecentWorkouts> {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })

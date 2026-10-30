@@ -458,10 +458,19 @@ private fun LiftBlock(
                             val y = h * (i + 0.5f) / 4f
                             drawLine(gridDash, Offset(0f, y), Offset(w, y), 1f, pathEffect = dash)
                         }
-                        val pts = points.mapNotNull { p -> epochDay(p.date)?.let { Offset(px(it, w), py(p.value, h)) } }
                         // Points only, no connecting stroke: a line between two
                         // sessions draws a lift on days nobody trained.
-                        pts.forEach { drawCircle(dotTone, radius = 5f, center = it) }
+                        // A program's light or test day is drawn hollow: it
+                        // isn't meant to beat anything.
+                        points.forEach { p ->
+                            val d = epochDay(p.date) ?: return@forEach
+                            val o = Offset(px(d, w), py(p.value, h))
+                            if (p.intent != null) {
+                                drawCircle(dotTone, radius = 5f, center = o, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+                            } else {
+                                drawCircle(dotTone, radius = 5f, center = o)
+                            }
+                        }
                         tapped?.let { drawCircle(Color.White, radius = 4f, center = tappedOffset) }
                     }
 
@@ -479,7 +488,12 @@ private fun LiftBlock(
                         ) {
                             Text(
                                 "${dateLabel(epochDay(tp.date) ?: 0L)} · ${fmt(tp.value)} ${s.unit}" +
-                                    (tp.reps?.takeIf { it > 0 }?.let { " \u00d7 $it" } ?: ""),
+                                    (tp.reps?.takeIf { it > 0 }?.let { " \u00d7 $it" } ?: "") +
+                                    when (tp.intent) {
+                                        "LIGHT" -> " \u00b7 light day"
+                                        "TEST" -> " \u00b7 test day"
+                                        else -> ""
+                                    },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.inverseOnSurface,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

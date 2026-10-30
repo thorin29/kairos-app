@@ -1,4 +1,10 @@
 # Changelog
+## 0.419.0
+
+- New: workout programs, under Programs on the Workouts page. Pick one, choose your days and lifts, and it writes your plan.
+- Logging sets shows the program's target for each set, and marks the top set.
+- Light and test days show as open circles on the charts.
+
 ## 0.418.0
 
 - Logging sets shows your best weight for 1, 3, 5 and 10 reps, and marks a new best.

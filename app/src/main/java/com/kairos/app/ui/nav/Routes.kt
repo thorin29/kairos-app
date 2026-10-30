@@ -74,6 +74,10 @@ sealed interface Route {
     @Serializable
     data object RecentWorkouts : Route
 
+    /** Workout programs: the running one, or the list to start one. */
+    @Serializable
+    data object Programs : Route
+
     @Serializable
     data class WeightCalculator(
         val forLog: Boolean = false,

@@ -354,6 +354,8 @@ data class WorkoutPlanDto(
     val title: String = "",
     /** The last 8 days for the week strip (server 0.608+). */
     val strip: WorkoutStripDto? = null,
+    /** The person's program and its week on this day (server 0.611+). */
+    val program: ProgramInfoDto? = null,
 )
 
 @Serializable
@@ -398,7 +400,112 @@ data class MovementLogDto(
     val records: List<RepRecordDto> = emptyList(),
     /** How it felt and anything that hurt, once answered (server 0.610+). */
     val feedback: MovementFeedbackDto? = null,
+    /** The sets to aim for when the planned movement has a set scheme (a
+     *  program wrote it). Fills the hints in place of last time (server 0.611+). */
+    val target: MovementTargetDto? = null,
 )
+
+@Serializable
+data class MovementTargetDto(
+    /** "Strength waves · Week 2 of 4"; blank outside a program. */
+    val title: String = "",
+    /** "Work up to a top set", "3 × 8–12". */
+    val scheme: String = "",
+    val sets: List<TargetSetDto> = emptyList(),
+)
+
+@Serializable
+data class TargetSetDto(
+    /** Null: no training max yet, so last time's weight fills it. */
+    val weight: Double? = null,
+    val reps: Int = 0,
+    val top: Boolean = false,
+)
+
+/** A person's running program, as the day page and Workouts page show it. */
+@Serializable
+data class ProgramInfoDto(
+    val key: String = "",
+    val name: String = "",
+    val week: Int = 1,
+    val weeks: Int = 1,
+    /** "Week 2 of 4", "Week 4 of 4 · light". */
+    val label: String = "",
+    val intent: String? = null,
+    val blockDone: Boolean = false,
+    val maxes: List<TrainingMaxDto> = emptyList(),
+)
+
+@Serializable
+data class TrainingMaxDto(
+    val poolExerciseId: String = "",
+    val name: String = "",
+    val weight: Double = 0.0,
+)
+
+/** GET workouts/programs. */
+@Serializable
+data class ProgramsDto(
+    val choices: List<ProgramChoiceDto> = emptyList(),
+    val active: ProgramInfoDto? = null,
+    val invite: Boolean = false,
+)
+
+@Serializable
+data class ProgramChoiceDto(
+    val key: String = "",
+    val name: String = "",
+    val blurb: String = "",
+    val weeks: Int = 1,
+    val defaultDays: List<Int> = emptyList(),
+    val days: List<ProgramDayDto> = emptyList(),
+)
+
+@Serializable
+data class ProgramDayDto(
+    val name: String = "",
+    val row: Boolean = false,
+    val roles: List<ProgramRoleDto> = emptyList(),
+)
+
+@Serializable
+data class ProgramRoleDto(
+    val key: String = "",
+    val label: String = "",
+    val muscleGroup: String = "",
+    val main: Boolean = false,
+    val optional: Boolean = false,
+    val scheme: String = "",
+    val defaultId: String? = null,
+    val options: List<ProgramOptionDto> = emptyList(),
+)
+
+@Serializable
+data class ProgramOptionDto(
+    val id: String = "",
+    val name: String = "",
+)
+
+@Serializable
+data class StartProgramRequest(
+    val key: String,
+    val days: List<Int>,
+    /** "<day index>:<slot>" to a pool movement id, or null to leave it out. */
+    val picks: Map<String, String?>,
+    val tops: Map<String, Double>,
+)
+
+@Serializable
+data class EndProgramRequest(val restore: Boolean)
+
+@Serializable
+data class NextBlockRequest(val raise: Boolean)
+
+@Serializable
+data class TrainingMaxRequest(val poolExerciseId: String, val weight: Double)
+
+@Serializable
+data class InviteAnswerRequest(val answer: String)
 
 @Serializable
 data class RepRecordDto(
@@ -625,6 +732,8 @@ data class GraphPointDto(
     val value: Double,
     /** Reps for that day's top set, when they were logged. */
     val reps: Int? = null,
+    /** LIGHT or TEST: a program's light or test day, drawn hollow (server 0.611+). */
+    val intent: String? = null,
 )
 
 

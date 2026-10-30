@@ -262,7 +262,7 @@ private fun ExerciseList(
 }
 
 @Composable
-private fun Dropdown(
+internal fun Dropdown(
     label: String,
     selected: String,
     options: List<Pair<String, String>>,

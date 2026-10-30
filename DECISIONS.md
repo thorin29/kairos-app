@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-10 — Programs on the phone (v0.419.0 / web 0.611.0)
+
+`ProgramsScreen` (Route.Programs, from a card on the Workouts page) shows the
+running program (week, training maxes with Save, Raise my maxes / Repeat once a
+block is done, Change program, End program with "Go back to my old plan" or
+"Keep this plan"), or the program list and its setup: weekday circles, a
+dropdown per slot (`Dropdown`, now shared from AddWorkoutSheet), and recent top
+weights for main lifts. Coming back bumps `programsChanged` on the Workouts
+entry so it reloads the plan. The Workouts page card is the running program,
+the invite (Not now / Don't ask again), or a plain "Programs" row.
+
+The set logger uses `workouts/sets` `target` for its hints and row count, marks
+the top set, and shows "Today <scheme> · <program · week>". The log page header
+shows the program line; charts draw `intent` points hollow. Needs web 0.611.0.
+
 ## 2026-10 — Records, how it felt, rep ranges, weekly training (v0.418.0 / web 0.610.0)
 
 The set logger shows the record chips from `workouts/sets` `records` under the

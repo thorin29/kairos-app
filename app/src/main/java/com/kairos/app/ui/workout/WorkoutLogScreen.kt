@@ -196,6 +196,7 @@ fun WorkoutLogScreen(
                             title = ui.title.ifBlank { ui.planName ?: if (todayBlocks.isEmpty()) "Nothing planned" else "Workout" },
                             progress = dayProgress(todayBlocks),
                             strip = ui.strip,
+                            programLine = ui.programLine,
                             onPickDate = { showDatePicker = true },
                             onPickDay = { vm.setDate(it) },
                         )
@@ -543,6 +544,7 @@ private fun DayHeader(
     title: String,
     progress: Pair<Int, Int>,
     strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
+    programLine: String = "",
     onPickDate: () -> Unit,
     onPickDay: (String) -> Unit,
 ) {
@@ -569,6 +571,13 @@ private fun DayHeader(
                 )
             }
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            if (programLine.isNotBlank()) {
+                Text(
+                    programLine,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             val (done, total) = progress
             if (total > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

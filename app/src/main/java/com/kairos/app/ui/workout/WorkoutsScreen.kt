@@ -75,6 +75,7 @@ fun WorkoutsScreen(
     onOpenBrowse: () -> Unit,
     onOpenCreatePersonal: () -> Unit,
     onOpenEditPlan: () -> Unit,
+    onOpenPrograms: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
@@ -89,6 +90,7 @@ fun WorkoutsScreen(
     var progress by remember { mutableStateOf<WorkoutProgressDto?>(null) }
     var week by remember { mutableStateOf<List<WeeklyActivityDto>>(emptyList()) }
     var training by remember { mutableStateOf<com.kairos.app.data.remote.dto.WeeklyTrainingDto?>(null) }
+    var programs by remember { mutableStateOf<com.kairos.app.data.remote.dto.ProgramsDto?>(null) }
 
     // Fetch Progress + This Week and write both back to the cache. Shared by the
     // initial load and the manual refresh so every successful fetch updates BOTH
@@ -105,6 +107,7 @@ fun WorkoutsScreen(
                 week = it
                 runCatching { container.payloadCache.writeAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer()), it) }
             }
+        runCatching { container.sessionRepository.loadPrograms() }.getOrNull()?.let { programs = it }
         runCatching { container.sessionRepository.loadWeeklyTraining() }
             .getOrNull()?.let {
                 training = it
@@ -203,6 +206,19 @@ fun WorkoutsScreen(
                                 }
                             }
                         }
+                    }
+
+                    programs?.let { p ->
+                        ProgramSummaryCard(
+                            data = p,
+                            onOpen = onOpenPrograms,
+                            onAnswer = { answer ->
+                                scope.launch {
+                                    runCatching { container.sessionRepository.answerProgramInvite(answer) }
+                                    programs = p.copy(invite = false)
+                                }
+                            },
+                        )
                     }
 
                     training?.takeIf { t -> t.weeks.any { it.days > 0 } }?.let { WeeklyTrainingCard(it) }
@@ -417,4 +433,65 @@ private fun weekLabel(iso: String): String = try {
     java.time.LocalDate.parse(iso).format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
 } catch (_: Exception) {
     iso
+}
+
+/**
+ * The program on the Workouts page: its name and week (tap for Programs), a
+ * nudge when a block is done; without one, the invite (no plan and nothing
+ * logged lately) or a plain "Programs" row like "Recent workouts".
+ */
+@Composable
+private fun ProgramSummaryCard(
+    data: com.kairos.app.data.remote.dto.ProgramsDto,
+    onOpen: () -> Unit,
+    onAnswer: (String) -> Unit,
+) {
+    val a = data.active
+    when {
+        a != null -> OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(a.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (a.blockDone) "Block done \u00b7 choose what's next" else a.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (a.blockDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text("\u2192", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        data.invite -> OutlinedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Start a workout program?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    ProgramPill("See programs", filled = true, onClick = onOpen)
+                    Text(
+                        "Not now",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onAnswer("later") }.padding(8.dp),
+                    )
+                    Text(
+                        "Don't ask again",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { onAnswer("never") }.padding(8.dp),
+                    )
+                }
+            }
+        }
+        else -> OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Programs", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text("\u2192", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
 }
