@@ -2,6 +2,8 @@ package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,6 +88,7 @@ fun WorkoutsScreen(
     val scope = rememberCoroutineScope()
     var progress by remember { mutableStateOf<WorkoutProgressDto?>(null) }
     var week by remember { mutableStateOf<List<WeeklyActivityDto>>(emptyList()) }
+    var training by remember { mutableStateOf<com.kairos.app.data.remote.dto.WeeklyTrainingDto?>(null) }
 
     // Fetch Progress + This Week and write both back to the cache. Shared by the
     // initial load and the manual refresh so every successful fetch updates BOTH
@@ -102,6 +105,13 @@ fun WorkoutsScreen(
                 week = it
                 runCatching { container.payloadCache.writeAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer()), it) }
             }
+        runCatching { container.sessionRepository.loadWeeklyTraining() }
+            .getOrNull()?.let {
+                training = it
+                runCatching {
+                    container.payloadCache.writeAs("workout-weekly", "main", pid, com.kairos.app.data.remote.dto.WeeklyTrainingDto.serializer(), it)
+                }
+            }
     }
 
     LaunchedEffect(ui.savedTick) {
@@ -114,6 +124,11 @@ fun WorkoutsScreen(
         if (week.isEmpty()) {
             runCatching { container.payloadCache.readAs("workout-week", "main", pid, ListSerializer(WeeklyActivityDto.serializer())) }
                 .getOrNull()?.let { week = it }
+        }
+        if (training == null) {
+            runCatching {
+                container.payloadCache.readAs("workout-weekly", "main", pid, com.kairos.app.data.remote.dto.WeeklyTrainingDto.serializer())
+            }.getOrNull()?.let { training = it }
         }
         refreshProgressWeek()
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
@@ -189,6 +204,8 @@ fun WorkoutsScreen(
                             }
                         }
                     }
+
+                    training?.takeIf { t -> t.weeks.any { it.days > 0 } }?.let { WeeklyTrainingCard(it) }
 
                     // The TODAY card is gone: it listed the day's plan names
                     // ("Core \u00b7 Core \u00b7 Legs") and said nothing the Progress
@@ -316,3 +333,88 @@ private fun ActionCard(
     }
 }
 
+/**
+ * Weekly training: a bar per week for the last 12 (days trained; tap one for
+ * its sets and minutes) and weeks trained in a row. Turning up, not weight: a
+ * light week or a week of skips for an injury still counts. Same as the web.
+ */
+@Composable
+private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingDto) {
+    var picked by remember(t) { mutableStateOf(t.weeks.lastIndex) }
+    val max = maxOf(7, t.weeks.maxOfOrNull { it.days } ?: 0)
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Weekly training",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${t.inARow}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    if (t.inARow == 1) " week in a row" else " weeks in a row",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth().height(88.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                t.weeks.forEachIndexed { i, w ->
+                    val frac = if (w.days == 0) 0.03f else maxOf(0.1f, w.days / max.toFloat())
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { picked = i },
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(frac)
+                                .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = if (w.trained) 1f else 0.35f),
+                                )
+                                .then(
+                                    if (i == picked) {
+                                        Modifier.border(
+                                            2.dp,
+                                            MaterialTheme.colorScheme.onSurface,
+                                            RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp),
+                                        )
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
+                        )
+                    }
+                }
+            }
+            t.weeks.getOrNull(picked)?.let { w ->
+                Text(
+                    "Week of ${weekLabel(w.start)}: ${w.days} ${if (w.days == 1) "day" else "days"} \u00b7 " +
+                        "${w.sets} ${if (w.sets == 1) "set" else "sets"}" +
+                        if (w.minutes > 0) " \u00b7 ${w.minutes} min" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** "2026-10-25" -> "Oct 25". */
+private fun weekLabel(iso: String): String = try {
+    java.time.LocalDate.parse(iso).format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
+} catch (_: Exception) {
+    iso
+}

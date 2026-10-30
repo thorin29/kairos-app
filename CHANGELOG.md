@@ -1,4 +1,11 @@
 # Changelog
+## 0.418.0
+
+- Logging sets shows your best weight for 1, 3, 5 and 10 reps, and marks a new best.
+- Say how a lift felt, or that something hurt.
+- Charts can show one rep range at a time, and a tapped point shows its reps.
+- New: weekly training, with weeks trained in a row.
+
 ## 0.417.0
 
 - Logging sets: the movement's name is back at the top, with Swap beside it.

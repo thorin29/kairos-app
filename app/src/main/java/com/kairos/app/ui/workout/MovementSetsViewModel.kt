@@ -6,7 +6,9 @@ import com.kairos.app.data.remote.ApiClient
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.MovementLogDto
 import com.kairos.app.data.remote.dto.MovementSetDto
+import com.kairos.app.data.remote.dto.FeedbackRequest
 import com.kairos.app.data.remote.dto.PoolExerciseDto
+import com.kairos.app.data.remote.dto.RepRecordDto
 import com.kairos.app.data.remote.dto.SaveSetsRequest
 import com.kairos.app.data.session.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +53,11 @@ data class MovementSetsUi(
     val leaving: Boolean = false,
     val done: Boolean = false,
     val pool: List<PoolExerciseDto> = emptyList(),
+    /** Best weight at each rep count before today, for the movement being done. */
+    val records: List<RepRecordDto> = emptyList(),
+    /** How it felt (EASY / SOLID / HARD / TOO_HARD) and where it hurt. */
+    val effort: String? = null,
+    val hurt: String? = null,
 )
 
 /**
@@ -93,6 +100,7 @@ class MovementSetsViewModel(
             val queued = pendingSets()
             val today = queued ?: log.sets
             val last = log.last?.sets ?: emptyList()
+            val fb = pendingFeedback() ?: log.feedback?.let { FeedbackRequest(date = date, slot = slotId, effort = it.effort, hurt = it.hurt) }
             _ui.update {
                 it.copy(
                     loading = false,
@@ -102,6 +110,9 @@ class MovementSetsViewModel(
                     skipped = log.skipped,
                     doingId = log.loggedAs?.poolExerciseId,
                     doingName = log.loggedAs?.name,
+                    records = log.records,
+                    effort = fb?.effort,
+                    hurt = fb?.hurt,
                 )
             }
         }
@@ -118,6 +129,65 @@ class MovementSetsViewModel(
             }
             .lastOrNull { it.date == date && it.slotId == slotId && it.plannedWorkoutId == plannedWorkoutId }
             ?.sets
+    }
+
+    /** A feedback answer still queued offline for this movement and day. */
+    private suspend fun pendingFeedback(): FeedbackRequest? {
+        val writes = runCatching { session.pendingWrites() }.getOrDefault(emptyList())
+        return writes
+            .filter { it.url.substringAfter("/api/v1/", "").substringBefore("?") == "workouts/feedback" }
+            .mapNotNull { w ->
+                w.body?.let { runCatching { ApiClient.json.decodeFromString(FeedbackRequest.serializer(), it) }.getOrNull() }
+            }
+            .lastOrNull { it.date == date && it.slot == slotId }
+    }
+
+    // --- records and how it felt ----------------------------------------------
+
+    /** The few records shown at the top: the usual rep counts first, up to four
+     *  (records.ts recordChips). */
+    fun recordChips(): List<RepRecordDto> {
+        val usual = listOf(1, 2, 3, 5, 8, 10)
+        val recs = _ui.value.records
+        return (recs.filter { it.reps in usual } + recs.filter { it.reps !in usual })
+            .take(4)
+            .sortedBy { it.reps }
+    }
+
+    /** Today's heaviest at each exact rep count, from what's saved or typed. */
+    fun todayAt(shift: Double = _ui.value.shift): Map<Int, Double> {
+        val out = mutableMapOf<Int, Double>()
+        _ui.value.rows.forEach { r ->
+            if (!r.saved && !typed(r)) return@forEach
+            val v = valueOf(r, shift)
+            val w = v.weight ?: return@forEach
+            val reps = v.reps ?: return@forEach
+            out[reps] = maxOf(out[reps] ?: 0.0, w)
+        }
+        return out
+    }
+
+    /** Nothing earlier as heavy for as many reps or more (records.ts isNewBest).
+     *  No history at all: nothing is a "best". */
+    fun isNewBest(r: SetRow): Boolean {
+        val recs = _ui.value.records
+        if (recs.isEmpty() || metric != "WEIGHT") return false
+        val v = valueOf(r)
+        val w = v.weight ?: return false
+        val reps = v.reps ?: return false
+        if (w <= 0 || reps <= 0) return false
+        val ceiling = recs.filter { it.reps >= reps }.maxOfOrNull { it.weight } ?: 0.0
+        return w > ceiling
+    }
+
+    /** How it felt / where it hurt: the whole answer each time. */
+    fun setFeedback(effort: String?, hurt: String?) {
+        _ui.update { it.copy(effort = effort, hurt = hurt) }
+        viewModelScope.launch {
+            runCatching {
+                session.saveFeedback(FeedbackRequest(date = date, slot = slotId, effort = effort, hurt = hurt))
+            }
+        }
     }
 
     private fun rowsFrom(today: List<MovementSetDto>, last: List<MovementSetDto>): List<SetRow> {
@@ -150,8 +220,8 @@ class MovementSetsViewModel(
 
     private fun num(v: String): Double? = v.trim().toDoubleOrNull()?.takeIf { it > 0 }
 
-    fun valueOf(r: SetRow): MovementSetDto = MovementSetDto(
-        weight = if (metric == "WEIGHT") num(r.w) ?: hintW(r) else null,
+    fun valueOf(r: SetRow, shift: Double = _ui.value.shift): MovementSetDto = MovementSetDto(
+        weight = if (metric == "WEIGHT") num(r.w) ?: hintW(r, shift) else null,
         reps = if (metric == "WEIGHT" || metric == "REPS") num(r.r)?.toInt() ?: r.hintR else null,
         seconds = if (metric == "DURATION") num(r.s)?.toInt() ?: r.hintS else null,
     )
@@ -343,6 +413,7 @@ class MovementSetsViewModel(
                 u.copy(
                     lastSets = last,
                     lastDate = log.last?.date,
+                    records = log.records,
                     rows = u.rows.mapIndexed { i, r ->
                         if (r.saved || typed(r)) r
                         else r.copy(hintW = last.getOrNull(i)?.weight, hintR = last.getOrNull(i)?.reps, hintS = last.getOrNull(i)?.seconds)

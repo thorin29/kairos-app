@@ -2,6 +2,7 @@ package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -225,12 +226,32 @@ private fun muscleLabelFor(raw: String): String =
         .replaceFirstChar { it.uppercase() }
 
 @OptIn(ExperimentalLayoutApi::class)
+/** A rep-range filter pill: filled when chosen. */
+@Composable
+private fun BandChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    Text(
+        label,
+        style = MaterialTheme.typography.labelMedium,
+        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .clip(shape)
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, shape)
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    )
+}
+
 @Composable
 private fun LiftBlock(
     s: ProgressSeriesDto,
 ) {
     val selectedId = s.poolExerciseId
-    val points = s.points
+    // "All", or one rep range so a set of 5 is compared with other sets of 4–6
+    // (server 0.610 `bands`).
+    var band by remember(selectedId) { mutableStateOf("all") }
+    val points = if (band == "all") s.points else s.bands.firstOrNull { it.key == band }?.points ?: emptyList()
     val kg = s.unit == "kg"
     val step = if (kg) 5.0 else 10.0
 
@@ -374,6 +395,19 @@ private fun LiftBlock(
                 LiftRepMaxCard(selected = s)
                 Spacer(Modifier.height(10.dp))
             }
+            if (s.bands.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    (listOf("all" to "All") + s.bands.map { it.key to it.label }).forEach { (key, label) ->
+                        BandChip(label = label, selected = band == key) {
+                            band = key
+                            tapped = null
+                        }
+                    }
+                }
+            }
             Row(Modifier.fillMaxWidth().height(160.dp)) {
                 Column(
                     Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
@@ -444,7 +478,8 @@ private fun LiftBlock(
                             },
                         ) {
                             Text(
-                                "${dateLabel(epochDay(tp.date) ?: 0L)} · ${fmt(tp.value)} ${s.unit}",
+                                "${dateLabel(epochDay(tp.date) ?: 0L)} · ${fmt(tp.value)} ${s.unit}" +
+                                    (tp.reps?.takeIf { it > 0 }?.let { " \u00d7 $it" } ?: ""),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.inverseOnSurface,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

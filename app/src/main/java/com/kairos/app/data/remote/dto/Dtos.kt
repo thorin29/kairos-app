@@ -394,6 +394,48 @@ data class MovementLogDto(
     val loggedAs: LoggedAsDto? = null,
     val last: MovementLastDto? = null,
     val skipped: Boolean = false,
+    /** Best weight at each rep count before this day (server 0.610+). */
+    val records: List<RepRecordDto> = emptyList(),
+    /** How it felt and anything that hurt, once answered (server 0.610+). */
+    val feedback: MovementFeedbackDto? = null,
+)
+
+@Serializable
+data class RepRecordDto(
+    val reps: Int = 0,
+    val weight: Double = 0.0,
+    val date: String = "",
+)
+
+@Serializable
+data class MovementFeedbackDto(
+    val effort: String? = null,
+    val hurt: String? = null,
+)
+
+/** POST workouts/feedback: the whole answer each time; both null clears it. */
+@Serializable
+data class FeedbackRequest(
+    val date: String,
+    val slot: String,
+    val effort: String? = null,
+    val hurt: String? = null,
+)
+
+/** GET workouts/weekly: the last 12 weeks, oldest first. */
+@Serializable
+data class WeeklyTrainingDto(
+    val weeks: List<TrainingWeekDto> = emptyList(),
+    val inARow: Int = 0,
+)
+
+@Serializable
+data class TrainingWeekDto(
+    val start: String = "",
+    val days: Int = 0,
+    val sets: Int = 0,
+    val minutes: Int = 0,
+    val trained: Boolean = false,
 )
 
 /** POST workouts/sets: every saved set of one planned movement, in order.
@@ -551,6 +593,16 @@ data class ProgressSeriesDto(
     val shadeSecondary: List<String> = emptyList(),
     /** Which figure it shows on: "front", "back" or "both". */
     val view: String = "both",
+    /** The line for one rep range at a time ("4–6 reps"), so sets are
+     *  compared with sets like them. Server 0.610+; only ranges with points. */
+    val bands: List<RepBandDto> = emptyList(),
+)
+
+@Serializable
+data class RepBandDto(
+    val key: String = "",
+    val label: String = "",
+    val points: List<GraphPointDto> = emptyList(),
 )
 
 @Serializable

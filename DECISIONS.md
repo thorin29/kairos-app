@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-10 — Records, how it felt, rep ranges, weekly training (v0.418.0 / web 0.610.0)
+
+The set logger shows the record chips from `workouts/sets` `records` under the
+top bar (the mockup's header chips) and "New best for N reps" on a saved set,
+with the web's rules mirrored in `MovementSetsViewModel` (`recordChips`,
+`isNewBest`: records.ts). Once a set is saved, a card asks how it felt and
+whether something hurt; answers go to `workouts/feedback` (queued offline like
+other writes, the whole answer each time) and a queued answer is re-applied on
+reload. "Additional charts" gains the rep-range pills (`bands`), and a tapped
+point shows its reps. The Workouts page gains the Weekly training card
+(`workouts/weekly`, cached like Progress). Needs web 0.610.0.
+
 ## 2026-10 — Set logger: the mockup's top, and a fix for Remaining sets (v0.417.0)
 
 0.416.0 put "Log workout" in the top bar and the movement's name in the page.

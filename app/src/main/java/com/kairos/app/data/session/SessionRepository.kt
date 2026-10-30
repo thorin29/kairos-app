@@ -585,6 +585,15 @@ class SessionRepository(
     suspend fun saveMovementSets(body: com.kairos.app.data.remote.dto.SaveSetsRequest): WorkoutAckDto =
         runAuthed { requireService().saveMovementSets(body) }
 
+    /** How a movement felt, and anything that hurt. The whole answer each
+     *  time, so a copy queued offline is safe to replay. */
+    suspend fun saveFeedback(body: com.kairos.app.data.remote.dto.FeedbackRequest): WorkoutAckDto =
+        runAuthed { requireService().saveFeedback(body) }
+
+    /** The last 12 weeks of training and weeks trained in a row. */
+    suspend fun loadWeeklyTraining(): com.kairos.app.data.remote.dto.WeeklyTrainingDto =
+        runAuthed { requireService().weeklyTraining() }
+
     suspend fun logWorkout(
         date: String,
         plannedWorkoutId: String,
@@ -1080,6 +1089,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 479
+        const val CLIENT_BUILD = 480
     }
 }

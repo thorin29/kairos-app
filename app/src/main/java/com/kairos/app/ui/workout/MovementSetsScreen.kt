@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -73,7 +76,7 @@ import java.time.format.DateTimeFormatter
  * Log stay along the bottom, above the system bar. Log and Back both keep
  * anything typed but not ticked.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MovementSetsScreen(
     date: String,
@@ -234,6 +237,26 @@ fun MovementSetsScreen(
                         )
                     }
 
+                    // Best weight at the usual rep counts; a chip turns green
+                    // with today's weight once it's beaten.
+                    val chips = if (isWeight) vm.recordChips() else emptyList()
+                    if (chips.isNotEmpty()) {
+                        val now = vm.todayAt(ui.shift)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            chips.forEach { c ->
+                                val today = now[c.reps]
+                                RecordChip(
+                                    reps = c.reps,
+                                    weight = if (today != null && today > c.weight) today else c.weight,
+                                    beaten = today != null && today > c.weight,
+                                )
+                            }
+                        }
+                    }
+
                     ui.rows.forEachIndexed { i, r ->
                         SetCard(
                             index = i + 1,
@@ -248,6 +271,7 @@ fun MovementSetsScreen(
                                     "Last time " + MovementSetsViewModel.fmtSet(ui.lastSets[i], metric)
                                 else -> ""
                             },
+                            newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
                             enabled = !ui.skipped,
                         )
                     }
@@ -293,6 +317,15 @@ fun MovementSetsScreen(
                             }
                         }
                     }
+
+                    if (!ui.skipped && ui.rows.any { it.saved }) {
+                        FeedbackCard(
+                            name = if (swapped) ui.doingName ?: name else name,
+                            effort = ui.effort,
+                            hurt = ui.hurt,
+                            onChange = { e, h -> vm.setFeedback(e, h) },
+                        )
+                    }
                 }
             }
         }
@@ -335,6 +368,8 @@ private fun SetCard(
     unit: String,
     shift: Double,
     sub: String,
+    /** Reps of a set no earlier set matched, or null. */
+    newBest: Int?,
     enabled: Boolean,
 ) {
     OutlinedCard(
@@ -440,13 +475,23 @@ private fun SetCard(
                     )
                 }
             }
-            if (sub.isNotBlank()) {
-                Text(
-                    sub,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 24.dp),
-                )
+            if (sub.isNotBlank() || newBest != null) {
+                Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp)) {
+                    Text(
+                        sub,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (newBest != null) {
+                        Text(
+                            "New best for $newBest ${if (newBest == 1) "rep" else "reps"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = goodGreen(),
+                        )
+                    }
+                }
             }
         }
     }
@@ -528,6 +573,141 @@ private fun PillButton(label: String, icon: Boolean = false, tinted: Boolean = f
             label,
             style = MaterialTheme.typography.labelLarge,
             color = if (tinted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** Green for a record, as on the web (emerald). */
+@Composable
+private fun goodGreen() = if (com.kairos.app.ui.theme.KairosThemeState.dark) Color(0xFF6EE7B7) else Color(0xFF047857)
+
+/** "5 reps 165": a best at one rep count. */
+@Composable
+private fun RecordChip(reps: Int, weight: Double, beaten: Boolean) {
+    val shape = RoundedCornerShape(50)
+    Row(
+        Modifier
+            .clip(shape)
+            .background(
+                if (beaten) goodGreen().copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface,
+            )
+            .border(1.dp, if (beaten) goodGreen().copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant, shape)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Text(
+            "$reps ${if (reps == 1) "rep" else "reps"}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            MovementSetsViewModel.fmt(weight),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (beaten) goodGreen() else MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+private val EFFORTS = listOf("EASY" to "Easy", "SOLID" to "Solid", "HARD" to "Hard", "TOO_HARD" to "Too hard")
+private val HURT_AREAS = listOf(
+    "NECK" to "Neck",
+    "SHOULDER" to "Shoulder",
+    "ELBOW" to "Elbow",
+    "WRIST" to "Wrist",
+    "UPPER_BACK" to "Upper back",
+    "LOWER_BACK" to "Lower back",
+    "HIP" to "Hip",
+    "KNEE" to "Knee",
+    "ANKLE" to "Ankle",
+    "OTHER" to "Somewhere else",
+)
+
+/** "How did bench feel?" Easy / Solid / Hard / Too hard, and Something hurt?
+ *  opening the areas. Same words and keys as the web (catalog.ts). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FeedbackCard(
+    name: String,
+    effort: String?,
+    hurt: String?,
+    onChange: (String?, String?) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    OutlinedCard(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("How did ${name.lowercase()} feel?", style = MaterialTheme.typography.titleSmall)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                EFFORTS.forEach { (key, label) ->
+                    ChoicePill(label = label, selected = effort == key) {
+                        onChange(if (effort == key) null else key, hurt)
+                    }
+                }
+            }
+            val hurtLabel = HURT_AREAS.firstOrNull { it.first == hurt }?.second
+            ChoicePill(
+                label = if (hurtLabel != null) "Hurt: ${hurtLabel.lowercase()}" else "Something hurt?",
+                selected = false,
+                warn = hurtLabel != null,
+            ) { open = !open }
+            if (open) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    HURT_AREAS.forEach { (key, label) ->
+                        ChoicePill(label = label, selected = false, warn = hurt == key) {
+                            onChange(effort, if (hurt == key) null else key)
+                            open = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A choice pill: filled when chosen, red-tinted for a hurt area. */
+@Composable
+private fun ChoicePill(label: String, selected: Boolean, warn: Boolean = false, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    val err = MaterialTheme.colorScheme.error
+    Box(
+        Modifier
+            .heightIn(min = 40.dp)
+            .clip(shape)
+            .background(
+                when {
+                    selected -> MaterialTheme.colorScheme.primary
+                    warn -> err.copy(alpha = 0.08f)
+                    else -> MaterialTheme.colorScheme.surface
+                },
+            )
+            .border(
+                1.dp,
+                when {
+                    selected -> MaterialTheme.colorScheme.primary
+                    warn -> err.copy(alpha = 0.4f)
+                    else -> MaterialTheme.colorScheme.outline
+                },
+                shape,
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = when {
+                selected -> MaterialTheme.colorScheme.onPrimary
+                warn -> err
+                else -> MaterialTheme.colorScheme.onSurface
+            },
         )
     }
 }
