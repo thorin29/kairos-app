@@ -360,7 +360,88 @@ data class WorkoutPlanDto(
     val suggestion: SuggestionDto? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
+    /** Section order for this weekday: WARMUP, CARDIO, STRENGTH, CONDITIONING,
+     *  STRETCH, SPORT (server 0.615+; empty on an older server). */
+    val order: List<String> = emptyList(),
+    /** The day's Warm-up and Cardio plans, which hold no movements. */
+    val simple: List<SimplePlanDto> = emptyList(),
+    /** Everything rowed, run, rucked or otherwise done that day. */
+    val cardio: List<CardioEntryDto> = emptyList(),
 )
+
+/** A Warm-up or Cardio plan for the day (server 0.615+). */
+@Serializable
+data class SimplePlanDto(
+    val plannedWorkoutId: String = "",
+    val name: String = "",
+    /** WARMUP or CARDIO. */
+    val category: String = "",
+    val done: Boolean = false,
+    val skipped: Boolean = false,
+)
+
+@Serializable
+data class CardioConcept2Dto(
+    val resultId: String = "",
+    /** The hand entry it replaced ("1,500 m"): Undo puts it back. */
+    val replaced: String? = null,
+)
+
+/** One cardio session on the day (server 0.615+). */
+@Serializable
+data class CardioEntryDto(
+    val sessionId: String = "",
+    val name: String = "",
+    /** "2,000 m · 7:45 · 1:56.3 /500m". */
+    val summary: String = "",
+    val concept2: CardioConcept2Dto? = null,
+    val effort: String? = null,
+    val hurt: String? = null,
+)
+
+/** POST workouts/cardio. activity: row, run, ruck, jump_rope, bike, other. */
+@Serializable
+data class CardioLogRequest(
+    val date: String,
+    val activity: String,
+    val meters: Double? = null,
+    val distance: Double? = null,
+    val seconds: Int? = null,
+    val load: Double? = null,
+    val completedOn: String? = null,
+)
+
+@Serializable
+data class CardioRemoveRequest(val date: String, val sessionId: String)
+
+@Serializable
+data class CardioDayDto(val date: String = "", val cardio: List<CardioEntryDto> = emptyList())
+
+@Serializable
+data class WarmupRequest(
+    val date: String,
+    val plannedWorkoutId: String,
+    val done: Boolean,
+    val completedOn: String? = null,
+)
+
+/** Section orders: every day's, and weekdays ("0".."6") with their own. */
+@Serializable
+data class DayOrdersDto(
+    val everyDay: List<String> = emptyList(),
+    val days: Map<String, List<String>> = emptyMap(),
+)
+
+/** POST workouts/order. day null = every day; order null = reset. */
+@Serializable
+data class DayOrderRequest(val day: Int? = null, val order: List<String>? = null)
+
+/** POST workouts/plan/scheme. scheme "" = any sets. */
+@Serializable
+data class PlanSchemeRequest(val plannedWorkoutId: String, val poolExerciseId: String, val scheme: String)
+
+@Serializable
+data class SchemeChoiceDto(val key: String = "", val label: String = "")
 
 @Serializable
 data class WorkoutStripDto(
@@ -841,6 +922,8 @@ data class PlanCategoryDto(
     val kind: String,
     val metrics: List<PlanMetricDto> = emptyList(),
     val defaultMetric: String = "",
+    /** Warm-up or Cardio: nothing to pick (server 0.615+). */
+    val simple: Boolean = false,
 )
 
 @Serializable
@@ -868,6 +951,8 @@ data class PlanOptionsDto(
     val muscleGroups: List<MuscleGroupDto> = emptyList(),
     val exercises: List<PlanExerciseDto> = emptyList(),
     val hiitWorkouts: List<HiitOptionDto> = emptyList(),
+    /** Set structures a weights movement can take (server 0.615+). */
+    val schemes: List<SchemeChoiceDto> = emptyList(),
 )
 
 @Serializable
@@ -875,6 +960,8 @@ data class AddPoolExercise(
     val poolExerciseId: String,
     val tracked: Boolean = true,
     val metric: String? = null,
+    /** "same:3x5", "range:3x8-12", "wave"; "" = any sets (server 0.615+). */
+    val scheme: String = "",
 )
 
 @Serializable
@@ -894,6 +981,22 @@ data class PlanWorkoutDto(
     val name: String,
     val isRest: Boolean = false,
     val detail: String = "",
+    /** Its section on the day (WARMUP, CARDIO, STRENGTH…) and category (server 0.615+). */
+    val kind: String = "",
+    val category: String? = null,
+    val exercises: List<PlanMovementDto> = emptyList(),
+)
+
+/** A movement in the plan, with its set structure (server 0.615+). */
+@Serializable
+data class PlanMovementDto(
+    val poolExerciseId: String = "",
+    val name: String = "",
+    val tracked: Boolean = true,
+    /** "" any sets, "same:3x5", "wave"… */
+    val scheme: String = "",
+    /** A weights movement logged by weight: it can take a set structure. */
+    val weights: Boolean = false,
 )
 
 @Serializable

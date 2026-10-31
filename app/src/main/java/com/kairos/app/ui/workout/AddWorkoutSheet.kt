@@ -35,7 +35,7 @@ import com.kairos.app.data.remote.dto.AddPoolExercise
 import com.kairos.app.data.remote.dto.AddPoolRequest
 import com.kairos.app.data.remote.dto.PlanOptionsDto
 
-private data class Pick(val tracked: Boolean, val metric: String)
+private data class Pick(val tracked: Boolean, val metric: String, val scheme: String = "")
 private val DAY_LABELS = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
 /** A movement that sits in no muscle group charts as its own progress block. */
@@ -89,7 +89,14 @@ fun AddWorkoutSheet(
                     category = categoryKey,
                     muscleGroup = if (kind == "weights") muscleKey.ifBlank { null } else null,
                     exercises = if (kind == "metricOnly") emptyList()
-                    else picked.map { (id, p) -> AddPoolExercise(id, p.tracked, p.metric) },
+                    else picked.map { (id, p) ->
+                        AddPoolExercise(
+                            poolExerciseId = id,
+                            tracked = p.tracked,
+                            metric = p.metric,
+                            scheme = if (kind == "weights" && p.tracked && p.metric == "WEIGHT") p.scheme else "",
+                        )
+                    },
                 ),
             )
         }
@@ -142,6 +149,7 @@ fun AddWorkoutSheet(
                         defMetric = defMetric,
                         own = ownMetrics,
                         about = exercises.associate { it.id to it.about },
+                        schemes = options.schemes,
                     ) { picked = it }
                 }
                 kind == "hiit" -> {
@@ -156,6 +164,8 @@ fun AddWorkoutSheet(
                         )
                     }
                 }
+                // Warm-up and Cardio: nothing to pick.
+                category?.simple == true -> Unit
                 kind == "metricOnly" -> Note("Adds a ${category?.label?.lowercase() ?: ""} day — you'll log it on completion.")
                 else -> {
                     if (exercises.isEmpty()) Note("No ${category?.label?.lowercase() ?: ""} movements in the pool yet.")
@@ -199,6 +209,8 @@ private fun ExerciseList(
     defMetric: String,
     own: Map<String, String> = emptyMap(),
     about: Map<String, String?> = emptyMap(),
+    /** Set structures, offered on weights movements logged by weight. */
+    schemes: List<com.kairos.app.data.remote.dto.SchemeChoiceDto> = emptyList(),
     onChange: (Map<String, Pick>) -> Unit,
 ) {
     var peek by remember { mutableStateOf<String?>(null) }
@@ -271,6 +283,22 @@ private fun ExerciseList(
                             )
                         } else if (p.tracked && metrics.size == 1) {
                             Text(metrics[0].label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    if (schemes.isNotEmpty() && p.tracked && p.metric == "WEIGHT") {
+                        Row(
+                            Modifier.padding(start = 24.dp, top = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("Sets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Dropdown(
+                                label = "",
+                                selected = schemes.firstOrNull { it.key == p.scheme }?.label ?: "Any sets",
+                                options = schemes.map { it.key to it.label },
+                                onSelect = { onChange(picked + (id to p.copy(scheme = it))) },
+                                compact = true,
+                            )
                         }
                     }
                 }

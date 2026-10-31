@@ -610,6 +610,42 @@ class SessionRepository(
             )
         }
 
+    /** Log a row, run, ruck or other cardio for a day; returns the day's cardio. */
+    suspend fun logCardio(body: com.kairos.app.data.remote.dto.CardioLogRequest): List<com.kairos.app.data.remote.dto.CardioEntryDto> =
+        runAuthed { requireService().logCardio(body) }.cardio
+
+    suspend fun removeCardio(date: String, sessionId: String): List<com.kairos.app.data.remote.dto.CardioEntryDto> =
+        runAuthed { requireService().removeCardio(com.kairos.app.data.remote.dto.CardioRemoveRequest(date = date, sessionId = sessionId)) }.cardio
+
+    suspend fun setWarmup(date: String, plannedWorkoutId: String, done: Boolean, completedOn: String?): WorkoutAckDto =
+        runAuthed {
+            requireService().setWarmup(
+                com.kairos.app.data.remote.dto.WarmupRequest(
+                    date = date,
+                    plannedWorkoutId = plannedWorkoutId,
+                    done = done,
+                    completedOn = completedOn,
+                ),
+            )
+        }
+
+    suspend fun dayOrders(): com.kairos.app.data.remote.dto.DayOrdersDto =
+        runAuthed { requireService().dayOrders() }
+
+    suspend fun saveDayOrder(day: Int?, order: List<String>?): com.kairos.app.data.remote.dto.DayOrdersDto =
+        runAuthed { requireService().saveDayOrder(com.kairos.app.data.remote.dto.DayOrderRequest(day = day, order = order)) }
+
+    suspend fun setPlanScheme(plannedWorkoutId: String, poolExerciseId: String, scheme: String): WorkoutAckDto =
+        runAuthed {
+            requireService().setPlanScheme(
+                com.kairos.app.data.remote.dto.PlanSchemeRequest(
+                    plannedWorkoutId = plannedWorkoutId,
+                    poolExerciseId = poolExerciseId,
+                    scheme = scheme,
+                ),
+            )
+        }
+
     /** Concept2 Logbook: connected or not (the token never comes back). */
     suspend fun concept2Status(): com.kairos.app.data.remote.dto.Concept2StatusDto =
         runAuthed { requireService().concept2Status() }
@@ -1133,6 +1169,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 484
+        const val CLIENT_BUILD = 485
     }
 }

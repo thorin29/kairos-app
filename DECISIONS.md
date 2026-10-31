@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-10 — Cardio, Warm-up, day order and set structure on the phone (v0.423.0 / web 0.615.0)
+
+The day screen orders its sections by the server's `order` (mirrored
+`sectionOrder` = the web's cleanOrder) and adds a Warm-up and a Cardio section
+from `simple` plans and the day's `cardio`, since those plans hold no
+movements. `CardioBlock` replaces Concept2Rows: the day's cardio with "How did
+it feel?" (`EffortChooser`, shared with the set logger and the home sport
+prompt), Add cardio, Skip for a Cardio plan with nothing logged, and "Check
+Concept2 now". Cardio, warm-up and skips are online only (like Undo); the
+reload after each keeps the progress bar right. The plan screen gets "Order of
+the day", "Order" per day, and a Sets choice on each weights movement (when
+adding it and later). After "Did you do it? Yes" on Home, "How hard was it?"
+stays until answered or skipped.
+
 ## 2026-10 — Concept2 on the phone (v0.422.0 / web 0.614.0)
 
 Settings → Concept2 connects with the Logbook token (sent once, never shown

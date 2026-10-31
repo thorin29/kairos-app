@@ -194,7 +194,10 @@ fun WorkoutLogScreen(
                             date = d,
                             today = today,
                             title = ui.title.ifBlank { ui.planName ?: if (todayBlocks.isEmpty()) "Nothing planned" else "Workout" },
-                            progress = dayProgress(todayBlocks),
+                            progress = dayProgress(todayBlocks).let { (d, t) ->
+                                // Warm-up and Cardio plans count like any block.
+                                (d + ui.simple.count { it.done || it.skipped }) to (t + ui.simple.size)
+                            },
                             strip = ui.strip,
                             programLine = ui.programLine,
                             light = ui.light,
@@ -226,41 +229,51 @@ fun WorkoutLogScreen(
                         }
                     }
 
-                    val c2 = ui.concept2
-                    val todaySections = daySections(todayBlocks)
+                    val simpleKinds = buildSet {
+                        ui.simple.forEach { add(if (it.category == "WARMUP") "WARMUP" else "CARDIO") }
+                        if (ui.cardio.isNotEmpty()) add("CARDIO")
+                    }
+                    val todaySections = daySections(todayBlocks, ui.order, simpleKinds)
                     todaySections.forEach { section ->
-                        DaySectionView(
-                            label = section.title,
-                            section = section,
-                            overdue = false,
-                            vm = vm,
-                            onOpenCalculatorFor = openCalc,
-                            onOpenSets = openSets,
-                        )
-                        if (section.key == "k:CARDIO" && c2 != null) {
-                            Concept2Rows(
-                                day = c2,
-                                checking = ui.concept2Checking,
-                                onCheck = { vm.checkConcept2(force = true) },
-                                onUndo = { vm.undoConcept2(it) },
+                        if (section.blocks.isEmpty()) {
+                            SectionLabel(section.title)
+                        } else {
+                            DaySectionView(
+                                label = section.title,
+                                section = section,
+                                overdue = false,
+                                vm = vm,
+                                onOpenCalculatorFor = openCalc,
+                                onOpenSets = openSets,
                             )
                         }
-                    }
-                    if (c2 != null && c2.rows.isNotEmpty() && todaySections.none { it.key == "k:CARDIO" }) {
-                        Text(
-                            "EXTRA",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp, start = 2.dp),
-                        )
-                        Concept2Rows(
-                            day = c2,
-                            checking = ui.concept2Checking,
-                            onCheck = { vm.checkConcept2(force = true) },
-                            onUndo = { vm.undoConcept2(it) },
-                        )
+                        when (section.kind) {
+                            "WARMUP" -> ui.simple.filter { it.category == "WARMUP" }.forEach { w ->
+                                WarmupCard(
+                                    plan = w,
+                                    onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
+                                    onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
+                                )
+                            }
+                            "CARDIO" -> CardioBlock(
+                                entries = ui.cardio,
+                                concept2 = ui.concept2,
+                                checking = ui.concept2Checking,
+                                saving = ui.cardioSaving,
+                                error = ui.cardioError,
+                                skippedPlan = ui.simple.firstOrNull { it.category == "CARDIO" && it.skipped && ui.cardio.isEmpty() },
+                                onCheck = { vm.checkConcept2(force = true) },
+                                onUndo = { vm.undoConcept2(it) },
+                                onRemove = { vm.removeCardio(it) },
+                                onFeedback = { id, e, h -> vm.cardioFeedback(sessionId = id, effort = e, hurt = h) },
+                                onLog = { a, m, dist, sec, load, done ->
+                                    vm.logCardio(activity = a, meters = m, distance = dist, seconds = sec, carried = load, onDone = done)
+                                },
+                                onSkip = ui.simple.firstOrNull { it.category == "CARDIO" }?.let { p ->
+                                    { skipped: Boolean -> vm.setSimpleSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = skipped) }
+                                },
+                            )
+                        }
                     }
 
                     if (ui.actionError != null) {
@@ -476,15 +489,34 @@ private fun BlockBody(
 }
 
 /** One section of the day: "Chest", "Cardio"… and what's in it. */
-private data class DaySectionUi(val key: String, val title: String, val blocks: List<WorkoutBlock>)
+private data class DaySectionUi(
+    val key: String,
+    val title: String,
+    val blocks: List<WorkoutBlock>,
+    val kind: String = "STRENGTH",
+)
 
-private val SECTION_ORDER = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "SPORT", "OTHER")
+/** The default order (blocks.ts DEFAULT_ORDER); the server sends the person's. */
+private val DEFAULT_ORDER = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "STRETCH", "SPORT")
+
+/** The person's order made whole: known kinds once, missing ones where the
+ *  default has them (blocks.ts cleanOrder), then OTHER. */
+private fun sectionOrder(order: List<String>): List<String> {
+    val out = order.filter { it in DEFAULT_ORDER }.distinct().toMutableList()
+    DEFAULT_ORDER.forEachIndexed { at, k ->
+        if (k in out) return@forEachIndexed
+        val after = out.indexOfLast { DEFAULT_ORDER.indexOf(it) < at }
+        out.add(after + 1, k)
+    }
+    return out + "OTHER"
+}
 
 /** Which section a plan belongs in, from its category — blocks.ts blockKind. */
 private fun blockKind(b: WorkoutBlock): String = when (b.category) {
     "HIIT" -> "CONDITIONING"
-    "ROWING", "RUNNING", "RUCKING" -> "CARDIO"
-    "STRETCHING" -> "WARMUP"
+    "CARDIO", "ROWING", "RUNNING", "RUCKING" -> "CARDIO"
+    "WARMUP" -> "WARMUP"
+    "STRETCHING" -> "STRETCH"
     "SPORT" -> "SPORT"
     null, "WEIGHTS", "ISOMETRIC" -> "STRENGTH"
     else -> "OTHER"
@@ -494,13 +526,20 @@ private val KIND_TITLE = mapOf(
     "WARMUP" to "Warm-up",
     "CARDIO" to "Cardio",
     "CONDITIONING" to "Conditioning",
+    "STRETCH" to "Stretching",
     "SPORT" to "Sport",
     "OTHER" to "Other",
 )
 
-/** The day's sections, in the web's order (blocks.ts daySections): strength
- *  by muscle group, two plans for the same group in one section. */
-private fun daySections(blocks: List<WorkoutBlock>): List<DaySectionUi> {
+/** The day's sections, in the person's order (blocks.ts daySections): strength
+ *  by muscle group, two plans for the same group in one section. Warm-up and
+ *  Cardio plans hold no movements, so they come as [simpleKinds]: a section
+ *  each, with no blocks (blocks.ts withCardio for cardio done unplanned). */
+private fun daySections(
+    blocks: List<WorkoutBlock>,
+    order: List<String> = DEFAULT_ORDER,
+    simpleKinds: Set<String> = emptySet(),
+): List<DaySectionUi> {
     val seen = LinkedHashMap<String, Pair<String, DaySectionUi>>()
     blocks.forEach { b ->
         val kind = blockKind(b)
@@ -518,10 +557,16 @@ private fun daySections(blocks: List<WorkoutBlock>): List<DaySectionUi> {
         val cur = seen[key]?.second
         seen[key] = kind to (
             if (cur != null) cur.copy(blocks = cur.blocks + b)
-            else DaySectionUi(key = key, title = title, blocks = listOf(b))
+            else DaySectionUi(key = key, title = title, blocks = listOf(b), kind = kind)
             )
     }
-    return SECTION_ORDER.flatMap { k -> seen.values.filter { it.first == k }.map { it.second } }
+    simpleKinds.forEach { kind ->
+        val key = "k:$kind"
+        if (seen[key] == null) {
+            seen[key] = kind to DaySectionUi(key = key, title = KIND_TITLE[kind] ?: kind, blocks = emptyList(), kind = kind)
+        }
+    }
+    return sectionOrder(order).flatMap { k -> seen.values.filter { it.first == k }.map { it.second } }
 }
 
 /** A strength plan whose every tracked movement is logged set by set — the

@@ -705,8 +705,8 @@ private fun RecordChip(reps: Int, weight: Double, beaten: Boolean) {
     }
 }
 
-private val EFFORTS = listOf("EASY" to "Easy", "SOLID" to "Solid", "HARD" to "Hard", "TOO_HARD" to "Too hard")
-private val HURT_AREAS = listOf(
+internal val EFFORTS = listOf("EASY" to "Easy", "SOLID" to "Solid", "HARD" to "Hard", "TOO_HARD" to "Too hard")
+internal val HURT_AREAS = listOf(
     "NECK" to "Neck",
     "SHOULDER" to "Shoulder",
     "ELBOW" to "Elbow",
@@ -729,36 +729,56 @@ private fun FeedbackCard(
     hurt: String?,
     onChange: (String?, String?) -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
     OutlinedCard(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("How did ${name.lowercase()} feel?", style = MaterialTheme.typography.titleSmall)
+        Column(Modifier.padding(14.dp)) {
+            EffortChooser(
+                question = "How did ${name.lowercase()} feel?",
+                effort = effort,
+                hurt = hurt,
+                onChange = onChange,
+            )
+        }
+    }
+}
+
+/** The question, the effort pills and "Something hurt?": the set logger's
+ *  card, a cardio entry and a sport event (v0.422+) all use it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun EffortChooser(
+    question: String,
+    effort: String?,
+    hurt: String?,
+    onChange: (String?, String?) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(question, style = MaterialTheme.typography.titleSmall)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            EFFORTS.forEach { (key, label) ->
+                ChoicePill(label = label, selected = effort == key) {
+                    onChange(if (effort == key) null else key, hurt)
+                }
+            }
+        }
+        val hurtLabel = HURT_AREAS.firstOrNull { it.first == hurt }?.second
+        ChoicePill(
+            label = if (hurtLabel != null) "Hurt: ${hurtLabel.lowercase()}" else "Something hurt?",
+            selected = false,
+            warn = hurtLabel != null,
+        ) { open = !open }
+        if (open) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                EFFORTS.forEach { (key, label) ->
-                    ChoicePill(label = label, selected = effort == key) {
-                        onChange(if (effort == key) null else key, hurt)
-                    }
-                }
-            }
-            val hurtLabel = HURT_AREAS.firstOrNull { it.first == hurt }?.second
-            ChoicePill(
-                label = if (hurtLabel != null) "Hurt: ${hurtLabel.lowercase()}" else "Something hurt?",
-                selected = false,
-                warn = hurtLabel != null,
-            ) { open = !open }
-            if (open) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    HURT_AREAS.forEach { (key, label) ->
-                        ChoicePill(label = label, selected = false, warn = hurt == key) {
-                            onChange(effort, if (hurt == key) null else key)
-                            open = false
-                        }
+                HURT_AREAS.forEach { (key, label) ->
+                    ChoicePill(label = label, selected = false, warn = hurt == key) {
+                        onChange(effort, if (hurt == key) null else key)
+                        open = false
                     }
                 }
             }
@@ -768,7 +788,7 @@ private fun FeedbackCard(
 
 /** A choice pill: filled when chosen, red-tinted for a hurt area. */
 @Composable
-private fun ChoicePill(label: String, selected: Boolean, warn: Boolean = false, onClick: () -> Unit) {
+internal fun ChoicePill(label: String, selected: Boolean, warn: Boolean = false, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     val err = MaterialTheme.colorScheme.error
     Box(

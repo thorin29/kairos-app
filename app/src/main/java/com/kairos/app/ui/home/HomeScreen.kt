@@ -261,9 +261,24 @@ private fun DashboardContent(
                 item(key = "bars") { CategoryBars(d.categories) }
             }
 
-            if (d.sportPrompts.isNotEmpty()) {
+            if (d.sportPrompts.isNotEmpty() || ui.sportFeel.isNotEmpty()) {
                 item(key = "sport-prompts") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ui.sportFeel.forEach { f ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    com.kairos.app.ui.workout.EffortChooser(
+                                        question = "How hard was ${f.title.ifBlank { "it" }}?",
+                                        effort = f.effort,
+                                        hurt = f.hurt,
+                                        onChange = { e, h -> vm.sportFeedback(eventId = f.eventId, effort = e, hurt = h) },
+                                    )
+                                    androidx.compose.material3.TextButton(onClick = { vm.closeSportFeel(f.eventId) }) {
+                                        Text(if (f.effort != null || f.hurt != null) "Done" else "Skip")
+                                    }
+                                }
+                            }
+                        }
                         d.sportPrompts.forEach { p ->
                             SportPromptCard(p, d.date, ui.busyIds.contains("sport-${p.eventId}-${p.dateISO}"), vm)
                         }

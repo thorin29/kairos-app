@@ -121,6 +121,14 @@ data class WorkoutLogUiState(
     val concept2Checking: Boolean = false,
     /** The day [concept2] belongs to. */
     val concept2Day: String? = null,
+    /** Section order for the day (server 0.615+; empty = the default). */
+    val order: List<String> = emptyList(),
+    /** The day's Warm-up and Cardio plans. */
+    val simple: List<com.kairos.app.data.remote.dto.SimplePlanDto> = emptyList(),
+    /** The day's cardio entries, Concept2 rows included. */
+    val cardio: List<com.kairos.app.data.remote.dto.CardioEntryDto> = emptyList(),
+    val cardioSaving: Boolean = false,
+    val cardioError: String? = null,
 )
 
 /**
@@ -306,7 +314,102 @@ class WorkoutLogViewModel(
                 programLine = plan.program?.let { "${it.name} \u00b7 ${it.label}" } ?: "",
                 suggestion = plan.suggestion,
                 light = plan.light,
+                order = plan.order,
+                simple = plan.simple,
+                cardio = plan.cardio,
             )
+        }
+    }
+
+    /** Log a row, run, ruck or other cardio for the screen's day. */
+    fun logCardio(activity: String, meters: Double?, distance: Double?, seconds: Int?, carried: Double?, onDone: () -> Unit) {
+        val d = date ?: return
+        val today = java.time.LocalDate.now().toString()
+        _ui.update { it.copy(cardioSaving = true, cardioError = null) }
+        viewModelScope.launch {
+            try {
+                val list = session.logCardio(
+                    com.kairos.app.data.remote.dto.CardioLogRequest(
+                        date = d,
+                        activity = activity,
+                        meters = meters,
+                        distance = distance,
+                        seconds = seconds,
+                        load = carried,
+                        completedOn = if (d < today) today else null,
+                    ),
+                )
+                _ui.update { it.copy(cardio = list, cardioSaving = false) }
+                onDone()
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(cardioSaving = false, cardioError = e.error.message) }
+            }
+        }
+    }
+
+    fun removeCardio(sessionId: String) {
+        val d = date ?: return
+        viewModelScope.launch {
+            try {
+                val list = session.removeCardio(date = d, sessionId = sessionId)
+                _ui.update { it.copy(cardio = list) }
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(cardioError = e.error.message) }
+            }
+        }
+    }
+
+    /** How a cardio entry felt, and anything that hurt (feeds the suggestions). */
+    fun cardioFeedback(sessionId: String, effort: String?, hurt: String?) {
+        val d = date ?: return
+        _ui.update { u ->
+            u.copy(cardio = u.cardio.map { if (it.sessionId == sessionId) it.copy(effort = effort, hurt = hurt) else it })
+        }
+        viewModelScope.launch {
+            runCatching {
+                session.saveFeedback(
+                    com.kairos.app.data.remote.dto.FeedbackRequest(
+                        date = d,
+                        slot = "cardio:$sessionId",
+                        effort = effort,
+                        hurt = hurt,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** A Warm-up done (or not). */
+    fun setWarmup(plannedWorkoutId: String, done: Boolean) {
+        val d = date ?: return
+        val today = java.time.LocalDate.now().toString()
+        _ui.update { u ->
+            u.copy(simple = u.simple.map { if (it.plannedWorkoutId == plannedWorkoutId) it.copy(done = done) else it })
+        }
+        viewModelScope.launch {
+            runCatching {
+                session.setWarmup(
+                    date = d,
+                    plannedWorkoutId = plannedWorkoutId,
+                    done = done,
+                    completedOn = if (d < today) today else null,
+                )
+            }
+            load()
+        }
+    }
+
+    /** Skip (or un-skip) a Warm-up or Cardio plan for the day. */
+    fun setSimpleSkipped(plannedWorkoutId: String, skipped: Boolean) {
+        val d = date ?: return
+        _ui.update { u ->
+            u.copy(simple = u.simple.map { if (it.plannedWorkoutId == plannedWorkoutId) it.copy(skipped = skipped) else it })
+        }
+        viewModelScope.launch {
+            runCatching { session.workoutSkip(d, plannedWorkoutId, "", skipped) }
+            load()
         }
     }
 

@@ -151,8 +151,18 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             }
                         }
                     }
+                    ui.orders?.let { orders ->
+                        item(key = "order") {
+                            EveryDayOrder(order = orders.everyDay, onSave = { vm.saveOrder(day = null, order = it) })
+                        }
+                    }
                     items(ui.days, key = { it.day }) { d ->
                         DayCard(
+                            order = ui.orders?.let { o -> o.days[d.day.toString()] },
+                            everyDay = ui.orders?.everyDay,
+                            onOrder = { vm.saveOrder(day = d.day, order = it) },
+                            schemes = ui.options?.schemes.orEmpty(),
+                            onScheme = { pw, ex, sc -> vm.setScheme(plannedWorkoutId = pw, poolExerciseId = ex, scheme = sc) },
                             day = d,
                             isToday = d.day == todayDow,
                             others = ui.days.filter { it.day != d.day && it.workouts.isNotEmpty() },
@@ -184,6 +194,12 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
 
 @Composable
 private fun DayCard(
+    /** This day's own order, or null for every day's; [everyDay] null = an older server. */
+    order: List<String>?,
+    everyDay: List<String>?,
+    onOrder: (List<String>?) -> Unit,
+    schemes: List<com.kairos.app.data.remote.dto.SchemeChoiceDto>,
+    onScheme: (String, String, String) -> Unit,
     day: PlanDayDto,
     isToday: Boolean,
     others: List<PlanDayDto>,
@@ -194,6 +210,10 @@ private fun DayCard(
 ) {
     val hasRest = day.workouts.any { it.isRest }
     var pendingRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var ordering by remember { mutableStateOf(false) }
+    val dayOrder = order ?: everyDay ?: PLAN_KINDS
+    // Listed the way the day shows them: by section, in this day's order.
+    val listed = day.workouts.sortedBy { w -> if (w.isRest) -1 else dayOrder.indexOf(w.kind.ifBlank { "STRENGTH" }) }
     Column(
         Modifier
             .fillMaxWidth()
@@ -217,12 +237,32 @@ private fun DayCard(
                 )
             }
             Box(Modifier.weight(1f))
+            if (everyDay != null && day.workouts.any { !it.isRest }) {
+                Text(
+                    if (order != null) "Own order" else "Order",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clickable { ordering = !ordering }.padding(4.dp),
+                )
+            }
             if (others.isNotEmpty()) {
                 CopyFromMenu(others, onCopyFrom)
             }
         }
 
-        day.workouts.forEach { w ->
+        if (ordering && everyDay != null) {
+            Text(
+                "${DAY_NAMES[day.day].uppercase()} ONLY",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OrderList(order = dayOrder, onSave = { onOrder(it) })
+            if (order != null) {
+                TextButton(onClick = { onOrder(null) }) { Text("Use the order of every day") }
+            }
+        }
+
+        listed.forEach { w ->
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -232,8 +272,32 @@ private fun DayCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(w.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    if (w.detail.isNotBlank()) {
+                    val kindLabel = KIND_LABELS[w.kind]?.takeIf { w.kind != "STRENGTH" && it != w.name }
+                    Text(
+                        if (kindLabel != null) "${w.name}  ·  $kindLabel" else w.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    val withSchemes = schemes.isNotEmpty() && w.exercises.any { it.weights }
+                    if (withSchemes) {
+                        w.exercises.forEach { e ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    if (e.tracked) e.name else "${e.name} (no log)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (e.weights) {
+                                    SchemeMenu(
+                                        schemes = schemes,
+                                        selected = e.scheme,
+                                        onPick = { onScheme(w.id, e.poolExerciseId, it) },
+                                    )
+                                }
+                            }
+                        }
+                    } else if (w.detail.isNotBlank()) {
                         Text(w.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -266,6 +330,101 @@ private fun DayCard(
                 TextButton(onClick = { pendingRemove = null }) { Text("Cancel") }
             },
         )
+    }
+}
+
+/** The sections a day can hold, in the default order (the web's blocks.ts). */
+private val PLAN_KINDS = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "STRETCH", "SPORT")
+
+private val KIND_LABELS = mapOf(
+    "WARMUP" to "Warm-up",
+    "CARDIO" to "Cardio",
+    "STRENGTH" to "Strength (each muscle group)",
+    "CONDITIONING" to "Conditioning",
+    "STRETCH" to "Stretching",
+    "SPORT" to "Sport",
+)
+
+/** "Order of the day": every day's section order, opened to change it. */
+@Composable
+private fun EveryDayOrder(order: List<String>, onSave: (List<String>) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(Modifier.fillMaxWidth().clickable { open = !open }) {
+            Text("Order of the day", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                order.joinToString(" → ") { (KIND_LABELS[it] ?: it).removeSuffix(" (each muscle group)") },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (open) OrderList(order = order, onSave = onSave)
+    }
+}
+
+/** The sections in order, each with up and down. */
+@Composable
+private fun OrderList(order: List<String>, onSave: (List<String>) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        order.forEachIndexed { i, k ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .padding(start = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("${i + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    KIND_LABELS[k] ?: k,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f).padding(start = 10.dp),
+                )
+                TextButton(
+                    onClick = { onSave(order.toMutableList().also { it[i] = order[i - 1]; it[i - 1] = k }) },
+                    enabled = i > 0,
+                ) { Text("↑") }
+                TextButton(
+                    onClick = { onSave(order.toMutableList().also { it[i] = order[i + 1]; it[i + 1] = k }) },
+                    enabled = i < order.size - 1,
+                ) { Text("↓") }
+            }
+        }
+    }
+}
+
+/** A weights movement's set structure: Any sets, 3 × 5, 5/3/1 wave… */
+@Composable
+private fun SchemeMenu(
+    schemes: List<com.kairos.app.data.remote.dto.SchemeChoiceDto>,
+    selected: String,
+    onPick: (String) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Text(
+            (schemes.firstOrNull { it.key == selected }?.label ?: "Any sets") + " ▾",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable { open = true }.padding(horizontal = 6.dp, vertical = 4.dp),
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            schemes.forEach { c ->
+                DropdownMenuItem(
+                    text = { Text(c.label) },
+                    onClick = { onPick(c.key); open = false },
+                )
+            }
+        }
     }
 }
 

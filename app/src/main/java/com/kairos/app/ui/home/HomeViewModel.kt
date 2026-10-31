@@ -38,6 +38,17 @@ data class HomeUiState(
     /** Task ids with an in-flight complete/uncomplete, for per-row spinners. */
     val busyIds: Set<String> = emptySet(),
     val signingOut: Boolean = false,
+    /** Sport events just confirmed, asking how hard they were (v0.422). */
+    val sportFeel: List<SportFeel> = emptyList(),
+)
+
+/** "How hard was hockey?" after Yes: the answer feeds the lighter-day suggestions. */
+data class SportFeel(
+    val eventId: String,
+    val title: String,
+    val dateISO: String,
+    val effort: String? = null,
+    val hurt: String? = null,
 )
 
 class HomeViewModel(
@@ -343,12 +354,45 @@ class HomeViewModel(
         viewModelScope.launch {
             try {
                 if (done) session.sportConfirm(eventId, date) else session.sportDecline(eventId, date)
+                val title = _ui.value.dashboard?.sportPrompts?.firstOrNull { it.eventId == eventId }?.title.orEmpty()
                 val data = freshDashboard()
-                _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - key) }
+                _ui.update {
+                    it.copy(
+                        dashboard = data,
+                        busyIds = it.busyIds - key,
+                        sportFeel = if (done && date != null) {
+                            it.sportFeel + SportFeel(eventId = eventId, title = title, dateISO = date)
+                        } else {
+                            it.sportFeel
+                        },
+                    )
+                }
             } catch (e: ApiException) {
                 _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
             }
         }
+    }
+
+    /** How hard a confirmed sport event was (and anything that hurt). */
+    fun sportFeedback(eventId: String, effort: String?, hurt: String?) {
+        val f = _ui.value.sportFeel.firstOrNull { it.eventId == eventId } ?: return
+        _ui.update { u -> u.copy(sportFeel = u.sportFeel.map { if (it.eventId == eventId) it.copy(effort = effort, hurt = hurt) else it }) }
+        viewModelScope.launch {
+            runCatching {
+                session.saveFeedback(
+                    com.kairos.app.data.remote.dto.FeedbackRequest(
+                        date = f.dateISO,
+                        slot = "sport:$eventId",
+                        effort = effort,
+                        hurt = hurt,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun closeSportFeel(eventId: String) {
+        _ui.update { u -> u.copy(sportFeel = u.sportFeel.filterNot { it.eventId == eventId }) }
     }
 
     /** Take an up-for-grabs chore for yourself AND complete it in one tap, then reload. */

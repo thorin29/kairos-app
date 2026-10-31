@@ -1,4 +1,11 @@
 # Changelog
+## 0.423.0
+
+- New in the plan: Cardio (any row, run, ruck or jump rope fills it, Concept2 included) and Warm-up (done with a tap).
+- Set the order of your workout day once for every day, or differently for one day.
+- Pick how a lift is done in your plan: 3 × 5, 5 × 5, 3 × 8–12 or a 5/3/1 wave.
+- Say how cardio and games felt: Easy, Solid, Hard or Too hard.
+
 ## 0.422.0
 
 - Connect Concept2 under Settings → Concept2 and your rows show up in the day's Cardio on their own.
