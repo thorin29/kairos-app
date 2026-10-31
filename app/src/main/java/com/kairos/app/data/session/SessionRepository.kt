@@ -629,6 +629,30 @@ class SessionRepository(
             )
         }
 
+    /** Pick one: the workouts, the starting version and the equipment (0.617+). */
+    suspend fun conditioningChoices(date: String): com.kairos.app.data.remote.dto.ConditioningChoicesDto =
+        runAuthed { requireService().conditioningChoices(date) }
+
+    /** Build one: a workout from the household's equipment; nothing saved. */
+    suspend fun buildConditioning(minutes: Int, format: String, focus: String, seed: Int): com.kairos.app.data.remote.dto.BuildResponseDto =
+        runAuthed {
+            requireService().buildConditioning(
+                com.kairos.app.data.remote.dto.BuildRequest(minutes = minutes, format = format, focus = focus, seed = seed),
+            )
+        }
+
+    /** Log a conditioning result: one per workout a day, the earlier replaced. */
+    suspend fun logConditioning(body: com.kairos.app.data.remote.dto.ConditioningLogRequest): WorkoutAckDto =
+        runAuthed { requireService().logConditioning(body) }
+
+    /** Keep a built workout as the person's own. */
+    suspend fun saveBuilt(built: com.kairos.app.data.remote.dto.BuiltWorkoutDto): String =
+        runAuthed { requireService().saveBuilt(com.kairos.app.data.remote.dto.SaveBuiltRequest(built = built)) }.hiitWorkoutId
+
+    /** The monthly benchmark: yes, later, never, or skip this month's. */
+    suspend fun answerBenchmark(date: String, answer: String): com.kairos.app.data.remote.dto.BenchmarkDto? =
+        runAuthed { requireService().answerBenchmark(com.kairos.app.data.remote.dto.BenchmarkRequest(date = date, answer = answer)) }.benchmark
+
     suspend fun dayOrders(): com.kairos.app.data.remote.dto.DayOrdersDto =
         runAuthed { requireService().dayOrders() }
 
@@ -1169,6 +1193,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 488
+        const val CLIENT_BUILD = 489
     }
 }

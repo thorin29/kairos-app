@@ -369,6 +369,10 @@ data class WorkoutPlanDto(
     val cardio: List<CardioEntryDto> = emptyList(),
     /** The day's planned conditioning workouts, for the timer (server 0.616+). */
     val conditioning: List<ConditioningPlanDto> = emptyList(),
+    /** Conditioning plans picked on the day (server 0.617+). */
+    val picks: List<PickPlanDto> = emptyList(),
+    /** The monthly benchmark: offered, or this month's due (server 0.617+). */
+    val benchmark: BenchmarkDto? = null,
 )
 
 @Serializable
@@ -402,7 +406,144 @@ data class ConditioningPlanDto(
     val best: ConditioningBestDto? = null,
     val effort: String? = null,
     val hurt: String? = null,
+    /** The Scaled version's movements, when it differs (server 0.617+). */
+    val scaled: List<ConditioningMoveDto>? = null,
+    /** How it's done. */
+    val about: String? = null,
+    /** RX or SCALED: the version to start on. */
+    val version: String = "RX",
 )
+
+/** Something logged on a "pick on the day" Conditioning plan. */
+@Serializable
+data class PickDoneDto(val name: String = "", val result: String? = null)
+
+/** A Conditioning plan with no workout chosen ahead (server 0.617+): done by
+ *  any conditioning logged that day. */
+@Serializable
+data class PickPlanDto(
+    val plannedWorkoutId: String = "",
+    val name: String = "",
+    val done: List<PickDoneDto> = emptyList(),
+    val effort: String? = null,
+    val hurt: String? = null,
+    val skipped: Boolean = false,
+)
+
+@Serializable
+data class BenchmarkWorkoutDto(
+    val hiitWorkoutId: String = "",
+    val name: String = "",
+    val about: String? = null,
+    val minutes: Int? = null,
+)
+
+/** OFFER (ask once) or SUGGEST (this month's is due). */
+@Serializable
+data class BenchmarkDto(val state: String = "", val workout: BenchmarkWorkoutDto? = null)
+
+/** POST workouts/benchmark. answer: yes, later, never, skip. */
+@Serializable
+data class BenchmarkRequest(val date: String, val answer: String)
+
+@Serializable
+data class BenchmarkAnswerDto(val date: String = "", val benchmark: BenchmarkDto? = null)
+
+/** A workout that can be picked for the day (server 0.617+). */
+@Serializable
+data class ConditioningChoiceDto(
+    val hiitWorkoutId: String = "",
+    val name: String = "",
+    val type: String = "",
+    val capSec: Int? = null,
+    val minutes: Int? = null,
+    /** DAILY, BENCHMARK, HERO, BUILT or null. */
+    val kind: String? = null,
+    val mine: Boolean = false,
+    val about: String? = null,
+    val equipment: List<String> = emptyList(),
+    val movements: List<ConditioningMoveDto> = emptyList(),
+    val scaled: List<ConditioningMoveDto>? = null,
+    val resultLabel: String = "",
+    val resultMetric: String = "REPS",
+    val last: String? = null,
+    val lastDate: String? = null,
+    val best: ConditioningBestDto? = null,
+)
+
+@Serializable
+data class EquipmentDto(
+    val key: String = "",
+    val label: String = "",
+    val have: Boolean = true,
+    val sizes: List<Double> = emptyList(),
+    val unit: String = "",
+)
+
+@Serializable
+data class ConditioningChoicesDto(
+    val date: String = "",
+    val choices: List<ConditioningChoiceDto> = emptyList(),
+    val version: String = "RX",
+    val equipment: List<EquipmentDto> = emptyList(),
+)
+
+@Serializable
+data class BuiltMoveDto(
+    val name: String = "",
+    val reps: Int? = null,
+    val distance: Double? = null,
+    val weight: Double? = null,
+)
+
+@Serializable
+data class BuiltScaledDto(
+    val reps: Int? = null,
+    val distance: Double? = null,
+    val weight: Double? = null,
+)
+
+/** A Build one workout: made on the server, sent back to log or save. */
+@Serializable
+data class BuiltWorkoutDto(
+    val name: String = "",
+    val type: String = "",
+    val capSec: Int? = null,
+    val minutes: Int = 12,
+    val about: String = "",
+    val moves: List<BuiltMoveDto> = emptyList(),
+    val scaled: List<BuiltScaledDto> = emptyList(),
+)
+
+/** POST workouts/conditioning/build. format: AMRAP, EMOM, TABATA, FOR_TIME,
+ *  CHIPPER; focus: ANY, KETTLEBELL, CLUBS, BALL, BODYWEIGHT. */
+@Serializable
+data class BuildRequest(val minutes: Int, val format: String, val focus: String, val seed: Int)
+
+@Serializable
+data class BuildResponseDto(
+    val built: BuiltWorkoutDto? = null,
+    /** Rx and Scaled lines to show. */
+    val movements: List<ConditioningMoveDto> = emptyList(),
+    val scaled: List<ConditioningMoveDto> = emptyList(),
+)
+
+/** POST workouts/conditioning/log: a named workout or a built one. */
+@Serializable
+data class ConditioningLogRequest(
+    val date: String,
+    val value: Double,
+    val version: String? = null,
+    val completedOn: String? = null,
+    val hiitWorkoutId: String? = null,
+    val built: BuiltWorkoutDto? = null,
+)
+
+@Serializable
+data class SaveBuiltRequest(val built: BuiltWorkoutDto)
+
+@Serializable
+data class SaveBuiltDto(val hiitWorkoutId: String = "")
 
 /** A Warm-up or Cardio plan for the day (server 0.615+). */
 @Serializable
@@ -1004,6 +1145,8 @@ data class AddPoolRequest(
     val day: Int,
     val category: String,
     val muscleGroup: String? = null,
+    /** The plan's name; the category's label when absent. */
+    val name: String? = null,
     val exercises: List<AddPoolExercise> = emptyList(),
 )
 

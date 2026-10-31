@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-10 — Pick one, Build one, Rx/Scaled, monthly benchmark (v0.425.0 / web 0.617.0)
+
+A "pick on the day" Conditioning plan comes in the day read's `picks` (it has
+no movements, so it isn't in `workouts`) and adds the Conditioning section
+like Warm-up and Cardio do. Its card opens Pick one or Build one as
+ModalBottomSheets; tapping a workout shows it in the same sheet with Rx /
+Scaled (ChoicePills), Start (the existing ConditioningTimer, fed a
+ConditioningPlanDto) and Log a result. Write your own opens the personal
+workout screen. Build one asks the server to build (`workouts/conditioning/
+build`) rather than porting the generator, and sends the workout back as is
+to log or save. Every conditioning result, planned ones included, now logs
+through `workouts/conditioning/log` with the version, so the session is named
+after the workout like the web's. The plan sheet's HIIT Workout list starts
+with "Pick on the day" (an add-pool with category HIIT, no movements, name
+Conditioning). The benchmark card sits under the suggestion card.
+
 ## 2026-10 — Pickers, Add cardio sheet, replace warning (v0.424.1 / web 0.616.1)
 
 `ui/common/OptionPickerOverlay` is the calendar's full-screen radio list made

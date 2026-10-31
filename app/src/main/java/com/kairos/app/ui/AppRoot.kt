@@ -723,6 +723,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenSets = { route -> navController.navigate(route) },
                         setsSaved = setsSaved,
                         onSetsConsumed = { entry.savedStateHandle["setsSaved"] = false },
+                        onWriteOwn = { navController.navigate(Route.CreatePersonalWorkout) },
                     )
                 }
                 composable<Route.MovementSets> { entry ->

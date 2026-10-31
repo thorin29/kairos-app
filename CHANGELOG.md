@@ -1,4 +1,11 @@
 # Changelog
+## 0.425.0
+
+- Plan Conditioning as "Pick on the day", then pick one, build one from the equipment you have, or write your own that day.
+- Pick one lists the household's workouts with your last result and the household best, filtered by length, format and the equipment you have.
+- Workouts can have a Scaled version. Younger people start on Scaled, and results show which one was done.
+- Once you have a month of conditioning, you're offered a monthly benchmark to track your progress.
+
 ## 0.424.1
 
 - Starting the timer on a workout you already logged today asks first, since the new result replaces it.

@@ -219,6 +219,21 @@ interface ApiService {
     @POST("workouts/cardio/remove")
     suspend fun removeCardio(@Body body: com.kairos.app.data.remote.dto.CardioRemoveRequest): Response<com.kairos.app.data.remote.dto.CardioDayDto>
 
+    @GET("workouts/conditioning/choices")
+    suspend fun conditioningChoices(@Query("date") date: String): Response<com.kairos.app.data.remote.dto.ConditioningChoicesDto>
+
+    @POST("workouts/conditioning/build")
+    suspend fun buildConditioning(@Body body: com.kairos.app.data.remote.dto.BuildRequest): Response<com.kairos.app.data.remote.dto.BuildResponseDto>
+
+    @POST("workouts/conditioning/log")
+    suspend fun logConditioning(@Body body: com.kairos.app.data.remote.dto.ConditioningLogRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/conditioning/save")
+    suspend fun saveBuilt(@Body body: com.kairos.app.data.remote.dto.SaveBuiltRequest): Response<com.kairos.app.data.remote.dto.SaveBuiltDto>
+
+    @POST("workouts/benchmark")
+    suspend fun answerBenchmark(@Body body: com.kairos.app.data.remote.dto.BenchmarkRequest): Response<com.kairos.app.data.remote.dto.BenchmarkAnswerDto>
+
     @POST("workouts/warmup")
     suspend fun setWarmup(@Body body: com.kairos.app.data.remote.dto.WarmupRequest): Response<WorkoutAckDto>
 

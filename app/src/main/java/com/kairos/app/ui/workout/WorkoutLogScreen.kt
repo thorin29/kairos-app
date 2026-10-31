@@ -97,6 +97,8 @@ fun WorkoutLogScreen(
     onOpenSets: (com.kairos.app.ui.nav.Route.MovementSets) -> Unit = {},
     setsSaved: Boolean = false,
     onSetsConsumed: () -> Unit = {},
+    /** "Write your own" conditioning: the personal workout builder. */
+    onWriteOwn: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -119,6 +121,11 @@ fun WorkoutLogScreen(
     ) { mutableStateOf<Pair<String, String>?>(null) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
+    // Pick one / Build one sheets, and the workout Pick one opens straight on
+    // (this month's benchmark). Closed once something is logged.
+    var conditioningSheet by remember { mutableStateOf<String?>(null) }
+    var openWorkoutId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(ui.conditioningTick) { conditioningSheet = null }
 
     // Back from a movement's set logger: refresh its row.
     LaunchedEffect(setsSaved) {
@@ -196,7 +203,8 @@ fun WorkoutLogScreen(
                             title = ui.title.ifBlank { ui.planName ?: if (todayBlocks.isEmpty()) "Nothing planned" else "Workout" },
                             progress = dayProgress(todayBlocks).let { (d, t) ->
                                 // Warm-up and Cardio plans count like any block.
-                                (d + ui.simple.count { it.done || it.skipped }) to (t + ui.simple.size)
+                                (d + ui.simple.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
+                                    (t + ui.simple.size + ui.picks.size)
                             },
                             strip = ui.strip,
                             programLine = ui.programLine,
@@ -212,6 +220,17 @@ fun WorkoutLogScreen(
                             why = sg.why,
                             actions = sg.actions.map { it.answer to it.label },
                         ) { vm.answerDaySuggestion(it) }
+                    }
+
+                    ui.benchmark?.let { b ->
+                        BenchmarkCard(
+                            benchmark = b,
+                            onAnswer = { vm.answerBenchmark(it) },
+                            onDo = { id ->
+                                openWorkoutId = id
+                                conditioningSheet = "pick"
+                            },
+                        )
                     }
 
                     // Past days still open: the same sections, tinted, each
@@ -232,6 +251,7 @@ fun WorkoutLogScreen(
                     val simpleKinds = buildSet {
                         ui.simple.forEach { add(if (it.category == "WARMUP") "WARMUP" else "CARDIO") }
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
+                        if (ui.picks.isNotEmpty()) add("CONDITIONING")
                     }
                     val todaySections = daySections(todayBlocks, ui.order, simpleKinds)
                     todaySections.forEach { section ->
@@ -258,11 +278,12 @@ fun WorkoutLogScreen(
                             ConditioningCard(
                                 workout = c,
                                 skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped },
-                                onLog = { v ->
+                                onLog = { v, version ->
                                     vm.logConditioning(
-                                        plannedWorkoutId = c.plannedWorkoutId,
-                                        durationResult = c.resultMetric == "DURATION",
+                                        hiitWorkoutId = c.hiitWorkoutId,
+                                        built = null,
                                         value = v,
+                                        version = version,
                                     )
                                 },
                                 onSkip = { vm.setBlockSkipped(block.key, it) },
@@ -270,6 +291,23 @@ fun WorkoutLogScreen(
                             )
                         }
                         when (section.kind) {
+                            "CONDITIONING" -> ui.picks.forEach { p ->
+                                PickConditioningCard(
+                                    plan = p,
+                                    onPick = {
+                                        openWorkoutId = null
+                                        conditioningSheet = "pick"
+                                    },
+                                    onBuild = {
+                                        // The starting version (Scaled for younger people) comes with the list.
+                                        if (ui.choices == null) vm.loadChoices()
+                                        conditioningSheet = "build"
+                                    },
+                                    onWriteOwn = onWriteOwn,
+                                    onSkip = { vm.setPickSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = it) },
+                                    onFeedback = { e, h -> vm.pickFeedback(plannedWorkoutId = p.plannedWorkoutId, effort = e, hurt = h) },
+                                )
+                            }
                             "WARMUP" -> ui.simple.filter { it.category == "WARMUP" }.forEach { w ->
                                 WarmupCard(
                                     plan = w,
@@ -315,6 +353,27 @@ fun WorkoutLogScreen(
                 }
             }
         }
+    }
+
+    when (conditioningSheet) {
+        "pick" -> PickOneSheet(
+            choices = ui.choices,
+            error = ui.choicesError,
+            openId = openWorkoutId,
+            onLoad = { vm.loadChoices() },
+            onLog = { c, v, version -> vm.logConditioning(hiitWorkoutId = c.hiitWorkoutId, built = null, value = v, version = version) },
+            onDismiss = { conditioningSheet = null },
+        )
+        "build" -> BuildOneSheet(
+            built = ui.built,
+            building = ui.building,
+            saved = ui.builtSaved,
+            startVersion = ui.choices?.version ?: "RX",
+            onBuild = { m, f, fo, seed -> vm.build(minutes = m, format = f, focus = fo, seed = seed) },
+            onLog = { v, version -> vm.logConditioning(hiitWorkoutId = null, built = ui.built?.built, value = v, version = version) },
+            onSave = { vm.saveBuilt() },
+            onDismiss = { conditioningSheet = null },
+        )
     }
 
     val picking = ui.date

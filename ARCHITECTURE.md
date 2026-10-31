@@ -240,7 +240,9 @@ is what that rule exists to prevent.
 - `WorkoutLogScreen.kt` `blockKind` / `sectionOrder` / `daySections` mirror the
   web's blocks.ts (`blockKind`, `cleanOrder`, `daySections`, `withCardio`).
 - `ui/workout/Timer.kt` (rules, mirrors the web's timer.ts),
-  `ConditioningTimer.kt` (the full-screen timer) and `ConditioningCard.kt`
+  `ConditioningTimer.kt` (the full-screen timer), `ConditioningPicker.kt`
+  (Pick one / Build one sheets, the "pick on the day" card and the monthly
+  benchmark card, v0.425) and `ConditioningCard.kt`
   (the day's planned conditioning workout).
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.

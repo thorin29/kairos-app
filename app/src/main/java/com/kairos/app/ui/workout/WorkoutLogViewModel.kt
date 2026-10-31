@@ -131,6 +131,19 @@ data class WorkoutLogUiState(
     val cardioError: String? = null,
     /** The day's planned conditioning workouts (server 0.616+). */
     val conditioning: List<com.kairos.app.data.remote.dto.ConditioningPlanDto> = emptyList(),
+    /** Conditioning plans picked on the day (server 0.617+). */
+    val picks: List<com.kairos.app.data.remote.dto.PickPlanDto> = emptyList(),
+    /** The monthly benchmark card, if any. */
+    val benchmark: com.kairos.app.data.remote.dto.BenchmarkDto? = null,
+    /** Pick one's list, loaded when it opens. */
+    val choices: com.kairos.app.data.remote.dto.ConditioningChoicesDto? = null,
+    val choicesError: String? = null,
+    /** Build one's current idea, with its Rx and Scaled lines. */
+    val built: com.kairos.app.data.remote.dto.BuildResponseDto? = null,
+    val building: Boolean = false,
+    val builtSaved: Boolean = false,
+    /** Bumped when a picked or built workout is logged, to close the sheet. */
+    val conditioningTick: Int = 0,
 )
 
 /**
@@ -320,6 +333,8 @@ class WorkoutLogViewModel(
                 simple = plan.simple,
                 cardio = plan.cardio,
                 conditioning = plan.conditioning,
+                picks = plan.picks,
+                benchmark = plan.benchmark,
             )
         }
     }
@@ -384,29 +399,119 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** Log a conditioning result (from the timer or typed): one per workout a day. */
-    fun logConditioning(plannedWorkoutId: String, durationResult: Boolean, value: Int) {
+    /** Log a conditioning result (from the timer or typed): one per workout a
+     *  day, in a version when the workout has one. A planned, picked or built
+     *  workout all log the same way. */
+    fun logConditioning(
+        hiitWorkoutId: String?,
+        built: com.kairos.app.data.remote.dto.BuiltWorkoutDto?,
+        value: Int,
+        version: String?,
+    ) {
         val d = date ?: return
         val today = java.time.LocalDate.now().toString()
         viewModelScope.launch {
             try {
-                session.logWorkout(
-                    date = d,
-                    plannedWorkoutId = plannedWorkoutId,
-                    entries = listOf(
-                        com.kairos.app.data.remote.dto.PlannedEntryDto(
-                            poolExerciseId = "",
-                            metric = if (durationResult) "DURATION" else "REPS",
-                            value = value.toDouble(),
-                            unit = "",
-                        ),
+                session.logConditioning(
+                    com.kairos.app.data.remote.dto.ConditioningLogRequest(
+                        date = d,
+                        value = value.toDouble(),
+                        version = version,
+                        completedOn = if (d < today) today else null,
+                        hiitWorkoutId = hiitWorkoutId,
+                        built = if (hiitWorkoutId == null) built else null,
                     ),
-                    replace = true,
-                    completedOn = if (d < today) today else null,
                 )
+                _ui.update { it.copy(conditioningTick = it.conditioningTick + 1) }
                 load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Pick one: the workouts to choose from. */
+    fun loadChoices() {
+        val d = date ?: return
+        _ui.update { it.copy(choicesError = null) }
+        viewModelScope.launch {
+            try {
+                val c = session.conditioningChoices(d)
+                _ui.update { it.copy(choices = c) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(choicesError = e.error.message) }
+            }
+        }
+    }
+
+    /** Build one: a fresh idea for the length, format and focus. */
+    fun build(minutes: Int, format: String, focus: String, seed: Int) {
+        _ui.update { it.copy(building = true, builtSaved = false) }
+        viewModelScope.launch {
+            try {
+                val b = session.buildConditioning(minutes = minutes, format = format, focus = focus, seed = seed)
+                _ui.update { it.copy(built = b, building = false) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(building = false, choicesError = e.error.message) }
+            }
+        }
+    }
+
+    /** Keep the built workout as one of the person's own. */
+    fun saveBuilt() {
+        val b = _ui.value.built?.built ?: return
+        viewModelScope.launch {
+            try {
+                session.saveBuilt(b)
+                _ui.update { it.copy(builtSaved = true) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** The monthly benchmark: yes, later, never, or skip this month's. */
+    fun answerBenchmark(answer: String) {
+        val d = date ?: return
+        _ui.update { it.copy(benchmark = null) }
+        viewModelScope.launch {
+            try {
+                val b = session.answerBenchmark(date = d, answer = answer)
+                _ui.update { it.copy(benchmark = b) }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** A "pick on the day" Conditioning plan skipped (or not). */
+    fun setPickSkipped(plannedWorkoutId: String, skipped: Boolean) {
+        val d = date ?: return
+        _ui.update { u ->
+            u.copy(picks = u.picks.map { if (it.plannedWorkoutId == plannedWorkoutId) it.copy(skipped = skipped) else it })
+        }
+        viewModelScope.launch {
+            runCatching { session.workoutSkip(d, plannedWorkoutId, "", skipped) }
+            load()
+        }
+    }
+
+    /** How a picked-on-the-day Conditioning plan felt. */
+    fun pickFeedback(plannedWorkoutId: String, effort: String?, hurt: String?) {
+        val d = date ?: return
+        _ui.update { u ->
+            u.copy(picks = u.picks.map { if (it.plannedWorkoutId == plannedWorkoutId) it.copy(effort = effort, hurt = hurt) else it })
+        }
+        viewModelScope.launch {
+            runCatching {
+                session.saveFeedback(
+                    com.kairos.app.data.remote.dto.FeedbackRequest(
+                        date = d,
+                        slot = "hiit:$plannedWorkoutId",
+                        effort = effort,
+                        hurt = hurt,
+                    ),
+                )
             }
         }
     }

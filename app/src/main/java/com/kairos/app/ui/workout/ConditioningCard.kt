@@ -25,7 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.ConditioningPlanDto
 
-private val TYPE_LABEL = mapOf(
+internal val TYPE_LABEL = mapOf(
     "AMRAP" to "AMRAP",
     "FOR_TIME" to "For time",
     "MAX_SETS" to "Max sets",
@@ -46,7 +46,8 @@ private val TYPE_LABEL = mapOf(
 internal fun ConditioningCard(
     workout: ConditioningPlanDto,
     skipped: Boolean,
-    onLog: (Int) -> Unit,
+    /** The result and the version done (null when there's only one). */
+    onLog: (Int, String?) -> Unit,
     onSkip: (Boolean) -> Unit,
     onFeedback: (String?, String?) -> Unit,
 ) {
@@ -55,7 +56,10 @@ internal fun ConditioningCard(
     var manual by remember { mutableStateOf(false) }
     var value by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    val plan = remember(workout) { timerPlanFor(workout.type, workout.capSec, workout.movements.map { it.name }) }
+    var version by remember(workout.plannedWorkoutId) { mutableStateOf(if (workout.scaled != null) workout.version else "RX") }
+    val movements = if (version == "SCALED") workout.scaled ?: workout.movements else workout.movements
+    val logVersion = if (workout.scaled != null) version else null
+    val plan = remember(workout, version) { timerPlanFor(workout.type, workout.capSec, movements.map { it.name }) }
     val isTime = workout.resultMetric == "DURATION"
 
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -66,7 +70,13 @@ internal fun ConditioningCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            workout.movements.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
+            workout.about?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (workout.scaled != null) {
+                VersionToggle(value = version, onChange = { version = it })
+            }
+            movements.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
             val meta = listOfNotNull(
                 workout.today?.let { "Today: $it" },
                 workout.last?.let { "Your last: $it" },
@@ -112,7 +122,7 @@ internal fun ConditioningCard(
                             error = null
                             manual = false
                             value = ""
-                            onLog(v)
+                            onLog(v, logVersion)
                         }
                     }) { Text("Save") }
                     TextButton(onClick = { manual = false }) { Text("Cancel") }
@@ -153,12 +163,21 @@ internal fun ConditioningCard(
 
     if (timing) {
         ConditioningTimer(
-            workout = workout,
+            workout = workout.copy(movements = movements),
             onLog = { v, _ ->
                 timing = false
-                onLog(v)
+                onLog(v, logVersion)
             },
             onClose = { timing = false },
         )
+    }
+}
+
+/** Rx or Scaled. */
+@Composable
+internal fun VersionToggle(value: String, onChange: (String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChoicePill(label = "Rx", selected = value == "RX") { onChange("RX") }
+        ChoicePill(label = "Scaled", selected = value == "SCALED") { onChange("SCALED") }
     }
 }

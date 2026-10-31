@@ -81,6 +81,11 @@ fun AddWorkoutSheet(
         if (!canSave || busy) return
         when {
             rest -> onMarkRest()
+            // Conditioning with no workout chosen ahead: picked, built or
+            // written on the day (server 0.617+).
+            kind == "hiit" && hiitId == PICK_ON_THE_DAY -> onAddPool(
+                AddPoolRequest(day = day, category = categoryKey, name = "Conditioning"),
+            )
             kind == "hiit" -> onAddHiit(hiitId)
             else -> onAddPool(
                 AddPoolRequest(
@@ -152,16 +157,14 @@ fun AddWorkoutSheet(
                     ) { picked = it }
                 }
                 kind == "hiit" -> {
-                    if (options.hiitWorkouts.isEmpty()) {
-                        Note("No named workouts yet. Build one on the web, or log one from “Log an additional workout”.")
-                    } else {
-                        Dropdown(
-                            label = "Workout",
-                            selected = options.hiitWorkouts.firstOrNull { it.id == hiitId }?.name ?: "Pick a workout…",
-                            options = options.hiitWorkouts.map { it.id to (it.name + if (it.personal) " (yours)" else "") },
-                            onSelect = { hiitId = it },
-                        )
-                    }
+                    Dropdown(
+                        label = "Workout",
+                        selected = if (hiitId == PICK_ON_THE_DAY) "Pick on the day"
+                        else options.hiitWorkouts.firstOrNull { it.id == hiitId }?.name ?: "Pick a workout…",
+                        options = listOf(PICK_ON_THE_DAY to "Pick on the day") +
+                            options.hiitWorkouts.map { it.id to (it.name + if (it.personal) " (yours)" else "") },
+                        onSelect = { hiitId = it },
+                    )
                 }
                 // Warm-up and Cardio: nothing to pick.
                 category?.simple == true -> Unit
@@ -185,6 +188,9 @@ fun AddWorkoutSheet(
         }
     }
 }
+
+/** The workout choice for a Conditioning plan picked on the day. */
+private const val PICK_ON_THE_DAY = "pick"
 
 @Composable
 private fun Note(text: String) {
