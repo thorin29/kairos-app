@@ -1,4 +1,11 @@
 # Changelog
+## 0.424.0
+
+- New: a timer for conditioning workouts. Tap Start on the workout; it counts you in, beeps over music, buzzes and keeps the screen on.
+- AMRAPs count rounds with +1 round, EMOMs and Tabatas call each interval, and for-time workouts stop with Done.
+- Each conditioning workout shows your last result and the household best, and asks how it felt.
+- EMOM workouts can be built with their length in minutes.
+
 ## 0.423.1
 
 - Cardio shows as a card with Add cardio and Skip on it.

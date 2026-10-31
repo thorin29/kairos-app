@@ -239,6 +239,9 @@ is what that rule exists to prevent.
   Concept2 (web: `profile/concept2-form.tsx`).
 - `WorkoutLogScreen.kt` `blockKind` / `sectionOrder` / `daySections` mirror the
   web's blocks.ts (`blockKind`, `cleanOrder`, `daySections`, `withCardio`).
+- `ui/workout/Timer.kt` (rules, mirrors the web's timer.ts),
+  `ConditioningTimer.kt` (the full-screen timer) and `ConditioningCard.kt`
+  (the day's planned conditioning workout).
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables.

@@ -367,6 +367,41 @@ data class WorkoutPlanDto(
     val simple: List<SimplePlanDto> = emptyList(),
     /** Everything rowed, run, rucked or otherwise done that day. */
     val cardio: List<CardioEntryDto> = emptyList(),
+    /** The day's planned conditioning workouts, for the timer (server 0.616+). */
+    val conditioning: List<ConditioningPlanDto> = emptyList(),
+)
+
+@Serializable
+data class ConditioningMoveDto(
+    val name: String = "",
+    val reps: Int? = null,
+    val distance: Double? = null,
+    val weight: Double? = null,
+    /** "10 Kettlebell swing @ 35 lb". */
+    val line: String = "",
+)
+
+@Serializable
+data class ConditioningBestDto(val name: String = "", val result: String = "")
+
+/** A planned conditioning workout (server 0.616+). */
+@Serializable
+data class ConditioningPlanDto(
+    val plannedWorkoutId: String = "",
+    val hiitWorkoutId: String = "",
+    val name: String = "",
+    /** AMRAP, EMOM, TABATA, FOR_TIME, TIMED_STATIONS… */
+    val type: String = "",
+    val capSec: Int? = null,
+    val movements: List<ConditioningMoveDto> = emptyList(),
+    val resultLabel: String = "",
+    /** REPS or DURATION: how the result is logged. */
+    val resultMetric: String = "REPS",
+    val today: String? = null,
+    val last: String? = null,
+    val best: ConditioningBestDto? = null,
+    val effort: String? = null,
+    val hurt: String? = null,
 )
 
 /** A Warm-up or Cardio plan for the day (server 0.615+). */

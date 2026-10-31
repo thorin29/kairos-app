@@ -235,16 +235,38 @@ fun WorkoutLogScreen(
                     }
                     val todaySections = daySections(todayBlocks, ui.order, simpleKinds)
                     todaySections.forEach { section ->
-                        if (section.blocks.isEmpty()) {
+                        // A planned conditioning workout gets its own card with
+                        // the timer; anything else in the section as before.
+                        val conds = section.blocks.mapNotNull { b ->
+                            ui.conditioning.firstOrNull { it.plannedWorkoutId == b.plannedWorkoutId }
+                        }
+                        val rest = section.blocks.filter { b -> ui.conditioning.none { it.plannedWorkoutId == b.plannedWorkoutId } }
+                        if (rest.isEmpty()) {
                             SectionLabel(section.title)
                         } else {
                             DaySectionView(
                                 label = section.title,
-                                section = section,
+                                section = section.copy(blocks = rest),
                                 overdue = false,
                                 vm = vm,
                                 onOpenCalculatorFor = openCalc,
                                 onOpenSets = openSets,
+                            )
+                        }
+                        conds.forEach { c ->
+                            val block = section.blocks.first { it.plannedWorkoutId == c.plannedWorkoutId }
+                            ConditioningCard(
+                                workout = c,
+                                skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped },
+                                onLog = { v ->
+                                    vm.logConditioning(
+                                        plannedWorkoutId = c.plannedWorkoutId,
+                                        durationResult = c.resultMetric == "DURATION",
+                                        value = v,
+                                    )
+                                },
+                                onSkip = { vm.setBlockSkipped(block.key, it) },
+                                onFeedback = { e, h -> vm.conditioningFeedback(plannedWorkoutId = c.plannedWorkoutId, effort = e, hurt = h) },
                             )
                         }
                         when (section.kind) {

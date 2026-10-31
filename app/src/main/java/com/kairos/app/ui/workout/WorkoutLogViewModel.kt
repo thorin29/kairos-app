@@ -129,6 +129,8 @@ data class WorkoutLogUiState(
     val cardio: List<com.kairos.app.data.remote.dto.CardioEntryDto> = emptyList(),
     val cardioSaving: Boolean = false,
     val cardioError: String? = null,
+    /** The day's planned conditioning workouts (server 0.616+). */
+    val conditioning: List<com.kairos.app.data.remote.dto.ConditioningPlanDto> = emptyList(),
 )
 
 /**
@@ -317,6 +319,7 @@ class WorkoutLogViewModel(
                 order = plan.order,
                 simple = plan.simple,
                 cardio = plan.cardio,
+                conditioning = plan.conditioning,
             )
         }
     }
@@ -373,6 +376,57 @@ class WorkoutLogViewModel(
                     com.kairos.app.data.remote.dto.FeedbackRequest(
                         date = d,
                         slot = "cardio:$sessionId",
+                        effort = effort,
+                        hurt = hurt,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** Log a conditioning result (from the timer or typed): one per workout a day. */
+    fun logConditioning(plannedWorkoutId: String, durationResult: Boolean, value: Int) {
+        val d = date ?: return
+        val today = java.time.LocalDate.now().toString()
+        viewModelScope.launch {
+            try {
+                session.logWorkout(
+                    date = d,
+                    plannedWorkoutId = plannedWorkoutId,
+                    entries = listOf(
+                        com.kairos.app.data.remote.dto.PlannedEntryDto(
+                            poolExerciseId = "",
+                            metric = if (durationResult) "DURATION" else "REPS",
+                            value = value.toDouble(),
+                            unit = "",
+                        ),
+                    ),
+                    replace = true,
+                    completedOn = if (d < today) today else null,
+                )
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** How a conditioning workout felt. */
+    fun conditioningFeedback(plannedWorkoutId: String, effort: String?, hurt: String?) {
+        val d = date ?: return
+        _ui.update { u ->
+            u.copy(
+                conditioning = u.conditioning.map {
+                    if (it.plannedWorkoutId == plannedWorkoutId) it.copy(effort = effort, hurt = hurt) else it
+                },
+            )
+        }
+        viewModelScope.launch {
+            runCatching {
+                session.saveFeedback(
+                    com.kairos.app.data.remote.dto.FeedbackRequest(
+                        date = d,
+                        slot = "hiit:$plannedWorkoutId",
                         effort = effort,
                         hurt = hurt,
                     ),

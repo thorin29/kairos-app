@@ -20,6 +20,8 @@
         android:maxSdkVersion="32" />
     <!-- Install an in-app-downloaded update APK via the system installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- The conditioning timer buzzes at each interval and at the end. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".KairosApp"

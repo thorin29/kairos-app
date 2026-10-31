@@ -44,10 +44,12 @@ data class CreateWorkoutUi(
     val canSave: Boolean
         get() = name.trim().length >= 2 && typeKey.isNotBlank() && rows.isNotEmpty()
 
-    /** A time cap only applies to AMRAP (minutes) and Timed stations (seconds). */
+    /** A time cap only applies to AMRAP (minutes), EMOM (its length in
+     *  minutes) and Timed stations (seconds). */
     val capLabel: String?
         get() = when (typeKey) {
             "AMRAP" -> "Time cap (min)"
+            "EMOM" -> "Minutes"
             "TIMED_STATIONS" -> "Station time (sec)"
             else -> null
         }
@@ -81,7 +83,7 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
 
     private fun capFromSec(type: String, capSec: Int?): String = when {
         capSec == null -> ""
-        type == "AMRAP" -> (Math.round(capSec / 60.0)).toString()
+        type == "AMRAP" || type == "EMOM" -> (Math.round(capSec / 60.0)).toString()
         type == "TIMED_STATIONS" -> capSec.toString()
         else -> ""
     }
@@ -89,7 +91,7 @@ class CreatePersonalWorkoutViewModel(private val session: SessionRepository) : V
     private fun capToSec(type: String, cap: String): Int? {
         val n = cap.toIntOrNull() ?: return null
         return when (type) {
-            "AMRAP" -> n * 60
+            "AMRAP", "EMOM" -> n * 60
             "TIMED_STATIONS" -> n
             else -> null
         }

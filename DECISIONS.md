@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-10 — Conditioning timer on the phone (v0.424.0 / web 0.616.0)
+
+`ConditioningTimer` is a full-screen dialog run by `Timer.kt` (the web's
+timer.ts rules, mirrored; keep them in step). Time comes from
+`SystemClock.elapsedRealtime`, checked four times a second, so it can't drift.
+Tones play through `ToneGenerator` on the alarm stream so they're heard over
+music; vibration needs the VIBRATE permission (added). The view's keepScreenOn
+is set while the get-ready or the clock is running. Sound and get-ready length
+are kept in SharedPreferences ("kairos_timer"). `ConditioningCard` replaces the
+plain block for a planned named workout: last result, household best, Start,
+Log a result, Skip, and "How did it feel?" once logged. The result goes through
+the plan's log with replace (one per workout a day).
+
 ## 2026-10 — Cardio as one card (v0.423.1 / web 0.615.1)
 
 With nothing logged yet, the day's Cardio is one card like the Warm-up: its
