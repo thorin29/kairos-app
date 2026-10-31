@@ -53,6 +53,7 @@ fun SettingsScreen(
     onOpenDiagnostics: () -> Unit = {},
     onOpenScoring: () -> Unit = {},
     onOpenPassword: () -> Unit = {},
+    onOpenConcept2: () -> Unit = {},
     onOpenApprovals: (() -> Unit)? = null,
     approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
@@ -78,6 +79,13 @@ fun SettingsScreen(
             "Change the password you sign in with",
             ready = true,
             onOpen = onOpenPassword,
+        ),
+        Section(
+            icon = KairosIcons.Dumbbell,
+            title = "Concept2",
+            blurb = "Connect your rower's logbook",
+            ready = true,
+            onOpen = onOpenConcept2,
         ),
         Section(
             KairosIcons.Bell,

@@ -2486,3 +2486,39 @@ data class ChangePasswordRequest(val current: String, val next: String)
 
 @Serializable
 data class ChangePasswordResultDto(val ok: Boolean = false, val error: String? = null)
+
+/** Concept2 Logbook connection (server 0.614+). The token is never sent back. */
+@Serializable
+data class Concept2StatusDto(
+    val connected: Boolean = false,
+    /** When it last checked Concept2 (ISO), and why the last check failed. */
+    val checkedAt: String? = null,
+    val error: String? = null,
+)
+
+@Serializable
+data class Concept2RowDto(
+    val resultId: String = "",
+    /** "2,000 m · 7:45 · 1:56.3 /500m". */
+    val summary: String = "",
+    /** It replaced rowing entered by hand ("1,500 m"): Undo puts that back. */
+    val replaced: String? = null,
+)
+
+@Serializable
+data class Concept2DayDto(
+    val added: Int = 0,
+    val connected: Boolean = false,
+    val checkedAt: String? = null,
+    val error: String? = null,
+    val rows: List<Concept2RowDto> = emptyList(),
+)
+
+@Serializable
+data class Concept2ConnectRequest(val token: String)
+
+@Serializable
+data class Concept2SyncRequest(val date: String, val force: Boolean = false)
+
+@Serializable
+data class Concept2UndoRequest(val resultId: String)

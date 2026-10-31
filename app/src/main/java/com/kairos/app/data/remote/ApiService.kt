@@ -62,6 +62,7 @@ import retrofit2.http.Part
 import retrofit2.http.Multipart
 import okhttp3.RequestBody
 import okhttp3.MultipartBody
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -211,6 +212,21 @@ interface ApiService {
 
     @POST("workouts/invite")
     suspend fun answerInvite(@Body body: com.kairos.app.data.remote.dto.InviteAnswerRequest): Response<WorkoutAckDto>
+
+    @GET("concept2")
+    suspend fun concept2Status(): Response<com.kairos.app.data.remote.dto.Concept2StatusDto>
+
+    @DELETE("concept2")
+    suspend fun concept2Disconnect(): Response<WorkoutAckDto>
+
+    @POST("concept2/connect")
+    suspend fun concept2Connect(@Body body: com.kairos.app.data.remote.dto.Concept2ConnectRequest): Response<com.kairos.app.data.remote.dto.Concept2StatusDto>
+
+    @POST("concept2/sync")
+    suspend fun concept2Sync(@Body body: com.kairos.app.data.remote.dto.Concept2SyncRequest): Response<com.kairos.app.data.remote.dto.Concept2DayDto>
+
+    @POST("concept2/undo")
+    suspend fun concept2Undo(@Body body: com.kairos.app.data.remote.dto.Concept2UndoRequest): Response<WorkoutAckDto>
 
     @POST("workouts/suggestion")
     suspend fun answerSuggestion(@Body body: com.kairos.app.data.remote.dto.SuggestionAnswerRequest): Response<WorkoutAckDto>

@@ -610,6 +610,23 @@ class SessionRepository(
             )
         }
 
+    /** Concept2 Logbook: connected or not (the token never comes back). */
+    suspend fun concept2Status(): com.kairos.app.data.remote.dto.Concept2StatusDto =
+        runAuthed { requireService().concept2Status() }
+
+    suspend fun connectConcept2(token: String): com.kairos.app.data.remote.dto.Concept2StatusDto =
+        runAuthed { requireService().concept2Connect(com.kairos.app.data.remote.dto.Concept2ConnectRequest(token = token)) }
+
+    suspend fun disconnectConcept2(): WorkoutAckDto =
+        runAuthed { requireService().concept2Disconnect() }
+
+    /** Check Concept2 (when due, or `force`) and get the day's rows. */
+    suspend fun syncConcept2(date: String, force: Boolean): com.kairos.app.data.remote.dto.Concept2DayDto =
+        runAuthed { requireService().concept2Sync(com.kairos.app.data.remote.dto.Concept2SyncRequest(date = date, force = force)) }
+
+    suspend fun undoConcept2(resultId: String): WorkoutAckDto =
+        runAuthed { requireService().concept2Undo(com.kairos.app.data.remote.dto.Concept2UndoRequest(resultId = resultId)) }
+
     suspend fun answerProgramInvite(answer: String): WorkoutAckDto =
         runAuthed { requireService().answerInvite(com.kairos.app.data.remote.dto.InviteAnswerRequest(answer = answer)) }
 
@@ -1116,6 +1133,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 483
+        const val CLIENT_BUILD = 484
     }
 }

@@ -226,17 +226,41 @@ fun WorkoutLogScreen(
                         }
                     }
 
-                    if (todayBlocks.isNotEmpty()) {
-                        daySections(todayBlocks).forEach { section ->
-                            DaySectionView(
-                                label = section.title,
-                                section = section,
-                                overdue = false,
-                                vm = vm,
-                                onOpenCalculatorFor = openCalc,
-                                onOpenSets = openSets,
+                    val c2 = ui.concept2
+                    val todaySections = daySections(todayBlocks)
+                    todaySections.forEach { section ->
+                        DaySectionView(
+                            label = section.title,
+                            section = section,
+                            overdue = false,
+                            vm = vm,
+                            onOpenCalculatorFor = openCalc,
+                            onOpenSets = openSets,
+                        )
+                        if (section.key == "k:CARDIO" && c2 != null) {
+                            Concept2Rows(
+                                day = c2,
+                                checking = ui.concept2Checking,
+                                onCheck = { vm.checkConcept2(force = true) },
+                                onUndo = { vm.undoConcept2(it) },
                             )
                         }
+                    }
+                    if (c2 != null && c2.rows.isNotEmpty() && todaySections.none { it.key == "k:CARDIO" }) {
+                        Text(
+                            "EXTRA",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp, start = 2.dp),
+                        )
+                        Concept2Rows(
+                            day = c2,
+                            checking = ui.concept2Checking,
+                            onCheck = { vm.checkConcept2(force = true) },
+                            onUndo = { vm.undoConcept2(it) },
+                        )
                     }
 
                     if (ui.actionError != null) {

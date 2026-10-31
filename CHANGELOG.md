@@ -1,4 +1,9 @@
 # Changelog
+## 0.422.0
+
+- Connect Concept2 under Settings → Concept2 and your rows show up in the day's Cardio on their own.
+- A Concept2 row replaces rowing you entered by hand that day, with Undo.
+
 ## 0.421.0
 
 - Tap ⓘ beside a movement to see how it's done, with a link to watch it. It's on the set logger, Swap, and when adding movements to a plan.

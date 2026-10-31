@@ -633,6 +633,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenDiagnostics = { navController.navigate(Route.SettingsDiagnostics) },
                         onOpenScoring = { navController.navigate(Route.SettingsScoring) },
                         onOpenPassword = { navController.navigate(Route.SettingsPassword) },
+                        onOpenConcept2 = { navController.navigate(Route.SettingsConcept2) },
                         onOpenApprovals = if (isAdmin) {
                             { navController.navigate(Route.SchoolApprovals) }
                         } else null,
@@ -650,6 +651,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.SettingsPassword> {
                     com.kairos.app.ui.settings.PasswordScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.SettingsConcept2> {
+                    com.kairos.app.ui.settings.Concept2Screen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.SettingsScoring> {
                     com.kairos.app.ui.settings.ScoringGuideScreen(onBack = { navController.popBackStack() })

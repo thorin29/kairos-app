@@ -233,6 +233,9 @@ is what that rule exists to prevent.
 - `ui/workout/MovementInfo.kt` — ⓘ for a movement: `MovementInfoButton`, the
   how-to dialog, the inline how-to under a picker row, and `watchUrl` (same
   link as the web's `watch.ts`; keep them in step).
+- `ui/workout/Concept2Rows.kt` + `ui/settings/Concept2Screen.kt` — the day's
+  Concept2 rows and the connect screen (web: `concept2-rows.tsx`,
+  `profile/concept2-form.tsx`).
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables.

@@ -44,6 +44,10 @@ sealed interface Route {
     @Serializable
     data object SettingsPassword : Route
 
+    /** Connect the person's Concept2 Logbook. */
+    @Serializable
+    data object SettingsConcept2 : Route
+
     @Serializable
     data class AddClass(
         val replaceEventId: String? = null,

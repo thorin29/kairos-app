@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-10 — Concept2 on the phone (v0.422.0 / web 0.614.0)
+
+Settings → Concept2 connects with the Logbook token (sent once, never shown
+again) or disconnects. The day screen asks the server to check Concept2 when a
+day loads and every 15 minutes while the view model lives; the server decides
+whether to actually go to Concept2 (at most every 5 minutes), so the phone
+needs no timer of its own beyond that. "Check Concept2 now" forces it. Rows
+show under Cardio when rowing is planned, else under Extra; new rows reload
+the day so the Cardio block counts done. Undo is online only: it changes
+sessions on the server, and an offline Undo would race the next sync.
+
 ## 2026-10 — How-to behind ⓘ (v0.421.0 / web 0.613.0)
 
 The server sends each movement's how-to (`about`) with the pool, the plan

@@ -116,6 +116,11 @@ data class WorkoutLogUiState(
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
+    /** The day's rows from Concept2, when connected (server 0.614+). */
+    val concept2: com.kairos.app.data.remote.dto.Concept2DayDto? = null,
+    val concept2Checking: Boolean = false,
+    /** The day [concept2] belongs to. */
+    val concept2Day: String? = null,
 )
 
 /**
@@ -137,6 +142,39 @@ class WorkoutLogViewModel(
 
     init {
         load()
+        // Concept2 every 15 minutes while the day is open (the server asks
+        // Concept2 at most every few minutes whatever the phone does).
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(15 * 60_000L)
+                checkConcept2(force = false)
+            }
+        }
+    }
+
+    /** Check Concept2 for the day; new rows reload the day (Cardio counts done). */
+    fun checkConcept2(force: Boolean) {
+        val d = date ?: return
+        if (force) _ui.update { it.copy(concept2Checking = true) }
+        viewModelScope.launch {
+            val r = runCatching { session.syncConcept2(date = d, force = force) }.getOrNull()
+            _ui.update {
+                it.copy(
+                    concept2 = if (r != null && r.connected) r else if (r != null) null else it.concept2,
+                    concept2Checking = false,
+                )
+            }
+            if (r != null && r.added > 0) load()
+        }
+    }
+
+    /** Put back rowing entered by hand that a Concept2 row replaced. */
+    fun undoConcept2(resultId: String) {
+        viewModelScope.launch {
+            runCatching { session.undoConcept2(resultId = resultId) }
+            checkConcept2(force = false)
+            load()
+        }
     }
 
     fun load() {
@@ -152,7 +190,12 @@ class WorkoutLogViewModel(
             }
             try {
                 val raw = session.loadWorkout(requestedDate)
+                val dayChanged = raw.date != _ui.value.concept2Day
                 applyPlan(applyPending(raw, session.pendingWrites()))
+                if (dayChanged) {
+                    _ui.update { it.copy(concept2Day = raw.date, concept2 = null) }
+                    checkConcept2(force = false)
+                }
                 launch { runCatching { cache.writeAs("workout", key, pid, WorkoutPlanDto.serializer(), raw) } }
             } catch (e: ApiException) {
                 _ui.update {
