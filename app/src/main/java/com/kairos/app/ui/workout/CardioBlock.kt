@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -128,6 +129,8 @@ internal fun WarmupCard(plan: SimplePlanDto, onDone: (Boolean) -> Unit, onSkip: 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CardioBlock(
+    /** The card's title: the Cardio plan's name. */
+    name: String,
     entries: List<CardioEntryDto>,
     concept2: Concept2DayDto?,
     checking: Boolean,
@@ -273,21 +276,51 @@ internal fun CardioBlock(
                     }
                 }
             }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { adding = true }) {
-                    Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Text("Add cardio", modifier = Modifier.padding(start = 6.dp))
-                }
-                if (onSkip != null && entries.isEmpty()) {
-                    TextButton(onClick = { onSkip(skippedPlan == null) }) {
-                        Text(if (skippedPlan != null) "Skipped" else "Skip")
+        } else if (entries.isEmpty()) {
+            // Nothing logged yet: one card, like the Warm-up's.
+            val skipped = skippedPlan != null
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        if (concept2?.connected == true) {
+                            concept2.error?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            }
+                            Text(
+                                if (checking) "Checking Concept2\u2026" else "Check Concept2 now",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable(enabled = !checking) { onCheck() }.padding(vertical = 2.dp),
+                            )
+                        }
+                    }
+                    if (onSkip != null) {
+                        TextButton(onClick = { onSkip(!skipped) }) { Text(if (skipped) "Skipped" else "Skip") }
+                    }
+                    if (!skipped) {
+                        Button(onClick = { adding = true }) {
+                            Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("Add cardio", modifier = Modifier.padding(start = 6.dp))
+                        }
                     }
                 }
             }
+        } else {
+            OutlinedButton(onClick = { adding = true }) {
+                Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text("Add cardio", modifier = Modifier.padding(start = 6.dp))
+            }
         }
 
-        if (concept2?.connected == true) {
+        if (concept2?.connected == true && (entries.isNotEmpty() || adding)) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -302,7 +335,7 @@ internal fun CardioBlock(
                     )
                 }
                 TextButton(onClick = onCheck, enabled = !checking) {
-                    Text(if (checking) "Checking Concept2…" else "Check Concept2 now")
+                    Text(if (checking) "Checking Concept2\u2026" else "Check Concept2 now")
                 }
             }
         }

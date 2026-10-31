@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-10 — Cardio as one card (v0.423.1 / web 0.615.1)
+
+With nothing logged yet, the day's Cardio is one card like the Warm-up: its
+name, "Check Concept2 now" when connected, Skip and Add cardio. Once something
+is logged, the entries show and Add cardio sits under them. Whether Warm-up and
+Cardio make a day late is the server's call (they don't, from web 0.615.1).
+
 ## 2026-10 — Cardio, Warm-up, day order and set structure on the phone (v0.423.0 / web 0.615.0)
 
 The day screen orders its sections by the server's `order` (mirrored

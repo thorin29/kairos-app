@@ -256,6 +256,7 @@ fun WorkoutLogScreen(
                                 )
                             }
                             "CARDIO" -> CardioBlock(
+                                name = ui.simple.firstOrNull { it.category == "CARDIO" }?.name ?: "Cardio",
                                 entries = ui.cardio,
                                 concept2 = ui.concept2,
                                 checking = ui.concept2Checking,

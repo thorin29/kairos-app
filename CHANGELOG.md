@@ -1,4 +1,8 @@
 # Changelog
+## 0.423.1
+
+- Cardio shows as a card with Add cardio and Skip on it.
+
 ## 0.423.0
 
 - New in the plan: Cardio (any row, run, ruck or jump rope fills it, Concept2 included) and Warm-up (done with a tap).
