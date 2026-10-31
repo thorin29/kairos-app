@@ -197,9 +197,18 @@ fun WorkoutLogScreen(
                             progress = dayProgress(todayBlocks),
                             strip = ui.strip,
                             programLine = ui.programLine,
+                            light = ui.light,
                             onPickDate = { showDatePicker = true },
                             onPickDay = { vm.setDate(it) },
                         )
+                    }
+
+                    ui.suggestion?.let { sg ->
+                        SuggestionCard(
+                            title = sg.title,
+                            why = sg.why,
+                            actions = sg.actions.map { it.answer to it.label },
+                        ) { vm.answerDaySuggestion(it) }
                     }
 
                     // Past days still open: the same sections, tinted, each
@@ -545,6 +554,7 @@ private fun DayHeader(
     progress: Pair<Int, Int>,
     strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
     programLine: String = "",
+    light: Double? = null,
     onPickDate: () -> Unit,
     onPickDay: (String) -> Unit,
 ) {
@@ -574,6 +584,13 @@ private fun DayHeader(
             if (programLine.isNotBlank()) {
                 Text(
                     programLine,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (light != null) {
+                Text(
+                    "Lighter today \u00b7 ${kotlin.math.round(light * 100).toInt()}% of the usual weights",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )

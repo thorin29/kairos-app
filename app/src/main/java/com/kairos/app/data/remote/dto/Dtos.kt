@@ -356,6 +356,10 @@ data class WorkoutPlanDto(
     val strip: WorkoutStripDto? = null,
     /** The person's program and its week on this day (server 0.611+). */
     val program: ProgramInfoDto? = null,
+    /** The day's suggestion card (server 0.612+). */
+    val suggestion: SuggestionDto? = null,
+    /** Today was made lighter: the share of the usual weights. */
+    val light: Double? = null,
 )
 
 @Serializable
@@ -403,6 +407,37 @@ data class MovementLogDto(
     /** The sets to aim for when the planned movement has a set scheme (a
      *  program wrote it). Fills the hints in place of last time (server 0.611+). */
     val target: MovementTargetDto? = null,
+    /** One suggestion card for this movement (server 0.612+). */
+    val suggestion: SuggestionDto? = null,
+    /** Heaviest weight in the two weeks before today, for the big-jump note. */
+    val recentTop: Double? = null,
+)
+
+/** A suggestion: what, why, and the choices. Never applied on its own. */
+@Serializable
+data class SuggestionDto(
+    val key: String = "",
+    val title: String = "",
+    val why: String = "",
+    val actions: List<SuggestionActionDto> = emptyList(),
+    /** "Use 190": the weight it suggests for the top set. */
+    val weight: Double? = null,
+)
+
+@Serializable
+data class SuggestionActionDto(
+    val answer: String = "",
+    val label: String = "",
+)
+
+/** POST workouts/suggestion: hides that card for the day; "light"/"ease" make
+ *  the day lighter. Safe to replay. */
+@Serializable
+data class SuggestionAnswerRequest(
+    val date: String,
+    val key: String,
+    val slot: String = "",
+    val answer: String,
 )
 
 @Serializable

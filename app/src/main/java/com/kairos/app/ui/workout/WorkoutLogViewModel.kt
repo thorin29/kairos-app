@@ -112,6 +112,10 @@ data class WorkoutLogUiState(
     val strip: com.kairos.app.data.remote.dto.WorkoutStripDto? = null,
     /** "Strength waves · Week 2 of 4", when a program is running. */
     val programLine: String = "",
+    /** The day's suggestion card, hidden once answered (server 0.612+). */
+    val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
+    /** Today was made lighter: the share of the usual weights. */
+    val light: Double? = null,
 )
 
 /**
@@ -257,6 +261,8 @@ class WorkoutLogViewModel(
                 title = plan.title,
                 strip = plan.strip,
                 programLine = plan.program?.let { "${it.name} \u00b7 ${it.label}" } ?: "",
+                suggestion = plan.suggestion,
+                light = plan.light,
             )
         }
     }
@@ -278,6 +284,30 @@ class WorkoutLogViewModel(
         }
     }
 
+    /** Answer the day's suggestion: hides it; "light" / "ease" make the day
+     *  lighter (the loggers' hints come back at 80% / 90%). */
+    fun answerDaySuggestion(answer: String) {
+        val s = _ui.value.suggestion ?: return
+        val d = _ui.value.date ?: return
+        _ui.update {
+            it.copy(
+                suggestion = null,
+                light = when (answer) {
+                    "light" -> 0.8
+                    "ease" -> 0.9
+                    else -> it.light
+                },
+            )
+        }
+        viewModelScope.launch {
+            runCatching {
+                session.answerSuggestion(
+                    com.kairos.app.data.remote.dto.SuggestionAnswerRequest(date = d, key = s.key, answer = answer),
+                )
+            }
+        }
+    }
+
     /** Switch the day being logged (from the date picker) and reload its plan. */
     fun setDate(iso: String) {
         if (iso == date) return
@@ -293,6 +323,23 @@ class WorkoutLogViewModel(
         var loggable = plan.loggable
         var out = plan
         for (w in pending) {
+            if (w.url.substringAfter("/api/v1/", "").substringBefore("?") == "workouts/suggestion") {
+                // An answer still queued offline: the card stays hidden, and a
+                // lighter day shows as chosen.
+                parse(w.body, com.kairos.app.data.remote.dto.SuggestionAnswerRequest.serializer())
+                    ?.takeIf { it.date == out.date && it.slot.isEmpty() }
+                    ?.let { a ->
+                        out = out.copy(
+                            suggestion = out.suggestion?.takeIf { it.key != a.key },
+                            light = when (a.answer) {
+                                "light" -> 0.8
+                                "ease" -> 0.9
+                                else -> out.light
+                            },
+                        )
+                    }
+                continue
+            }
             if (w.url.substringAfter("/api/v1/", "").substringBefore("?") == "workouts/sets") {
                 parse(w.body, com.kairos.app.data.remote.dto.SaveSetsRequest.serializer())?.let { out = withQueuedSets(out, it) }
                 continue

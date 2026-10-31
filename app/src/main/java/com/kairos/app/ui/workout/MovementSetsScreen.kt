@@ -90,6 +90,7 @@ fun MovementSetsScreen(
     onOpenCalculator: (String) -> Unit,
     usedWeight: String?,
     onWeightConsumed: () -> Unit,
+    onOpenPrograms: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: MovementSetsViewModel = viewModel(
@@ -241,6 +242,20 @@ fun MovementSetsScreen(
                     // with today's weight once it's beaten.
                     // The program's plan for today: "Today Work up to a top set ·
                     // Strength waves · Week 2 of 4".
+                    ui.suggestion?.takeIf { !ui.skipped }?.let { sg ->
+                        SuggestionCard(
+                            title = sg.title,
+                            why = sg.why,
+                            actions = sg.actions.map { it.answer to it.label },
+                        ) { answer ->
+                            vm.answerSuggestion(answer)
+                            when (answer) {
+                                "swap" -> { vm.loadPool(); swapping = true }
+                                "programs" -> onOpenPrograms()
+                            }
+                        }
+                    }
+
                     if (ui.targetScheme.isNotBlank()) {
                         Text(
                             buildString {
@@ -285,6 +300,7 @@ fun MovementSetsScreen(
                                 else -> ""
                             },
                             newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
+                            jump = vm.jumpFor(r),
                             enabled = !ui.skipped,
                         )
                     }
@@ -383,6 +399,8 @@ private fun SetCard(
     sub: String,
     /** Reps of a set no earlier set matched, or null. */
     newBest: Int?,
+    /** Percent over the recent top, when it's a big jump. */
+    jump: Int? = null,
     enabled: Boolean,
 ) {
     OutlinedCard(
@@ -511,6 +529,15 @@ private fun SetCard(
                     }
                 }
             }
+            if (jump != null) {
+                Text(
+                    "$jump% over your recent top. Make sure it's the weight you meant.",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = warnAmber(),
+                    modifier = Modifier.padding(start = 28.dp, end = 8.dp),
+                )
+            }
         }
     }
 }
@@ -592,6 +619,44 @@ private fun PillButton(label: String, icon: Boolean = false, tinted: Boolean = f
             style = MaterialTheme.typography.labelLarge,
             color = if (tinted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+/** Amber for a check-this note, as on the web. */
+@Composable
+private fun warnAmber() = if (com.kairos.app.ui.theme.KairosThemeState.dark) Color(0xFFFCD34D) else Color(0xFFB45309)
+
+/**
+ * One suggestion: what and why, with its choices (the first filled). Never
+ * applied on its own; answering hides it for the day. Shared with the log page.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun SuggestionCard(
+    title: String,
+    why: String,
+    actions: List<Pair<String, String>>,
+    onAnswer: (String) -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(why, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            actions.forEachIndexed { i, (answer, label) ->
+                ChoicePill(label = label, selected = i == 0) { onAnswer(answer) }
+            }
+        }
     }
 }
 

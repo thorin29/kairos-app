@@ -212,6 +212,9 @@ interface ApiService {
     @POST("workouts/invite")
     suspend fun answerInvite(@Body body: com.kairos.app.data.remote.dto.InviteAnswerRequest): Response<WorkoutAckDto>
 
+    @POST("workouts/suggestion")
+    suspend fun answerSuggestion(@Body body: com.kairos.app.data.remote.dto.SuggestionAnswerRequest): Response<WorkoutAckDto>
+
     @GET("workouts/weekly")
     suspend fun weeklyTraining(): Response<com.kairos.app.data.remote.dto.WeeklyTrainingDto>
 

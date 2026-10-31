@@ -1,4 +1,10 @@
 # Changelog
+## 0.420.0
+
+- Workouts suggest things now: the next weight, a lighter day, a swap around something that hurt. Nothing changes unless you say so.
+- A set much heavier than your recent best gets a quick check.
+- Start a workout program from the home page.
+
 ## 0.419.0
 
 - New: workout programs, under Programs on the Workouts page. Pick one, choose your days and lifts, and it writes your plan.

@@ -49,11 +49,13 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
@@ -98,9 +100,17 @@ fun HomeScreen(
     onOpenReading: () -> Unit = {},
     onOpenSchoolWork: () -> Unit = {},
     onOpenCoop: () -> Unit = {},
+    onOpenPrograms: () -> Unit = {},
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
+    // "Start a workout program?" for someone with no plan and nothing logged
+    // lately (server 0.611+). Its own small read; the card appears when it lands.
+    var invite by remember { mutableStateOf(false) }
+    val inviteScope = rememberCoroutineScope()
+    LaunchedEffect(refreshKey) {
+        invite = runCatching { container.sessionRepository.loadPrograms().invite }.getOrDefault(false)
+    }
     val vm: HomeViewModel = viewModel(
         factory = viewModelFactory {
             initializer { HomeViewModel(container.sessionRepository, container.payloadCache) }
@@ -164,6 +174,14 @@ fun HomeScreen(
                     person, ui, vm, onOpenMoney, onOpenChores, onOpenSchoolWork,
                     onLogWorkout, onOpenReading,
                     coopUi.data, coopUi.busy, coopVm::grant, onOpenCoop,
+                    invite = invite,
+                    onOpenPrograms = onOpenPrograms,
+                    onAnswerInvite = { answer ->
+                        invite = false
+                        inviteScope.launch {
+                            runCatching { container.sessionRepository.answerProgramInvite(answer) }
+                        }
+                    },
                 )
             }
 
@@ -186,6 +204,9 @@ private fun DashboardContent(
     coopBusy: Boolean = false,
     onCheckOffGoal: (String) -> Unit = {},
     onOpenCoop: () -> Unit = {},
+    invite: Boolean = false,
+    onOpenPrograms: () -> Unit = {},
+    onAnswerInvite: (String) -> Unit = {},
 ) {
     val d = ui.dashboard!!
     var scheduleDetail by remember { mutableStateOf<com.kairos.app.data.remote.dto.ScheduleItemDto?>(null) }
@@ -326,6 +347,35 @@ private fun DashboardContent(
                             todayItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm, onLogWorkout) }
                             if (cat == "BIBLE" && d.personalReading != null) {
                                 PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (invite) {
+                item(key = "program-invite") {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                "Start a workout program?",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                com.kairos.app.ui.workout.ProgramPill("See programs", filled = true, onClick = onOpenPrograms)
+                                Text(
+                                    "Not now",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { onAnswerInvite("later") }.padding(8.dp),
+                                )
+                                Text(
+                                    "Don't ask again",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.clickable { onAnswerInvite("never") }.padding(8.dp),
+                                )
                             }
                         }
                     }

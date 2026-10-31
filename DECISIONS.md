@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-10 — Suggestions on the phone (v0.420.0 / web 0.612.0)
+
+`SuggestionCard` (in MovementSetsScreen.kt, shared with the log page) shows the
+server's card with its choices, the first filled. The set logger's "Use 190"
+moves the top set's hint, "Swap" opens the picker, "See programs" opens
+Programs; the log page's "Lighter today" / "Ease in" shows the lighter line at
+once (the loggers' hints come back lighter from the server). Answers go through
+`workouts/suggestion` (queued offline) and a queued answer keeps its card
+hidden on reload. A set more than 10% over `recentTop` gets an amber note
+(`jumpFor`). Home shows the program invite (its own `workouts/programs` read).
+Needs web 0.612.0.
+
 ## 2026-10 — Programs on the phone (v0.419.0 / web 0.611.0)
 
 `ProgramsScreen` (Route.Programs, from a card on the Workouts page) shows the

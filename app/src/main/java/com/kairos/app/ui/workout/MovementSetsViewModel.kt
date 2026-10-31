@@ -64,6 +64,10 @@ data class MovementSetsUi(
      *  planned movement has a set scheme. */
     val targetScheme: String = "",
     val targetTitle: String = "",
+    /** One suggestion card (server 0.612+), hidden once answered. */
+    val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
+    /** Heaviest weight in the last two weeks, for the big-jump note. */
+    val recentTop: Double? = null,
 )
 
 /**
@@ -103,6 +107,7 @@ class MovementSetsViewModel(
                 // queued for this movement still shows below.
                 MovementLogDto()
             }
+            loadQueuedAnswers()
             val queued = pendingSets()
             val today = queued ?: log.sets
             val last = log.last?.sets ?: emptyList()
@@ -112,6 +117,8 @@ class MovementSetsViewModel(
                     loading = false,
                     rows = rowsFrom(today, last, log.target?.sets ?: emptyList()),
                     targetScheme = log.target?.scheme ?: "",
+                    suggestion = log.suggestion?.takeIf { s -> s.key !in answeredKeys() },
+                    recentTop = log.recentTop,
                     targetTitle = log.target?.title ?: "",
                     lastSets = last,
                     lastDate = log.last?.date,
@@ -137,6 +144,52 @@ class MovementSetsViewModel(
             }
             .lastOrNull { it.date == date && it.slotId == slotId && it.plannedWorkoutId == plannedWorkoutId }
             ?.sets
+    }
+
+    private var queuedAnswers: Set<String> = emptySet()
+    private fun answeredKeys(): Set<String> = queuedAnswers
+
+    /** Suggestion answers for this movement and day still queued offline. */
+    private suspend fun loadQueuedAnswers() {
+        val writes = runCatching { session.pendingWrites() }.getOrDefault(emptyList())
+        queuedAnswers = writes
+            .filter { it.url.substringAfter("/api/v1/", "").substringBefore("?") == "workouts/suggestion" }
+            .mapNotNull { w ->
+                w.body?.let {
+                    runCatching {
+                        ApiClient.json.decodeFromString(com.kairos.app.data.remote.dto.SuggestionAnswerRequest.serializer(), it)
+                    }.getOrNull()
+                }
+            }
+            .filter { it.date == date && it.slot == slotId }
+            .map { it.key }
+            .toSet()
+    }
+
+    /**
+     * Answer the movement's suggestion. "use" puts its weight in the top set's
+     * hint; the screen opens the swap picker for "swap" and Programs for
+     * "programs". Each hides the card for today.
+     */
+    fun answerSuggestion(answer: String) {
+        val s = _ui.value.suggestion ?: return
+        _ui.update { u ->
+            var rows = u.rows
+            val w = s.weight
+            if (answer == "use" && w != null) {
+                val open = rows.filter { !it.saved && it.w.isBlank() && it.hintW != null }
+                val max = open.maxOfOrNull { it.hintW ?: 0.0 }
+                rows = rows.map { r -> if (r in open && r.hintW == max) r.copy(hintW = w - u.shift) else r }
+            }
+            u.copy(suggestion = null, rows = rows)
+        }
+        viewModelScope.launch {
+            runCatching {
+                session.answerSuggestion(
+                    com.kairos.app.data.remote.dto.SuggestionAnswerRequest(date = date, key = s.key, slot = slotId, answer = answer),
+                )
+            }
+        }
     }
 
     /** A feedback answer still queued offline for this movement and day. */
@@ -186,6 +239,17 @@ class MovementSetsViewModel(
         if (w <= 0 || reps <= 0) return false
         val ceiling = recs.filter { it.reps >= reps }.maxOfOrNull { it.weight } ?: 0.0
         return w > ceiling
+    }
+
+    /** Percent over the recent top when a set is more than 10% heavier
+     *  (suggest.ts bigJump); null otherwise. Flagged, never blocked. */
+    fun jumpFor(r: SetRow): Int? {
+        if (metric != "WEIGHT" || (!r.saved && !typed(r))) return null
+        val top = _ui.value.recentTop ?: return null
+        val w = valueOf(r).weight ?: return null
+        if (top <= 0) return null
+        val over = (w - top) / top
+        return if (over > 0.1) kotlin.math.round(over * 100).toInt() else null
     }
 
     /** How it felt / where it hurt: the whole answer each time. */

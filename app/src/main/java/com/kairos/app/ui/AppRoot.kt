@@ -479,6 +479,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenReading = { go(Route.Section("reading"), "reading") },
                         onOpenSchoolWork = { navController.navigate(Route.HomeSchoolWork) },
                         onOpenCoop = { navController.navigate(Route.Coop) },
+                        onOpenPrograms = { navController.navigate(Route.Programs) },
                         refreshKey = homeRefresh,
                     )
                 }
@@ -742,6 +743,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         },
                         usedWeight = usedWeight,
                         onWeightConsumed = { entry.savedStateHandle["useWeight"] = null },
+                        onOpenPrograms = { navController.navigate(Route.Programs) },
                     )
                 }
                 composable<Route.AddClass> { entry ->

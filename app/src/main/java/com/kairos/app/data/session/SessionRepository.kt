@@ -613,6 +613,10 @@ class SessionRepository(
     suspend fun answerProgramInvite(answer: String): WorkoutAckDto =
         runAuthed { requireService().answerInvite(com.kairos.app.data.remote.dto.InviteAnswerRequest(answer = answer)) }
 
+    /** Answer a suggestion card (queued offline like other writes). */
+    suspend fun answerSuggestion(body: com.kairos.app.data.remote.dto.SuggestionAnswerRequest): WorkoutAckDto =
+        runAuthed { requireService().answerSuggestion(body) }
+
     /** The last 12 weeks of training and weeks trained in a row. */
     suspend fun loadWeeklyTraining(): com.kairos.app.data.remote.dto.WeeklyTrainingDto =
         runAuthed { requireService().weeklyTraining() }
@@ -1112,6 +1116,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 481
+        const val CLIENT_BUILD = 482
     }
 }
