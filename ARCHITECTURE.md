@@ -243,7 +243,9 @@ is what that rule exists to prevent.
   `ConditioningTimer.kt` (the full-screen timer), `ConditioningPicker.kt`
   (Pick one / Build one sheets, the "pick on the day" card and the monthly
   benchmark card, v0.425) and `ConditioningCard.kt`
-  (the day's planned conditioning workout).
+  (the day's planned conditioning workout). `PlanFileSheets.kt` — export,
+  import and household plans on the plan screen (v0.426; web
+  `plan-file-panel.tsx`).
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables; `OptionPickerOverlay`

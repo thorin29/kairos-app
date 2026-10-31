@@ -653,6 +653,34 @@ class SessionRepository(
     suspend fun answerBenchmark(date: String, answer: String): com.kairos.app.data.remote.dto.BenchmarkDto? =
         runAuthed { requireService().answerBenchmark(com.kairos.app.data.remote.dto.BenchmarkRequest(date = date, answer = answer)) }.benchmark
 
+    /** The person's workouts file as JSON text, with everything logged if asked. */
+    suspend fun exportWorkouts(history: Boolean): String =
+        runAuthed { requireService().exportWorkouts(if (history) "1" else null) }.string()
+
+    /** What a workouts file holds and would add. */
+    suspend fun previewImport(fileText: String): com.kairos.app.data.remote.dto.ImportPreviewDto? =
+        runAuthed { requireService().previewImport(com.kairos.app.data.remote.dto.ImportFileRequest(file = fileText, preview = true)) }.preview
+
+    /** Bring a workouts file in: mode replace or add. */
+    suspend fun applyImport(fileText: String, mode: String): com.kairos.app.data.remote.dto.ImportAddedDto? =
+        runAuthed { requireService().applyImport(com.kairos.app.data.remote.dto.ImportFileRequest(file = fileText, mode = mode)) }.added
+
+    /** Send the plan to the parents to share with everyone. */
+    suspend fun sharePlan(name: String): WorkoutAckDto =
+        runAuthed { requireService().sharePlan(com.kairos.app.data.remote.dto.SharePlanRequest(name = name)) }
+
+    suspend fun sharedPlans(): List<com.kairos.app.data.remote.dto.SharedPlanDto> =
+        runAuthed { requireService().sharedPlans() }.plans
+
+    suspend fun previewSharedPlan(id: String): com.kairos.app.data.remote.dto.ImportPreviewDto? =
+        runAuthed { requireService().previewSharedPlan(com.kairos.app.data.remote.dto.UseSharedPlanRequest(id = id, preview = true)) }.preview
+
+    suspend fun useSharedPlan(id: String, mode: String): com.kairos.app.data.remote.dto.ImportAddedDto? =
+        runAuthed { requireService().useSharedPlan(com.kairos.app.data.remote.dto.UseSharedPlanRequest(id = id, mode = mode)) }.added
+
+    suspend fun withdrawSharedPlan(id: String): WorkoutAckDto =
+        runAuthed { requireService().withdrawSharedPlan(com.kairos.app.data.remote.dto.SharedPlanIdRequest(id = id)) }
+
     suspend fun dayOrders(): com.kairos.app.data.remote.dto.DayOrdersDto =
         runAuthed { requireService().dayOrders() }
 
@@ -1193,6 +1221,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 489
+        const val CLIENT_BUILD = 490
     }
 }

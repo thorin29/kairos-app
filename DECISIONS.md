@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-10 — Export, import and household plans on the phone (v0.426.0 / web 0.618.0)
+
+The plan screen gets four buttons under "Starts on": Household plans, Share
+this plan, Export and Import, each a ModalBottomSheet (`PlanFileSheets.kt`).
+Export asks the server for the file as text (`ResponseBody`, so it's saved
+exactly as sent) and writes it where the person picks with the system's
+CreateDocument; Import reads a picked file (OpenDocument) and sends its text,
+first for a preview, then with Replace (confirmed in a dialog) or Add.
+Approving shared plans stays on the web's Admin.
+
 ## 2026-10 — Pick one, Build one, Rx/Scaled, monthly benchmark (v0.425.0 / web 0.617.0)
 
 A "pick on the day" Conditioning plan comes in the day read's `picks` (it has

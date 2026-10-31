@@ -1,4 +1,9 @@
 # Changelog
+## 0.426.0
+
+- Export your workout plan and your own workouts to a file, with everything you've logged if you like, and import a file to replace your plan or add to it.
+- Share your plan with the household. A parent approves it, then anyone can start from it under Household plans.
+
 ## 0.425.0
 
 - Plan Conditioning as "Pick on the day", then pick one, build one from the equipment you have, or write your own that day.

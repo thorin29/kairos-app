@@ -149,6 +149,9 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             }
                         }
                     }
+                    item(key = "plan-file") {
+                        PlanFileActions(vm = vm, ui = ui)
+                    }
                     ui.orders?.let { orders ->
                         item(key = "order") {
                             EveryDayOrder(order = orders.everyDay, onSave = { vm.saveOrder(day = null, order = it) })

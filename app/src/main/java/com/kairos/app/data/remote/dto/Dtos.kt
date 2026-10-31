@@ -2803,3 +2803,59 @@ data class Concept2SyncRequest(val date: String, val force: Boolean = false)
 
 @Serializable
 data class Concept2UndoRequest(val resultId: String)
+
+// --- Workouts file and household plans (server 0.618+) ----------------------
+
+@Serializable
+data class ImportNewMovementDto(val name: String = "", val category: String = "", val muscleGroup: String? = null)
+
+/** What a workouts file (or a household plan) holds and would add. */
+@Serializable
+data class ImportPreviewDto(
+    val newMovements: List<ImportNewMovementDto> = emptyList(),
+    val newWorkouts: List<String> = emptyList(),
+    /** Plan entries in it (0 = named workouts only). */
+    val entries: Int = 0,
+    val days: Int = 0,
+    /** "Mon Chest · Wed Legs". */
+    val summary: String = "",
+    val name: String? = null,
+    val workoutCount: Int = 0,
+)
+
+@Serializable
+data class ImportPreviewResponseDto(val preview: ImportPreviewDto? = null)
+
+@Serializable
+data class ImportAddedDto(val plans: Int = 0, val movements: Int = 0, val workouts: Int = 0)
+
+@Serializable
+data class ImportResultDto(val status: String = "", val added: ImportAddedDto? = null)
+
+/** POST workouts/plan/import: the file's text; mode replace or add. */
+@Serializable
+data class ImportFileRequest(val file: String, val preview: Boolean? = null, val mode: String? = null)
+
+@Serializable
+data class SharePlanRequest(val name: String)
+
+/** A household plan: APPROVED, or the person's own PENDING. */
+@Serializable
+data class SharedPlanDto(
+    val id: String = "",
+    val name: String = "",
+    val by: String = "",
+    val summary: String = "",
+    val status: String = "",
+    val mine: Boolean = false,
+)
+
+@Serializable
+data class SharedPlansDto(val plans: List<SharedPlanDto> = emptyList())
+
+/** POST workouts/plan/shared/use. */
+@Serializable
+data class UseSharedPlanRequest(val id: String, val preview: Boolean? = null, val mode: String? = null)
+
+@Serializable
+data class SharedPlanIdRequest(val id: String)

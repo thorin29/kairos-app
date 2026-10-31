@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class EditPlanUiState(
     val loading: Boolean = true,
@@ -21,6 +23,18 @@ data class EditPlanUiState(
     val orders: com.kairos.app.data.remote.dto.DayOrdersDto? = null,
     val busy: Boolean = false,
     val error: String? = null,
+    /** Household plans, loaded when that sheet opens (server 0.618+). */
+    val sharedPlans: List<com.kairos.app.data.remote.dto.SharedPlanDto>? = null,
+    /** What the chosen file or household plan would do. */
+    val preview: com.kairos.app.data.remote.dto.ImportPreviewDto? = null,
+    /** The household plan [preview] is of; null = a file. */
+    val previewPlanId: String? = null,
+    /** The file chosen to import, as text. */
+    val importText: String? = null,
+    /** "Done. 4 added to your plan · 1 new workout." / "Sent for approval." */
+    val fileMessage: String? = null,
+    val fileError: String? = null,
+    val fileBusy: Boolean = false,
 )
 
 class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
@@ -88,5 +102,85 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
                 _ui.update { it.copy(error = e.error.message) }
             }
         }
+    }
+
+    // --- workouts file and household plans (server 0.618+) ---------------
+
+    /** Clear what the file sheets were showing. */
+    fun clearFile() {
+        _ui.update {
+            it.copy(preview = null, previewPlanId = null, importText = null, fileMessage = null, fileError = null, fileBusy = false)
+        }
+    }
+
+    private fun fileAct(block: suspend () -> Unit) {
+        _ui.update { it.copy(fileBusy = true, fileError = null) }
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(fileError = e.error.message) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(fileError = "Couldn't read or save that file.") }
+            } finally {
+                _ui.update { it.copy(fileBusy = false) }
+            }
+        }
+    }
+
+    /** Fetch the workouts file and hand it to [write] (the file the person picked). */
+    fun exportTo(history: Boolean, write: (String) -> Unit) = fileAct {
+        val text = session.exportWorkouts(history)
+        withContext(Dispatchers.IO) { write(text) }
+        _ui.update { it.copy(fileMessage = "Saved.") }
+    }
+
+    /** Read the picked file and ask the server what it holds. */
+    fun readImport(read: () -> String?) = fileAct {
+        val text = withContext(Dispatchers.IO) { read() } ?: throw IllegalStateException("unreadable")
+        val p = session.previewImport(text)
+        _ui.update { it.copy(importText = text, preview = p, previewPlanId = null) }
+    }
+
+    fun loadSharedPlans() {
+        _ui.update { it.copy(sharedPlans = null) }
+        fileAct {
+            val plans = session.sharedPlans()
+            _ui.update { it.copy(sharedPlans = plans) }
+        }
+    }
+
+    fun previewSharedPlan(id: String) = fileAct {
+        val p = session.previewSharedPlan(id)
+        _ui.update { it.copy(preview = p, previewPlanId = id, importText = null) }
+    }
+
+    /** Bring the previewed file or household plan in: replace or add. */
+    fun applyPreview(mode: String) = fileAct {
+        val u = _ui.value
+        val id = u.previewPlanId
+        val text = u.importText
+        val added = when {
+            id != null -> session.useSharedPlan(id = id, mode = mode)
+            text != null -> session.applyImport(fileText = text, mode = mode)
+            else -> null
+        }
+        val msg = buildList {
+            add("Done. ${added?.plans ?: 0} added to your plan")
+            added?.workouts?.takeIf { it > 0 }?.let { add("$it new ${if (it == 1) "workout" else "workouts"}") }
+            added?.movements?.takeIf { it > 0 }?.let { add("$it new ${if (it == 1) "movement" else "movements"}") }
+        }.joinToString(" \u00b7 ") + "."
+        _ui.update { it.copy(fileMessage = msg, preview = null) }
+        load(initial = false)
+    }
+
+    fun sharePlan(name: String) = fileAct {
+        session.sharePlan(name)
+        _ui.update { it.copy(fileMessage = "Sent for approval.") }
+    }
+
+    fun withdrawSharedPlan(id: String) = fileAct {
+        session.withdrawSharedPlan(id)
+        _ui.update { u -> u.copy(sharedPlans = u.sharedPlans?.filter { it.id != id }) }
     }
 }

@@ -234,6 +234,31 @@ interface ApiService {
     @POST("workouts/benchmark")
     suspend fun answerBenchmark(@Body body: com.kairos.app.data.remote.dto.BenchmarkRequest): Response<com.kairos.app.data.remote.dto.BenchmarkAnswerDto>
 
+    /** The workouts file, as its text (server 0.618+). */
+    @GET("workouts/plan/export")
+    suspend fun exportWorkouts(@Query("history") history: String?): Response<okhttp3.ResponseBody>
+
+    @POST("workouts/plan/import")
+    suspend fun previewImport(@Body body: com.kairos.app.data.remote.dto.ImportFileRequest): Response<com.kairos.app.data.remote.dto.ImportPreviewResponseDto>
+
+    @POST("workouts/plan/import")
+    suspend fun applyImport(@Body body: com.kairos.app.data.remote.dto.ImportFileRequest): Response<com.kairos.app.data.remote.dto.ImportResultDto>
+
+    @POST("workouts/plan/share")
+    suspend fun sharePlan(@Body body: com.kairos.app.data.remote.dto.SharePlanRequest): Response<WorkoutAckDto>
+
+    @GET("workouts/plan/shared")
+    suspend fun sharedPlans(): Response<com.kairos.app.data.remote.dto.SharedPlansDto>
+
+    @POST("workouts/plan/shared/use")
+    suspend fun previewSharedPlan(@Body body: com.kairos.app.data.remote.dto.UseSharedPlanRequest): Response<com.kairos.app.data.remote.dto.ImportPreviewResponseDto>
+
+    @POST("workouts/plan/shared/use")
+    suspend fun useSharedPlan(@Body body: com.kairos.app.data.remote.dto.UseSharedPlanRequest): Response<com.kairos.app.data.remote.dto.ImportResultDto>
+
+    @POST("workouts/plan/shared/withdraw")
+    suspend fun withdrawSharedPlan(@Body body: com.kairos.app.data.remote.dto.SharedPlanIdRequest): Response<WorkoutAckDto>
+
     @POST("workouts/warmup")
     suspend fun setWarmup(@Body body: com.kairos.app.data.remote.dto.WarmupRequest): Response<WorkoutAckDto>
 
