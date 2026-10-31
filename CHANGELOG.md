@@ -1,4 +1,9 @@
 # Changelog
+## 0.426.1
+
+- How did it feel is now a slider: slide to Easy, Solid, Hard or Too hard and tap the check to save it. The small bandage is for when something hurt.
+- Cardio is one card: Concept2 and add are on it, and rows from Concept2 can't be deleted.
+
 ## 0.426.0
 
 - Export your workout plan and your own workouts to a file, with everything you've logged if you like, and import a file to replace your plan or add to it.

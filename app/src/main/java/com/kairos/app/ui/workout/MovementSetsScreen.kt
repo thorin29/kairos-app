@@ -741,8 +741,12 @@ private fun FeedbackCard(
     }
 }
 
-/** The question, the effort pills and "Something hurt?": the set logger's
- *  card, a cardio entry and a sport event (v0.422+) all use it. */
+/**
+ * "How did it feel?" for any workout (v0.426.1, the web's EffortPicker): a
+ * four-step slider (Easy, Solid, Hard, Too hard) with a check to lock it in,
+ * and a small bandage for "something hurt" that opens the areas in a dialog.
+ * Moving the slider after locking asks for the check again.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EffortChooser(
@@ -751,38 +755,107 @@ internal fun EffortChooser(
     hurt: String?,
     onChange: (String?, String?) -> Unit,
 ) {
+    val saved = EFFORTS.indexOfFirst { it.first == effort }
+    var draft by remember(effort) { mutableStateOf<Float?>(null) }
     var open by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(question, style = MaterialTheme.typography.titleSmall)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            EFFORTS.forEach { (key, label) ->
-                ChoicePill(label = label, selected = effort == key) {
-                    onChange(if (effort == key) null else key, hurt)
-                }
+    val value = draft ?: (if (saved >= 0) saved.toFloat() else 1f)
+    val unset = saved < 0 && draft == null
+    val index = kotlin.math.round(value).toInt().coerceIn(0, EFFORTS.lastIndex)
+    val locked = saved >= 0 && (draft == null || index == saved)
+    val hurtLabel = HURT_AREAS.firstOrNull { it.first == hurt }?.second
+    val primary = MaterialTheme.colorScheme.primary
+
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(question, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            if (hurtLabel != null) {
+                Text(hurtLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+            }
+            IconButton(onClick = { open = true }) {
+                Icon(
+                    KairosIcons.Bandage,
+                    contentDescription = if (hurtLabel != null) "Hurt: $hurtLabel" else "Something hurt?",
+                    tint = if (hurtLabel != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
-        val hurtLabel = HURT_AREAS.firstOrNull { it.first == hurt }?.second
-        ChoicePill(
-            label = if (hurtLabel != null) "Hurt: ${hurtLabel.lowercase()}" else "Something hurt?",
-            selected = false,
-            warn = hurtLabel != null,
-        ) { open = !open }
-        if (open) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                HURT_AREAS.forEach { (key, label) ->
-                    ChoicePill(label = label, selected = false, warn = hurt == key) {
-                        onChange(effort, if (hurt == key) null else key)
-                        open = false
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f)) {
+                androidx.compose.material3.Slider(
+                    value = value,
+                    onValueChange = { draft = it },
+                    valueRange = 0f..EFFORTS.lastIndex.toFloat(),
+                    steps = EFFORTS.size - 2,
+                    colors = androidx.compose.material3.SliderDefaults.colors(
+                        thumbColor = if (unset) MaterialTheme.colorScheme.outline else primary,
+                        activeTrackColor = if (unset) MaterialTheme.colorScheme.outlineVariant else primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+                        activeTickColor = Color.Transparent,
+                        inactiveTickColor = Color.Transparent,
+                    ),
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    EFFORTS.forEachIndexed { i, (_, label) ->
+                        val on = !unset && i == index
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (on) primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                            modifier = Modifier.clickable { draft = i.toFloat() },
+                        )
                     }
                 }
             }
+            if (locked) {
+                androidx.compose.material3.FilledIconButton(onClick = {}, modifier = Modifier.size(44.dp)) {
+                    Icon(KairosIcons.Check, contentDescription = "Saved: ${EFFORTS[saved].second}")
+                }
+            } else {
+                androidx.compose.material3.OutlinedIconButton(
+                    onClick = {
+                        onChange(EFFORTS[index].first, hurt)
+                        draft = null
+                    },
+                    border = androidx.compose.foundation.BorderStroke(2.dp, primary),
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(KairosIcons.Check, contentDescription = "Save: ${EFFORTS[index].second}", tint = primary)
+                }
+            }
         }
+    }
+
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text("Something hurt?") },
+            text = {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    HURT_AREAS.forEach { (key, label) ->
+                        ChoicePill(label = label, selected = false, warn = hurt == key) {
+                            onChange(effort, key)
+                            open = false
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
+            dismissButton = if (hurt != null) {
+                {
+                    TextButton(onClick = {
+                        onChange(effort, null)
+                        open = false
+                    }) { Text("Nothing hurt") }
+                }
+            } else {
+                null
+            },
+        )
     }
 }
 

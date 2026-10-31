@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-10 — Effort slider; one Cardio card (v0.426.1 / web 0.618.1)
+
+`EffortChooser` (MovementSetsScreen.kt) is a Material Slider (4 stops, thumb
+and active track in the primary colour, grey until answered) with a check
+(OutlinedIconButton → FilledIconButton once saved) and a bandage IconButton
+opening the hurt areas in an AlertDialog. Every caller (sets, cardio,
+conditioning, the home sport prompt) gets it unchanged. `CardioBlock` is one
+OutlinedCard: title, ⟳ Concept2 (`KairosIcons.Sync`) and + on it; no trash on
+a Concept2 row. New icons: `KairosIcons.Sync`, `KairosIcons.Bandage`.
+
 ## 2026-10 — Export, import and household plans on the phone (v0.426.0 / web 0.618.0)
 
 The plan screen gets four buttons under "Starts on": Household plans, Share

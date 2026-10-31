@@ -381,4 +381,21 @@ object KairosIcons {
         "M21 12a9 9 0 1 1-3-6.7L21 8",
         "M21 3v5h-5",
     )
+    /** Two arrows chasing round: sync (Concept2). */
+    val Sync = stroked(
+        "Sync",
+        "M20 12a8 8 0 0 0-14.3-4.9L4 9",
+        "M4 4v5h5",
+        "M4 12a8 8 0 0 0 14.3 4.9L20 15",
+        "M20 20v-5h-5",
+    )
+    /** A bandage: something hurt. */
+    val Bandage = stroked(
+        "Bandage",
+        "M7.5 20.5l-4-4a2.83 2.83 0 0 1 0-4l9-9a2.83 2.83 0 0 1 4 0l4 4a2.83 2.83 0 0 1 0 4l-9 9a2.83 2.83 0 0 1-4 0Z",
+        "M10.5 10.5h.01",
+        "M13.5 13.5h.01",
+        "M13.5 10.5h.01",
+        "M10.5 13.5h.01",
+    )
 }
