@@ -387,6 +387,7 @@ internal fun ConditioningTimer(
                             )
                         }
                     }
+                    workout.today?.let { Text("Logging replaces today's $it.", color = TReady, fontSize = 13.sp) }
                     error?.let { Text(it, color = TRest, fontSize = 13.sp) }
                     Button(
                         onClick = { save() },

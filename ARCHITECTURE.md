@@ -244,7 +244,8 @@ is what that rule exists to prevent.
   (the day's planned conditioning workout).
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
-- `ui/common/` — `rememberContainer`, shared composables.
+- `ui/common/` — `rememberContainer`, shared composables; `OptionPickerOverlay`
+  is the one full-screen pick-one list (use it, not a DropdownMenu).
 - `data/remote/` — ApiClient, ApiService, AuthInterceptor, dto/Dtos.kt, ApiError.
 - `data/session/` — SessionRepository, SessionState.
 - `data/secure/` — TokenStore. `data/settings/` — SettingsStore.

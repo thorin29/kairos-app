@@ -51,6 +51,7 @@ internal fun ConditioningCard(
     onFeedback: (String?, String?) -> Unit,
 ) {
     var timing by remember { mutableStateOf(false) }
+    var confirmRestart by remember { mutableStateOf(false) }
     var manual by remember { mutableStateOf(false) }
     var value by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -119,7 +120,11 @@ internal fun ConditioningCard(
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (!skipped) {
-                        Button(onClick = { timing = true }, modifier = Modifier.weight(1f)) {
+                        Button(
+                            // Logging from the timer replaces today's result: ask first.
+                            onClick = { if (workout.today != null) confirmRestart = true else timing = true },
+                            modifier = Modifier.weight(1f),
+                        ) {
                             Text(if (workout.today != null) "Start again" else "Start")
                         }
                         OutlinedButton(onClick = { manual = true }) {
@@ -132,6 +137,18 @@ internal fun ConditioningCard(
                 }
             }
         }
+    }
+
+    if (confirmRestart) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmRestart = false },
+            title = { Text("Already logged today") },
+            text = { Text("You logged ${workout.today} today. A new result from the timer will replace it.") },
+            confirmButton = {
+                TextButton(onClick = { confirmRestart = false; timing = true }) { Text("Start timer") }
+            },
+            dismissButton = { TextButton(onClick = { confirmRestart = false }) { Text("Cancel") } },
+        )
     }
 
     if (timing) {

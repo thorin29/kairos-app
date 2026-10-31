@@ -1,4 +1,10 @@
 # Changelog
+## 0.424.1
+
+- Starting the timer on a workout you already logged today asks first, since the new result replaces it.
+- Add cardio opens in its own sheet.
+- The workout plan's choices (category, muscle group, sets, copy from) open the same full-screen list as the calendar.
+
 ## 0.424.0
 
 - New: a timer for conditioning workouts. Tap Start on the workout; it counts you in, beeps over music, buzzes and keeps the screen on.

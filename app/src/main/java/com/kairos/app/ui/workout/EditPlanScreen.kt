@@ -15,8 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -412,18 +410,19 @@ private fun SchemeMenu(
     var open by remember { mutableStateOf(false) }
     Box {
         Text(
-            (schemes.firstOrNull { it.key == selected }?.label ?: "Any sets") + " ▾",
+            (schemes.firstOrNull { it.key == selected }?.label ?: "Any sets") + "  \u203A",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { open = true }.padding(horizontal = 6.dp, vertical = 4.dp),
         )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            schemes.forEach { c ->
-                DropdownMenuItem(
-                    text = { Text(c.label) },
-                    onClick = { onPick(c.key); open = false },
-                )
-            }
+        if (open) {
+            com.kairos.app.ui.common.OptionPickerOverlay(
+                title = "Sets",
+                options = schemes.map { it.key to it.label },
+                selectedKey = selected,
+                onPick = onPick,
+                onClose = { open = false },
+            )
         }
     }
 }
@@ -438,13 +437,14 @@ private fun CopyFromMenu(others: List<PlanDayDto>, onCopyFrom: (Int) -> Unit) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { open = true }.padding(4.dp),
         )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            others.forEach { o ->
-                DropdownMenuItem(
-                    text = { Text(DAY_NAMES[o.day]) },
-                    onClick = { onCopyFrom(o.day); open = false },
-                )
-            }
+        if (open) {
+            com.kairos.app.ui.common.OptionPickerOverlay(
+                title = "Copy from",
+                options = others.map { it.day.toString() to DAY_NAMES[it.day] },
+                selectedKey = null,
+                onPick = { onCopyFrom(it.toInt()) },
+                onClose = { open = false },
+            )
         }
     }
 }

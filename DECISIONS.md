@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-10 — Pickers, Add cardio sheet, replace warning (v0.424.1 / web 0.616.1)
+
+`ui/common/OptionPickerOverlay` is the calendar's full-screen radio list made
+shared; the plan screen's `Dropdown`, Sets and Copy from use it instead of a
+DropdownMenu. Add cardio is a ModalBottomSheet like Add workout. "Start again"
+on a conditioning workout logged today asks before opening the timer, and the
+timer's result step says it replaces today's result.
+
 ## 2026-10 — Conditioning timer on the phone (v0.424.0 / web 0.616.0)
 
 `ConditioningTimer` is a full-screen dialog run by `Timer.kt` (the web's

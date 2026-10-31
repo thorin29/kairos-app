@@ -9,13 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -276,6 +275,7 @@ private fun ExerciseList(
                         if (p.tracked && metrics.size > 1) {
                             Dropdown(
                                 label = "",
+                                title = "Log as",
                                 selected = metrics.firstOrNull { it.key == p.metric }?.label ?: "",
                                 options = metrics.map { it.key to it.label },
                                 onSelect = { onChange(picked + (id to p.copy(metric = it))) },
@@ -294,6 +294,7 @@ private fun ExerciseList(
                             Text("Sets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Dropdown(
                                 label = "",
+                                title = "Sets",
                                 selected = schemes.firstOrNull { it.key == p.scheme }?.label ?: "Any sets",
                                 options = schemes.map { it.key to it.label },
                                 onSelect = { onChange(picked + (id to p.copy(scheme = it))) },
@@ -314,30 +315,45 @@ internal fun Dropdown(
     options: List<Pair<String, String>>,
     onSelect: (String) -> Unit,
     compact: Boolean = false,
+    /** The picker's title; the label when it has one. */
+    title: String = label,
 ) {
+    // Opens the app's full-screen picker (the calendar's Type / Calendar
+    // style), not a small drop-down menu.
     var open by remember { mutableStateOf(false) }
     Column {
         if (label.isNotBlank()) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Box {
-            Row(
-                Modifier
-                    .then(if (compact) Modifier else Modifier.fillMaxWidth())
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                    .clickable { open = true }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(selected, style = MaterialTheme.typography.bodyMedium)
-                Text("  ▾", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                options.forEach { (key, text) ->
-                    DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(key); open = false })
-                }
-            }
+        Row(
+            Modifier
+                .then(if (compact) Modifier else Modifier.fillMaxWidth())
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                .clickable { open = true }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                selected,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = if (compact) Modifier else Modifier.weight(1f),
+            )
+            androidx.compose.material3.Icon(
+                com.kairos.app.ui.nav.KairosIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 6.dp).size(16.dp),
+            )
         }
+    }
+    if (open) {
+        com.kairos.app.ui.common.OptionPickerOverlay(
+            title = title.ifBlank { "Choose" },
+            options = options,
+            selectedKey = options.firstOrNull { it.second == selected }?.first,
+            onPick = onSelect,
+            onClose = { open = false },
+        )
     }
 }
