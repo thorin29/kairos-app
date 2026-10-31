@@ -1164,6 +1164,7 @@ private fun SwapMovementDialog(
 ) {
     val ui by vm.ui.collectAsState()
     var query by remember { mutableStateOf("") }
+    var peek by remember { mutableStateOf<String?>(null) }
     val current = ui.pool.firstOrNull { it.id == m.poolExerciseId }
     val q = query.trim().lowercase()
 
@@ -1237,18 +1238,29 @@ private fun SwapMovementDialog(
                             modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
                         )
                         g.items.forEach { ex ->
-                            Text(
-                                ex.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        vm.swapMovement(planId, m.poolExerciseId, ex)
-                                        onDismiss()
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    ex.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            vm.swapMovement(planId, m.poolExerciseId, ex)
+                                            onDismiss()
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                                )
+                                MovementInfoButton(
+                                    name = ex.name,
+                                    onClick = { peek = if (peek == ex.id) null else ex.id },
+                                    tint = if (peek == ex.id) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (peek == ex.id) {
+                                MovementAboutInline(name = ex.name, about = ex.about)
+                            }
                         }
                     }
                 }

@@ -141,6 +141,7 @@ fun AddWorkoutSheet(
                         metrics = metrics,
                         defMetric = defMetric,
                         own = ownMetrics,
+                        about = exercises.associate { it.id to it.about },
                     ) { picked = it }
                 }
                 kind == "hiit" -> {
@@ -164,6 +165,7 @@ fun AddWorkoutSheet(
                         metrics = metrics,
                         defMetric = defMetric,
                         own = ownMetrics,
+                        about = exercises.associate { it.id to it.about },
                     ) { picked = it }
                 }
             }
@@ -196,8 +198,10 @@ private fun ExerciseList(
     metrics: List<com.kairos.app.data.remote.dto.PlanMetricDto>,
     defMetric: String,
     own: Map<String, String> = emptyMap(),
+    about: Map<String, String?> = emptyMap(),
     onChange: (Map<String, Pick>) -> Unit,
 ) {
+    var peek by remember { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Exercises", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         items.forEach { (id, name) ->
@@ -230,7 +234,21 @@ private fun ExerciseList(
                             )
                         },
                     )
-                    Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MovementInfoButton(
+                        name = name,
+                        onClick = { peek = if (peek == id) null else id },
+                        tint = if (peek == id) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (peek == id) {
+                    MovementAboutInline(name = name, about = about[id])
                 }
                 if (p != null) {
                     Row(

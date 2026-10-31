@@ -230,6 +230,9 @@ is what that rule exists to prevent.
   `WorkoutLogScreen.kt` mirrors the web's blocks.ts: `daySections` / `blockKind`
   (sections and order), `opensSetLogger` (the split rule), `dayProgress` and
   `stripState`; keep them in step.
+- `ui/workout/MovementInfo.kt` — ⓘ for a movement: `MovementInfoButton`, the
+  how-to dialog, the inline how-to under a picker row, and `watchUrl` (same
+  link as the web's `watch.ts`; keep them in step).
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables.

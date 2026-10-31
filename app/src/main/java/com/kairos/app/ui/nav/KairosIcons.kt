@@ -354,6 +354,13 @@ object KairosIcons {
         "M4 10h16",
         "M7 14h10v2H7z",
     )
+    /** "How to": a circled i beside a movement name. */
+    val Info = stroked(
+        "Info",
+        "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
+        "M12 11v5",
+        "M12 8h.01",
+    )
     val Clock = stroked(
         "Clock",
         "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z",

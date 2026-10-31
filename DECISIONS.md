@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-10 — How-to behind ⓘ (v0.421.0 / web 0.613.0)
+
+The server sends each movement's how-to (`about`) with the pool, the plan
+options and the set logger. ⓘ sits in the set logger's top bar (a dialog with
+the how-to and "Watch how") and on every row of the Swap lists and the plan
+builder's movement list (the how-to opens under the row, since a dialog over a
+dialog reads badly). "Watch how" is a video search for the name, built on the
+phone, so nothing stored can go stale. Older servers send no `about`: ⓘ still
+shows, with just "Watch how".
+
 ## 2026-10 — Suggestions on the phone (v0.420.0 / web 0.612.0)
 
 `SuggestionCard` (in MovementSetsScreen.kt, shared with the log page) shows the

@@ -111,6 +111,7 @@ fun MovementSetsScreen(
     )
     val ui by vm.ui.collectAsState()
     var swapping by remember { mutableStateOf(false) }
+    var showInfo by remember { mutableStateOf(false) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
     LaunchedEffect(usedWeight) {
@@ -165,6 +166,10 @@ fun MovementSetsScreen(
                     }
                 },
                 actions = {
+                    MovementInfoButton(
+                        name = if (swapped) ui.doingName ?: name else name,
+                        onClick = { showInfo = true },
+                    )
                     Box(Modifier.padding(end = 12.dp)) {
                         if (swapped) {
                             SmallPill(label = "Undo", icon = false) { vm.swapTo(null) }
@@ -383,6 +388,13 @@ fun MovementSetsScreen(
             title = "Swap $name",
             onPick = { vm.swapTo(it); swapping = false },
             onDismiss = { swapping = false },
+        )
+    }
+    if (showInfo) {
+        MovementInfoDialog(
+            name = if (swapped) ui.doingName ?: name else name,
+            about = ui.about,
+            onDismiss = { showInfo = false },
         )
     }
 }
@@ -839,6 +851,7 @@ private fun SetsSwapDialog(
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    var peek by remember { mutableStateOf<String?>(null) }
     val current = pool.firstOrNull { it.id == slotId }
     val q = query.trim().lowercase()
     val groups = remember(pool, q, current?.id) {
@@ -883,15 +896,26 @@ private fun SetsSwapDialog(
                             modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
                         )
                         items.forEach { ex ->
-                            Text(
-                                ex.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { onPick(ex) }
-                                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    ex.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { onPick(ex) }
+                                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                                )
+                                MovementInfoButton(
+                                    name = ex.name,
+                                    onClick = { peek = if (peek == ex.id) null else ex.id },
+                                    tint = if (peek == ex.id) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (peek == ex.id) {
+                                MovementAboutInline(name = ex.name, about = ex.about)
+                            }
                         }
                     }
                 }

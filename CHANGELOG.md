@@ -1,4 +1,8 @@
 # Changelog
+## 0.421.0
+
+- Tap ⓘ beside a movement to see how it's done, with a link to watch it. It's on the set logger, Swap, and when adding movements to a plan.
+
 ## 0.420.0
 
 - Workouts suggest things now: the next weight, a lighter day, a swap around something that hurt. Nothing changes unless you say so.

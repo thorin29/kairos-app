@@ -68,6 +68,8 @@ data class MovementSetsUi(
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
     /** Heaviest weight in the last two weeks, for the big-jump note. */
     val recentTop: Double? = null,
+    /** The how-to for the movement being done (server 0.613+), for ⓘ. */
+    val about: String? = null,
 )
 
 /**
@@ -119,6 +121,7 @@ class MovementSetsViewModel(
                     targetScheme = log.target?.scheme ?: "",
                     suggestion = log.suggestion?.takeIf { s -> s.key !in answeredKeys() },
                     recentTop = log.recentTop,
+                    about = log.about,
                     targetTitle = log.target?.title ?: "",
                     lastSets = last,
                     lastDate = log.last?.date,
@@ -494,7 +497,7 @@ class MovementSetsViewModel(
 
     /** Swap for the day (or undo with null): hints follow the movement being done. */
     fun swapTo(p: PoolExerciseDto?) {
-        _ui.update { it.copy(doingId = p?.id, doingName = p?.name) }
+        _ui.update { it.copy(doingId = p?.id, doingName = p?.name, about = p?.about) }
         // Sets already saved move with the swap.
         if (_ui.value.rows.any { it.saved }) persist(_ui.value.rows)
         viewModelScope.launch {
@@ -506,6 +509,7 @@ class MovementSetsViewModel(
                     lastSets = last,
                     lastDate = log.last?.date,
                     records = log.records,
+                    about = log.about,
                     rows = u.rows.mapIndexed { i, r ->
                         if (r.saved || typed(r)) r
                         else r.copy(hintW = last.getOrNull(i)?.weight, hintR = last.getOrNull(i)?.reps, hintS = last.getOrNull(i)?.seconds)

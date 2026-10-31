@@ -411,6 +411,9 @@ data class MovementLogDto(
     val suggestion: SuggestionDto? = null,
     /** Heaviest weight in the two weeks before today, for the big-jump note. */
     val recentTop: Double? = null,
+    /** The movement being done and its how-to, for ⓘ (server 0.613+). */
+    val name: String = "",
+    val about: String? = null,
 )
 
 /** A suggestion: what, why, and the choices. Never applied on its own. */
@@ -852,6 +855,8 @@ data class PlanExerciseDto(
     /** How the movement is logged (a plank is timed); null = the category's
      *  default. Server 0.609+. */
     val metric: String? = null,
+    /** How-to for ⓘ (server 0.613+). */
+    val about: String? = null,
 )
 
 @Serializable
@@ -1072,6 +1077,8 @@ data class PoolExerciseDto(
     val name: String,
     val category: String,
     val muscleGroup: String? = null,
+    /** How-to for ⓘ (server 0.613+). */
+    val about: String? = null,
 )
 
 @Serializable
