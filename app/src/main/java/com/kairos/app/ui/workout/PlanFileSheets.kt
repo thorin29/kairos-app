@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
@@ -305,7 +306,7 @@ private fun ImportChoice(preview: ImportPreviewDto, busy: Boolean, onPick: (Stri
                 Text("Replace my plan")
             }
         }
-        OutlinedButton(onClick = { onPick("add") }, enabled = !busy) {
+        AccentOutlinedButton(onClick = { onPick("add") }, enabled = !busy) {
             Text(if (preview.entries > 0) "Add to my plan" else "Add the workouts")
         }
     }

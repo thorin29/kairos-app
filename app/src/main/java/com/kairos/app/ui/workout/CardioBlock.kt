@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -145,7 +146,7 @@ internal fun WarmupCard(
             }
             if (!plan.skipped) {
                 if (finished) {
-                    OutlinedButton(onClick = { onDone(false) }) {
+                    AccentOutlinedButton(onClick = { onDone(false) }) {
                         Icon(KairosIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Text("Done", modifier = Modifier.padding(start = 6.dp))
                     }

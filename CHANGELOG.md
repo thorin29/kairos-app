@@ -1,4 +1,11 @@
 # Changelog
+## 0.435.0
+
+- Recent workouts shows one entry per day, like "5/3/1 · Legs"; deleting one removes that day's workouts.
+- A day with nothing planned no longer says "logging late".
+- Warm-up timer pauses: 0, 1, 2, 3, 5 or 10 seconds.
+- Buttons on the workout screens share one style.
+
 ## 0.434.0
 
 - ⓘ beside exercises in program setup, the plan editor and Log an additional workout.

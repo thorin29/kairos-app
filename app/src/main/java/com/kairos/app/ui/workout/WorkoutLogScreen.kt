@@ -212,6 +212,7 @@ fun WorkoutLogScreen(
                                 }
                             },
                             logged = ui.loggedAny,
+                            planned = todayBlocks.isNotEmpty() || ui.simple.isNotEmpty() || ui.picks.isNotEmpty(),
                             progress = dayProgress(todayBlocks).let { (d, t) ->
                                 // Warm-up and Cardio plans count like any block.
                                 (d + ui.simple.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
@@ -445,7 +446,7 @@ fun WorkoutLogScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Pick one") }
-                    OutlinedButton(
+                    AccentOutlinedButton(
                         onClick = {
                             addingConditioning = false
                             if (ui.choices == null) vm.loadChoices()
@@ -453,7 +454,7 @@ fun WorkoutLogScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Build one") }
-                    OutlinedButton(
+                    AccentOutlinedButton(
                         onClick = {
                             addingConditioning = false
                             onWriteOwn()
@@ -820,6 +821,8 @@ private fun DayHeader(
     light: Double? = null,
     /** Something was logged that day: a past day isn't "logging late" (v0.431). */
     logged: Boolean = false,
+    /** Something was planned that day: a day with nothing planned is never late (v0.435). */
+    planned: Boolean = true,
     onPickDate: () -> Unit,
     onPickDay: (String) -> Unit,
 ) {
@@ -840,9 +843,9 @@ private fun DayHeader(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    dayLine(date, today) + if (date < today && !logged) " \u00b7 logging late" else "",
+                    dayLine(date, today) + if (date < today && planned && !logged) " \u00b7 logging late" else "",
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (date < today && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (date < today && planned && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -1292,11 +1295,8 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                     Row(
                         Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outline,
-                                RoundedCornerShape(14.dp),
-                            )
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
                             .clickable { vm.loadPool(); swapping = true }
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,

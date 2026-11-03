@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -135,7 +136,7 @@ private fun RotationBody(r: RotationDto, busy: Boolean, error: String?, vm: Rota
 
         val startIso = r.anchorISO ?: ""
         Text("Cycle starts on", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        OutlinedButton(onClick = { showStart = true }, enabled = !busy) {
+        AccentOutlinedButton(onClick = { showStart = true }, enabled = !busy) {
             Text(if (startIso.isNotEmpty()) shortDate(startIso) else "Set start date")
         }
         Text(

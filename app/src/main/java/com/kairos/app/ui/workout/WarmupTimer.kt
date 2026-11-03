@@ -64,7 +64,7 @@ internal data class WarmupInterval(val step: Int, val name: String, val seconds:
 internal data class WarmupSegment(val kind: String, val interval: Int, val seconds: Int)
 
 /** Choices for the pause between intervals, in seconds (WARMUP_GAPS). */
-internal val WARMUP_GAPS = listOf(0, 5, 10, 15, 20, 30)
+internal val WARMUP_GAPS = listOf(0, 1, 2, 3, 5, 10)
 
 internal fun warmupIntervals(steps: List<WarmupStepDto>, from: Int): List<WarmupInterval> {
     val out = mutableListOf<WarmupInterval>()

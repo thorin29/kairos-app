@@ -672,23 +672,20 @@ private fun PillButton(label: String, icon: Boolean = false, tinted: Boolean = f
                 if (tinted) MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
                 else MaterialTheme.colorScheme.surface,
             )
-            .border(
-                1.dp,
-                if (tinted) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.outline,
-                shape,
-            )
+            // Accent-outlined like every secondary button (v0.435).
+            .border(2.dp, MaterialTheme.colorScheme.primary, shape)
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon) {
-            Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(14.dp))
+            Icon(KairosIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
         }
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (tinted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -965,7 +962,8 @@ private fun SmallPill(label: String, icon: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .clip(RoundedCornerShape(14.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,

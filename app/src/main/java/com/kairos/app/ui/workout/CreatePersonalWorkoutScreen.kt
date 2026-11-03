@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -116,7 +117,7 @@ fun CreatePersonalWorkoutScreen(onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (step > 0) {
-                            OutlinedButton(onClick = { step-- }) { Text("Back") }
+                            AccentOutlinedButton(onClick = { step-- }) { Text("Back") }
                         }
                         Spacer(Modifier.width(1.dp).weight(1f))
                         if (step < 3) {
@@ -298,12 +299,12 @@ private fun ExercisesStep(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            OutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
+            AccentOutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
                 Icon(KairosIcons.Plus, null, Modifier.width(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Add custom exercise")
             }
-            OutlinedButton(onClick = onManage, modifier = Modifier.fillMaxWidth()) {
+            AccentOutlinedButton(onClick = onManage, modifier = Modifier.fillMaxWidth()) {
                 Text("Edit custom exercises")
             }
         }

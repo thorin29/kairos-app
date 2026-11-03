@@ -54,7 +54,9 @@ class RecentWorkoutsViewModel(private val session: SessionRepository, private va
         _ui.update { it.copy(deletingIds = it.deletingIds + id) }
         viewModelScope.launch {
             try {
-                session.deleteWorkoutSession(id)
+                // An entry is the whole day (server 0.627+): delete each of its sessions.
+                val all = _ui.value.history.firstOrNull { it.id == id }?.ids?.takeIf { it.isNotEmpty() } ?: listOf(id)
+                all.forEach { session.deleteWorkoutSession(it) }
                 _ui.update {
                     it.copy(history = it.history.filterNot { h -> h.id == id }, deletingIds = it.deletingIds - id)
                 }

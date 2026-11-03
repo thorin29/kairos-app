@@ -182,7 +182,7 @@ internal fun WarmupWindow(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(onClick = { switching = true }) { Text("Switch") }
+            AccentOutlinedButton(onClick = { switching = true }) { Text("Switch") }
             Button(onClick = onDone, enabled = !done, modifier = Modifier.weight(1f)) {
                 Icon(KairosIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Text(if (done) "Done" else "Mark done", modifier = Modifier.padding(start = 6.dp))
@@ -587,7 +587,7 @@ fun WarmupsScreen(onBack: () -> Unit) {
                 WarmupSteps(steps = r.steps)
             }
             HorizontalDivider()
-            OutlinedButton(
+            AccentOutlinedButton(
                 onClick = { editing = r },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             ) { Text(if (r.mine) "Edit" else "Edit a copy") }

@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — One button style; Recent workouts by day (v0.435.0 / web 0.627.0)
+
+Mirrors web 0.627.0. Plain `OutlinedButton`s in the workout screens are
+`AccentOutlinedButton` (timers, Delete and Stop rotation excepted); the set
+logger's pills (Add set, Same as last time) and the Swap pills have the 2 dp
+accent outline. `WarmupTimer`'s pauses are 0/1/2/3/5/10 s. `DayHeader` takes
+`planned`: no "logging late" on a day with nothing planned.
+`WorkoutHistoryDto.ids`: an entry is a day, and `RecentWorkoutsViewModel.delete`
+deletes each of its sessions. Titles and the past day's program come from the
+server.
+
+
 ## 2026-11 — ⓘ on picks; next cycle with changes; a banner that clears (v0.434.0 / web 0.626.0)
 
 Mirrors web 0.626.0: `ProgramOptionDto.about` and `PlanMovementDto.about`;

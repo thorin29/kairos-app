@@ -1463,6 +1463,8 @@ data class CustomLogRequest(
 @Serializable
 data class WorkoutHistoryDto(
     val id: String,
+    /** Every session that day: an entry is the whole day (server 0.627+). */
+    val ids: List<String> = emptyList(),
     val date: String,
     val label: String,
     val result: String = "",

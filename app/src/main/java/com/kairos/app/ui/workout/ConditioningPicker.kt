@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -126,11 +127,11 @@ internal fun PickConditioningCard(
             if (!plan.skipped) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (done) {
-                        OutlinedButton(onClick = onPick, modifier = Modifier.weight(1f)) { Text("Pick one") }
+                        AccentOutlinedButton(onClick = onPick, modifier = Modifier.weight(1f)) { Text("Pick one") }
                     } else {
                         Button(onClick = onPick, modifier = Modifier.weight(1f)) { Text("Pick one") }
                     }
-                    OutlinedButton(onClick = onBuild, modifier = Modifier.weight(1f)) { Text("Build one") }
+                    AccentOutlinedButton(onClick = onBuild, modifier = Modifier.weight(1f)) { Text("Build one") }
                 }
                 TextButton(onClick = onWriteOwn) { Text("Write your own") }
             }
@@ -159,7 +160,7 @@ internal fun BenchmarkCard(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Button(onClick = { onAnswer("yes") }) { Text("Yes") }
-                    OutlinedButton(onClick = { onAnswer("later") }) { Text("Later") }
+                    AccentOutlinedButton(onClick = { onAnswer("later") }) { Text("Later") }
                     TextButton(onClick = { onAnswer("never") }) { Text("No thanks") }
                 }
             } else if (w != null) {
@@ -175,7 +176,7 @@ internal fun BenchmarkCard(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { onDo(w.hiitWorkoutId) }, modifier = Modifier.weight(1f)) { Text("Do it") }
-                    OutlinedButton(onClick = { onAnswer("skip") }) { Text("Not this month") }
+                    AccentOutlinedButton(onClick = { onAnswer("skip") }) { Text("Not this month") }
                 }
             }
         }
@@ -259,7 +260,7 @@ private fun RunWorkout(
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = { timing = true }, modifier = Modifier.weight(1f)) { Text("Start") }
-                OutlinedButton(onClick = { manual = true }) { Text("Log a result") }
+                AccentOutlinedButton(onClick = { manual = true }) { Text("Log a result") }
             }
             extra()
         }
@@ -495,7 +496,7 @@ internal fun BuildOneSheet(
                     meta = emptyList(),
                     onLog = onLog,
                     extra = {
-                        OutlinedButton(onClick = onSave, enabled = !saved) {
+                        AccentOutlinedButton(onClick = onSave, enabled = !saved) {
                             Text(if (saved) "Saved" else "Save to our workouts")
                         }
                     },
@@ -529,7 +530,7 @@ internal fun BuildOneSheet(
                     Button(onClick = { ready = true }, enabled = w != null && !building, modifier = Modifier.weight(1f)) {
                         Text("Use this")
                     }
-                    OutlinedButton(onClick = { seed += 1 }, enabled = !building) { Text("Another idea") }
+                    AccentOutlinedButton(onClick = { seed += 1 }, enabled = !building) { Text("Another idea") }
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -137,7 +138,7 @@ internal fun ConditioningCard(
                         ) {
                             Text(if (workout.today != null) "Start again" else "Start")
                         }
-                        OutlinedButton(onClick = { manual = true }) {
+                        AccentOutlinedButton(onClick = { manual = true }) {
                             Text(if (workout.today != null) "Edit result" else "Log a result")
                         }
                     }

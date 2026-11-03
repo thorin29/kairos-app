@@ -110,13 +110,9 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                OutlinedButton(
+                                com.kairos.app.ui.common.AccentOutlinedButton(
                                     onClick = { showStart = true },
                                     enabled = !ui.busy,
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.surface,
-                                        contentColor = MaterialTheme.colorScheme.primary,
-                                    ),
                                 ) {
                                     Text(if (ui.weeklyStart.isNotEmpty()) ui.weeklyStart else "Active now")
                                 }
