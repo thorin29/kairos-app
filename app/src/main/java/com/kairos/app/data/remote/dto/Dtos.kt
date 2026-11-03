@@ -769,6 +769,20 @@ data class ProgramsDto(
     val current: CurrentExtrasDto = CurrentExtrasDto(),
     /** Warm-up routines to choose from (server 0.622+). */
     val warmups: List<WarmupRoutineDto> = emptyList(),
+    /** The running program as its setup shows it, for "Next cycle, with
+     *  changes" (server 0.626+). */
+    val setup: CurrentSetupDto? = null,
+)
+
+@Serializable
+data class CurrentSetupDto(
+    val key: String = "",
+    val days: List<Int> = emptyList(),
+    val picks: Map<String, String?> = emptyMap(),
+    val removed: List<String> = emptyList(),
+    val schemes: Map<String, String> = emptyMap(),
+    val added: List<AddedLiftRequest> = emptyList(),
+    val maxes: Map<String, Double> = emptyMap(),
 )
 
 @Serializable
@@ -820,6 +834,8 @@ data class ProgramOptionDto(
     /** A library movement not in the household's pool yet ("lib:<key>"),
      *  added when the program starts (server 0.624+). */
     val add: Boolean = false,
+    /** Its how-to, for the ⓘ (server 0.626+). */
+    val about: String? = null,
 )
 
 @Serializable
@@ -839,10 +855,12 @@ data class StartProgramRequest(
     val warmupRoutine: String? = null,
     val cardioDays: List<Int>? = null,
     val conditioningDays: List<Int>? = null,
+    /** The running program's next cycle with these changes (server 0.626+). */
+    val next: Boolean? = null,
 )
 
 @Serializable
-data class AddedLiftRequest(val day: Int, val poolExerciseId: String, val scheme: String?)
+data class AddedLiftRequest(val day: Int, val poolExerciseId: String, val scheme: String? = null)
 
 @Serializable
 data class EndProgramRequest(val restore: Boolean)
@@ -1235,6 +1253,8 @@ data class PlanMovementDto(
     val scheme: String = "",
     /** A weights movement logged by weight: it can take a set structure. */
     val weights: Boolean = false,
+    /** Its how-to, for the ⓘ (server 0.626+). */
+    val about: String? = null,
 )
 
 @Serializable

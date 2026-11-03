@@ -1,4 +1,11 @@
 # Changelog
+## 0.434.0
+
+- ⓘ beside exercises in program setup, the plan editor and Log an additional workout.
+- At the end of a cycle: Next cycle, with changes opens the setup on your plan as it is.
+- Save, share or export is a proper button.
+- "Server unavailable" clears by itself once the server answers again.
+
 ## 0.433.0
 
 - Rest / skip day, + Conditioning and Log an additional workout are proper buttons.

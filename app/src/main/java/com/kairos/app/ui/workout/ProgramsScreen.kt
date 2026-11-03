@@ -120,6 +120,9 @@ fun ProgramsScreen(
     var setupKey by remember { mutableStateOf<String?>(null) }
     var ending by remember { mutableStateOf(false) }
     var cycleOpen by remember { mutableStateOf(false) }
+    // "Next cycle, with changes": the next cycle's training maxes, with the
+    // setup opened on the plan as it is (v0.434).
+    var changing by remember { mutableStateOf<Map<String, Double>?>(null) }
 
     fun reload() {
         scope.launch {
@@ -151,16 +154,21 @@ fun ProgramsScreen(
     }
 
     val setup = data?.choices?.firstOrNull { it.key == setupKey }
+    val nextSetup = data?.setup?.takeIf { changing != null }
+    val nextProgram = nextSetup?.let { ns -> data?.choices?.firstOrNull { it.key == ns.key } }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text(setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs") },
+                title = {
+                    Text(nextProgram?.name ?: setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs")
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = {
                             when {
+                                nextProgram != null -> changing = null
                                 setup != null -> setupKey = null
                                 picking && data?.active != null && !startPicking -> picking = false
                                 else -> onBack()
@@ -183,6 +191,21 @@ fun ProgramsScreen(
                     error ?: "",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                )
+                nextProgram != null && nextSetup != null -> ProgramSetup(
+                    program = nextProgram,
+                    current = d.current,
+                    warmups = d.warmups,
+                    busy = busy,
+                    error = error,
+                    initial = nextSetup,
+                    nextMaxes = changing,
+                    onStart = { req ->
+                        act(block = { session.startProgram(req.copy(next = true)) }) {
+                            changing = null
+                            reload()
+                        }
+                    },
                 )
                 setup != null -> ProgramSetup(
                     program = setup,
@@ -265,6 +288,11 @@ fun ProgramsScreen(
         CycleEndDialog(
             info = active,
             busy = busy,
+            canChange = data?.setup?.let { ns -> data?.choices?.any { it.key == ns.key } } == true,
+            onChanges = { raises ->
+                cycleOpen = false
+                changing = active.maxes.associate { it.poolExerciseId to it.weight + (raises[it.poolExerciseId] ?: 0.0) }
+            },
             onClose = { cycleOpen = false },
             onNext = { raises ->
                 cycleOpen = false
@@ -393,6 +421,9 @@ private fun NumberField(value: String, label: String, onChange: (String) -> Unit
 private fun CycleEndDialog(
     info: ProgramInfoDto,
     busy: Boolean,
+    /** "Next cycle, with changes" opens the setup on the plan as it is. */
+    canChange: Boolean,
+    onChanges: (Map<String, Double>) -> Unit,
     onClose: () -> Unit,
     onNext: (Map<String, Double>) -> Unit,
     onSwitch: () -> Unit,
@@ -422,6 +453,12 @@ private fun CycleEndDialog(
                         Text("+", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         NumberField(value = by[m.poolExerciseId] ?: "", label = "Raise ${m.name} by", onChange = { by[m.poolExerciseId] = it })
                     }
+                }
+                if (canChange) {
+                    TextButton(
+                        enabled = !busy,
+                        onClick = { onChanges(info.maxes.associate { it.poolExerciseId to amount(it.poolExerciseId) }) },
+                    ) { Text("Next cycle, with changes") }
                 }
                 TextButton(onClick = onSwitch) { Text("Switch program") }
             }
@@ -533,18 +570,33 @@ private fun ProgramSetup(
     warmups: List<com.kairos.app.data.remote.dto.WarmupRoutineDto>,
     busy: Boolean,
     error: String?,
+    /** Open on the running program's plan (the next cycle, with changes). */
+    initial: com.kairos.app.data.remote.dto.CurrentSetupDto? = null,
+    /** The next cycle's training maxes: the Maxes step edits these directly. */
+    nextMaxes: Map<String, Double>? = null,
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
-    val days = remember(program.key) { mutableStateListOf<Int>().apply { addAll(program.defaultDays) } }
-    val picks = remember(program.key) {
-        mutableStateMapOf<String, String?>().apply {
-            program.days.forEachIndexed { i, d -> d.roles.forEach { r -> put("$i:${r.key}", r.defaultId) } }
+    val days = remember(program.key) {
+        mutableStateListOf<Int>().apply {
+            addAll(initial?.days?.takeIf { it.size == program.days.size } ?: program.defaultDays)
         }
     }
-    val removed = remember(program.key) { mutableStateListOf<String>() }
-    val schemes = remember(program.key) { mutableStateMapOf<String, String>() }
-    val added = remember(program.key) { mutableStateListOf<AddedLift>() }
+    val picks = remember(program.key) {
+        mutableStateMapOf<String, String?>().apply {
+            if (initial != null) putAll(initial.picks)
+            else program.days.forEachIndexed { i, d -> d.roles.forEach { r -> put("$i:${r.key}", r.defaultId) } }
+        }
+    }
+    val removed = remember(program.key) { mutableStateListOf<String>().apply { addAll(initial?.removed.orEmpty()) } }
+    val schemes = remember(program.key) { mutableStateMapOf<String, String>().apply { putAll(initial?.schemes.orEmpty()) } }
+    val added = remember(program.key) {
+        mutableStateListOf<AddedLift>().apply {
+            initial?.added.orEmpty().forEachIndexed { n, a ->
+                add(AddedLift(n = n + 1, day = a.day, poolExerciseId = a.poolExerciseId, scheme = a.scheme ?: ""))
+            }
+        }
+    }
     // "none", "" (just a check) or a routine id; starts from the plan's own (v0.430).
     var warmup by remember(program.key) { mutableStateOf(if (current.warmup) current.warmupRoutine ?: "" else "") }
     var cardio by remember(program.key) { mutableStateOf<List<Int>?>(null) }
@@ -579,8 +631,13 @@ private fun ProgramSetup(
     }.distinctBy { it.first }
     // The max asked for is your best (pre-filled from what you've logged); the
     // training max is 90% of it, shown under the field (v0.429).
-    fun maxFor(id: String): String = maxText[id] ?: bestOf[id]?.let { MovementSetsViewModel.fmt(it) } ?: ""
-    fun tmOf(id: String): Double? = maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let { ((it * 0.9) / 5.0).roundToInt() * 5.0 }
+    // The next cycle: the field is the training max itself, already raised.
+    fun maxFor(id: String): String = maxText[id]
+        ?: if (nextMaxes != null) nextMaxes[id]?.let { MovementSetsViewModel.fmt(it) } ?: ""
+        else bestOf[id]?.let { MovementSetsViewModel.fmt(it) } ?: ""
+    fun tmOf(id: String): Double? = maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let {
+        if (nextMaxes != null) it else ((it * 0.9) / 5.0).roundToInt() * 5.0
+    }
     fun toggle(list: List<Int>, d: Int): List<Int> = if (d in list) list - d else (list + d).sorted()
 
     Column(Modifier.fillMaxSize()) {
@@ -643,6 +700,7 @@ private fun ProgramSetup(
                                             onSelect = { picks[k] = it.ifBlank { null } },
                                         )
                                     }
+                                    r.options.firstOrNull { it.id == picks[k] }?.let { o -> PickedInfo(name = o.name, about = o.about) }
                                 }
                             }
                             val companions = roles.filter { !it.main }
@@ -660,6 +718,7 @@ private fun ProgramSetup(
                                     label = r.label,
                                     options = r.options.map { it.id to (if (it.add) "${it.name} \u00b7 new" else it.name) },
                                     timedIds = r.options.filter { it.timed }.map { it.id }.toSet(),
+                                    abouts = r.options.associate { it.id to (it.name to it.about) },
                                     value = picks[k] ?: "",
                                     scheme = schemes[k] ?: r.scheme,
                                     onPick = { picks[k] = it.ifBlank { null } },
@@ -672,6 +731,7 @@ private fun ProgramSetup(
                                     label = "Added exercise",
                                     options = allOptions.map { it.id to it.name },
                                     timedIds = allOptions.filter { it.timed }.map { it.id }.toSet(),
+                                    abouts = allOptions.associate { it.id to (it.name to it.about) },
                                     value = a.poolExerciseId,
                                     scheme = a.scheme,
                                     onPick = { id -> added.update(n = a.n) { it.copy(poolExerciseId = id) } },
@@ -721,8 +781,15 @@ private fun ProgramSetup(
                                 }
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                NumberField(value = maxFor(id), label = "$name max", onChange = { maxText[id] = it })
-                                tmOf(id)?.let {
+                                NumberField(value = maxFor(id), label = if (nextMaxes != null) "$name training max" else "$name max", onChange = { maxText[id] = it })
+                                if (nextMaxes != null) {
+                                    Text(
+                                        "Training max",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                } else tmOf(id)?.let {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.clickable { tmHelp = true }.padding(top = 2.dp),
@@ -757,7 +824,7 @@ private fun ProgramSetup(
                 ProgramPill(label = "Next", filled = true, modifier = Modifier.weight(1f), onClick = { step += 1 })
             } else {
                 ProgramPill(
-                    label = if (busy) "Starting…" else "Start program",
+                    label = if (busy) "Starting…" else if (nextMaxes != null) "Start next cycle" else "Start program",
                     filled = true,
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
@@ -786,6 +853,14 @@ private fun ProgramSetup(
     }
 }
 
+/** ⓘ beside a chosen movement: its how-to and "Watch how" (v0.434). */
+@Composable
+private fun PickedInfo(name: String, about: String?) {
+    var open by remember { mutableStateOf(false) }
+    MovementInfoButton(name = name, onClick = { open = true })
+    if (open) MovementInfoDialog(name = name, about = about, onDismiss = { open = false })
+}
+
 /** A companion lift: what kind it is, its movement, its sets (Time for a
  *  timed one), and remove. */
 @Composable
@@ -793,6 +868,8 @@ private fun CompanionRow(
     label: String,
     options: List<Pair<String, String>>,
     timedIds: Set<String>,
+    /** Each option's name and how-to, for the ⓘ beside the chosen one. */
+    abouts: Map<String, Pair<String, String?>>,
     value: String,
     scheme: String,
     onPick: (String) -> Unit,
@@ -812,6 +889,7 @@ private fun CompanionRow(
                     onSelect = onPick,
                 )
             }
+            abouts[value]?.let { (n, about) -> PickedInfo(name = n, about = about) }
             if (value in timedIds) {
                 Text(
                     "Time",

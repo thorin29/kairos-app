@@ -129,8 +129,17 @@ object RefreshTracker {
 object ServerStatusTracker {
     private val _unavailable = MutableStateFlow(false)
     val unavailable: StateFlow<Boolean> = _unavailable.asStateFlow()
-    fun markUnavailable() { _unavailable.value = true }
-    fun markReachable() { _unavailable.value = false }
+    /** [why] is the request and answer that set it ("GET /api/v1/workouts 502"),
+     *  kept as a diagnostics breadcrumb so a banner that shouldn't have shown
+     *  can be traced (v0.434). Paths only: no query, no body. */
+    fun markUnavailable(why: String = "") {
+        if (!_unavailable.value) com.kairos.app.data.diag.Breadcrumbs.drop("server unavailable: $why".trim())
+        _unavailable.value = true
+    }
+    fun markReachable(how: String = "") {
+        if (_unavailable.value) com.kairos.app.data.diag.Breadcrumbs.drop("server reachable${if (how.isBlank()) "" else ": $how"}")
+        _unavailable.value = false
+    }
 }
 
 /** Network interceptor (online path only): make GET responses storable in the
@@ -176,7 +185,7 @@ internal class OfflineInterceptor(
                         e is java.net.UnknownHostException ||
                         e is java.net.NoRouteToHostException
                     if (!neverSent) throw e
-                    ServerStatusTracker.markUnavailable()
+                    ServerStatusTracker.markUnavailable("${req.method} ${req.url.encodedPath} ${e.javaClass.simpleName}")
                     return queueWrite(req) ?: throw e
                 }
                 // 502/503/504 mean the reverse proxy answered and the Kairos
@@ -195,7 +204,7 @@ internal class OfflineInterceptor(
                     val queued = queueWrite(req)
                     if (queued != null) {
                         live.close()
-                        ServerStatusTracker.markUnavailable()
+                        ServerStatusTracker.markUnavailable("${req.method} ${req.url.encodedPath} ${live.code}")
                         return queued
                     }
                     return live
@@ -233,7 +242,7 @@ internal class OfflineInterceptor(
                         return serverError
                     }
                     serverError.close()
-                    ServerStatusTracker.markUnavailable()
+                    ServerStatusTracker.markUnavailable("GET ${req.url.encodedPath} ${live.code}")
                     return cachedRes
                 }
                 if (live.isSuccessful) ServerStatusTracker.markReachable()

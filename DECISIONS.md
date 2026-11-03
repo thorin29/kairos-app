@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-11 — ⓘ on picks; next cycle with changes; a banner that clears (v0.434.0 / web 0.626.0)
+
+Mirrors web 0.626.0: `ProgramOptionDto.about` and `PlanMovementDto.about`;
+`PickedInfo` (ⓘ + `MovementInfoDialog`) beside main and companion picks in
+`ProgramSetup`; ⓘ on the plan editor's movement rows; the Log an additional
+workout exercise list opens the how-to under a row. `CycleEndDialog` adds
+"Next cycle, with changes" (when `ProgramsDto.setup` is the running program):
+`ProgramSetup(initial, nextMaxes)` opens on the plan as it is, the Maxes step
+edits the raised training maxes, and it starts with `next = true`. "Save,
+share or export" uses `AccentOutlinedButton`.
+
+**"Kairos server unavailable" while it wasn't:** the flag is set by a 502/503/504
+(or a write that never reached the server) and cleared only by the next live
+success, so a screen that had finished loading kept the banner up after one
+bad answer. `SyncManager` now asks `meta` every 15 s while the flag is up and
+clears it on a 2xx. Setting and clearing it drop a breadcrumb with the method,
+path and status (no query or body), so Diagnostics shows what set it.
+
+
 ## 2026-11 — Visible buttons; Conditioning in its place; warm-up countdown (v0.433.0 / web 0.625.0)
 
 Mirrors web 0.625.0.

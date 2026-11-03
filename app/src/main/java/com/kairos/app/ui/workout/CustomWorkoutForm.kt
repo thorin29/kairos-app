@@ -118,7 +118,7 @@ private fun LogSomethingWizard(date: String, onLogged: () -> Unit, onDismiss: ()
                             WizardStep.EXERCISE -> {
                                 val exs = ui.exercisesForStep
                                 if (exs.isEmpty()) EmptyNote("No exercises here yet.")
-                                else exs.forEach { e -> PickRow(e.name) { vm.pickExercise(e.id) } }
+                                else exs.forEach { e -> PickRow(e.name, about = e.about, info = true) { vm.pickExercise(e.id) } }
                             }
                             WizardStep.WORKOUT -> {
                                 if (ui.hiitWorkouts.isEmpty()) EmptyNote("No HIIT/CrossFit workouts yet — create one first.")
@@ -263,13 +263,25 @@ private fun ValueStep(ui: CustomUiState, vm: CustomWorkoutViewModel) {
 }
 
 @Composable
-private fun PickRow(label: String, onClick: () -> Unit) {
+private fun PickRow(label: String, about: String? = null, info: Boolean = false, onClick: () -> Unit) {
+    // A movement row has an ⓘ for its how-to, opened under the row (v0.434).
+    var peek by remember { mutableStateOf(false) }
     Column {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp, horizontal = 4.dp),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f).clickable(onClick = onClick).padding(vertical = 14.dp, horizontal = 4.dp),
+            )
+            if (info) {
+                MovementInfoButton(
+                    name = label,
+                    onClick = { peek = !peek },
+                    tint = if (peek) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (peek) MovementAboutInline(name = label, about = about)
         HorizontalDivider()
     }
 }

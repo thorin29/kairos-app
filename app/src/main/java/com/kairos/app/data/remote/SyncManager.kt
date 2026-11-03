@@ -93,6 +93,17 @@ class SyncManager(
                 wasUnavailable = unavailable
             }
         }
+        // 2b. The banner itself. "Server unavailable" clears on the next live
+        //    success, but a screen that's already loaded makes no more calls,
+        //    so one bad answer (a 502 while the server restarted) left it up
+        //    long after the server was back (v0.434). While it's up, ask the
+        //    server every 15 s (one tiny GET) and clear it when it answers.
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            while (true) {
+                kotlinx.coroutines.delay(RETRY_INTERVAL_MS)
+                if (ServerStatusTracker.unavailable.value && isOnline()) probeServer()
+            }
+        }
         // 3. Nothing is watching. If every write is queued and the user isn't
         //    loading screens, no GET ever notices the server came back, so poll
         //    while — and only while — something is actually waiting. A pass
@@ -101,6 +112,17 @@ class SyncManager(
             while (true) {
                 kotlinx.coroutines.delay(RETRY_INTERVAL_MS)
                 if (isOnline() && runCatching { queue.snapshot() }.getOrDefault(emptyList()).isNotEmpty()) safeReplay()
+            }
+        }
+    }
+
+    /** One GET of the server's `meta`; a 2xx means it's back. */
+    private fun probeServer() {
+        val base = baseUrlProvider() ?: return
+        val url = ApiClient.normalizeBase(base) + "meta"
+        runCatching {
+            client.newCall(Request.Builder().url(url).get().build()).execute().use { resp ->
+                if (resp.isSuccessful) ServerStatusTracker.markReachable("meta ${resp.code}")
             }
         }
     }

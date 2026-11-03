@@ -213,6 +213,9 @@ private fun DayCard(
 ) {
     val hasRest = day.workouts.any { it.isRest }
     var pendingRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // A movement's how-to (name, about), from its ⓘ (v0.434).
+    var info by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    info?.let { (n, about) -> MovementInfoDialog(name = n, about = about, onDismiss = { info = null }) }
     var ordering by remember { mutableStateOf(false) }
     val dayOrder = order ?: everyDay ?: PLAN_KINDS
     // Listed the way the day shows them: by section, in this day's order.
@@ -291,6 +294,7 @@ private fun DayCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f),
                                 )
+                                MovementInfoButton(name = e.name, onClick = { info = e.name to e.about })
                                 if (e.weights) {
                                     SchemeMenu(
                                         schemes = schemes,

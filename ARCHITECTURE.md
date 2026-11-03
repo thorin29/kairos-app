@@ -241,7 +241,9 @@ is what that rule exists to prevent.
   request with `X-Kairos-No-Queue`); `SyncManager` replays it on reconnect,
   on the server coming back, every 15 s while something waits, and on every
   app resume (`MainActivity.onResume`); `NetworkMonitor.isOnline()` is the
-  fresh read or the callback-tracked state.
+  fresh read or the callback-tracked state. `ServerStatusTracker` ("server
+  unavailable") is cleared by the next live success, or by `SyncManager`'s
+  15 s `meta` probe while it's set; both transitions leave a breadcrumb.
 - `ui/workout/WarmupScreens.kt` — warm-up routines: the day's window with
   a Timer on timed steps, the chooser and editor, the plan editor's line, and
   `WarmupsScreen` (all warm-ups, from the Workouts page; web:

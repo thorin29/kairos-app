@@ -78,7 +78,7 @@ internal fun PlanFileActions(vm: EditPlanViewModel, ui: EditPlanUiState) {
 
     // One button at the foot of the plan (v0.432): save, share, export and
     // import in a sheet. Opening a saved or household plan is with the programs.
-    OutlinedButton(onClick = { show("menu") }, modifier = Modifier.fillMaxWidth()) {
+    com.kairos.app.ui.common.AccentOutlinedButton(onClick = { show("menu") }, modifier = Modifier.fillMaxWidth()) {
         androidx.compose.material3.Icon(com.kairos.app.ui.nav.KairosIcons.Share, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
         Text("Save, share or export")
     }
