@@ -67,7 +67,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private val WEEKDAYS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-private val SETUP_STEPS = listOf("Days", "Lifts", "Extras", "Training maxes")
+private val SETUP_STEPS = listOf("Days", "Lifts", "Extras", "Maxes")
 
 /** A companion lift's set choices (the web's SCHEME_CHOICES without the wave). */
 private val COMPANION_SCHEMES = listOf(
@@ -152,6 +152,7 @@ fun ProgramsScreen(
     val setup = data?.choices?.firstOrNull { it.key == setupKey }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text(setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs") },
@@ -544,8 +545,10 @@ private fun ProgramSetup(
             r.options.firstOrNull { it.id == id }?.let { id to it.name }
         }
     }.distinctBy { it.first }
-    fun maxFor(id: String): String =
-        maxText[id] ?: bestOf[id]?.let { MovementSetsViewModel.fmt(((it * 0.9) / 5.0).roundToInt() * 5.0) } ?: ""
+    // The max asked for is your best (pre-filled from what you've logged); the
+    // training max is 90% of it, shown under the field (v0.429).
+    fun maxFor(id: String): String = maxText[id] ?: bestOf[id]?.let { MovementSetsViewModel.fmt(it) } ?: ""
+    fun tmOf(id: String): Double? = maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let { ((it * 0.9) / 5.0).roundToInt() * 5.0 }
     fun toggle(list: List<Int>, d: Int): List<Int> = if (d in list) list - d else (list + d).sorted()
 
     Column(Modifier.fillMaxSize()) {
@@ -623,6 +626,7 @@ private fun ProgramSetup(
                                 CompanionRow(
                                     label = r.label,
                                     options = r.options.map { it.id to it.name },
+                                    timedIds = r.options.filter { it.timed }.map { it.id }.toSet(),
                                     value = picks[k] ?: "",
                                     scheme = schemes[k] ?: r.scheme,
                                     onPick = { picks[k] = it.ifBlank { null } },
@@ -632,8 +636,9 @@ private fun ProgramSetup(
                             }
                             extras.forEach { a ->
                                 CompanionRow(
-                                    label = "Lift",
+                                    label = "Added lift",
                                     options = allOptions.map { it.id to it.name },
+                                    timedIds = allOptions.filter { it.timed }.map { it.id }.toSet(),
                                     value = a.poolExerciseId,
                                     scheme = a.scheme,
                                     onPick = { id -> added.update(n = a.n) { it.copy(poolExerciseId = id) } },
@@ -679,7 +684,16 @@ private fun ProgramSetup(
                                     )
                                 }
                             }
-                            NumberField(value = maxFor(id), label = "$name training max", onChange = { maxText[id] = it })
+                            Column(horizontalAlignment = Alignment.End) {
+                                NumberField(value = maxFor(id), label = "$name max", onChange = { maxText[id] = it })
+                                tmOf(id)?.let {
+                                    Text(
+                                        "TM ${MovementSetsViewModel.fmt(it)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -707,7 +721,7 @@ private fun ProgramSetup(
                                 days = days.toList(),
                                 picks = picks.mapValues { (k, v) -> if (k in removed) null else v },
                                 tops = emptyMap(),
-                                maxes = mains.mapNotNull { (id, _) -> maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let { id to it } }.toMap(),
+                                maxes = mains.mapNotNull { (id, _) -> tmOf(id)?.let { id to it } }.toMap(),
                                 schemes = schemes.toMap(),
                                 added = added.filter { it.poolExerciseId.isNotBlank() }.map {
                                     AddedLiftRequest(day = it.day, poolExerciseId = it.poolExerciseId, scheme = it.scheme.ifBlank { null })
@@ -724,11 +738,13 @@ private fun ProgramSetup(
     }
 }
 
-/** A companion lift: its movement, its sets, and remove. */
+/** A companion lift: what kind it is, its movement, its sets (Time for a
+ *  timed one), and remove. */
 @Composable
 private fun CompanionRow(
     label: String,
     options: List<Pair<String, String>>,
+    timedIds: Set<String>,
     value: String,
     scheme: String,
     onPick: (String) -> Unit,
@@ -736,26 +752,41 @@ private fun CompanionRow(
     onRemove: () -> Unit,
 ) {
     val schemeOptions = if (COMPANION_SCHEMES.any { it.first == scheme }) COMPANION_SCHEMES else listOf(scheme to schemeText(scheme)) + COMPANION_SCHEMES
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.weight(1f)) {
-            Dropdown(
-                label = "",
-                title = label,
-                selected = options.firstOrNull { it.first == value }?.second ?: "$label: choose",
-                options = options,
-                onSelect = onPick,
-            )
-        }
-        Dropdown(
-            label = "",
-            title = "Sets",
-            selected = schemeText(scheme),
-            options = schemeOptions,
-            onSelect = onScheme,
-            compact = true,
-        )
-        IconButton(onClick = onRemove) {
-            Icon(KairosIcons.Close, contentDescription = "Remove $label", modifier = Modifier.size(18.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.weight(1f)) {
+                Dropdown(
+                    label = "",
+                    title = label,
+                    selected = options.firstOrNull { it.first == value }?.second ?: "Choose",
+                    options = options,
+                    onSelect = onPick,
+                )
+            }
+            if (value in timedIds) {
+                Text(
+                    "Time",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                )
+            } else {
+                Dropdown(
+                    label = "",
+                    title = "Sets",
+                    selected = schemeText(scheme),
+                    options = schemeOptions,
+                    onSelect = onScheme,
+                    compact = true,
+                )
+            }
+            IconButton(onClick = onRemove) {
+                Icon(KairosIcons.Close, contentDescription = "Remove $label", modifier = Modifier.size(18.dp))
+            }
         }
     }
 }

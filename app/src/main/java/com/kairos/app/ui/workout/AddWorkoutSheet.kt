@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -17,9 +20,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.data.remote.dto.AddPoolExercise
 import com.kairos.app.data.remote.dto.AddPoolRequest
 import com.kairos.app.data.remote.dto.PlanOptionsDto
@@ -51,7 +58,6 @@ fun AddWorkoutSheet(
     onMarkRest: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var rest by remember { mutableStateOf(false) }
     var categoryKey by remember { mutableStateOf(options.categories.firstOrNull()?.key ?: "WEIGHTS") }
     var muscleKey by remember { mutableStateOf(options.muscleGroups.firstOrNull()?.key ?: "") }
@@ -106,15 +112,28 @@ fun AddWorkoutSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    // A full screen, not a bottom sheet: scrolling down the movement list
+    // closed the sheet (v0.429). Back closes it.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onDismiss) {
+                Icon(KairosIcons.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+            }
+            Text("Add to ${DAY_LABELS[day]}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
         Column(
             Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Add to ${DAY_LABELS[day]}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
             // Category (Rest + real categories)
             Dropdown(
@@ -182,9 +201,15 @@ fun AddWorkoutSheet(
                 }
             }
 
-            Button(onClick = { submit() }, enabled = canSave && !busy, modifier = Modifier.fillMaxWidth()) {
-                Text(if (busy) "Adding…" else "Add workout")
-            }
+        }
+        Button(
+            onClick = { submit() },
+            enabled = canSave && !busy,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(if (busy) "Adding…" else "Add workout")
+        }
+        }
         }
     }
 }

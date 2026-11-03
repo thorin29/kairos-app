@@ -1,4 +1,13 @@
 # Changelog
+## 0.429.0
+
+- 5/3/1 programs start each main lift with three warm-up sets (W), before the working sets.
+- Program setup names each companion lift by type and shows Time for timed movements like planks; the setup screen is white.
+- Program setup asks for your max, filled in from your best, with the training max under it.
+- The Workouts page shows today's muscle groups first, and each movement's numbers are named.
+- Cardio's title keeps to one line.
+- Adding a workout to the plan opens a full screen.
+
 ## 0.428.0
 
 - New programs: 5/3/1, Boring But Big, 5/3/1 for Beginners and Wave loading. Strength waves is now 5/3/1.

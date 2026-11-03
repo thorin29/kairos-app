@@ -139,7 +139,11 @@ fun WorkoutChart(
         }
         .sortedBy { it.second.lowercase() }
 
-    val groups = blocksOf(shown) + blocksOf(orphans)
+    // Today's groups first, in the plan's order (a program's main lift leads),
+    // then the rest A–Z (v0.429).
+    val todayOrder = planDays.firstOrNull { it.day == todayDow }?.groups.orEmpty()
+    fun rank(key: String): Int = todayOrder.indexOf(key).let { if (it < 0) todayOrder.size else it }
+    val groups = blocksOf(shown).sortedBy { rank(it.first) } + blocksOf(orphans)
 
     Column(Modifier.fillMaxWidth()) {
         if (available.isNotEmpty()) {
@@ -277,6 +281,14 @@ private fun LiftBlock(
     var tappedOffset by remember(selectedId) { mutableStateOf(Offset.Zero) }
 
     Column(Modifier.fillMaxWidth()) {
+        // Which movement these numbers are: a group can hold several (a curl
+        // and a skull crusher under Arms).
+        Text(
+            s.name.replaceFirstChar { it.uppercase() },
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
+        )
         // Numbers first: the record, whether it is moving, how long since it
         // moved, and how many sessions. A single current value is a tile, not a
         // plot. The chart lives under "Show details" with everything else.

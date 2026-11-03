@@ -39,6 +39,8 @@ data class SetRow(
     val pct: Double? = null,
     /** A 5/3/1 "+" set: as many good reps as you can (v0.428). */
     val plus: Boolean = false,
+    /** A warm-up set before the main sets (v0.429). */
+    val warmup: Boolean = false,
 )
 
 data class MovementSetsUi(
@@ -294,6 +296,7 @@ class MovementSetsViewModel(
                     top = t?.top ?: false,
                     pct = t?.pct,
                     plus = t?.plus == true,
+                    warmup = t?.warmup == true,
                 )
             }
         }
@@ -307,6 +310,7 @@ class MovementSetsViewModel(
                     top = t.top,
                     pct = t.pct,
                     plus = t.plus,
+                    warmup = t.warmup,
                 )
             }
         }

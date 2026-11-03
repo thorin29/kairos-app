@@ -721,6 +721,8 @@ data class TargetSetDto(
     val pct: Double? = null,
     /** A 5/3/1 "+" set: as many good reps as you can (server 0.620+). */
     val plus: Boolean = false,
+    /** A warm-up set before the main sets (server 0.621+). */
+    val warmup: Boolean = false,
 )
 
 /** A person's running program, as the day page and Workouts page show it. */
@@ -798,6 +800,8 @@ data class ProgramOptionDto(
     val name: String = "",
     /** The heaviest weight the person has logged on it (server 0.619+). */
     val best: Double? = null,
+    /** Logs by time (a plank): the setup shows Time, not sets (server 0.621+). */
+    val timed: Boolean = false,
 )
 
 @Serializable

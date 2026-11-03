@@ -304,7 +304,8 @@ fun MovementSetsScreen(
 
                     ui.rows.forEachIndexed { i, r ->
                         SetCard(
-                            index = i + 1,
+                            // Warm-up sets read "W"; the working sets count from 1 (v0.429).
+                            index = i + 1 - ui.rows.take(i).count { it.warmup },
                             row = r,
                             vm = vm,
                             metric = metric,
@@ -468,7 +469,12 @@ private fun SetCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Column(Modifier.width(if (row.pct != null) 34.dp else 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("$index", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                    Text(
+                        if (row.warmup) "W" else "$index",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = if (row.warmup) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    )
                     row.pct?.let { p ->
                         Text(
                             "${kotlin.math.round(p * 100).toInt()}%",

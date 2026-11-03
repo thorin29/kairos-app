@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Warm-up sets; setup labels and maxes; group order; Add workout full screen (v0.429.0 / web 0.621.0)
+
+Mirrors web 0.621.0. `SetRow.warmup` shows "W" and the working sets number
+from 1. `ProgramsScreen`: white (`containerColor = surface`); companion rows
+show their type label above and "Time" for a timed option
+(`ProgramOptionDto.timed`); the last step is Maxes (best pre-filled, TM under
+it, the TM sent). `WorkoutChart`: today's groups first in the plan's
+order, then A–Z; each `LiftBlock` names its movement. `CardioBlock`: the title
+keeps one line; Skip / Add cardio sit on their own row when nothing is logged.
+`AddWorkoutSheet` is a full-screen Dialog with a back arrow and the Add button
+pinned at the bottom, not a ModalBottomSheet (dragging the list closed it).
+
 ## 2026-11 — Program setup steps; My plans; end of cycle; + sets (v0.428.0 / web 0.620.0)
 
 Mirrors web 0.620.0 (see its DECISIONS for the programs). `ProgramsScreen`:

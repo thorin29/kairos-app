@@ -173,6 +173,8 @@ internal fun CardioBlock(
                     if (entries.size == 1) entries[0].name else name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 if (concept2?.connected == true) {
@@ -185,7 +187,16 @@ internal fun CardioBlock(
                     IconButton(onClick = { adding = true }) {
                         Icon(KairosIcons.Plus, contentDescription = "Add cardio", tint = MaterialTheme.colorScheme.primary)
                     }
-                } else {
+                }
+            }
+            // Nothing logged yet: Skip and Add cardio on their own row, so the
+            // title keeps its line on a phone (v0.429).
+            if (entries.isEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                ) {
                     if (onSkip != null) {
                         TextButton(onClick = { onSkip(skippedPlan == null) }) { Text(if (skipped) "Skipped" else "Skip") }
                     }
