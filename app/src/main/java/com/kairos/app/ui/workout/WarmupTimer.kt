@@ -351,7 +351,7 @@ internal fun WarmupTimer(
                     if (phase != "idle") {
                         OutlinedButton(
                             onClick = { skip() },
-                            border = BorderStroke(2.dp, pal.accent),
+                            border = BorderStroke(1.dp, pal.accent),
                             modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                         ) { Text("Skip", color = pal.accent, fontWeight = FontWeight.SemiBold) }
                     }

@@ -1,4 +1,10 @@
 # Changelog
+## 0.436.0
+
+- Button outlines are thinner.
+- The Cardio card is one row, the height of the other cards.
+- The home Workouts card is as tall as the others and lists what else is on the day: conditioning, cardio, or a game.
+
 ## 0.435.0
 
 - Recent workouts shows one entry per day, like "5/3/1 · Legs"; deleting one removes that day's workouts.

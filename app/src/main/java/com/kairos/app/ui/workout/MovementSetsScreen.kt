@@ -673,7 +673,7 @@ private fun PillButton(label: String, icon: Boolean = false, tinted: Boolean = f
                 else MaterialTheme.colorScheme.surface,
             )
             // Accent-outlined like every secondary button (v0.435).
-            .border(2.dp, MaterialTheme.colorScheme.primary, shape)
+            .border(1.dp, MaterialTheme.colorScheme.primary, shape)
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -963,7 +963,7 @@ private fun SmallPill(label: String, icon: Boolean, onClick: () -> Unit) {
         Modifier
             .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,

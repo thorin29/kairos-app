@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
@@ -712,13 +713,18 @@ private fun WorkoutSummaryCard(
     onOpen: () -> Unit,
 ) {
     val todayNames = today.filter { it.status != "COMPLETE" }.map { it.title }
+    // What else the day holds, under the title (server 0.628+): conditioning,
+    // cardio, a game on the calendar ("Hockey game 7:30 PM").
+    val extras = today.mapNotNull { it.subtitle?.takeIf { s -> s.isNotBlank() } }.distinct()
     val hadWork = today.isNotEmpty() || overdueCount > 0
     val completeForToday = todayNames.isEmpty() && overdueCount == 0 && hadWork
     Column {
         SectionHeader("Workouts", "EXERCISE")
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                // At least the height of a two-line card (Chores), so the
+                // workout card isn't the short one (v0.436).
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -743,6 +749,13 @@ private fun WorkoutSummaryCard(
                             Text(
                                 "No workout today",
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        extras.forEach { line ->
+                            Text(
+                                line,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }

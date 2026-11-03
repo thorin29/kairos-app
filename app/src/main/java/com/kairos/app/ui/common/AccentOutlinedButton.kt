@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * A secondary action that still reads as a button (v0.433): a 2 dp accent
+ * A secondary action that still reads as a button (v0.433): a 1 dp accent (2 dp until v0.436)
  * outline and accent text on the surface colour, not the faint grey outline
  * of a plain OutlinedButton. For day-page actions like Rest / skip day,
  * + Conditioning and Log an additional workout.
@@ -27,7 +27,7 @@ fun AccentOutlinedButton(
         modifier = modifier,
         enabled = enabled,
         border = BorderStroke(
-            width = 2.dp,
+            width = 1.dp,
             color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
         ),
         colors = ButtonDefaults.outlinedButtonColors(

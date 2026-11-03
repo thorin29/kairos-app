@@ -199,46 +199,56 @@ internal fun CardioBlock(
     val skipped = skippedPlan != null && entries.isEmpty()
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // One row, the height of the other cards (v0.436): the title with
+            // Concept2 under it, then Skip and Add — or, once something's
+            // logged, a + to add another.
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 40.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    if (entries.size == 1) entries[0].name else name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (concept2?.connected == true) {
-                    TextButton(onClick = onCheck, enabled = !checking) {
-                        Icon(KairosIcons.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text(if (checking) "Checking\u2026" else "Concept2", modifier = Modifier.padding(start = 6.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (entries.size == 1) entries[0].name else name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    if (concept2?.connected == true) {
+                        Row(
+                            Modifier
+                                .clickable(enabled = !checking) { onCheck() }
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                KairosIcons.Sync,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                if (checking) "Checking Concept2\u2026" else "Check Concept2",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 }
                 if (entries.isNotEmpty()) {
                     IconButton(onClick = { adding = true }) {
                         Icon(KairosIcons.Plus, contentDescription = "Add cardio", tint = MaterialTheme.colorScheme.primary)
                     }
-                }
-            }
-            // Nothing logged yet: Skip and Add cardio on their own row, so the
-            // title keeps its line on a phone (v0.429).
-            if (entries.isEmpty()) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                ) {
+                } else {
                     if (onSkip != null) {
                         TextButton(onClick = { onSkip(skippedPlan == null) }) { Text(if (skipped) "Skipped" else "Skip") }
                     }
                     if (!skipped) {
                         Button(onClick = { adding = true }) {
                             Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Add cardio", modifier = Modifier.padding(start = 6.dp))
+                            Text("Add", modifier = Modifier.padding(start = 6.dp))
                         }
                     }
                 }

@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Thinner outlines; one-row Cardio card; home workout card (v0.436.0 / web 0.628.0)
+
+`AccentOutlinedButton` and the set logger's / Swap pills use a 1 dp outline
+(2 dp read as heavy). `CardioBlock` with nothing logged is one row like the
+Warm-up card: the title with "Check Concept2" under it, then Skip and Add.
+`WorkoutSummaryCard` shows each workout task's `subtitle` (server 0.628+) under
+the title in the Chores card's second-line style, and is at least 64 dp tall.
+
+
 ## 2026-11 — One button style; Recent workouts by day (v0.435.0 / web 0.627.0)
 
 Mirrors web 0.627.0. Plain `OutlinedButton`s in the workout screens are

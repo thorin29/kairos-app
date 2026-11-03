@@ -1296,7 +1296,7 @@ private fun MovementRow(planId: String, m: MovementInput, vm: WorkoutLogViewMode
                         Modifier
                             .clip(RoundedCornerShape(14.dp))
                             .background(MaterialTheme.colorScheme.surface)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
                             .clickable { vm.loadPool(); swapping = true }
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
