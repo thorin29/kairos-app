@@ -55,3 +55,22 @@ val BARS = listOf(
 fun fmtWeight(lb: Double): String =
     if (lb == lb.toLong().toDouble()) lb.toLong().toString()
     else (Math.round(lb * 100) / 100.0).toString()
+
+/**
+ * The plates that make [total] on a bar of [barWeight], one id per pair,
+ * heaviest first (the web's platesFor). Whatever can't be made is left off.
+ */
+fun platesFor(total: Double, barWeight: Double): List<String> {
+    var perSide = (total - barWeight) / 2
+    if (perSide <= 0) return emptyList()
+    val order = listOf("b45", "b35", "b25", "b10", "s5", "s2_5", "f1", "f075", "f05", "f025")
+    val out = mutableListOf<String>()
+    for (id in order) {
+        val w = PLATE_BY_ID[id]?.weight ?: continue
+        while (perSide >= w - 1e-9) {
+            out.add(id)
+            perSide -= w
+        }
+    }
+    return out
+}

@@ -67,14 +67,14 @@ private val WEEKDAYS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit) {
+fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean = false) {
     val container = rememberContainer()
     val session = container.sessionRepository
     val scope = rememberCoroutineScope()
     var data by remember { mutableStateOf<ProgramsDto?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    var picking by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf(startPicking) }
     var setupKey by remember { mutableStateOf<String?>(null) }
     var ending by remember { mutableStateOf(false) }
 
@@ -395,8 +395,16 @@ private fun ProgramSetup(program: ProgramChoiceDto, busy: Boolean, onStart: (Sta
                 r.options.firstOrNull { it.id == id }?.let { id to it.name }
             }
         }.distinctBy { it.first }
+        // The heaviest weight logged fills each one; change it to go easier.
+        val bestOf = remember(program.key) {
+            program.days.flatMap { d -> d.roles.flatMap { it.options } }
+                .mapNotNull { o -> o.best?.let { o.id to it } }.toMap()
+        }
+        LaunchedEffect(mains.map { it.first }) {
+            mains.forEach { (id, _) -> if (tops[id] == null) bestOf[id]?.let { tops[id] = MovementSetsViewModel.fmt(it) } }
+        }
         if (mains.isNotEmpty()) {
-            Text("Recent top weight", style = MaterialTheme.typography.titleSmall)
+            Text("Top weight", style = MaterialTheme.typography.titleSmall)
             mains.forEach { (id, name) ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

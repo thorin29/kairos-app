@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — Deadlift group; 5/3/1 logger; timer; + Conditioning (v0.427.0 / web 0.619.0)
+
+Mirrors web 0.619.0. Deadlift is a muscle group (colour 0xFF9C6B3C); the body
+map's posterior-hip paths take the Deadlift fill. A target set with `pct` is a
+5/3/1 set: the set column shows the % (34 dp wide) instead of TOP, × becomes a
+plates button that opens the weight calculator with `startTotal` (switching the
+bar reloads the plates via `platesFor`), and Remaining sets is hidden. A
+DURATION movement's tile is Timer, which opens `ConditioningTimer` (for time);
+its result fills the next set's seconds. + Conditioning on the day opens an
+AlertDialog (Pick one / Build one / Write your own) reusing the conditioning
+sheet; what's logged lists as extras. Change program is a button on the
+Workouts program card (`Routes.ProgramsChange` opens Programs already
+picking). Program setup pre-fills Top weight from the option's `best`. The
+Workout days chart rows are plan days plus weekdays logged in the last 16
+weeks.
+
 ## 2026-10 — Effort slider; one Cardio card (v0.426.1 / web 0.618.1)
 
 `EffortChooser` (MovementSetsScreen.kt) is a Material Slider (4 stops, thumb

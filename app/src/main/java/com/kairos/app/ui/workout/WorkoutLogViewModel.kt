@@ -135,6 +135,8 @@ data class WorkoutLogUiState(
     val picks: List<com.kairos.app.data.remote.dto.PickPlanDto> = emptyList(),
     /** The monthly benchmark card, if any. */
     val benchmark: com.kairos.app.data.remote.dto.BenchmarkDto? = null,
+    /** Every conditioning result logged that day (server 0.619+). */
+    val conditioningDone: List<com.kairos.app.data.remote.dto.PickDoneDto> = emptyList(),
     /** Pick one's list, loaded when it opens. */
     val choices: com.kairos.app.data.remote.dto.ConditioningChoicesDto? = null,
     val choicesError: String? = null,
@@ -335,6 +337,7 @@ class WorkoutLogViewModel(
                 conditioning = plan.conditioning,
                 picks = plan.picks,
                 benchmark = plan.benchmark,
+                conditioningDone = plan.conditioningDone,
             )
         }
     }

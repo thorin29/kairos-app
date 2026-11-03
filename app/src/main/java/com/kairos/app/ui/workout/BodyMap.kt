@@ -49,6 +49,7 @@ private val MUSCLE_COLOR: Map<String, Color> = mapOf(
     "FOREARMS" to Color(0xFF7A6AD8),
     "UPPER_BACK" to Color(0xFF139C86),
     "FULL_BODY" to Color(0xFFE87BA4),
+    "DEADLIFT" to Color(0xFF9C6B3C),
 )
 
 fun muscleColor(group: String?): Color? = group?.let { MUSCLE_COLOR[it] }
@@ -169,7 +170,13 @@ private fun BodyFigure(
         val s = size.width / geo.w
         scale(s, s, pivot = Offset.Zero) {
             geo.specs.forEachIndexed { i, spec ->
-                val c = if (spec.group == null) inert else fills[spec.group] ?: inert
+                // Deadlift has no muscles of its own in the artwork: it shades
+                // the lower back and glutes it's reached from (v0.427).
+                val c = if (spec.group == null) {
+                    inert
+                } else {
+                    (if (spec.nav == "POSTERIOR_HIP") fills["DEADLIFT"] else null) ?: fills[spec.group] ?: inert
+                }
                 drawPath(geo.paths[i], c)
             }
             // One ring per selected target, traced from the UNION of its

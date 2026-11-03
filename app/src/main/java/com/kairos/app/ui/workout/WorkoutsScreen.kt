@@ -76,6 +76,8 @@ fun WorkoutsScreen(
     onOpenCreatePersonal: () -> Unit,
     onOpenEditPlan: () -> Unit,
     onOpenPrograms: () -> Unit = {},
+    /** Programs, straight to the list to change program (v0.427). */
+    onChangeProgram: () -> Unit = onOpenPrograms,
     refreshKey: Int = 0,
 ) {
     val container = rememberContainer()
@@ -212,6 +214,7 @@ fun WorkoutsScreen(
                         ProgramSummaryCard(
                             data = p,
                             onOpen = onOpenPrograms,
+                            onChange = onChangeProgram,
                             onAnswer = { answer ->
                                 scope.launch {
                                     runCatching { container.sessionRepository.answerProgramInvite(answer) }
@@ -444,6 +447,7 @@ private fun weekLabel(iso: String): String = try {
 private fun ProgramSummaryCard(
     data: com.kairos.app.data.remote.dto.ProgramsDto,
     onOpen: () -> Unit,
+    onChange: () -> Unit,
     onAnswer: (String) -> Unit,
 ) {
     val a = data.active
@@ -461,7 +465,7 @@ private fun ProgramSummaryCard(
                         color = if (a.blockDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text("\u2192", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onChange) { Text("Change program") }
             }
         }
         data.invite -> OutlinedCard(Modifier.fillMaxWidth()) {

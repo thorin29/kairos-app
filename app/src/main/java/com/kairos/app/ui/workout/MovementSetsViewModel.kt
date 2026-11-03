@@ -35,6 +35,8 @@ data class SetRow(
     val added: Boolean = false,
     /** The program's top set (work up to a top set). */
     val top: Boolean = false,
+    /** A 5/3/1 set's share of the training max (v0.427). */
+    val pct: Double? = null,
 )
 
 data class MovementSetsUi(
@@ -288,6 +290,7 @@ class MovementSetsViewModel(
                     saved = true,
                     added = i >= maxOf(last.size, target.size),
                     top = t?.top ?: false,
+                    pct = t?.pct,
                 )
             }
         }
@@ -299,6 +302,7 @@ class MovementSetsViewModel(
                     hintR = t.reps,
                     hintS = last.getOrNull(i)?.seconds,
                     top = t.top,
+                    pct = t.pct,
                 )
             }
         }
@@ -424,11 +428,31 @@ class MovementSetsViewModel(
 
     fun shiftBy(d: Double) = _ui.update { it.copy(shift = it.shift + d) }
 
-    /** The calculator's weight, into the next set not ticked yet. */
+    /** The set the calculator or timer was opened for (null = the next one
+     *  not ticked yet). */
+    private var toolKey: Int? = null
+
+    fun openToolFor(key: Int?) {
+        toolKey = key
+    }
+
+    /** The calculator's weight, into the set it was opened for. */
     fun useWeight(w: String) {
-        val target = _ui.value.rows.firstOrNull { !it.saved } ?: return
+        val target = _ui.value.rows.firstOrNull { it.key == toolKey } ?: _ui.value.rows.firstOrNull { !it.saved } ?: return
+        toolKey = null
         edit(target.key) { it.copy(w = clean(w, true), saved = false) }
     }
+
+    /** The timer's time, into the set it was opened for (v0.427). */
+    fun useSeconds(seconds: Int) {
+        val target = _ui.value.rows.firstOrNull { it.key == toolKey } ?: _ui.value.rows.firstOrNull { !it.saved } ?: return
+        toolKey = null
+        edit(target.key) { it.copy(s = seconds.toString(), saved = false) }
+    }
+
+    /** A program fixes each set's weight (5/3/1): sets aren't removed and the
+     *  remaining weights aren't moved (v0.427). */
+    fun strict(): Boolean = _ui.value.rows.any { it.pct != null }
 
     fun nextUnsavedIndex(): Int = _ui.value.rows.indexOfFirst { !it.saved }.let { if (it < 0) _ui.value.rows.size else it } + 1
 

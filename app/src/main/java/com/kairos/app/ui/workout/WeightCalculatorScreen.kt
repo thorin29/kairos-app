@@ -79,9 +79,13 @@ fun WeightCalculatorScreen(
     onBack: () -> Unit,
     onUseWeight: ((String) -> Unit)? = null,
     useLabel: String = "",
+    /** A set's weight to load (v0.427); switching the bar reloads it. 0 = empty bar. */
+    startTotal: Double = 0.0,
 ) {
     var bar by remember { mutableStateOf(BARS[0]) }
-    var loaded by remember { mutableStateOf(listOf<String>()) } // plate ids, one entry = one pair
+    var loaded by remember {
+        mutableStateOf(if (startTotal > 0) platesFor(startTotal, BARS[0].weight) else listOf<String>())
+    } // plate ids, one entry = one pair
 
     val total = bar.weight + loaded.sumOf { (PLATE_BY_ID[it]?.weight ?: 0.0) * 2 }
     val perSide = loaded.mapNotNull { PLATE_BY_ID[it] }
@@ -151,7 +155,10 @@ fun WeightCalculatorScreen(
                                     if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                                     RoundedCornerShape(16.dp),
                                 )
-                                .clickable { bar = b }
+                                .clickable {
+                                    bar = b
+                                    if (startTotal > 0) loaded = platesFor(startTotal, b.weight)
+                                }
                                 .padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }

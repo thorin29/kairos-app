@@ -499,6 +499,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenCreatePersonal = { navController.navigate(Route.CreatePersonalWorkout) },
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
                             onOpenPrograms = { navController.navigate(Route.Programs) },
+                            onChangeProgram = { navController.navigate(Route.ProgramsChange) },
                             refreshKey = dataRevision + programsChanged,
                         )
                     } else if (key == "bible") {
@@ -573,6 +574,15 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     }
                     ProgramsScreen(onBack = back, onDone = back)
                 }
+                composable<Route.ProgramsChange> {
+                    val back: () -> Unit = {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { h ->
+                            h["programsChanged"] = (h.get<Int>("programsChanged") ?: 0) + 1
+                        }
+                        navController.popBackStack()
+                    }
+                    ProgramsScreen(onBack = back, onDone = back, startPicking = true)
+                }
                 composable<Route.RecentWorkouts> {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })
                 }
@@ -581,6 +591,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     val forLog = calc.forLog
                     WeightCalculatorScreen(
                         useLabel = calc.useLabel,
+                        startTotal = calc.startTotal,
                         onBack = { navController.popBackStack() },
                         onUseWeight = if (forLog) {
                             { w ->
@@ -743,8 +754,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             navController.previousBackStackEntry?.savedStateHandle?.set("setsSaved", true)
                             navController.popBackStack()
                         },
-                        onOpenCalculator = { label ->
-                            navController.navigate(Route.WeightCalculator(forLog = true, useLabel = label))
+                        onOpenCalculator = { label, total ->
+                            navController.navigate(Route.WeightCalculator(forLog = true, useLabel = label, startTotal = total))
                         },
                         usedWeight = usedWeight,
                         onWeightConsumed = { entry.savedStateHandle["useWeight"] = null },

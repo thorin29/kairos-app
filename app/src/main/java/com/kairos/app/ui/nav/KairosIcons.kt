@@ -381,6 +381,13 @@ object KairosIcons {
         "M21 12a9 9 0 1 1-3-6.7L21 8",
         "M21 3v5h-5",
     )
+    /** A stopwatch: the timer. */
+    val Timer = stroked(
+        "Timer",
+        "M20 13a8 8 0 1 1-16 0a8 8 0 0 1 16 0Z",
+        "M12 9v4l2 2",
+        "M9 2h6",
+    )
     /** Two arrows chasing round: sync (Concept2). */
     val Sync = stroked(
         "Sync",

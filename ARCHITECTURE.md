@@ -230,6 +230,12 @@ is what that rule exists to prevent.
   `WorkoutLogScreen.kt` mirrors the web's blocks.ts: `daySections` / `blockKind`
   (sections and order), `opensSetLogger` (the split rule), `dayProgress` and
   `stripState`; keep them in step.
+- `MovementSetsScreen.kt` / `MovementSetsViewModel.kt` — a 5/3/1 set (`pct`
+  on the target) shows its % and a plates button instead of ×, and `strict()`
+  hides Remaining sets; a DURATION movement's Timer tile opens the conditioning
+  timer and `useSeconds` fills the set. `WorkoutLogScreen.kt` — + Conditioning
+  (Pick one / Build one / Write your own) and the extras logged that day
+  (`conditioningDone`). `BodyMap.kt` — the posterior-hip region shades Deadlift.
 - `ui/workout/MovementInfo.kt` — ⓘ for a movement: `MovementInfoButton`, the
   how-to dialog, the inline how-to under a picker row, and `watchUrl` (same
   link as the web's `watch.ts`; keep them in step).

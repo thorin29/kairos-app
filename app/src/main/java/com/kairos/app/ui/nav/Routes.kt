@@ -82,11 +82,17 @@ sealed interface Route {
     @Serializable
     data object Programs : Route
 
+    /** Programs, opened on the list to change to another (v0.427). */
+    @Serializable
+    data object ProgramsChange : Route
+
     @Serializable
     data class WeightCalculator(
         val forLog: Boolean = false,
         /** The use button's label ("Use for set 3"); blank = the default. */
         val useLabel: String = "",
+        /** A set's weight to load, 0 = an empty bar (v0.427). */
+        val startTotal: Double = 0.0,
     ) : Route
 
     @Serializable

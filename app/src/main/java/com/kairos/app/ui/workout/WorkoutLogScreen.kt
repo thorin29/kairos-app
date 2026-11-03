@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.height
@@ -124,6 +125,7 @@ fun WorkoutLogScreen(
     // Pick one / Build one sheets, and the workout Pick one opens straight on
     // (this month's benchmark). Closed once something is logged.
     var conditioningSheet by remember { mutableStateOf<String?>(null) }
+    var addingConditioning by remember { mutableStateOf(false) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(ui.conditioningTick) { conditioningSheet = null }
 
@@ -337,6 +339,29 @@ fun WorkoutLogScreen(
                         }
                     }
 
+                    // A one-off conditioning session on any day (v0.427): what's
+                    // been done that no card above shows, then + Conditioning.
+                    if (ui.picks.isEmpty()) {
+                        val planned = ui.conditioning.map { it.name.take(40) }.toSet()
+                        val extra = ui.conditioningDone.filter { it.name.take(40) !in planned }
+                        if (extra.isNotEmpty()) {
+                            OutlinedCard(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    extra.forEach { d ->
+                                        Text(
+                                            d.name + (d.result?.let { " \u00b7 $it" } ?: ""),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    OutlinedButton(onClick = { addingConditioning = true }) {
+                        Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
+                    }
+
                     if (ui.actionError != null) {
                         Text(
                             ui.actionError!!,
@@ -353,6 +378,42 @@ fun WorkoutLogScreen(
                 }
             }
         }
+    }
+
+    if (addingConditioning) {
+        AlertDialog(
+            onDismissRequest = { addingConditioning = false },
+            title = { Text("Conditioning") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            addingConditioning = false
+                            openWorkoutId = null
+                            conditioningSheet = "pick"
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Pick one") }
+                    OutlinedButton(
+                        onClick = {
+                            addingConditioning = false
+                            if (ui.choices == null) vm.loadChoices()
+                            conditioningSheet = "build"
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Build one") }
+                    OutlinedButton(
+                        onClick = {
+                            addingConditioning = false
+                            onWriteOwn()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Write your own") }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { addingConditioning = false }) { Text("Cancel") } },
+        )
     }
 
     when (conditioningSheet) {

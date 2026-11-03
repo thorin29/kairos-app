@@ -373,6 +373,8 @@ data class WorkoutPlanDto(
     val picks: List<PickPlanDto> = emptyList(),
     /** The monthly benchmark: offered, or this month's due (server 0.617+). */
     val benchmark: BenchmarkDto? = null,
+    /** Every conditioning result logged that day (server 0.619+). */
+    val conditioningDone: List<PickDoneDto> = emptyList(),
 )
 
 @Serializable
@@ -715,6 +717,8 @@ data class TargetSetDto(
     val weight: Double? = null,
     val reps: Int = 0,
     val top: Boolean = false,
+    /** A 5/3/1 set's share of the training max, shown under the set number (server 0.619+). */
+    val pct: Double? = null,
 )
 
 /** A person's running program, as the day page and Workouts page show it. */
@@ -779,6 +783,8 @@ data class ProgramRoleDto(
 data class ProgramOptionDto(
     val id: String = "",
     val name: String = "",
+    /** The heaviest weight the person has logged on it (server 0.619+). */
+    val best: Double? = null,
 )
 
 @Serializable

@@ -810,8 +810,15 @@ private fun ProgressSummaryCards(
         }
     }
 
-    val rows = if (planDays.isNotEmpty()) planDays.map { it.day }.distinct().sorted()
-    else (0..6).toList()
+    // A row for each weekday the plan uses AND each weekday something was
+    // logged on in the last 16 weeks (v0.427), so switching to a plan with
+    // fewer days keeps the old days until they scroll off.
+    val since = LocalDate.now().minusWeeks(16).toString()
+    val loggedDays = byDate.keys.filter { it >= since }.mapNotNull { d ->
+        runCatching { LocalDate.parse(d).dayOfWeek.value % 7 }.getOrNull()
+    }
+    val rowSet = (planDays.map { it.day } + loggedDays).toSortedSet()
+    val rows = if (rowSet.isNotEmpty()) rowSet.toList() else (0..6).toList()
 
     if (byDate.isNotEmpty()) {
         Spacer(Modifier.height(16.dp))

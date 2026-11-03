@@ -87,7 +87,8 @@ fun MovementSetsScreen(
     unit: String,
     late: Boolean,
     onDone: () -> Unit,
-    onOpenCalculator: (String) -> Unit,
+    /** The use button's label and the weight to start on (0 = empty bar). */
+    onOpenCalculator: (String, Double) -> Unit,
     usedWeight: String?,
     onWeightConsumed: () -> Unit,
     onOpenPrograms: () -> Unit = {},
@@ -112,6 +113,8 @@ fun MovementSetsScreen(
     val ui by vm.ui.collectAsState()
     var swapping by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    // A timed movement's timer (v0.427): its time fills the set.
+    var timing by remember { mutableStateOf(false) }
 
     LaunchedEffect(ui.done) { if (ui.done) onDone() }
     LaunchedEffect(usedWeight) {
@@ -200,14 +203,23 @@ fun MovementSetsScreen(
                                 highlighted = !ui.skipped,
                                 fixedHeight = 64.dp,
                             ) { vm.toggleSkip() }
+                            val timed = metric == "DURATION"
                             WorkoutActionTile(
-                                icon = KairosIcons.Dumbbell,
-                                label = "Calculator",
+                                icon = if (timed) KairosIcons.Timer else KairosIcons.Dumbbell,
+                                label = if (timed) "Timer" else "Calculator",
                                 modifier = Modifier.weight(1f),
-                                highlighted = isWeight && !ui.skipped,
-                                enabled = isWeight && !ui.skipped,
+                                highlighted = (isWeight || timed) && !ui.skipped,
+                                enabled = (isWeight || timed) && !ui.skipped,
                                 fixedHeight = 64.dp,
-                            ) { onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}") }
+                            ) {
+                                if (timed) {
+                                    vm.openToolFor(null)
+                                    timing = true
+                                } else {
+                                    vm.openToolFor(null)
+                                    onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}", 0.0)
+                                }
+                            }
                             WorkoutActionTile(
                                 icon = KairosIcons.Check,
                                 label = "Log",
@@ -307,6 +319,11 @@ fun MovementSetsScreen(
                             newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
                             jump = vm.jumpFor(r),
                             enabled = !ui.skipped,
+                            strict = vm.strict(),
+                            onPlates = { w ->
+                                vm.openToolFor(r.key)
+                                onOpenCalculator("Use for set ${i + 1}", w)
+                            },
                         )
                     }
 
@@ -322,7 +339,7 @@ fun MovementSetsScreen(
                         }
 
                         val anyUnentered = ui.rows.any { !it.saved && it.w.isBlank() && it.hintW != null }
-                        if (isWeight && anyUnentered) {
+                        if (isWeight && anyUnentered && !vm.strict()) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -397,6 +414,22 @@ fun MovementSetsScreen(
             onDismiss = { showInfo = false },
         )
     }
+    if (timing) {
+        // The conditioning timer as a stopwatch; its time fills the set.
+        ConditioningTimer(
+            workout = com.kairos.app.data.remote.dto.ConditioningPlanDto(
+                name = if (swapped) ui.doingName ?: name else name,
+                type = "FOR_TIME",
+                resultLabel = "Time",
+                resultMetric = "DURATION",
+            ),
+            onLog = { seconds, _ ->
+                timing = false
+                vm.useSeconds(seconds)
+            },
+            onClose = { timing = false },
+        )
+    }
 }
 
 /** One set: its number, "[165] lb × [3]", ✓ and ×, and last time's set. */
@@ -414,6 +447,9 @@ private fun SetCard(
     /** Percent over the recent top, when it's a big jump. */
     jump: Int? = null,
     enabled: Boolean,
+    /** A program fixed this set's weight: plates instead of remove (v0.427). */
+    strict: Boolean = false,
+    onPlates: (Double) -> Unit = {},
 ) {
     OutlinedCard(
         Modifier.fillMaxWidth(),
@@ -431,14 +467,15 @@ private fun SetCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Column(Modifier.width(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.width(if (row.pct != null) 34.dp else 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$index", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                    if (row.top) {
+                    row.pct?.let { p ->
                         Text(
-                            "TOP",
+                            "${kotlin.math.round(p * 100).toInt()}%",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
                         )
                     }
                 }
@@ -512,14 +549,16 @@ private fun SetCard(
                     Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .clickable(enabled = enabled) { vm.askRemove(row.key) },
+                        .clickable(enabled = enabled) {
+                            if (strict) onPlates(vm.valueOf(row).weight ?: 0.0) else vm.askRemove(row.key)
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        KairosIcons.Close,
-                        contentDescription = "Remove set $index",
+                        if (strict) KairosIcons.Dumbbell else KairosIcons.Close,
+                        contentDescription = if (strict) "Plates for set $index" else "Remove set $index",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(if (strict) 18.dp else 16.dp),
                     )
                 }
             }

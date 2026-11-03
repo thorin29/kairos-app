@@ -1,4 +1,14 @@
 # Changelog
+## 0.427.0
+
+- Deadlifts have their own group, Deadlift, on the plan, the charts and the body map.
+- On a 5/3/1 day each set shows its percentage, and the plates button shows what to load.
+- Timed movements like planks log by time in programs, with a timer on the movement.
+- Add a conditioning workout to any day.
+- Change program is on the Workouts program card.
+- Program setup fills in your top weights.
+- The Workout days chart shows every day you've logged.
+
 ## 0.426.1
 
 - How did it feel is now a slider: slide to Easy, Solid, Hard or Too hard and tap the check to save it. The small bandage is for when something hurt.
