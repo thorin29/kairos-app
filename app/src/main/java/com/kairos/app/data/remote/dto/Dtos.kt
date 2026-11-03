@@ -2968,7 +2968,12 @@ data class PlanWarmupRequest(val plannedWorkoutId: String, val warmup: String?)
 
 /** A session logged outside the day's plans: its name and each movement's sets in a few words. */
 @Serializable
-data class LoggedOtherDto(val name: String = "", val lines: List<LoggedLineDto> = emptyList())
+data class LoggedOtherDto(
+    val name: String = "",
+    /** The short name for the page title: a game's event type ("Hockey game"), v0.625 servers. */
+    val label: String? = null,
+    val lines: List<LoggedLineDto> = emptyList(),
+)
 
 @Serializable
 data class LoggedLineDto(val name: String = "", val summary: String = "")

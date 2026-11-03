@@ -1,5 +1,27 @@
 # Decisions
 
+## 2026-11 — Visible buttons; Conditioning in its place; warm-up countdown (v0.433.0 / web 0.625.0)
+
+Mirrors web 0.625.0.
+- `ui/common/AccentOutlinedButton`: a 2 dp primary outline and primary text
+  on the surface colour. Used for Rest / skip day, + Conditioning and Log an
+  additional workout; a plain OutlinedButton's grey outline read as disabled.
+- `WorkoutLogScreen`: CONDITIONING is always among the day's section kinds,
+  so its section (empty or not) sits where the person's order puts it, and
+  the one-off conditioning list and + Conditioning render inside it.
+- Day header: the server's `title` is the program's name on a program day,
+  else the kinds of work; `programLine` is just the week label.
+  `LoggedOtherDto.label` (a game's event type) titles a past day.
+- `WarmupTimer.kt`: `warmupIntervals` / `warmupSchedule` / `warmupAt` mirror
+  warmup-library.ts. A timed step's Timer runs that step and the timed steps
+  straight after it (an each-side step twice), get-ready before the first
+  (`TIMER_LEADS`), a chosen pause between (`WARMUP_GAPS`), tones on the alarm
+  stream and a buzz at each change, Pause and Skip; the steps it ran are
+  ticked. Colours from `timerPalette()` (now internal). Replaces the
+  count-up StepTimer.
+- `RoutineRow` has a surface background.
+
+
 ## 2026-11 — Companion exercises; Warm-ups screen; plan tools; rotation (v0.432.0 / web 0.624.0)
 
 Mirrors web 0.624.0. `ProgramsScreen`: Lifts in weekday order, "Companion

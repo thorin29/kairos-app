@@ -48,18 +48,16 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.common.SentenceCaps
+import com.kairos.app.ui.common.AccentOutlinedButton
 
 /** The "Log an additional workout" entry point: a button that opens a step-by-step
  *  wizard (type -> details -> log), so the options aren't all crowded at once. */
 @Composable
 fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
     var open by remember { mutableStateOf(false) }
-    OutlinedButton(
+    AccentOutlinedButton(
         onClick = { open = true },
         modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
     ) {
         Text("Log an additional workout")
     }

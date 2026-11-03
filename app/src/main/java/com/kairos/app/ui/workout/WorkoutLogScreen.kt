@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.CircularProgressIndicator
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.theme.KairosThemeState
 import kotlinx.coroutines.delay
 import androidx.compose.material3.LinearProgressIndicator
@@ -205,7 +206,8 @@ fun WorkoutLogScreen(
                             title = ui.title.ifBlank {
                                 ui.planName ?: when {
                                     todayBlocks.isNotEmpty() -> "Workout"
-                                    ui.loggedOther.isNotEmpty() -> ui.loggedOther.joinToString(" \u00b7 ") { it.name }
+                                    // Short labels: a game by its event type ("Hockey game").
+                                    ui.loggedOther.isNotEmpty() -> ui.loggedOther.map { it.label ?: it.name }.distinct().joinToString(" \u00b7 ")
                                     else -> "Nothing planned"
                                 }
                             },
@@ -225,7 +227,7 @@ fun WorkoutLogScreen(
                     // Resting or skipping the whole day lives here, with the
                     // day (v0.432; it was on the Workouts page).
                     if (ui.date != null && !ui.loggedAny && !ui.rested && !ui.loading) {
-                        OutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
+                        AccentOutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
                             Icon(KairosIcons.Moon, contentDescription = null, modifier = Modifier.size(16.dp))
                             Text("Rest / skip day", modifier = Modifier.padding(start = 6.dp))
                         }
@@ -268,7 +270,9 @@ fun WorkoutLogScreen(
                     val simpleKinds = buildSet {
                         ui.simple.forEach { add(if (it.category == "WARMUP") "WARMUP" else "CARDIO") }
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
-                        if (ui.picks.isNotEmpty()) add("CONDITIONING")
+                        // Always: + Conditioning sits where the person's order
+                        // puts conditioning, planned or not (v0.433).
+                        add("CONDITIONING")
                     }
                     val todaySections = daySections(todayBlocks, ui.order, simpleKinds)
                     todaySections.forEach { section ->
@@ -308,22 +312,46 @@ fun WorkoutLogScreen(
                             )
                         }
                         when (section.kind) {
-                            "CONDITIONING" -> ui.picks.forEach { p ->
-                                PickConditioningCard(
-                                    plan = p,
-                                    onPick = {
-                                        openWorkoutId = null
-                                        conditioningSheet = "pick"
-                                    },
-                                    onBuild = {
-                                        // The starting version (Scaled for younger people) comes with the list.
-                                        if (ui.choices == null) vm.loadChoices()
-                                        conditioningSheet = "build"
-                                    },
-                                    onWriteOwn = onWriteOwn,
-                                    onSkip = { vm.setPickSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = it) },
-                                    onFeedback = { e, h -> vm.pickFeedback(plannedWorkoutId = p.plannedWorkoutId, effort = e, hurt = h) },
-                                )
+                            "CONDITIONING" -> {
+                                ui.picks.forEach { p ->
+                                    PickConditioningCard(
+                                        plan = p,
+                                        onPick = {
+                                            openWorkoutId = null
+                                            conditioningSheet = "pick"
+                                        },
+                                        onBuild = {
+                                            // The starting version (Scaled for younger people) comes with the list.
+                                            if (ui.choices == null) vm.loadChoices()
+                                            conditioningSheet = "build"
+                                        },
+                                        onWriteOwn = onWriteOwn,
+                                        onSkip = { vm.setPickSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = it) },
+                                        onFeedback = { e, h -> vm.pickFeedback(plannedWorkoutId = p.plannedWorkoutId, effort = e, hurt = h) },
+                                    )
+                                }
+                                // A one-off conditioning session on any day (v0.427): what's
+                                // been done that no card above shows, then + Conditioning.
+                                if (ui.picks.isEmpty()) {
+                                    val planned = ui.conditioning.map { it.name.take(40) }.toSet()
+                                    val extra = ui.conditioningDone.filter { it.name.take(40) !in planned }
+                                    if (extra.isNotEmpty()) {
+                                        OutlinedCard(Modifier.fillMaxWidth()) {
+                                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                extra.forEach { d ->
+                                                    Text(
+                                                        d.name + (d.result?.let { " \u00b7 $it" } ?: ""),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                AccentOutlinedButton(onClick = { addingConditioning = true }) {
+                                    Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
+                                }
                             }
                             "WARMUP" -> ui.simple.filter { it.category == "WARMUP" }.forEach { w ->
                                 WarmupCard(
@@ -353,29 +381,6 @@ fun WorkoutLogScreen(
                                 },
                             )
                         }
-                    }
-
-                    // A one-off conditioning session on any day (v0.427): what's
-                    // been done that no card above shows, then + Conditioning.
-                    if (ui.picks.isEmpty()) {
-                        val planned = ui.conditioning.map { it.name.take(40) }.toSet()
-                        val extra = ui.conditioningDone.filter { it.name.take(40) !in planned }
-                        if (extra.isNotEmpty()) {
-                            OutlinedCard(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    extra.forEach { d ->
-                                        Text(
-                                            d.name + (d.result?.let { " \u00b7 $it" } ?: ""),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    OutlinedButton(onClick = { addingConditioning = true }) {
-                        Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
                     }
 
                     // What was logged outside the day's plans (an older plan, a

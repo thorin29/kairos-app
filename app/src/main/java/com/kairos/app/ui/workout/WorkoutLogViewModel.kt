@@ -332,7 +332,8 @@ class WorkoutLogViewModel(
                 planName = planName,
                 title = plan.title,
                 strip = plan.strip,
-                programLine = plan.program?.let { "${it.name} \u00b7 ${it.label}" } ?: "",
+                // The title is the program's name (server, v0.625); this line is its week.
+                programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
                 light = plan.light,
                 order = plan.order,

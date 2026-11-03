@@ -1,4 +1,13 @@
 # Changelog
+## 0.433.0
+
+- Rest / skip day, + Conditioning and Log an additional workout are proper buttons.
+- + Conditioning sits where Conditioning is in your section order.
+- The day's title is your program's name (with the week under it), or the kind of workout.
+- Past days name a game by its type, like "Hockey game · Back".
+- Timed warm-up steps have a Timer: a full-screen countdown with the exercise name, what's next, both sides, and a pause you choose between.
+- Warm-up cards are white.
+
 ## 0.432.0
 
 - Program setup offers companion exercises of the right kind, never your main lifts, plus ones from the library you can add. Days are listed in weekday order.

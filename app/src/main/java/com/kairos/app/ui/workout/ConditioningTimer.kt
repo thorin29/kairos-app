@@ -63,7 +63,7 @@ import kotlinx.coroutines.delay
 
 /** The timer's colours (v0.430): dark (the gym screen), or light from the
  *  app's own surfaces and accent, with amber for get-ready and red for rest. */
-private data class TimerPalette(
+internal data class TimerPalette(
     val bg: Color,
     val panel: Color,
     val line: Color,
@@ -92,7 +92,7 @@ private val DARK_TIMER = TimerPalette(
 /** Settings → Appearance → Workout timer: DARK (default), LIGHT, or APP
  *  (the app's light or dark mode). */
 @Composable
-private fun timerPalette(): TimerPalette {
+internal fun timerPalette(): TimerPalette {
     val theme by com.kairos.app.ui.common.rememberContainer().settingsStore.timerTheme.collectAsState(initial = "DARK")
     val light = theme == "LIGHT" || (theme == "APP" && !com.kairos.app.ui.theme.KairosThemeState.dark)
     if (!light) return DARK_TIMER

@@ -1,6 +1,5 @@
 package com.kairos.app.ui.workout
 
-import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,9 +54,9 @@ import androidx.compose.ui.window.DialogProperties
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.data.remote.dto.WarmupRoutineDto
 import com.kairos.app.data.remote.dto.WarmupStepDto
+import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** "10–15", "30 s each side", "3:00" (the web's stepAmount). */
@@ -71,8 +70,6 @@ internal fun stepAmount(s: WarmupStepDto): String {
     val a = s.amount.orEmpty()
     return if (a.isBlank()) side.trim() else a + side
 }
-
-private fun clock(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
 
 /** A full screen with a back arrow and a title (the app's pattern for a
  *  window you scroll, not a bottom sheet). */
@@ -102,44 +99,19 @@ private fun FullScreen(title: String, onClose: () -> Unit, content: @Composable 
     }
 }
 
-/** A plain count-up timer for a timed step: Start, Stop, and back to 0. */
-@Composable
-private fun StepTimer(target: Int) {
-    var running by remember { mutableStateOf(false) }
-    var secs by remember { mutableStateOf(0) }
-    var banked by remember { mutableStateOf(0) }
-    LaunchedEffect(running) {
-        if (!running) return@LaunchedEffect
-        val start = SystemClock.elapsedRealtime()
-        while (true) {
-            secs = banked + ((SystemClock.elapsedRealtime() - start) / 1000).toInt()
-            delay(250)
-        }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (running || secs > 0) {
-            Text(
-                clock(secs),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (target > 0 && secs >= target) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        when {
-            running -> OutlinedButton(onClick = { banked = secs; running = false }) { Text("Stop") }
-            secs > 0 -> OutlinedButton(onClick = { banked = 0; secs = 0 }) { Text("Reset") }
-            else -> OutlinedButton(onClick = { running = true }) {
-                Icon(KairosIcons.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
-                Text("Start", modifier = Modifier.padding(start = 6.dp))
-            }
-        }
-    }
-}
-
 /** A routine's steps: name and amount, a timer on timed ones, and a tick each. */
 @Composable
 private fun WarmupSteps(steps: List<WarmupStepDto>) {
     val ticked = remember(steps) { mutableStateListOf<Int>() }
+    var timing by remember(steps) { mutableStateOf<Int?>(null) }
+    timing?.let { from ->
+        WarmupTimer(
+            steps = steps,
+            from = from,
+            onFinished = { done -> done.forEach { if (it !in ticked) ticked.add(it) } },
+            onClose = { timing = null },
+        )
+    }
     Column {
         steps.forEachIndexed { i, s ->
             if (i > 0) HorizontalDivider()
@@ -170,7 +142,12 @@ private fun WarmupSteps(steps: List<WarmupStepDto>) {
                     )
                     Text(stepAmount(s), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (s.kind == "TIME") StepTimer(target = s.seconds ?: 0)
+                if (s.kind == "TIME") {
+                    AccentOutlinedButton(onClick = { timing = i }) {
+                        Icon(KairosIcons.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text("Timer", modifier = Modifier.padding(start = 6.dp))
+                    }
+                }
             }
         }
     }
@@ -311,6 +288,8 @@ private fun RoutineRow(name: String, sub: String, selected: Boolean, onPick: () 
         Modifier
             .fillMaxWidth()
             .clip(shape)
+            // A white card on the grey page (v0.433).
+            .background(MaterialTheme.colorScheme.surface, shape)
             .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, shape)
             .clickable { onPick() }
             .padding(start = 14.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),

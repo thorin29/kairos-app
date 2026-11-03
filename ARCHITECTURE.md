@@ -243,9 +243,13 @@ is what that rule exists to prevent.
   app resume (`MainActivity.onResume`); `NetworkMonitor.isOnline()` is the
   fresh read or the callback-tracked state.
 - `ui/workout/WarmupScreens.kt` — warm-up routines: the day's window with
-  step timers, the chooser and editor, the plan editor's line, and
+  a Timer on timed steps, the chooser and editor, the plan editor's line, and
   `WarmupsScreen` (all warm-ups, from the Workouts page; web:
   `warmup-window.tsx`).
+- `ui/workout/WarmupTimer.kt` — the warm-up countdown: a timed step and the
+  timed steps after it, both sides, get-ready and a pause between (web:
+  `warmup-timer.tsx`, `warmup-library.ts`).
+- `ui/common/AccentOutlinedButton.kt` — the accent-outlined secondary button.
 - `ui/workout/ProgramsScreen.kt` — programs: the running one and its
   end-of-cycle dialog, the chooser (Programs / My plans / Household via
   `PlanLibrary`), and the four-step `ProgramSetup` (web: `program-card.tsx`,
