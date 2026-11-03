@@ -1,4 +1,11 @@
 # Changelog
+## 0.430.0
+
+- Warm-ups can be a routine: steps with reps, or timed holds with a Start button. Tap the warm-up on the day to follow it, or just check it off.
+- Pick a ready-made warm-up or write your own in the plan editor, and switch it from the day.
+- Choose the warm-up when starting a program.
+- The workout timer can be dark, light or match the app (Settings → Appearance).
+
 ## 0.429.0
 
 - 5/3/1 programs start each main lift with three warm-up sets (W), before the working sets.

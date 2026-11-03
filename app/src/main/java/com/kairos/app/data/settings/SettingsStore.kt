@@ -120,6 +120,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_WIDGET_THEME] = v }
     }
 
+    /** The workout timer's look (v0.430): DARK (default), LIGHT, or APP
+     *  (follows the app's light or dark mode). */
+    val timerTheme: Flow<String> = dataStore.data.map { it[KEY_TIMER_THEME] ?: "DARK" }
+
+    suspend fun setTimerTheme(v: String) {
+        dataStore.edit { it[KEY_TIMER_THEME] = v }
+    }
+
     /** Drawer sections the server says to hide for this person ("hockey",
      *  "money"), from /api/v1/nav. Kept so the drawer is right offline and on a
      *  cold start; empty until the first answer, so nothing hides by guesswork. */
@@ -272,6 +280,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_WIDGET_STYLE = stringPreferencesKey("widget_style")
         val KEY_WIDGET_SCOPE = stringPreferencesKey("widget_scope")
         val KEY_WIDGET_THEME = stringPreferencesKey("widget_theme")
+        val KEY_TIMER_THEME = stringPreferencesKey("timer_theme")
         val KEY_WIDGET_CACHE = stringPreferencesKey("widget_cache")
         val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
         val KEY_NAV_HIDDEN = stringPreferencesKey("nav_hidden")

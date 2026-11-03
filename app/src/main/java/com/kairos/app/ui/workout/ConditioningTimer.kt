@@ -35,9 +35,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -59,13 +61,55 @@ import androidx.compose.ui.window.DialogProperties
 import com.kairos.app.data.remote.dto.ConditioningPlanDto
 import kotlinx.coroutines.delay
 
-private val TBg = Color(0xFF10202F)
-private val TPanel = Color(0xFF1B3044)
-private val TLine = Color(0xFF3B5468)
-private val TSoft = Color(0xFFC9D4DE)
-private val TAccent = Color(0xFF9FD3D8)
-private val TReady = Color(0xFFF6C66B)
-private val TRest = Color(0xFFF0A3A3)
+/** The timer's colours (v0.430): dark (the gym screen), or light from the
+ *  app's own surfaces and accent, with amber for get-ready and red for rest. */
+private data class TimerPalette(
+    val bg: Color,
+    val panel: Color,
+    val line: Color,
+    val soft: Color,
+    val accent: Color,
+    val ready: Color,
+    val rest: Color,
+    val ink: Color,
+    val strong: Color,
+    val onAccent: Color,
+)
+
+private val DARK_TIMER = TimerPalette(
+    bg = Color(0xFF10202F),
+    panel = Color(0xFF1B3044),
+    line = Color(0xFF3B5468),
+    soft = Color(0xFFC9D4DE),
+    accent = Color(0xFF9FD3D8),
+    ready = Color(0xFFF6C66B),
+    rest = Color(0xFFF0A3A3),
+    ink = Color.White,
+    strong = Color(0xFF16384A),
+    onAccent = Color(0xFF10202F),
+)
+
+/** Settings → Appearance → Workout timer: DARK (default), LIGHT, or APP
+ *  (the app's light or dark mode). */
+@Composable
+private fun timerPalette(): TimerPalette {
+    val theme by com.kairos.app.ui.common.rememberContainer().settingsStore.timerTheme.collectAsState(initial = "DARK")
+    val light = theme == "LIGHT" || (theme == "APP" && !com.kairos.app.ui.theme.KairosThemeState.dark)
+    if (!light) return DARK_TIMER
+    val c = MaterialTheme.colorScheme
+    return TimerPalette(
+        bg = c.surface,
+        panel = c.surfaceVariant,
+        line = c.outlineVariant,
+        soft = c.onSurfaceVariant,
+        accent = c.primary,
+        ready = Color(0xFFB45309),
+        rest = Color(0xFFB91C1C),
+        ink = c.onSurface,
+        strong = c.primary.copy(alpha = 0.14f),
+        onAccent = c.onPrimary,
+    )
+}
 
 /**
  * The full-screen conditioning timer (the web's ConditioningTimer and the
@@ -81,6 +125,7 @@ internal fun ConditioningTimer(
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
+    val pal = timerPalette()
     val prefs = remember { context.getSharedPreferences("kairos_timer", Context.MODE_PRIVATE) }
     val plan = remember(workout) { timerPlanFor(workout.type, workout.capSec, workout.movements.map { it.name }) }
     var sound by remember { mutableStateOf(prefs.getBoolean("sound", true)) }
@@ -235,7 +280,7 @@ internal fun ConditioningTimer(
         Column(
             Modifier
                 .fillMaxSize()
-                .background(TBg)
+                .background(pal.bg)
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState()),
@@ -244,15 +289,15 @@ internal fun ConditioningTimer(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onClose) { Text("‹ Back", color = TAccent, fontWeight = FontWeight.SemiBold) }
+                TextButton(onClick = onClose) { Text("‹ Back", color = pal.accent, fontWeight = FontWeight.SemiBold) }
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(
                     onClick = {
                         sound = !sound
                         prefs.edit().putBoolean("sound", sound).apply()
                     },
-                    border = BorderStroke(1.dp, TLine),
-                ) { Text(if (sound) "Sound on" else "Sound off", color = TSoft) }
+                    border = BorderStroke(1.dp, pal.line),
+                ) { Text(if (sound) "Sound on" else "Sound off", color = pal.soft) }
             }
 
             Column(
@@ -260,14 +305,14 @@ internal fun ConditioningTimer(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text("${workout.name} · ${plan.title}", color = TSoft, fontSize = 13.sp, textAlign = TextAlign.Center)
+                Text("${workout.name} · ${plan.title}", color = pal.soft, fontSize = 13.sp, textAlign = TextAlign.Center)
                 Text(
                     if (leading) leadLeft.toString() else clockText(at.clock),
-                    color = if (leading) TReady else if (restNow) TRest else Color.White,
+                    color = if (leading) pal.ready else if (restNow) pal.rest else pal.ink,
                     fontSize = 84.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(status, color = if (leading) TReady else TSoft, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(status, color = if (leading) pal.ready else pal.soft, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
 
             if (phase == "idle") {
@@ -276,7 +321,7 @@ internal fun ConditioningTimer(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Get ready", color = TSoft, fontSize = 13.sp)
+                    Text("Get ready", color = pal.soft, fontSize = 13.sp)
                     TIMER_LEADS.forEach { v ->
                         val on = lead == v
                         Box(
@@ -284,15 +329,15 @@ internal fun ConditioningTimer(
                                 .padding(start = 6.dp)
                                 .heightIn(min = 36.dp)
                                 .width(48.dp)
-                                .background(if (on) TAccent else Color.Transparent, RoundedCornerShape(999.dp))
-                                .border(1.dp, if (on) TAccent else TLine, RoundedCornerShape(999.dp))
+                                .background(if (on) pal.accent else Color.Transparent, RoundedCornerShape(999.dp))
+                                .border(1.dp, if (on) pal.accent else pal.line, RoundedCornerShape(999.dp))
                                 .clickable {
                                     lead = v
                                     leadLeft = v
                                     prefs.edit().putInt("lead", v).apply()
                                 },
                             contentAlignment = Alignment.Center,
-                        ) { Text("${v}s", color = if (on) TBg else TSoft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                        ) { Text("${v}s", color = if (on) pal.onAccent else pal.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
             }
@@ -302,7 +347,7 @@ internal fun ConditioningTimer(
                     Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .background(TPanel, RoundedCornerShape(16.dp))
+                        .background(pal.panel, RoundedCornerShape(16.dp))
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -310,13 +355,13 @@ internal fun ConditioningTimer(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 m.reps?.toString() ?: m.distance?.let { MovementSetsViewModel.fmt(it) } ?: "",
-                                color = Color.White,
+                                color = pal.ink,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 modifier = Modifier.width(40.dp),
                             )
-                            Text(m.name, color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
-                            m.weight?.let { Text("${MovementSetsViewModel.fmt(it)} lb", color = TSoft, fontSize = 13.sp) }
+                            Text(m.name, color = pal.ink, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                            m.weight?.let { Text("${MovementSetsViewModel.fmt(it)} lb", color = pal.soft, fontSize = 13.sp) }
                         }
                     }
                 }
@@ -330,39 +375,39 @@ internal fun ConditioningTimer(
                 if (plan.rounds) {
                     Text(
                         ("Rounds" + (workout.last?.let { " · last time $it" } ?: "")).uppercase(),
-                        color = TSoft,
+                        color = pal.soft,
                         fontSize = 12.sp,
                         letterSpacing = 1.sp,
                     )
                     Box(
                         Modifier
                             .size(160.dp)
-                            .background(Color(0xFF16384A), CircleShape)
-                            .border(3.dp, TAccent, CircleShape)
+                            .background(pal.strong, CircleShape)
+                            .border(3.dp, pal.accent, CircleShape)
                             .clickable { rounds += 1 },
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(rounds.toString(), color = Color.White, fontSize = 60.sp, fontWeight = FontWeight.Bold)
-                            Text("+1 round", color = TAccent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(rounds.toString(), color = pal.ink, fontSize = 60.sp, fontWeight = FontWeight.Bold)
+                            Text("+1 round", color = pal.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    TextButton(onClick = { rounds = maxOf(0, rounds - 1) }) { Text("Undo round", color = TSoft) }
+                    TextButton(onClick = { rounds = maxOf(0, rounds - 1) }) { Text("Undo round", color = pal.soft) }
                 } else {
-                    workout.last?.let { Text("Last time $it", color = TSoft, fontSize = 14.sp) }
+                    workout.last?.let { Text("Last time $it", color = pal.soft, fontSize = 14.sp) }
                 }
             }
 
             if (phase == "done") {
                 val fieldColors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = TAccent,
-                    unfocusedBorderColor = TLine,
-                    focusedLabelColor = TSoft,
-                    unfocusedLabelColor = TSoft,
-                    focusedContainerColor = TPanel,
-                    unfocusedContainerColor = TPanel,
+                    focusedTextColor = pal.ink,
+                    unfocusedTextColor = pal.ink,
+                    focusedBorderColor = pal.accent,
+                    unfocusedBorderColor = pal.line,
+                    focusedLabelColor = pal.soft,
+                    unfocusedLabelColor = pal.soft,
+                    focusedContainerColor = pal.panel,
+                    unfocusedContainerColor = pal.panel,
                 )
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -387,11 +432,11 @@ internal fun ConditioningTimer(
                             )
                         }
                     }
-                    workout.today?.let { Text("Logging replaces today's $it.", color = TReady, fontSize = 13.sp) }
-                    error?.let { Text(it, color = TRest, fontSize = 13.sp) }
+                    workout.today?.let { Text("Logging replaces today's $it.", color = pal.ready, fontSize = 13.sp) }
+                    error?.let { Text(it, color = pal.rest, fontSize = 13.sp) }
                     Button(
                         onClick = { save() },
-                        colors = ButtonDefaults.buttonColors(containerColor = TAccent, contentColor = TBg),
+                        colors = ButtonDefaults.buttonColors(containerColor = pal.accent, contentColor = pal.onAccent),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     ) { Text("Log", fontWeight = FontWeight.Bold) }
                 }
@@ -403,13 +448,13 @@ internal fun ConditioningTimer(
             ) {
                 OutlinedButton(
                     onClick = { reset() },
-                    border = BorderStroke(1.dp, TLine),
+                    border = BorderStroke(1.dp, pal.line),
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                ) { Text("Reset", color = Color.White) }
+                ) { Text("Reset", color = pal.ink) }
                 if (phase != "done") {
                     Button(
                         onClick = { if (phase == "run" || phase == "lead") pause() else start() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = TBg),
+                        colors = ButtonDefaults.buttonColors(containerColor = pal.ink, contentColor = pal.bg),
                         modifier = Modifier.weight(2f).heightIn(min = 52.dp),
                     ) {
                         Text(
@@ -431,10 +476,10 @@ internal fun ConditioningTimer(
                             finish(now)
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (plan.kind == "STOPWATCH") TAccent else Color.Transparent,
-                            contentColor = if (plan.kind == "STOPWATCH") TBg else Color.White,
+                            containerColor = if (plan.kind == "STOPWATCH") pal.accent else Color.Transparent,
+                            contentColor = if (plan.kind == "STOPWATCH") pal.bg else pal.ink,
                         ),
-                        border = if (plan.kind == "STOPWATCH") null else BorderStroke(1.dp, TLine),
+                        border = if (plan.kind == "STOPWATCH") null else BorderStroke(1.dp, pal.line),
                         modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                     ) { Text(if (plan.kind == "STOPWATCH") "Done" else "End", fontWeight = FontWeight.Bold) }
                 }

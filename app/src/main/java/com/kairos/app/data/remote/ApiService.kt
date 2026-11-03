@@ -268,6 +268,18 @@ interface ApiService {
     @POST("workouts/plan/saved/delete")
     suspend fun deleteSavedPlan(@Body body: com.kairos.app.data.remote.dto.SharedPlanIdRequest): Response<WorkoutAckDto>
 
+    @GET("workouts/warmups")
+    suspend fun warmupRoutines(): Response<com.kairos.app.data.remote.dto.WarmupRoutinesDto>
+
+    @POST("workouts/warmups")
+    suspend fun saveWarmupRoutine(@Body body: com.kairos.app.data.remote.dto.SaveWarmupRequest): Response<com.kairos.app.data.remote.dto.SaveWarmupDto>
+
+    @POST("workouts/warmups/delete")
+    suspend fun deleteWarmupRoutine(@Body body: com.kairos.app.data.remote.dto.SharedPlanIdRequest): Response<WorkoutAckDto>
+
+    @POST("workouts/plan/warmup")
+    suspend fun setPlanWarmup(@Body body: com.kairos.app.data.remote.dto.PlanWarmupRequest): Response<WorkoutAckDto>
+
     @POST("workouts/plan/shared/withdraw")
     suspend fun withdrawSharedPlan(@Body body: com.kairos.app.data.remote.dto.SharedPlanIdRequest): Response<WorkoutAckDto>
 

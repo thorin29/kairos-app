@@ -171,6 +171,7 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             onRemove = { id -> vm.remove(id) },
                             onMarkRest = { vm.markRest(d.day) },
                             onAdd = { addingDay = d.day },
+                            onWarmupChanged = { vm.reload() },
                         )
                     }
                 }
@@ -208,6 +209,7 @@ private fun DayCard(
     onRemove: (String) -> Unit,
     onMarkRest: () -> Unit,
     onAdd: () -> Unit,
+    onWarmupChanged: () -> Unit,
 ) {
     val hasRest = day.workouts.any { it.isRest }
     var pendingRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -298,6 +300,8 @@ private fun DayCard(
                                 }
                             }
                         }
+                    } else if (w.category == "WARMUP") {
+                        WarmupPlanLine(plannedWorkoutId = w.id, warmup = w.warmup, onChanged = onWarmupChanged)
                     } else if (w.detail.isNotBlank()) {
                         Text(w.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

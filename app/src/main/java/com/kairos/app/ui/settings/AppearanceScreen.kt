@@ -58,6 +58,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
     val widgetStyle by settings.widgetStyle.collectAsState(initial = "SOLID")
     val widgetScope by settings.widgetScope.collectAsState(initial = "FAMILY")
     val widgetTheme by settings.widgetTheme.collectAsState(initial = "APP")
+    val timerTheme by settings.timerTheme.collectAsState(initial = "DARK")
     val current = ThemeScheme.fromKey(schemeKey)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     // Every choice here shows on the home-screen widget too, so redraw it.
@@ -152,6 +153,24 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 options = listOf("FAMILY" to "Whole family", "MINE" to "Only mine"),
                                 selected = widgetScope,
                                 onPick = { v -> save { settings.setWidgetScope(v) } },
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                "Workout timer",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Segmented(
+                                options = listOf("DARK" to "Dark", "LIGHT" to "Light", "APP" to "Match app"),
+                                selected = timerTheme,
+                                onPick = { v -> save { settings.setTimerTheme(v) } },
                             )
                         }
                     }

@@ -89,8 +89,30 @@ internal fun SectionLabel(title: String) {
 
 /** A Warm-up in the plan: Mark done (tap again to undo), or Skip. */
 @Composable
-internal fun WarmupCard(plan: SimplePlanDto, onDone: (Boolean) -> Unit, onSkip: (Boolean) -> Unit) {
+internal fun WarmupCard(
+    plan: SimplePlanDto,
+    onDone: (Boolean) -> Unit,
+    onSkip: (Boolean) -> Unit,
+    /** The routine was switched (v0.430): reload the day. */
+    onChanged: () -> Unit = {},
+) {
     val finished = plan.done && !plan.skipped
+    // Tapping the card opens its routine (steps and timers); the check
+    // completes it without opening (v0.430).
+    var open by remember { mutableStateOf(false) }
+    if (open) {
+        WarmupWindow(
+            plannedWorkoutId = plan.plannedWorkoutId,
+            routine = plan.routine,
+            done = finished,
+            onDone = {
+                onDone(true)
+                open = false
+            },
+            onClose = { open = false },
+            onChanged = onChanged,
+        )
+    }
     OutlinedCard(Modifier.fillMaxWidth()) {
         Row(
             Modifier
@@ -100,12 +122,24 @@ internal fun WarmupCard(plan: SimplePlanDto, onDone: (Boolean) -> Unit, onSkip: 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                plan.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f).clickable { open = true }.padding(vertical = 4.dp)) {
+                Text(
+                    plan.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                plan.routine?.let {
+                    Text(
+                        it.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+            }
             if (!finished) {
                 TextButton(onClick = { onSkip(!plan.skipped) }) { Text(if (plan.skipped) "Skipped" else "Skip") }
             }

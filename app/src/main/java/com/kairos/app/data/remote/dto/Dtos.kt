@@ -556,6 +556,8 @@ data class SimplePlanDto(
     val category: String = "",
     val done: Boolean = false,
     val skipped: Boolean = false,
+    /** A Warm-up's routine; null: a plain check (server 0.622+). */
+    val routine: WarmupRoutineDto? = null,
 )
 
 @Serializable
@@ -756,11 +758,15 @@ data class ProgramsDto(
     val invite: Boolean = false,
     /** What the plan has now, for the setup's Extras step (server 0.620+). */
     val current: CurrentExtrasDto = CurrentExtrasDto(),
+    /** Warm-up routines to choose from (server 0.622+). */
+    val warmups: List<WarmupRoutineDto> = emptyList(),
 )
 
 @Serializable
 data class CurrentExtrasDto(
     val warmup: Boolean = false,
+    /** The plan's warm-up routine, if any (server 0.622+). */
+    val warmupRoutine: String? = null,
     val cardioDays: List<Int> = emptyList(),
     val conditioningDays: List<Int> = emptyList(),
 )
@@ -817,6 +823,8 @@ data class StartProgramRequest(
     val schemes: Map<String, String>? = null,
     val added: List<AddedLiftRequest>? = null,
     val warmup: Boolean? = null,
+    /** The warm-up's routine, "" for a plain check (server 0.622+). */
+    val warmupRoutine: String? = null,
     val cardioDays: List<Int>? = null,
     val conditioningDays: List<Int>? = null,
 )
@@ -1200,6 +1208,8 @@ data class PlanWorkoutDto(
     /** Its section on the day (WARMUP, CARDIO, STRENGTH…) and category (server 0.615+). */
     val kind: String = "",
     val category: String? = null,
+    /** A Warm-up's routine id ("lib:<key>" or one's own); null: a plain check (server 0.622+). */
+    val warmup: String? = null,
     val exercises: List<PlanMovementDto> = emptyList(),
 )
 
@@ -2912,3 +2922,34 @@ data class SavedPlansDto(val plans: List<SavedPlanDto> = emptyList())
 
 @Serializable
 data class RenamePlanRequest(val id: String, val name: String)
+
+/** A warm-up routine: the library's ("lib:<key>") or one's own (server 0.622+). */
+@Serializable
+data class WarmupRoutineDto(
+    val id: String = "",
+    val name: String = "",
+    val steps: List<WarmupStepDto> = emptyList(),
+    val mine: Boolean = false,
+)
+
+/** A step: REPS (amount, nothing logged) or TIME (seconds, a plain timer). */
+@Serializable
+data class WarmupStepDto(
+    val name: String = "",
+    val kind: String = "REPS",
+    val amount: String? = null,
+    val seconds: Int? = null,
+    val sides: Boolean = false,
+)
+
+@Serializable
+data class WarmupRoutinesDto(val routines: List<WarmupRoutineDto> = emptyList())
+
+@Serializable
+data class SaveWarmupRequest(val id: String?, val name: String, val steps: List<WarmupStepDto>)
+
+@Serializable
+data class SaveWarmupDto(val status: String = "", val id: String = "")
+
+@Serializable
+data class PlanWarmupRequest(val plannedWorkoutId: String, val warmup: String?)

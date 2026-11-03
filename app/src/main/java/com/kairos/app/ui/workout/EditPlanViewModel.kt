@@ -45,6 +45,9 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
         load(initial = true)
     }
 
+    /** Reload after a change made elsewhere (a warm-up's routine, v0.430). */
+    fun reload() = load(initial = false)
+
     private fun load(initial: Boolean) {
         if (initial) _ui.update { it.copy(loading = true) }
         viewModelScope.launch {

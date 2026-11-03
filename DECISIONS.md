@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Warm-up routines; timer look (v0.430.0 / web 0.622.0)
+
+Mirrors web 0.622.0. `WarmupScreens.kt`: `WarmupWindow` (steps, a tick each,
+`StepTimer` count-up on timed ones, Switch, Mark done), `RoutinePicker`,
+`RoutineEditor` (a ready-made one saves your own copy) and `WarmupPlanLine`
+(the plan editor's Warm-up entry), all full-screen Dialogs with a back arrow.
+`WarmupCard`: tapping the name opens the window; the check still completes it.
+`SimplePlanDto.routine`, `PlanWorkoutDto.warmup`, `ProgramsDto.warmups`,
+`CurrentExtrasDto.warmupRoutine`, `StartProgramRequest.warmupRoutine`; new
+calls `workouts/warmups` (GET, POST), `warmups/delete`, `plan/warmup`. The
+setup's Extras Warm-up is a `Dropdown` (None / Just a check / routines).
+`ConditioningTimer` takes a `TimerPalette` from `SettingsStore.timerTheme`
+(DARK default, LIGHT, APP); Settings → Appearance → Workout timer.
+
 ## 2026-11 — Warm-up sets; setup labels and maxes; group order; Add workout full screen (v0.429.0 / web 0.621.0)
 
 Mirrors web 0.621.0. `SetRow.warmup` shows "W" and the working sets number

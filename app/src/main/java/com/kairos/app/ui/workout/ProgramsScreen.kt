@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -186,6 +185,7 @@ fun ProgramsScreen(
                 setup != null -> ProgramSetup(
                     program = setup,
                     current = d.current,
+                    warmups = d.warmups,
                     busy = busy,
                     error = error,
                     onStart = { req ->
@@ -514,6 +514,7 @@ private data class AddedLift(val n: Int, val day: Int, val poolExerciseId: Strin
 private fun ProgramSetup(
     program: ProgramChoiceDto,
     current: CurrentExtrasDto,
+    warmups: List<com.kairos.app.data.remote.dto.WarmupRoutineDto>,
     busy: Boolean,
     error: String?,
     onStart: (StartProgramRequest) -> Unit,
@@ -528,7 +529,8 @@ private fun ProgramSetup(
     val removed = remember(program.key) { mutableStateListOf<String>() }
     val schemes = remember(program.key) { mutableStateMapOf<String, String>() }
     val added = remember(program.key) { mutableStateListOf<AddedLift>() }
-    var warmup by remember(program.key) { mutableStateOf(true) }
+    // "none", "" (just a check) or a routine id; starts from the plan's own (v0.430).
+    var warmup by remember(program.key) { mutableStateOf(if (current.warmup) current.warmupRoutine ?: "" else "") }
     var cardio by remember(program.key) { mutableStateOf<List<Int>?>(null) }
     var conditioning by remember(program.key) { mutableStateOf(current.conditioningDays) }
     val maxText = remember(program.key) { mutableStateMapOf<String, String>() }
@@ -658,10 +660,13 @@ private fun ProgramSetup(
                     }
                 }
                 2 -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Warm-up", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                        Switch(checked = warmup, onCheckedChange = { warmup = it })
-                    }
+                    val warmupOptions = listOf("none" to "None", "" to "Just a check") + warmups.map { it.id to it.name }
+                    Dropdown(
+                        label = "Warm-up",
+                        selected = warmupOptions.firstOrNull { it.first == warmup }?.second ?: "Just a check",
+                        options = warmupOptions,
+                        onSelect = { warmup = it },
+                    )
                     Text("Cardio", style = MaterialTheme.typography.titleSmall)
                     DayChips(value = cardioDays, onToggle = { d -> cardio = toggle(cardioDays, d) })
                     Text("Conditioning", style = MaterialTheme.typography.titleSmall)
@@ -726,7 +731,8 @@ private fun ProgramSetup(
                                 added = added.filter { it.poolExerciseId.isNotBlank() }.map {
                                     AddedLiftRequest(day = it.day, poolExerciseId = it.poolExerciseId, scheme = it.scheme.ifBlank { null })
                                 },
-                                warmup = warmup,
+                                warmup = warmup != "none",
+                                warmupRoutine = warmup.takeIf { it != "none" },
                                 cardioDays = cardioDays,
                                 conditioningDays = conditioning,
                             ),

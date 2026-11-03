@@ -315,6 +315,7 @@ fun WorkoutLogScreen(
                                     plan = w,
                                     onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
                                     onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
+                                    onChanged = { vm.load() },
                                 )
                             }
                             "CARDIO" -> CardioBlock(
