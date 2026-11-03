@@ -280,7 +280,11 @@ internal class OfflineInterceptor(
             // stored in the text queue without corruption, so they need a live
             // connection rather than being queued.
             val isMultipart = req.body?.contentType()?.type == "multipart"
-            val queueable = queue != null && !isMultipart &&
+            // A background call the app makes on its own (the Concept2 check on
+            // opening the day) is never queued: replayed later it is stale, and
+            // queued it showed "waiting to sync" when nothing was changed (v0.431).
+            val noQueue = req.header(NO_QUEUE_HEADER) != null || path.endsWith("/concept2/sync")
+            val queueable = queue != null && !isMultipart && !noQueue &&
                 !path.contains("/auth/") && !path.endsWith("/revoke")
             if (queueable) {
                 val bodyStr = req.body?.let { b ->
@@ -413,3 +417,6 @@ suspend fun <T> apiCall(block: suspend () -> Response<T>): T {
     }
     return response.bodyOrThrow()
 }
+
+/** A write with this header is never put on the offline queue. */
+const val NO_QUEUE_HEADER = "X-Kairos-No-Queue"

@@ -119,6 +119,14 @@ class MainActivity : ComponentActivity() {
         if (fresh) handleCalendarFile(intent)
     }
 
+    /** Back in the foreground: send anything still waiting to sync now rather
+     *  than at the next retry (v0.431). */
+    override fun onResume() {
+        super.onResume()
+        val container = (application as KairosApp).container
+        lifecycleScope.launch(Dispatchers.IO) { container.syncManager.safeReplay() }
+    }
+
     /** An .ics opened (VIEW) or shared (SEND) into the app: read it off the main
      *  thread — a mail app may still be fetching the attachment — then hand it
      *  to the Calendar screen, which waits for sign-in if need be. */

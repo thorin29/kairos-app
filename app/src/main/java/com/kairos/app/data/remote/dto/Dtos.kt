@@ -375,6 +375,11 @@ data class WorkoutPlanDto(
     val benchmark: BenchmarkDto? = null,
     /** Every conditioning result logged that day (server 0.619+). */
     val conditioningDone: List<PickDoneDto> = emptyList(),
+    /** What was logged that day outside its plans, so a past day shows what
+     *  was done (server 0.623+). */
+    val loggedOther: List<LoggedOtherDto> = emptyList(),
+    /** Anything at all logged that day (server 0.623+). */
+    val loggedAny: Boolean = false,
 )
 
 @Serializable
@@ -725,6 +730,8 @@ data class TargetSetDto(
     val plus: Boolean = false,
     /** A warm-up set before the main sets (server 0.621+). */
     val warmup: Boolean = false,
+    /** A supplemental set after them, BBB or FSL (server 0.623+). */
+    val supplemental: Boolean = false,
 )
 
 /** A person's running program, as the day page and Workouts page show it. */
@@ -2953,3 +2960,10 @@ data class SaveWarmupDto(val status: String = "", val id: String = "")
 
 @Serializable
 data class PlanWarmupRequest(val plannedWorkoutId: String, val warmup: String?)
+
+/** A session logged outside the day's plans: its name and each movement's sets in a few words. */
+@Serializable
+data class LoggedOtherDto(val name: String = "", val lines: List<LoggedLineDto> = emptyList())
+
+@Serializable
+data class LoggedLineDto(val name: String = "", val summary: String = "")

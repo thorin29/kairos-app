@@ -50,6 +50,16 @@ object StallWatchdog {
                 main.post { lastAck = SystemClock.uptimeMillis() }
                 Thread.sleep(PING_MS)
 
+                // This thread overslept: the whole process was paused (Android
+                // freezes a backgrounded app), so the UI thread wasn't stuck —
+                // it was idle with everything else. Those showed up as "stalls"
+                // of 10–15 minutes at nativePollOnce (v0.431). Start over.
+                if (SystemClock.uptimeMillis() - sent > PING_MS + STALL_MS) {
+                    lastAck = SystemClock.uptimeMillis()
+                    reported = false
+                    continue
+                }
+
                 val waited = SystemClock.uptimeMillis() - lastAck
                 if (waited >= STALL_MS) {
                     if (!reported) {

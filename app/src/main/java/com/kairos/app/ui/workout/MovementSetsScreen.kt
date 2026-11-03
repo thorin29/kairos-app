@@ -302,10 +302,29 @@ fun MovementSetsScreen(
                         }
                     }
 
+                    // Warm-up, main and supplemental sets each under their own
+                    // heading, numbered from 1 (v0.431).
+                    fun groupOf(r: SetRow): String = if (r.warmup) "warm" else if (r.supplemental) "supp" else "main"
+                    val grouped = ui.rows.any { it.warmup || it.supplemental }
+                    val supp = ui.rows.filter { it.supplemental }
+                    val suppLabel = if (supp.isNotEmpty()) "${supp.size} \u00d7 ${supp.first().hintR ?: ""}" else ""
                     ui.rows.forEachIndexed { i, r ->
+                        val grp = groupOf(r)
+                        if (grouped && (i == 0 || groupOf(ui.rows[i - 1]) != grp)) {
+                            Text(
+                                when (grp) {
+                                    "warm" -> "WARM-UP"
+                                    "supp" -> suppLabel
+                                    else -> "MAIN SETS"
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = if (i == 0) 0.dp else 10.dp),
+                            )
+                        }
                         SetCard(
-                            // Warm-up sets read "W"; the working sets count from 1 (v0.429).
-                            index = i + 1 - ui.rows.take(i).count { it.warmup },
+                            index = if (grouped) ui.rows.take(i).count { groupOf(it) == grp } + 1 else i + 1,
                             row = r,
                             vm = vm,
                             metric = metric,
@@ -469,12 +488,7 @@ private fun SetCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Column(Modifier.width(if (row.pct != null) 34.dp else 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        if (row.warmup) "W" else "$index",
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                        color = if (row.warmup) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    )
+                    Text("$index", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                     row.pct?.let { p ->
                         Text(
                             "${kotlin.math.round(p * 100).toInt()}%",

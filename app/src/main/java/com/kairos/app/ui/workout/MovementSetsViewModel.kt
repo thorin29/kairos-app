@@ -41,6 +41,8 @@ data class SetRow(
     val plus: Boolean = false,
     /** A warm-up set before the main sets (v0.429). */
     val warmup: Boolean = false,
+    /** A supplemental set after them, BBB or FSL (v0.431). */
+    val supplemental: Boolean = false,
 )
 
 data class MovementSetsUi(
@@ -297,6 +299,7 @@ class MovementSetsViewModel(
                     pct = t?.pct,
                     plus = t?.plus == true,
                     warmup = t?.warmup == true,
+                    supplemental = t?.supplemental == true,
                 )
             }
         }
@@ -311,6 +314,7 @@ class MovementSetsViewModel(
                     pct = t.pct,
                     plus = t.plus,
                     warmup = t.warmup,
+                    supplemental = t.supplemental,
                 )
             }
         }

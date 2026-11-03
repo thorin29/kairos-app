@@ -236,6 +236,12 @@ is what that rule exists to prevent.
   timer and `useSeconds` fills the set. `WorkoutLogScreen.kt` — + Conditioning
   (Pick one / Build one / Write your own) and the extras logged that day
   (`conditioningDone`). `BodyMap.kt` — the posterior-hip region shades Deadlift.
+- `data/remote/` offline writes — `OfflineInterceptor` (ApiClient.kt) queues a
+  write the server never saw onto `WriteQueue` (never `concept2/sync` or a
+  request with `X-Kairos-No-Queue`); `SyncManager` replays it on reconnect,
+  on the server coming back, every 15 s while something waits, and on every
+  app resume (`MainActivity.onResume`); `NetworkMonitor.isOnline()` is the
+  fresh read or the callback-tracked state.
 - `ui/workout/WarmupScreens.kt` — warm-up routines: the day's window with
   step timers, the chooser and editor, and the plan editor's line (web:
   `warmup-window.tsx`).

@@ -61,5 +61,9 @@ class NetworkMonitor(context: Context, scope: CoroutineScope) {
      *  each call, so a request made the instant the radio drops is decided on the
      *  current state (and fails fast) rather than a slightly-stale flow value. The
      *  reactive [online] flow drives the UI banner. */
-    fun isOnline(): Boolean = snapshot()
+    fun isOnline(): Boolean = snapshot() || online.value
+    // Either says online (v0.431): right after the app comes back from the
+    // background the system can report no active network for it for a moment
+    // while the callbacks still hold a connected one. Treating that moment as
+    // offline queued writes that then sat until the app was restarted.
 }

@@ -1,5 +1,30 @@
 # Decisions
 
+## 2026-11 — Grouped sets; past days; sync that doesn't stick (v0.431.0 / web 0.623.0)
+
+**Grouped sets and past days:** mirrors web 0.623.0 — `MovementSetsScreen`
+heads Warm-up / Main sets / "5 × 10" and numbers each from 1
+(`SetRow.supplemental`); `WorkoutLogScreen` lists `loggedOther` under
+"Logged", titles a day with nothing planned by what was logged, and drops
+"logging late" when `loggedAny`.
+
+**"Waiting to sync" that never cleared:**
+- Opening Workouts POSTs the Concept2 check. When the phone briefly reported
+  no network (right after the app returns from the background the system can
+  answer "no active network" for a moment), the write interceptor queued it,
+  so "1 change waiting to sync" appeared with nothing changed. `concept2/sync`
+  (and any request with `X-Kairos-No-Queue`) is never queued now.
+- `NetworkMonitor.isOnline()` is the fresh read OR the callback-tracked state,
+  so that moment no longer counts as offline.
+- The retry loop could die on an unexpected (non-IO) error and never run
+  again until restart; passes now go through `safeReplay`, the retry runs every
+  15 s while something waits, and the app replays on every resume.
+
+**Stall watchdog:** the "MAIN THREAD STALLED 600–1000 s at nativePollOnce"
+breadcrumbs were the app being frozen in the background (the watchdog thread
+slept through it too). When its own sleep overruns, it now starts over instead
+of reporting.
+
 ## 2026-11 — Warm-up routines; timer look (v0.430.0 / web 0.622.0)
 
 Mirrors web 0.622.0. `WarmupScreens.kt`: `WarmupWindow` (steps, a tick each,

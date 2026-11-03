@@ -72,12 +72,12 @@ class SyncManager(
         // 0. One pass at startup: the app may have been killed with writes still
         //    queued. Explicit and once, so the collectors below can be strictly
         //    edge-triggered rather than each firing on their current value.
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) { replayAll() }
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) { safeReplay() }
         // 1. Device connectivity returned (edge only: false -> true).
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             var wasOffline = false
             online.collect { up ->
-                if (up && wasOffline) replayAll()
+                if (up && wasOffline) safeReplay()
                 wasOffline = !up
             }
         }
@@ -89,7 +89,7 @@ class SyncManager(
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             var wasUnavailable = false
             ServerStatusTracker.unavailable.collect { unavailable ->
-                if (wasUnavailable && !unavailable) replayAll()
+                if (wasUnavailable && !unavailable) safeReplay()
                 wasUnavailable = unavailable
             }
         }
@@ -100,8 +100,21 @@ class SyncManager(
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             while (true) {
                 kotlinx.coroutines.delay(RETRY_INTERVAL_MS)
-                if (isOnline() && queue.snapshot().isNotEmpty()) replayAll()
+                if (isOnline() && runCatching { queue.snapshot() }.getOrDefault(emptyList()).isNotEmpty()) safeReplay()
             }
+        }
+    }
+
+    /** A pass that can't kill the loop that called it: an unexpected error
+     *  (not an IOException) used to end the retry loop for good, leaving the
+     *  queue waiting until the app restarted (v0.431). */
+    suspend fun safeReplay() {
+        try {
+            replayAll()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Replay pass failed: ${e.javaClass.simpleName}")
         }
     }
 
@@ -229,6 +242,6 @@ class SyncManager(
 
         /** How often to re-attempt a non-empty queue when nothing else has
          *  signalled recovery. */
-        const val RETRY_INTERVAL_MS = 60_000L
+        const val RETRY_INTERVAL_MS = 15_000L
     }
 }

@@ -1,4 +1,10 @@
 # Changelog
+## 0.431.0
+
+- A lift's sets are grouped: Warm-up, Main sets, then 5 × 10 or 5 × 5.
+- Past days show what you logged, even when your plan has changed since, and only say "logging late" when nothing was logged.
+- Opening Workouts no longer leaves "waiting to sync" behind, and anything waiting sends as soon as the app is opened.
+
 ## 0.430.0
 
 - Warm-ups can be a routine: steps with reps, or timed holds with a Start button. Tap the warm-up on the day to follow it, or just check it off.

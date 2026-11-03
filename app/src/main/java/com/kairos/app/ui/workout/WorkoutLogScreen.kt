@@ -202,7 +202,14 @@ fun WorkoutLogScreen(
                         DayHeader(
                             date = d,
                             today = today,
-                            title = ui.title.ifBlank { ui.planName ?: if (todayBlocks.isEmpty()) "Nothing planned" else "Workout" },
+                            title = ui.title.ifBlank {
+                                ui.planName ?: when {
+                                    todayBlocks.isNotEmpty() -> "Workout"
+                                    ui.loggedOther.isNotEmpty() -> ui.loggedOther.joinToString(" \u00b7 ") { it.name }
+                                    else -> "Nothing planned"
+                                }
+                            },
+                            logged = ui.loggedAny,
                             progress = dayProgress(todayBlocks).let { (d, t) ->
                                 // Warm-up and Cardio plans count like any block.
                                 (d + ui.simple.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
@@ -361,6 +368,36 @@ fun WorkoutLogScreen(
                     OutlinedButton(onClick = { addingConditioning = true }) {
                         Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
                         Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
+                    }
+
+                    // What was logged outside the day's plans (an older plan, a
+                    // one-off), so a past day shows what was done (v0.431).
+                    if (ui.loggedOther.isNotEmpty()) {
+                        Text(
+                            "LOGGED",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        ui.loggedOther.forEach { g ->
+                            OutlinedCard(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                        Text(g.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                                    }
+                                    g.lines.forEach { l ->
+                                        Text(
+                                            (if (l.name != g.name) "${l.name} \u00b7 " else "") + l.summary,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 22.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     if (ui.actionError != null) {
@@ -768,6 +805,8 @@ private fun DayHeader(
     strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
     programLine: String = "",
     light: Double? = null,
+    /** Something was logged that day: a past day isn't "logging late" (v0.431). */
+    logged: Boolean = false,
     onPickDate: () -> Unit,
     onPickDay: (String) -> Unit,
 ) {
@@ -788,9 +827,9 @@ private fun DayHeader(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    dayLine(date, today) + if (date < today) " \u00b7 logging late" else "",
+                    dayLine(date, today) + if (date < today && !logged) " \u00b7 logging late" else "",
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (date < today) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (date < today && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
