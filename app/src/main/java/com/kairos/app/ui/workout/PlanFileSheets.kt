@@ -76,14 +76,61 @@ internal fun PlanFileActions(vm: EditPlanViewModel, ui: EditPlanUiState) {
         vm.clearFile()
     }
 
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { show("plans") }) { Text("Household plans") }
-        OutlinedButton(onClick = { show("share") }) { Text("Share this plan") }
-        OutlinedButton(onClick = { show("export") }) { Text("Export") }
-        OutlinedButton(onClick = { show("import") }) { Text("Import") }
+    // One button at the foot of the plan (v0.432): save, share, export and
+    // import in a sheet. Opening a saved or household plan is with the programs.
+    OutlinedButton(onClick = { show("menu") }, modifier = Modifier.fillMaxWidth()) {
+        androidx.compose.material3.Icon(com.kairos.app.ui.nav.KairosIcons.Share, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+        Text("Save, share or export")
     }
 
     when (open) {
+        "menu" -> FileSheet(title = "This plan", onDismiss = close) {
+            listOf(
+                Triple("mine", com.kairos.app.ui.nav.KairosIcons.Bookmark, "Save to My plans"),
+                Triple("share", com.kairos.app.ui.nav.KairosIcons.Share, "Share with the household"),
+                Triple("export", com.kairos.app.ui.nav.KairosIcons.Download, "Export a file"),
+                Triple("import", com.kairos.app.ui.nav.KairosIcons.Upload, "Import a file"),
+            ).forEach { (key, icon, label) ->
+                val shape = RoundedCornerShape(12.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                        .clickable { show(key) }
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                ) {
+                    androidx.compose.material3.Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 12.dp),
+                    )
+                    Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+        "mine" -> FileSheet(title = "Save to My plans", onDismiss = close) {
+            var name by remember { mutableStateOf("") }
+            if (ui.fileMessage != null) {
+                FileStatus(ui = ui)
+            } else {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it.take(60) },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                FileStatus(ui = ui)
+                Button(
+                    onClick = { vm.savePlan(name.trim()) },
+                    enabled = !ui.fileBusy && name.trim().length >= 2,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Save") }
+            }
+        }
         "export" -> FileSheet(title = "Export", onDismiss = close) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { history = !history }) {
                 Checkbox(checked = history, onCheckedChange = { history = it })
@@ -112,7 +159,7 @@ internal fun PlanFileActions(vm: EditPlanViewModel, ui: EditPlanUiState) {
             }
             if (p != null) FileStatus(ui = ui)
         }
-        "share" -> FileSheet(title = "Share this plan", onDismiss = close) {
+        "share" -> FileSheet(title = "Share with the household", onDismiss = close) {
             var name by remember { mutableStateOf("") }
             if (ui.fileMessage != null) {
                 FileStatus(ui = ui)
@@ -129,7 +176,7 @@ internal fun PlanFileActions(vm: EditPlanViewModel, ui: EditPlanUiState) {
                     onClick = { vm.sharePlan(name.trim()) },
                     enabled = !ui.fileBusy && name.trim().length >= 2,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Send for approval") }
+                ) { Text("Share") }
             }
         }
         "plans" -> {

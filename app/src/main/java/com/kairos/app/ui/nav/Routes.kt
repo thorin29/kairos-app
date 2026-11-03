@@ -134,6 +134,10 @@ sealed interface Route {
     @Serializable
     data object Rotation : Route
 
+    /** Every warm-up, to look through, edit and create (v0.432). */
+    @Serializable
+    data object Warmups : Route
+
     /** A not-yet-built section, shown as a placeholder. `key` matches an entry
      *  in AppSections. Real sections graduate to their own route/screen. */
     @Serializable

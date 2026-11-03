@@ -222,6 +222,14 @@ fun WorkoutLogScreen(
                             onPickDay = { vm.setDate(it) },
                         )
                     }
+                    // Resting or skipping the whole day lives here, with the
+                    // day (v0.432; it was on the Workouts page).
+                    if (ui.date != null && !ui.loggedAny && !ui.rested && !ui.loading) {
+                        OutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
+                            Icon(KairosIcons.Moon, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("Rest / skip day", modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
 
                     ui.suggestion?.let { sg ->
                         SuggestionCard(

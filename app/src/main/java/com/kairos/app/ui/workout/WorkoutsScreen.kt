@@ -74,6 +74,8 @@ fun WorkoutsScreen(
     onOpenCalculator: () -> Unit,
     onOpenBrowse: () -> Unit,
     onOpenCreatePersonal: () -> Unit,
+    /** Warm-ups: look through, edit, create (v0.432). */
+    onOpenWarmups: () -> Unit = {},
     onOpenEditPlan: () -> Unit,
     onOpenPrograms: () -> Unit = {},
     /** Programs, straight to the list to change program (v0.427). */
@@ -273,10 +275,11 @@ fun WorkoutsScreen(
                             highlighted = true,
                             enabled = ui.date != null,
                         ) { ui.date?.let(onLogWorkout) }
+                        // Rest / skip moved to the day itself (v0.432).
                         ActionCard(
-                            KairosIcons.Moon, "Rest / skip", Modifier.weight(1f),
-                            enabled = !ui.saving,
-                        ) { vm.restDay() }
+                            KairosIcons.Flame, "Warm-ups", Modifier.weight(1f),
+                            subtitle = "Create / edit",
+                        ) { onOpenWarmups() }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -284,8 +287,8 @@ fun WorkoutsScreen(
                             KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
                         ) { onOpenBrowse() }
                         ActionCard(
-                            KairosIcons.Plus, "Create / Edit", Modifier.weight(1f),
-                            subtitle = "HIIT/CrossFit",
+                            KairosIcons.Plus, "HIIT / CrossFit", Modifier.weight(1f),
+                            subtitle = "Create / edit",
                         ) { onOpenCreatePersonal() }
                         ActionCard(
                             KairosIcons.Dumbbell, "Calculator", Modifier.weight(1f),

@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Companion exercises; Warm-ups screen; plan tools; rotation (v0.432.0 / web 0.624.0)
+
+Mirrors web 0.624.0. `ProgramsScreen`: Lifts in weekday order, "Companion
+exercises", "+ Add exercise", a library option shown "· new"
+(`ProgramOptionDto.add`), "Training max 120" with an ⓘ AlertDialog, and a
+Rotation card under Programs (`onOpenRotation` → `Route.Rotation`).
+`WarmupsScreen` (`Route.Warmups`) from the Workouts page's Warm-ups card,
+which replaces Rest / skip; "HIIT / CrossFit" with "Create / edit" under it.
+`WorkoutLogScreen`: "Rest / skip day" until something is logged or the day is
+rested (`rested`, server 0.624+). `EditPlanScreen`: no Rotation action; the
+plan's tools are one "Save, share or export" button at the foot opening a
+sheet (Save to My plans, Share with the household, Export, Import;
+`KairosIcons.Upload` added).
+
 ## 2026-11 — Grouped sets; past days; sync that doesn't stick (v0.431.0 / web 0.623.0)
 
 **Grouped sets and past days:** mirrors web 0.623.0 — `MovementSetsScreen`

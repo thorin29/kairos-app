@@ -380,6 +380,8 @@ data class WorkoutPlanDto(
     val loggedOther: List<LoggedOtherDto> = emptyList(),
     /** Anything at all logged that day (server 0.623+). */
     val loggedAny: Boolean = false,
+    /** Marked a rest day (server 0.624+). */
+    val rested: Boolean = false,
 )
 
 @Serializable
@@ -815,6 +817,9 @@ data class ProgramOptionDto(
     val best: Double? = null,
     /** Logs by time (a plank): the setup shows Time, not sets (server 0.621+). */
     val timed: Boolean = false,
+    /** A library movement not in the household's pool yet ("lib:<key>"),
+     *  added when the program starts (server 0.624+). */
+    val add: Boolean = false,
 )
 
 @Serializable

@@ -84,6 +84,7 @@ import com.kairos.app.ui.calendar.CalendarAddClassScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.CreatePersonalWorkoutScreen
 import com.kairos.app.ui.workout.EditPlanScreen
+import com.kairos.app.ui.workout.WarmupsScreen
 import com.kairos.app.ui.workout.RotationScreen
 import com.kairos.app.ui.workout.RecentWorkoutsScreen
 import com.kairos.app.ui.workout.WeightCalculatorScreen
@@ -497,6 +498,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenCalculator = { navController.navigate(Route.WeightCalculator()) },
                             onOpenBrowse = { navController.navigate(Route.BrowseWorkouts) },
                             onOpenCreatePersonal = { navController.navigate(Route.CreatePersonalWorkout) },
+                            onOpenWarmups = { navController.navigate(Route.Warmups) },
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
                             onOpenPrograms = { navController.navigate(Route.Programs) },
                             onChangeProgram = { navController.navigate(Route.ProgramsChange) },
@@ -579,6 +581,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             back()
                             navController.navigate(Route.EditPlan)
                         },
+                        onOpenRotation = { navController.navigate(Route.Rotation) },
                     )
                 }
                 composable<Route.ProgramsChange> {
@@ -596,7 +599,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             back()
                             navController.navigate(Route.EditPlan)
                         },
+                        onOpenRotation = { navController.navigate(Route.Rotation) },
                     )
+                }
+                composable<Route.Warmups> {
+                    WarmupsScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.RecentWorkouts> {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })

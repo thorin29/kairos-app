@@ -106,6 +106,8 @@ fun ProgramsScreen(
     onDone: () -> Unit,
     startPicking: Boolean = false,
     onEditPlan: () -> Unit = onDone,
+    /** A rotation is chosen with the programs, not in the plan editor (v0.432). */
+    onOpenRotation: (() -> Unit)? = null,
 ) {
     val container = rememberContainer()
     val session = container.sessionRepository
@@ -215,7 +217,21 @@ fun ProgramsScreen(
                     } else {
                         ChooserTabs(selected = tab, onSelect = { tab = it })
                         when (tab) {
-                            "programs" -> d.choices.forEach { c -> ProgramChoiceCard(c = c, onPick = { setupKey = c.key }) }
+                            "programs" -> {
+                                d.choices.forEach { c -> ProgramChoiceCard(c = c, onPick = { setupKey = c.key }) }
+                                onOpenRotation?.let { open ->
+                                    OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth()) {
+                                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text("Rotation", style = MaterialTheme.typography.titleMedium)
+                                            Text(
+                                                "A cycle of workouts that repeats every few days, whatever the weekday.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                             else -> PlanLibrary(mine = tab == "mine", onUsed = onDone)
                         }
                     }
@@ -534,6 +550,20 @@ private fun ProgramSetup(
     var cardio by remember(program.key) { mutableStateOf<List<Int>?>(null) }
     var conditioning by remember(program.key) { mutableStateOf(current.conditioningDays) }
     val maxText = remember(program.key) { mutableStateMapOf<String, String>() }
+    var tmHelp by remember { mutableStateOf(false) }
+    if (tmHelp) {
+        AlertDialog(
+            onDismissRequest = { tmHelp = false },
+            title = { Text("Training max") },
+            text = {
+                Text(
+                    "The program works from 90% of your max, its training max. Every set is a share of it (65%, 75%, 85%\u2026), " +
+                        "which keeps the weights ones you can lift well and leaves room to keep going up. Enter your best; the app does the rest.",
+                )
+            },
+            confirmButton = { TextButton(onClick = { tmHelp = false }) { Text("OK") } },
+        )
+    }
 
     val allOptions = remember(program.key) {
         program.days.flatMap { d -> d.roles.flatMap { it.options } }.distinctBy { it.id }.sortedBy { it.name.lowercase() }
@@ -586,7 +616,8 @@ private fun ProgramSetup(
                         DayChips(value = listOfNotNull(days.getOrNull(i)), onToggle = { w -> days[i] = w })
                     }
                 }
-                1 -> program.days.forEachIndexed { i, d ->
+                // In weekday order, whatever order the program lists its days (v0.432).
+                1 -> program.days.withIndex().sortedWith(compareBy<IndexedValue<com.kairos.app.data.remote.dto.ProgramDayDto>>({ days[it.index] }, { it.index })).forEach { (i, d) ->
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("${d.name} · ${WEEKDAYS[days[i]]}", style = MaterialTheme.typography.titleSmall)
@@ -618,7 +649,7 @@ private fun ProgramSetup(
                             val extras = added.filter { it.day == i }
                             if (companions.isNotEmpty() || extras.isNotEmpty()) {
                                 Text(
-                                    "Companion lifts",
+                                    "Companion exercises",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -627,7 +658,7 @@ private fun ProgramSetup(
                                 val k = "$i:${r.key}"
                                 CompanionRow(
                                     label = r.label,
-                                    options = r.options.map { it.id to it.name },
+                                    options = r.options.map { it.id to (if (it.add) "${it.name} \u00b7 new" else it.name) },
                                     timedIds = r.options.filter { it.timed }.map { it.id }.toSet(),
                                     value = picks[k] ?: "",
                                     scheme = schemes[k] ?: r.scheme,
@@ -638,7 +669,7 @@ private fun ProgramSetup(
                             }
                             extras.forEach { a ->
                                 CompanionRow(
-                                    label = "Added lift",
+                                    label = "Added exercise",
                                     options = allOptions.map { it.id to it.name },
                                     timedIds = allOptions.filter { it.timed }.map { it.id }.toSet(),
                                     value = a.poolExerciseId,
@@ -649,7 +680,7 @@ private fun ProgramSetup(
                                 )
                             }
                             Text(
-                                "+ Add a lift",
+                                "+ Add exercise",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
@@ -692,11 +723,22 @@ private fun ProgramSetup(
                             Column(horizontalAlignment = Alignment.End) {
                                 NumberField(value = maxFor(id), label = "$name max", onChange = { maxText[id] = it })
                                 tmOf(id)?.let {
-                                    Text(
-                                        "TM ${MovementSetsViewModel.fmt(it)}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable { tmHelp = true }.padding(top = 2.dp),
+                                    ) {
+                                        Text(
+                                            "Training max ${MovementSetsViewModel.fmt(it)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Icon(
+                                            KairosIcons.Info,
+                                            contentDescription = "What's a training max?",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 4.dp).size(14.dp),
+                                        )
+                                    }
                                 }
                             }
                         }

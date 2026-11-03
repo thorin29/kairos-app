@@ -530,3 +530,100 @@ internal fun WarmupPlanLine(plannedWorkoutId: String, warmup: String?, onChanged
         )
     }
 }
+
+/**
+ * Every warm-up, to look through and edit (the Workouts page's Warm-ups;
+ * web: WarmupLibrary): yours and the ready-made ones, each opening to its
+ * steps with Edit (a ready-made one saves your own copy), and New.
+ */
+@Composable
+fun WarmupsScreen(onBack: () -> Unit) {
+    val session = rememberContainer().sessionRepository
+    val scope = rememberCoroutineScope()
+    var routines by remember { mutableStateOf<List<WarmupRoutineDto>?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var viewing by remember { mutableStateOf<WarmupRoutineDto?>(null) }
+    var editing by remember { mutableStateOf<WarmupRoutineDto?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    fun load() {
+        scope.launch {
+            try {
+                routines = session.warmupRoutines()
+                error = null
+            } catch (e: ApiException) {
+                error = e.error.message
+            }
+        }
+    }
+    LaunchedEffect(Unit) { load() }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(KairosIcons.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                }
+                Text("Warm-ups", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            }
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text("New warm-up", modifier = Modifier.padding(start = 6.dp))
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                val list = routines
+                if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
+                listOf("YOURS" to list.orEmpty().filter { it.mine }, "READY-MADE" to list.orEmpty().filter { !it.mine })
+                    .filter { it.second.isNotEmpty() }
+                    .forEach { (title, rs) ->
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        rs.forEach { r ->
+                            RoutineRow(
+                                name = r.name,
+                                sub = r.steps.joinToString(" · ") { it.name },
+                                selected = false,
+                                onPick = { viewing = r },
+                                onEdit = null,
+                            )
+                        }
+                    }
+            }
+        }
+    }
+    viewing?.let { r ->
+        FullScreen(title = r.name, onClose = { viewing = null }) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+                WarmupSteps(steps = r.steps)
+            }
+            HorizontalDivider()
+            OutlinedButton(
+                onClick = { editing = r },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            ) { Text(if (r.mine) "Edit" else "Edit a copy") }
+        }
+    }
+    if (editing != null || creating) {
+        RoutineEditor(
+            routine = editing,
+            onClose = { editing = null; creating = false },
+            onSaved = {
+                editing = null
+                creating = false
+                viewing = null
+                load()
+            },
+        )
+    }
+}

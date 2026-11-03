@@ -1,4 +1,11 @@
 # Changelog
+## 0.432.0
+
+- Program setup offers companion exercises of the right kind, never your main lifts, plus ones from the library you can add. Days are listed in weekday order.
+- Warm-ups has its own place on the Workouts page: look through, edit and create them.
+- Rest / skip is on the day you're logging.
+- Rotation is with the programs; save, share, export and import are one button at the foot of the plan.
+
 ## 0.431.0
 
 - A lift's sets are grouped: Warm-up, Main sets, then 5 × 10 or 5 × 5.

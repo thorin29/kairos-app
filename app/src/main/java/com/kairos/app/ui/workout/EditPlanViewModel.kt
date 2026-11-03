@@ -178,8 +178,15 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
     }
 
     fun sharePlan(name: String) = fileAct {
-        session.sharePlan(name)
-        _ui.update { it.copy(fileMessage = "Sent for approval.") }
+        val r = session.sharePlan(name)
+        // A parent's plan is shared at once (server 0.624+).
+        _ui.update { it.copy(fileMessage = if (r.status == "shared") "Shared with the household." else "Sent to a parent to approve.") }
+    }
+
+    /** Save the current plan to My plans (server 0.620+). */
+    fun savePlan(name: String) = fileAct {
+        session.savePlan(name)
+        _ui.update { it.copy(fileMessage = "Saved to My plans.") }
     }
 
     fun withdrawSharedPlan(id: String) = fileAct {

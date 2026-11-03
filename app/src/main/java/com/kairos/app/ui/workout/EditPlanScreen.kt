@@ -75,9 +75,6 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    TextButton(onClick = onOpenRotation) { Text("Rotation") }
-                },
             )
         },
     ) { inner ->
@@ -149,9 +146,6 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             }
                         }
                     }
-                    item(key = "plan-file") {
-                        PlanFileActions(vm = vm, ui = ui)
-                    }
                     ui.orders?.let { orders ->
                         item(key = "order") {
                             EveryDayOrder(order = orders.everyDay, onSave = { vm.saveOrder(day = null, order = it) })
@@ -173,6 +167,12 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             onAdd = { addingDay = d.day },
                             onWarmupChanged = { vm.reload() },
                         )
+                    }
+                    // Save, share, export and import at the foot of the plan
+                    // (v0.432); opening a saved or household plan is with the
+                    // programs.
+                    item(key = "plan-file") {
+                        PlanFileActions(vm = vm, ui = ui)
                     }
                 }
             }
