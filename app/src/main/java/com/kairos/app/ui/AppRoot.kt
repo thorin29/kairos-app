@@ -572,7 +572,14 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         }
                         navController.popBackStack()
                     }
-                    ProgramsScreen(onBack = back, onDone = back)
+                    ProgramsScreen(
+                        onBack = back,
+                        onDone = back,
+                        onEditPlan = {
+                            back()
+                            navController.navigate(Route.EditPlan)
+                        },
+                    )
                 }
                 composable<Route.ProgramsChange> {
                     val back: () -> Unit = {
@@ -581,7 +588,15 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         }
                         navController.popBackStack()
                     }
-                    ProgramsScreen(onBack = back, onDone = back, startPicking = true)
+                    ProgramsScreen(
+                        onBack = back,
+                        onDone = back,
+                        startPicking = true,
+                        onEditPlan = {
+                            back()
+                            navController.navigate(Route.EditPlan)
+                        },
+                    )
                 }
                 composable<Route.RecentWorkouts> {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })

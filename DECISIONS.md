@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-11 — Program setup steps; My plans; end of cycle; + sets (v0.428.0 / web 0.620.0)
+
+Mirrors web 0.620.0 (see its DECISIONS for the programs). `ProgramsScreen`:
+the chooser has Programs / My plans / Household tabs (`PlanLibrary`: list,
+preview in an AlertDialog with Replace / Add, and for My plans Save, Rename
+and Delete); a program is set up in four steps (Days, Lifts, Extras, Training
+maxes) with Back / Next pinned at the bottom; pickers are `Dropdown` (the
+full-screen `OptionPickerOverlay`). Starting navigates to Edit plan. The
+end-of-cycle AlertDialog opens on its own when the cycle is done: a raise per
+lift (from `TrainingMaxDto.step`), Next cycle, Repeat, Switch program. A
+target set's `plus` shows the reps hint as "5+". New calls:
+`workouts/plan/saved` (GET, POST), `saved/rename`, `saved/delete`;
+`StartProgramRequest` and `NextBlockRequest` gain optional fields (omitted
+when null, so an older server ignores them).
+
 ## 2026-11 — Deadlift group; 5/3/1 logger; timer; + Conditioning (v0.427.0 / web 0.619.0)
 
 Mirrors web 0.619.0. Deadlift is a muscle group (colour 0xFF9C6B3C); the body

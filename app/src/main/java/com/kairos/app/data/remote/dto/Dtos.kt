@@ -719,6 +719,8 @@ data class TargetSetDto(
     val top: Boolean = false,
     /** A 5/3/1 set's share of the training max, shown under the set number (server 0.619+). */
     val pct: Double? = null,
+    /** A 5/3/1 "+" set: as many good reps as you can (server 0.620+). */
+    val plus: Boolean = false,
 )
 
 /** A person's running program, as the day page and Workouts page show it. */
@@ -740,6 +742,8 @@ data class TrainingMaxDto(
     val poolExerciseId: String = "",
     val name: String = "",
     val weight: Double = 0.0,
+    /** The end-of-cycle raise it starts at: 10 lower body, 5 upper (server 0.620+). */
+    val step: Double = 5.0,
 )
 
 /** GET workouts/programs. */
@@ -748,6 +752,15 @@ data class ProgramsDto(
     val choices: List<ProgramChoiceDto> = emptyList(),
     val active: ProgramInfoDto? = null,
     val invite: Boolean = false,
+    /** What the plan has now, for the setup's Extras step (server 0.620+). */
+    val current: CurrentExtrasDto = CurrentExtrasDto(),
+)
+
+@Serializable
+data class CurrentExtrasDto(
+    val warmup: Boolean = false,
+    val cardioDays: List<Int> = emptyList(),
+    val conditioningDays: List<Int> = emptyList(),
 )
 
 @Serializable
@@ -794,13 +807,28 @@ data class StartProgramRequest(
     /** "<day index>:<slot>" to a pool movement id, or null to leave it out. */
     val picks: Map<String, String?>,
     val tops: Map<String, Double>,
+    /** Server 0.620+: training maxes as set, a companion lift's own sets,
+     *  lifts added to a day, and the extras. */
+    val maxes: Map<String, Double>? = null,
+    val schemes: Map<String, String>? = null,
+    val added: List<AddedLiftRequest>? = null,
+    val warmup: Boolean? = null,
+    val cardioDays: List<Int>? = null,
+    val conditioningDays: List<Int>? = null,
 )
+
+@Serializable
+data class AddedLiftRequest(val day: Int, val poolExerciseId: String, val scheme: String?)
 
 @Serializable
 data class EndProgramRequest(val restore: Boolean)
 
 @Serializable
-data class NextBlockRequest(val raise: Boolean)
+data class NextBlockRequest(
+    val raise: Boolean,
+    /** Each lift's raise, 0 holding it (server 0.620+). */
+    val raises: Map<String, Double>? = null,
+)
 
 @Serializable
 data class TrainingMaxRequest(val poolExerciseId: String, val weight: Double)
@@ -2865,3 +2893,18 @@ data class UseSharedPlanRequest(val id: String, val preview: Boolean? = null, va
 
 @Serializable
 data class SharedPlanIdRequest(val id: String)
+
+/** My plans: a saved plan, only the person's own (server 0.620+). */
+@Serializable
+data class SavedPlanDto(
+    val id: String = "",
+    val name: String = "",
+    val summary: String = "",
+    val savedOn: String = "",
+)
+
+@Serializable
+data class SavedPlansDto(val plans: List<SavedPlanDto> = emptyList())
+
+@Serializable
+data class RenamePlanRequest(val id: String, val name: String)

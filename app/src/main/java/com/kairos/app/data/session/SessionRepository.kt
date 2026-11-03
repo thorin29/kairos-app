@@ -600,8 +600,8 @@ class SessionRepository(
     suspend fun endProgram(restore: Boolean): WorkoutAckDto =
         runAuthed { requireService().endProgram(com.kairos.app.data.remote.dto.EndProgramRequest(restore = restore)) }
 
-    suspend fun nextProgramBlock(raise: Boolean): WorkoutAckDto =
-        runAuthed { requireService().nextBlock(com.kairos.app.data.remote.dto.NextBlockRequest(raise = raise)) }
+    suspend fun nextProgramBlock(raise: Boolean, raises: Map<String, Double>? = null): WorkoutAckDto =
+        runAuthed { requireService().nextBlock(com.kairos.app.data.remote.dto.NextBlockRequest(raise = raise, raises = raises)) }
 
     suspend fun setTrainingMax(poolExerciseId: String, weight: Double): WorkoutAckDto =
         runAuthed {
@@ -677,6 +677,19 @@ class SessionRepository(
 
     suspend fun useSharedPlan(id: String, mode: String): com.kairos.app.data.remote.dto.ImportAddedDto? =
         runAuthed { requireService().useSharedPlan(com.kairos.app.data.remote.dto.UseSharedPlanRequest(id = id, mode = mode)) }.added
+
+    /** My plans (server 0.620+). */
+    suspend fun savedPlans(): List<com.kairos.app.data.remote.dto.SavedPlanDto> =
+        runAuthed { requireService().savedPlans() }.plans
+
+    suspend fun savePlan(name: String): WorkoutAckDto =
+        runAuthed { requireService().savePlan(com.kairos.app.data.remote.dto.SharePlanRequest(name = name)) }
+
+    suspend fun renameSavedPlan(id: String, name: String): WorkoutAckDto =
+        runAuthed { requireService().renameSavedPlan(com.kairos.app.data.remote.dto.RenamePlanRequest(id = id, name = name)) }
+
+    suspend fun deleteSavedPlan(id: String): WorkoutAckDto =
+        runAuthed { requireService().deleteSavedPlan(com.kairos.app.data.remote.dto.SharedPlanIdRequest(id = id)) }
 
     suspend fun withdrawSharedPlan(id: String): WorkoutAckDto =
         runAuthed { requireService().withdrawSharedPlan(com.kairos.app.data.remote.dto.SharedPlanIdRequest(id = id)) }
@@ -1221,6 +1234,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 492
+        const val CLIENT_BUILD = 493
     }
 }

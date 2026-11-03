@@ -37,6 +37,8 @@ data class SetRow(
     val top: Boolean = false,
     /** A 5/3/1 set's share of the training max (v0.427). */
     val pct: Double? = null,
+    /** A 5/3/1 "+" set: as many good reps as you can (v0.428). */
+    val plus: Boolean = false,
 )
 
 data class MovementSetsUi(
@@ -291,6 +293,7 @@ class MovementSetsViewModel(
                     added = i >= maxOf(last.size, target.size),
                     top = t?.top ?: false,
                     pct = t?.pct,
+                    plus = t?.plus == true,
                 )
             }
         }
@@ -303,6 +306,7 @@ class MovementSetsViewModel(
                     hintS = last.getOrNull(i)?.seconds,
                     top = t.top,
                     pct = t.pct,
+                    plus = t.plus,
                 )
             }
         }

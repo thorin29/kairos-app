@@ -1,4 +1,13 @@
 # Changelog
+## 0.428.0
+
+- New programs: 5/3/1, Boring But Big, 5/3/1 for Beginners and Wave loading. Strength waves is now 5/3/1.
+- 5/3/1 top sets are + sets: do as many good reps as you can.
+- Starting a program goes step by step: days (two on one day is fine), lifts, warm-up, cardio and conditioning, then training maxes.
+- Companion lifts can be swapped, removed or added, each with its own sets.
+- My plans: save your plan and open it again later. Starting a program saves the plan it replaces.
+- At the end of a cycle, choose how much each lift goes up, repeat, or switch program.
+
 ## 0.427.0
 
 - Deadlifts have their own group, Deadlift, on the plan, the charts and the body map.

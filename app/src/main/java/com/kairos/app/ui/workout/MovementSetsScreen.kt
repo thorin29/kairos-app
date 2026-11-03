@@ -493,7 +493,7 @@ private fun SetCard(
                         UnitText("×")
                         SetField(
                             value = row.r,
-                            hint = row.hintR?.toString() ?: "rep",
+                            hint = row.hintR?.let { "$it${if (row.plus) "+" else ""}" } ?: "rep",
                             label = "Reps, set $index",
                             decimal = false,
                             enabled = enabled,

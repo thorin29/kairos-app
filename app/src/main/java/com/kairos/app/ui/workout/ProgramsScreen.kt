@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,12 +31,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,10 +47,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.ApiException
+import com.kairos.app.data.remote.dto.AddedLiftRequest
+import com.kairos.app.data.remote.dto.CurrentExtrasDto
+import com.kairos.app.data.remote.dto.ImportPreviewDto
 import com.kairos.app.data.remote.dto.ProgramChoiceDto
 import com.kairos.app.data.remote.dto.ProgramInfoDto
 import com.kairos.app.data.remote.dto.ProgramsDto
@@ -56,18 +64,50 @@ import com.kairos.app.data.remote.dto.StartProgramRequest
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private val WEEKDAYS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+private val SETUP_STEPS = listOf("Days", "Lifts", "Extras", "Training maxes")
+
+/** A companion lift's set choices (the web's SCHEME_CHOICES without the wave). */
+private val COMPANION_SCHEMES = listOf(
+    "" to "Any sets",
+    "same:3x5" to "3 × 5",
+    "same:5x5" to "5 × 5",
+    "range:3x8-12" to "3 × 8–12",
+    "range:3x10-15" to "3 × 10–15",
+)
+
+/** "same:5x15" → "5 × 15", "range:5x10-20" → "5 × 10–20". */
+private fun schemeText(key: String): String {
+    Regex("^same:(\\d+)x(\\d+)$").find(key)?.let { return "${it.groupValues[1]} × ${it.groupValues[2]}" }
+    Regex("^range:(\\d+)x(\\d+)-(\\d+)$").find(key)?.let {
+        return "${it.groupValues[1]} × ${it.groupValues[2]}–${it.groupValues[3]}"
+    }
+    return if (key.isBlank()) "Any sets" else key
+}
+
+/** A main lift's tag: 5/3/1, or Waves for wave loading. */
+private fun mainTag(programKey: String): String = when {
+    programKey.startsWith("wendler") -> "5/3/1"
+    programKey == "wave-loading" -> "Waves"
+    else -> "Main"
+}
 
 /**
- * Programs: the running one (its week, training maxes, the end-of-block
- * choice, Change and End), or the list to start one. Starting asks which days,
- * a movement for each slot and, for main lifts, a recent top weight; it then
- * writes the person's weekly plan (same as the web, server 0.611).
+ * Programs: the running one (its week, training maxes, Change and End, and
+ * the end-of-cycle window), or choosing one: Kairos programs, My plans or the
+ * household's plans (server 0.620). A program is set up a step at a time —
+ * days, lifts, extras, training maxes — and starting it opens the plan editor.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean = false) {
+fun ProgramsScreen(
+    onBack: () -> Unit,
+    onDone: () -> Unit,
+    startPicking: Boolean = false,
+    onEditPlan: () -> Unit = onDone,
+) {
     val container = rememberContainer()
     val session = container.sessionRepository
     val scope = rememberCoroutineScope()
@@ -75,13 +115,17 @@ fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var picking by remember { mutableStateOf(startPicking) }
+    var tab by remember { mutableStateOf("programs") }
     var setupKey by remember { mutableStateOf<String?>(null) }
     var ending by remember { mutableStateOf(false) }
+    var cycleOpen by remember { mutableStateOf(false) }
 
     fun reload() {
         scope.launch {
             try {
-                data = session.loadPrograms()
+                val d = session.loadPrograms()
+                data = d
+                cycleOpen = d.active?.blockDone == true
                 error = null
             } catch (e: ApiException) {
                 error = e.error.message
@@ -110,9 +154,17 @@ fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(setup?.name ?: "Programs") },
+                title = { Text(setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs") },
                 navigationIcon = {
-                    IconButton(onClick = { if (setup != null) setupKey = null else onBack() }) {
+                    IconButton(
+                        onClick = {
+                            when {
+                                setup != null -> setupKey = null
+                                picking && data?.active != null && !startPicking -> picking = false
+                                else -> onBack()
+                            }
+                        },
+                    ) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -132,12 +184,14 @@ fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean
                 )
                 setup != null -> ProgramSetup(
                     program = setup,
+                    current = d.current,
                     busy = busy,
+                    error = error,
                     onStart = { req ->
-                        act({ session.startProgram(req) }) {
+                        act(block = { session.startProgram(req) }) {
                             setupKey = null
                             picking = false
-                            onDone()
+                            onEditPlan()
                         }
                     },
                 )
@@ -152,20 +206,16 @@ fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean
                     if (a != null && !picking) {
                         ActiveProgramCard(
                             info = a,
-                            busy = busy,
-                            onRaise = { act({ session.nextProgramBlock(raise = true) }) },
-                            onRepeat = { act({ session.nextProgramBlock(raise = false) }) },
-                            onSaveMax = { id, w -> act({ session.setTrainingMax(id, w) }) },
+                            onCycle = { cycleOpen = true },
+                            onSaveMax = { id, w -> act(block = { session.setTrainingMax(id, w) }) },
                             onChange = { picking = true },
                             onEnd = { ending = true },
                         )
                     } else {
-                        if (a != null) {
-                            Text("Change program", style = MaterialTheme.typography.titleMedium)
-                        }
-                        d.choices.forEach { c -> ProgramChoiceCard(c) { setupKey = c.key } }
-                        if (a != null) {
-                            TextButton(onClick = { picking = false }) { Text("Cancel") }
+                        ChooserTabs(selected = tab, onSelect = { tab = it })
+                        when (tab) {
+                            "programs" -> d.choices.forEach { c -> ProgramChoiceCard(c = c, onPick = { setupKey = c.key }) }
+                            else -> PlanLibrary(mine = tab == "mine", onUsed = onDone)
                         }
                     }
                     error?.let {
@@ -181,25 +231,72 @@ fun ProgramsScreen(onBack: () -> Unit, onDone: () -> Unit, startPicking: Boolean
             onDismissRequest = { ending = false },
             title = { Text("End ${data?.active?.name ?: "program"}?") },
             confirmButton = {
-                TextButton(onClick = { ending = false; act({ session.endProgram(restore = true) }) { onDone() } }) {
+                TextButton(onClick = { ending = false; act(block = { session.endProgram(restore = true) }) { onDone() } }) {
                     Text("Go back to my old plan")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { ending = false; act({ session.endProgram(restore = false) }) { onDone() } }) {
+                TextButton(onClick = { ending = false; act(block = { session.endProgram(restore = false) }) { onDone() } }) {
                     Text("Keep this plan")
                 }
+            },
+        )
+    }
+
+    val active = data?.active
+    if (cycleOpen && active != null && active.blockDone) {
+        CycleEndDialog(
+            info = active,
+            busy = busy,
+            onClose = { cycleOpen = false },
+            onNext = { raises ->
+                cycleOpen = false
+                act(block = { session.nextProgramBlock(raise = false, raises = raises) })
+            },
+            onSwitch = {
+                cycleOpen = false
+                picking = true
             },
         )
     }
 }
 
 @Composable
+private fun ChooserTabs(selected: String, onSelect: (String) -> Unit) {
+    val tabs = listOf("programs" to "Programs", "mine" to "My plans", "household" to "Household")
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        tabs.forEach { (key, label) ->
+            val on = key == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (on) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onSelect(key) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ActiveProgramCard(
     info: ProgramInfoDto,
-    busy: Boolean,
-    onRaise: () -> Unit,
-    onRepeat: () -> Unit,
+    onCycle: () -> Unit,
     onSaveMax: (String, Double) -> Unit,
     onChange: () -> Unit,
     onEnd: () -> Unit,
@@ -211,20 +308,7 @@ private fun ActiveProgramCard(
                 Text(info.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (info.blockDone) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("Block done. What's next?", style = MaterialTheme.typography.titleSmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProgramPill("Raise my maxes", filled = true, enabled = !busy, onClick = onRaise)
-                        ProgramPill("Repeat", enabled = !busy, onClick = onRepeat)
-                    }
-                }
+                ProgramPill(label = "Cycle done · what's next?", filled = true, onClick = onCycle)
             }
             if (info.maxes.isNotEmpty()) {
                 Text(
@@ -235,7 +319,7 @@ private fun ActiveProgramCard(
                 )
                 info.maxes.forEachIndexed { i, m ->
                     if (i > 0) HorizontalDivider()
-                    MaxRow(name = m.name, weight = m.weight) { onSaveMax(m.poolExerciseId, it) }
+                    MaxRow(name = m.name, weight = m.weight, onSave = { onSaveMax(m.poolExerciseId, it) })
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -263,13 +347,7 @@ private fun MaxRow(name: String, weight: Double, onSave: (Double) -> Unit) {
     val changed = n != null && n > 0 && n != weight
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        OutlinedTextField(
-            value = v,
-            onValueChange = { v = it.filter { c -> c.isDigit() || c == '.' }.take(6) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.width(88.dp),
-        )
+        NumberField(value = v, label = "$name training max", onChange = { v = it })
         if (changed) {
             Text(
                 "Save",
@@ -282,13 +360,78 @@ private fun MaxRow(name: String, weight: Double, onSave: (Double) -> Unit) {
 }
 
 @Composable
+private fun NumberField(value: String, label: String, onChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { onChange(it.filter { c -> c.isDigit() || c == '.' }.take(6)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.width(88.dp).semantics { contentDescription = label },
+    )
+}
+
+/** End of a cycle: each lift's raise (+5 upper, +10 lower to start; 0 holds
+ *  it), Next cycle, Repeat, or Switch program. */
+@Composable
+private fun CycleEndDialog(
+    info: ProgramInfoDto,
+    busy: Boolean,
+    onClose: () -> Unit,
+    onNext: (Map<String, Double>) -> Unit,
+    onSwitch: () -> Unit,
+) {
+    val by = remember(info) {
+        mutableStateMapOf<String, String>().apply { info.maxes.forEach { put(it.poolExerciseId, MovementSetsViewModel.fmt(it.step)) } }
+    }
+    fun amount(id: String): Double = by[id]?.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Cycle done") },
+        text = {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                info.maxes.forEach { m ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text(m.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${MovementSetsViewModel.fmt(m.weight)} → ${MovementSetsViewModel.fmt(m.weight + amount(m.poolExerciseId))}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text("+", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        NumberField(value = by[m.poolExerciseId] ?: "", label = "Raise ${m.name} by", onChange = { by[m.poolExerciseId] = it })
+                    }
+                }
+                TextButton(onClick = onSwitch) { Text("Switch program") }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !busy,
+                onClick = { onNext(info.maxes.associate { it.poolExerciseId to amount(it.poolExerciseId) }) },
+            ) { Text("Next cycle") }
+        },
+        dismissButton = {
+            TextButton(
+                enabled = !busy,
+                onClick = { onNext(info.maxes.associate { it.poolExerciseId to 0.0 }) },
+            ) { Text("Repeat") }
+        },
+    )
+}
+
+@Composable
 private fun ProgramChoiceCard(c: ProgramChoiceDto, onPick: () -> Unit) {
     OutlinedCard(onClick = onPick, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(c.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Text(
-                    "${c.days.size} days \u00b7 ${c.weeks} wk",
+                    "${c.days.size} days · ${c.weeks} wk",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -300,10 +443,16 @@ private fun ProgramChoiceCard(c: ProgramChoiceDto, onPick: () -> Unit) {
 
 /** Filled (the main choice) or outlined pill, like the set logger's. */
 @Composable
-internal fun ProgramPill(label: String, filled: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun ProgramPill(
+    label: String,
+    filled: Boolean = false,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(50)
     Box(
-        Modifier
+        modifier
             .heightIn(min = 40.dp)
             .clip(shape)
             .background(if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
@@ -320,124 +469,470 @@ internal fun ProgramPill(label: String, filled: Boolean = false, enabled: Boolea
     }
 }
 
-/** Days, a movement per slot, and recent top weights for the main lifts. */
+/** A row of the seven weekdays; `value` holds the ones on. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ProgramSetup(program: ProgramChoiceDto, busy: Boolean, onStart: (StartProgramRequest) -> Unit) {
-    var days by remember(program.key) { mutableStateOf(program.defaultDays.sorted()) }
+private fun DayChips(value: List<Int>, onToggle: (Int) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        WEEKDAYS.forEachIndexed { d, label ->
+            val on = d in value
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                    .border(1.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
+                    .clickable { onToggle(d) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
+private fun MutableList<AddedLift>.update(n: Int, change: (AddedLift) -> AddedLift) {
+    val i = indexOfFirst { it.n == n }
+    if (i >= 0) this[i] = change(this[i])
+}
+
+private data class AddedLift(val n: Int, val day: Int, val poolExerciseId: String = "", val scheme: String = "range:3x8-12")
+
+/**
+ * Setting a program up, a step at a time (the web's ProgramSetup): a weekday
+ * for each program day (two may share one); the lifts — main lifts, then
+ * companion lifts with their own sets, swapped, removed or added to; extras
+ * (warm-up, cardio and conditioning days, starting from the plan you have);
+ * and training maxes (90% of the heaviest you've logged, editable).
+ */
+@Composable
+private fun ProgramSetup(
+    program: ProgramChoiceDto,
+    current: CurrentExtrasDto,
+    busy: Boolean,
+    error: String?,
+    onStart: (StartProgramRequest) -> Unit,
+) {
+    var step by remember(program.key) { mutableStateOf(0) }
+    val days = remember(program.key) { mutableStateListOf<Int>().apply { addAll(program.defaultDays) } }
     val picks = remember(program.key) {
         mutableStateMapOf<String, String?>().apply {
             program.days.forEachIndexed { i, d -> d.roles.forEach { r -> put("$i:${r.key}", r.defaultId) } }
         }
     }
-    val tops = remember(program.key) { mutableStateMapOf<String, String>() }
-    val ready = days.size == program.days.size
+    val removed = remember(program.key) { mutableStateListOf<String>() }
+    val schemes = remember(program.key) { mutableStateMapOf<String, String>() }
+    val added = remember(program.key) { mutableStateListOf<AddedLift>() }
+    var warmup by remember(program.key) { mutableStateOf(true) }
+    var cardio by remember(program.key) { mutableStateOf<List<Int>?>(null) }
+    var conditioning by remember(program.key) { mutableStateOf(current.conditioningDays) }
+    val maxText = remember(program.key) { mutableStateMapOf<String, String>() }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text(program.blurb, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val allOptions = remember(program.key) {
+        program.days.flatMap { d -> d.roles.flatMap { it.options } }.distinctBy { it.id }.sortedBy { it.name.lowercase() }
+    }
+    val bestOf = remember(program.key) { allOptions.mapNotNull { o -> o.best?.let { o.id to it } }.toMap() }
+    val rowDays = program.days.mapIndexedNotNull { i, d -> if (d.row) days.getOrNull(i) else null }
+    val cardioDays = cardio ?: (current.cardioDays + rowDays).distinct().sorted()
+    val mains = program.days.flatMapIndexed { i, d ->
+        d.roles.filter { it.main && "$i:${it.key}" !in removed }.mapNotNull { r ->
+            val id = picks["$i:${r.key}"] ?: return@mapNotNull null
+            r.options.firstOrNull { it.id == id }?.let { id to it.name }
+        }
+    }.distinctBy { it.first }
+    fun maxFor(id: String): String =
+        maxText[id] ?: bestOf[id]?.let { MovementSetsViewModel.fmt(((it * 0.9) / 5.0).roundToInt() * 5.0) } ?: ""
+    fun toggle(list: List<Int>, d: Int): List<Int> = if (d in list) list - d else (list + d).sorted()
 
-        Text("Pick ${program.days.size} days", style = MaterialTheme.typography.titleSmall)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            WEEKDAYS.forEachIndexed { d, label ->
-                val on = d in days
-                Box(
-                    Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
-                        .border(1.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
-                        .clickable { days = if (on) days - d else (days + d).sorted() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                SETUP_STEPS.forEachIndexed { i, _ ->
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (i <= step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
                     )
                 }
             }
+            Text(
+                SETUP_STEPS[step].uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            when (step) {
+                0 -> {
+                    Text(program.blurb, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    program.days.forEachIndexed { i, d ->
+                        Text(d.name, style = MaterialTheme.typography.titleSmall)
+                        DayChips(value = listOfNotNull(days.getOrNull(i)), onToggle = { w -> days[i] = w })
+                    }
+                }
+                1 -> program.days.forEachIndexed { i, d ->
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("${d.name} · ${WEEKDAYS[days[i]]}", style = MaterialTheme.typography.titleSmall)
+                            val roles = d.roles.filter { "$i:${it.key}" !in removed }
+                            roles.filter { it.main }.forEach { r ->
+                                val k = "$i:${r.key}"
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        mainTag(program.key),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(50))
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    )
+                                    Box(Modifier.weight(1f)) {
+                                        Dropdown(
+                                            label = "",
+                                            title = r.label,
+                                            selected = r.options.firstOrNull { it.id == picks[k] }?.name ?: "${r.label}: choose",
+                                            options = r.options.map { it.id to it.name },
+                                            onSelect = { picks[k] = it.ifBlank { null } },
+                                        )
+                                    }
+                                }
+                            }
+                            val companions = roles.filter { !it.main }
+                            val extras = added.filter { it.day == i }
+                            if (companions.isNotEmpty() || extras.isNotEmpty()) {
+                                Text(
+                                    "Companion lifts",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            companions.forEach { r ->
+                                val k = "$i:${r.key}"
+                                CompanionRow(
+                                    label = r.label,
+                                    options = r.options.map { it.id to it.name },
+                                    value = picks[k] ?: "",
+                                    scheme = schemes[k] ?: r.scheme,
+                                    onPick = { picks[k] = it.ifBlank { null } },
+                                    onScheme = { schemes[k] = it },
+                                    onRemove = { removed.add(k) },
+                                )
+                            }
+                            extras.forEach { a ->
+                                CompanionRow(
+                                    label = "Lift",
+                                    options = allOptions.map { it.id to it.name },
+                                    value = a.poolExerciseId,
+                                    scheme = a.scheme,
+                                    onPick = { id -> added.update(n = a.n) { it.copy(poolExerciseId = id) } },
+                                    onScheme = { s -> added.update(n = a.n) { it.copy(scheme = s) } },
+                                    onRemove = { added.removeAll { it.n == a.n } },
+                                )
+                            }
+                            Text(
+                                "+ Add a lift",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .clickable { added.add(AddedLift(n = (added.maxOfOrNull { it.n } ?: 0) + 1, day = i)) }
+                                    .padding(vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+                2 -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Warm-up", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        Switch(checked = warmup, onCheckedChange = { warmup = it })
+                    }
+                    Text("Cardio", style = MaterialTheme.typography.titleSmall)
+                    DayChips(value = cardioDays, onToggle = { d -> cardio = toggle(cardioDays, d) })
+                    Text("Conditioning", style = MaterialTheme.typography.titleSmall)
+                    DayChips(value = conditioning, onToggle = { d -> conditioning = toggle(conditioning, d) })
+                }
+                else -> {
+                    if (mains.isEmpty()) {
+                        Text("No main lifts.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    mains.forEachIndexed { i, (id, name) ->
+                        if (i > 0) HorizontalDivider()
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                bestOf[id]?.let {
+                                    Text(
+                                        "Best ${MovementSetsViewModel.fmt(it)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            NumberField(value = maxFor(id), label = "$name training max", onChange = { maxText[id] = it })
+                        }
+                    }
+                }
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
-
-        program.days.forEachIndexed { i, day ->
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        buildString {
-                            append(day.name)
-                            if (ready) append(" \u00b7 ").append(WEEKDAYS[days[i]])
-                            if (day.row) append(" \u00b7 with rowing")
-                        },
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    day.roles.forEach { r ->
-                        val k = "$i:${r.key}"
-                        val selected = r.options.firstOrNull { it.id == picks[k] }?.name ?: "Leave out"
-                        Dropdown(
-                            label = r.label,
-                            selected = selected,
-                            options = listOf("" to "Leave out") + r.options.map { it.id to it.name },
-                            onSelect = { picks[k] = it.ifBlank { null } },
+        HorizontalDivider()
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (step > 0) ProgramPill(label = "Back", onClick = { step -= 1 })
+            if (step < SETUP_STEPS.size - 1) {
+                ProgramPill(label = "Next", filled = true, modifier = Modifier.weight(1f), onClick = { step += 1 })
+            } else {
+                ProgramPill(
+                    label = if (busy) "Starting…" else "Start program",
+                    filled = true,
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        onStart(
+                            StartProgramRequest(
+                                key = program.key,
+                                days = days.toList(),
+                                picks = picks.mapValues { (k, v) -> if (k in removed) null else v },
+                                tops = emptyMap(),
+                                maxes = mains.mapNotNull { (id, _) -> maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let { id to it } }.toMap(),
+                                schemes = schemes.toMap(),
+                                added = added.filter { it.poolExerciseId.isNotBlank() }.map {
+                                    AddedLiftRequest(day = it.day, poolExerciseId = it.poolExerciseId, scheme = it.scheme.ifBlank { null })
+                                },
+                                warmup = warmup,
+                                cardioDays = cardioDays,
+                                conditioningDays = conditioning,
+                            ),
                         )
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** A companion lift: its movement, its sets, and remove. */
+@Composable
+private fun CompanionRow(
+    label: String,
+    options: List<Pair<String, String>>,
+    value: String,
+    scheme: String,
+    onPick: (String) -> Unit,
+    onScheme: (String) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val schemeOptions = if (COMPANION_SCHEMES.any { it.first == scheme }) COMPANION_SCHEMES else listOf(scheme to schemeText(scheme)) + COMPANION_SCHEMES
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.weight(1f)) {
+            Dropdown(
+                label = "",
+                title = label,
+                selected = options.firstOrNull { it.first == value }?.second ?: "$label: choose",
+                options = options,
+                onSelect = onPick,
+            )
+        }
+        Dropdown(
+            label = "",
+            title = "Sets",
+            selected = schemeText(scheme),
+            options = schemeOptions,
+            onSelect = onScheme,
+            compact = true,
+        )
+        IconButton(onClick = onRemove) {
+            Icon(KairosIcons.Close, contentDescription = "Remove $label", modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+/**
+ * My plans (saved for later, only yours) or the household's approved plans:
+ * a list, and picking one shows what it holds with Replace / Add. My plans
+ * also saves the current plan, and renames or deletes a saved one.
+ */
+@Composable
+private fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
+    val session = rememberContainer().sessionRepository
+    val scope = rememberCoroutineScope()
+    var rows by remember(mine) { mutableStateOf<List<Triple<String, String, String>>?>(null) }
+    var error by remember(mine) { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf("") }
+    var picked by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    var preview by remember { mutableStateOf<ImportPreviewDto?>(null) }
+    var renaming by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    var deleting by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+
+    fun load() {
+        scope.launch {
+            try {
+                rows = if (mine) {
+                    session.savedPlans().map { Triple(it.id, it.name, it.summary) }
+                } else {
+                    session.sharedPlans().filter { it.status == "APPROVED" }
+                        .map { Triple(it.id, it.name, listOf(it.by, it.summary).filter { s -> s.isNotBlank() }.joinToString(" · ")) }
+                }
+                error = null
+            } catch (e: ApiException) {
+                error = e.error.message
+            }
+        }
+    }
+    LaunchedEffect(mine) { load() }
+
+    fun act(block: suspend () -> Unit) {
+        if (busy) return
+        busy = true
+        scope.launch {
+            try {
+                block()
+            } catch (e: ApiException) {
+                error = e.error.message
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (mine) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it.take(60) },
+                    placeholder = { Text("Name this plan") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                ProgramPill(
+                    label = "Save",
+                    filled = true,
+                    enabled = !busy && name.trim().length >= 2,
+                    onClick = { act { session.savePlan(name.trim()); name = ""; load() } },
+                )
+            }
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        val list = rows
+        when {
+            list == null && error == null -> CircularProgressIndicator(Modifier.padding(8.dp))
+            list != null && list.isEmpty() -> Text(
+                if (mine) "No saved plans yet." else "No household plans yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            list != null -> list.forEach { p ->
+                val shape = RoundedCornerShape(12.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                        .clickable {
+                            picked = p
+                            preview = null
+                            act { preview = session.previewSharedPlan(p.first) }
+                        }
+                        .padding(start = 14.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+                ) {
+                    Column(Modifier.weight(1f).padding(vertical = 4.dp)) {
+                        Text(p.second, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (p.third.isNotBlank()) {
+                            Text(
+                                p.third,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (mine) {
+                        IconButton(onClick = { renaming = p }) {
+                            Icon(KairosIcons.Pencil, contentDescription = "Rename ${p.second}", modifier = Modifier.size(18.dp))
+                        }
+                        IconButton(onClick = { deleting = p }) {
+                            Icon(KairosIcons.Trash, contentDescription = "Delete ${p.second}", modifier = Modifier.size(18.dp))
+                        }
                     }
                 }
             }
         }
+    }
 
-        val mains = program.days.flatMapIndexed { i, d ->
-            d.roles.filter { it.main }.mapNotNull { r ->
-                val id = picks["$i:${r.key}"] ?: return@mapNotNull null
-                r.options.firstOrNull { it.id == id }?.let { id to it.name }
-            }
-        }.distinctBy { it.first }
-        // The heaviest weight logged fills each one; change it to go easier.
-        val bestOf = remember(program.key) {
-            program.days.flatMap { d -> d.roles.flatMap { it.options } }
-                .mapNotNull { o -> o.best?.let { o.id to it } }.toMap()
-        }
-        LaunchedEffect(mains.map { it.first }) {
-            mains.forEach { (id, _) -> if (tops[id] == null) bestOf[id]?.let { tops[id] = MovementSetsViewModel.fmt(it) } }
-        }
-        if (mains.isNotEmpty()) {
-            Text("Top weight", style = MaterialTheme.typography.titleSmall)
-            mains.forEach { (id, name) ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    OutlinedTextField(
-                        value = tops[id] ?: "",
-                        onValueChange = { tops[id] = it.filter { c -> c.isDigit() || c == '.' }.take(6) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.width(88.dp),
-                    )
+    picked?.let { p ->
+        val pv = preview
+        AlertDialog(
+            onDismissRequest = { picked = null },
+            title = { Text(p.second) },
+            text = {
+                if (pv == null) {
+                    CircularProgressIndicator(Modifier.padding(8.dp))
+                } else {
+                    Text(pv.summary.ifBlank { "No plan, workouts only." }, style = MaterialTheme.typography.bodyMedium)
                 }
-            }
-        }
-
-        Text(
-            "This replaces your weekly plan. Ending the program can put it back.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            },
+            confirmButton = {
+                if (pv != null && pv.entries > 0) {
+                    TextButton(enabled = !busy, onClick = { act { session.useSharedPlan(p.first, "replace"); picked = null; onUsed() } }) {
+                        Text("Replace my plan")
+                    }
+                }
+            },
+            dismissButton = {
+                if (pv != null) {
+                    TextButton(enabled = !busy, onClick = { act { session.useSharedPlan(p.first, "add"); picked = null; onUsed() } }) {
+                        Text(if (pv.entries > 0) "Add to my plan" else "Add the workouts")
+                    }
+                }
+            },
         )
-        Spacer(Modifier.size(2.dp))
-        ProgramPill(
-            label = if (busy) "Starting\u2026" else "Start program",
-            filled = true,
-            enabled = ready && !busy,
-        ) {
-            onStart(
-                StartProgramRequest(
-                    key = program.key,
-                    days = days,
-                    picks = picks.toMap(),
-                    tops = tops.mapNotNull { (k, v) -> v.toDoubleOrNull()?.takeIf { it > 0 }?.let { k to it } }.toMap(),
-                ),
-            )
-        }
+    }
+
+    renaming?.let { p ->
+        var newName by remember(p.first) { mutableStateOf(p.second) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text("Rename") },
+            text = {
+                OutlinedTextField(value = newName, onValueChange = { newName = it.take(60) }, singleLine = true)
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy && newName.trim().length >= 2,
+                    onClick = { act { session.renameSavedPlan(p.first, newName.trim()); renaming = null; load() } },
+                ) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
+        )
+    }
+
+    deleting?.let { p ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete ${p.second}?") },
+            confirmButton = {
+                TextButton(enabled = !busy, onClick = { act { session.deleteSavedPlan(p.first); deleting = null; load() } }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
+        )
     }
 }

@@ -236,6 +236,10 @@ is what that rule exists to prevent.
   timer and `useSeconds` fills the set. `WorkoutLogScreen.kt` — + Conditioning
   (Pick one / Build one / Write your own) and the extras logged that day
   (`conditioningDone`). `BodyMap.kt` — the posterior-hip region shades Deadlift.
+- `ui/workout/ProgramsScreen.kt` — programs: the running one and its
+  end-of-cycle dialog, the chooser (Programs / My plans / Household via
+  `PlanLibrary`), and the four-step `ProgramSetup` (web: `program-card.tsx`,
+  `my-plans.tsx`).
 - `ui/workout/MovementInfo.kt` — ⓘ for a movement: `MovementInfoButton`, the
   how-to dialog, the inline how-to under a picker row, and `watchUrl` (same
   link as the web's `watch.ts`; keep them in step).
