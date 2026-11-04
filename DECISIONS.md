@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Timer looks as they look; black floating window (v0.440.0 / web 0.632.0)
+
+`TimerLookPicker` (TimerLive.kt) replaces the Numbers and Number colour
+drop-downs in Appearance: each choice is "1:30" in its font and colour on a
+dark tile. Colours are neon (`timerColorFor`; new PINK and ORANGE keys, old
+keys kept). `PipTimer` draws on black: a picture-in-picture window is always
+an opaque tile, so black is the least there can be behind the digits.
+
+
 ## 2026-11 — Leaving a lift early keeps the rest; build fix (v0.439.0 / web 0.631.0)
 
 Mirrors web 0.631.0: `MovementSetsViewModel.rowsFrom` appends the target sets

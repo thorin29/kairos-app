@@ -1,4 +1,9 @@
 # Changelog
+## 0.440.0
+
+- Timer number choices show each font and colour as it looks; the colours are neon.
+- The floating timer window is black behind the numbers.
+
 ## 0.439.0
 
 - Sets you haven't done yet stay on a lift after you leave it, so you can come back and finish.

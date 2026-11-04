@@ -177,19 +177,27 @@ fun AppearanceScreen(onBack: () -> Unit) {
                             val timerFont by settings.timerFont.collectAsState(initial = "STANDARD")
                             val timerColor by settings.timerColor.collectAsState(initial = "PLAIN")
                             val timerAway by settings.timerAway.collectAsState(initial = "BOTH")
+                            val primary = MaterialTheme.colorScheme.primary
                             Spacer(Modifier.height(12.dp))
-                            com.kairos.app.ui.workout.Dropdown(
-                                label = "Numbers",
-                                selected = com.kairos.app.ui.workout.TIMER_FONTS.firstOrNull { it.first == timerFont }?.second ?: "Standard",
+                            // Each choice drawn as it looks (v0.440).
+                            Text("Numbers", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+                            com.kairos.app.ui.workout.TimerLookPicker(
                                 options = com.kairos.app.ui.workout.TIMER_FONTS,
-                                onSelect = { v -> scope.launch { settings.setTimerFont(v) } },
+                                selected = timerFont,
+                                font = { com.kairos.app.ui.workout.timerFontFor(it) },
+                                color = { com.kairos.app.ui.workout.timerColorFor(timerColor, primary) ?: Color.White },
+                                onPick = { v -> scope.launch { settings.setTimerFont(v) } },
                             )
-                            Spacer(Modifier.height(10.dp))
-                            com.kairos.app.ui.workout.Dropdown(
-                                label = "Number colour",
-                                selected = com.kairos.app.ui.workout.TIMER_COLORS.firstOrNull { it.first == timerColor }?.second ?: "Plain",
+                            Spacer(Modifier.height(12.dp))
+                            Text("Number colour", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+                            com.kairos.app.ui.workout.TimerLookPicker(
                                 options = com.kairos.app.ui.workout.TIMER_COLORS,
-                                onSelect = { v -> scope.launch { settings.setTimerColor(v) } },
+                                selected = timerColor,
+                                font = { com.kairos.app.ui.workout.timerFontFor(timerFont) },
+                                color = { com.kairos.app.ui.workout.timerColorFor(it, primary) ?: Color.White },
+                                onPick = { v -> scope.launch { settings.setTimerColor(v) } },
                             )
                             Spacer(Modifier.height(10.dp))
                             com.kairos.app.ui.workout.Dropdown(

@@ -12,6 +12,14 @@ import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.compose.foundation.background
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -197,15 +205,84 @@ internal val TIMER_FONTS = listOf(
     "SERIF" to "Serif",
 )
 
-/** Number colours for the timer (SettingsStore.timerColor). */
+/** Number colours for the timer (SettingsStore.timerColor); neon, to read at a
+ *  distance on the dark timer (v0.440). */
 internal val TIMER_COLORS = listOf(
     "PLAIN" to "Plain",
     "ACCENT" to "Theme colour",
-    "AMBER" to "Amber",
-    "GREEN" to "Green",
-    "RED" to "Red",
-    "BLUE" to "Blue",
+    "GREEN" to "Neon green",
+    "BLUE" to "Neon blue",
+    "PINK" to "Neon pink",
+    "AMBER" to "Neon yellow",
+    "ORANGE" to "Neon orange",
+    "RED" to "Neon red",
 )
+
+private val NEON = mapOf(
+    "GREEN" to Color(0xFF39FF14),
+    "BLUE" to Color(0xFF00E5FF),
+    "PINK" to Color(0xFFFF2BD6),
+    "AMBER" to Color(0xFFFFEA00),
+    "ORANGE" to Color(0xFFFF7A00),
+    "RED" to Color(0xFFFF3131),
+)
+
+/** The colour a choice draws in; null is the timer's own text colour. */
+internal fun timerColorFor(key: String, accent: Color): Color? = if (key == "ACCENT") accent else NEON[key]
+
+/** A font choice's family. */
+internal fun timerFontFor(key: String): FontFamily = when (key) {
+    "CONDENSED" -> FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
+    "MONO" -> FontFamily.Monospace
+    "SERIF" -> FontFamily.Serif
+    else -> FontFamily.Default
+}
+
+/**
+ * The timer's number choices as they look (v0.440): each font and colour as a
+ * small dark tile showing "1:30", so the choice is what you see.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+internal fun TimerLookPicker(
+    options: List<Pair<String, String>>,
+    selected: String,
+    font: (String) -> FontFamily,
+    color: (String) -> Color,
+    onPick: (String) -> Unit,
+) {
+    val primary = androidx.compose.material3.MaterialTheme.colorScheme.primary
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { (key, label) ->
+            val on = key == selected
+            Column(
+                Modifier
+                    .width(96.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                    .border(if (on) 2.dp else 1.dp, if (on) primary else Color(0x33808080), androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                    .clickable { onPick(key) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    Modifier.fillMaxWidth().height(52.dp).background(Color(0xFF0B0F14)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("1:30", color = color(key), fontFamily = font(key), fontSize = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                )
+            }
+        }
+    }
+}
 
 /** What a running timer does when you leave the app (SettingsStore.timerAway). */
 internal val TIMER_AWAY = listOf(
@@ -225,30 +302,18 @@ internal fun timerDigits(pal: TimerPalette): TimerDigits {
     val color by settings.timerColor.collectAsState(initial = "PLAIN")
     val away by settings.timerAway.collectAsState(initial = "BOTH")
     androidx.compose.runtime.SideEffect { TimerLive.away.value = away }
-    val family = when (font) {
-        "CONDENSED" -> FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
-        "MONO" -> FontFamily.Monospace
-        "SERIF" -> FontFamily.Serif
-        else -> FontFamily.Default
-    }
-    val tint = when (color) {
-        "ACCENT" -> pal.accent
-        "AMBER" -> Color(0xFFF59E0B)
-        "GREEN" -> Color(0xFF22C55E)
-        "RED" -> Color(0xFFEF4444)
-        "BLUE" -> Color(0xFF3B82F6)
-        else -> null
-    }
-    return TimerDigits(font = family, color = tint)
+    return TimerDigits(font = timerFontFor(font), color = timerColorFor(color, pal.accent))
 }
 
 /** The floating window: just the time, as large as the window allows, and a
  *  word of status under it. A floating window can't be see-through (Android
- *  draws it as a solid tile), so it's kept to the digits on the timer's colour. */
+ *  draws it as a solid tile), so it's kept to the digits on black (v0.440). */
 @Composable
 internal fun PipTimer(clock: String, status: String, color: Color, pal: TimerPalette, digits: TimerDigits) {
     androidx.compose.foundation.layout.BoxWithConstraints(
-        Modifier.fillMaxSize().background(pal.bg),
+        // Black rather than the timer's colour: the least there is behind the
+        // digits, since the window itself can't be see-through.
+        Modifier.fillMaxSize().background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
         val byWidth = maxWidth.value / (clock.length * 0.62f)
@@ -266,7 +331,7 @@ internal fun PipTimer(clock: String, status: String, color: Color, pal: TimerPal
                 maxLines = 1,
             )
             if (status.isNotBlank() && tall) {
-                Text(status, color = pal.soft, fontSize = 12.sp)
+                Text(status, color = Color(0xFFB0B8C0), fontSize = 12.sp)
             }
         }
     }
