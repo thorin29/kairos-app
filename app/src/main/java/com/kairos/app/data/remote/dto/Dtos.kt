@@ -684,6 +684,8 @@ data class MovementLogDto(
     /** The movement being done and its how-to, for ⓘ (server 0.613+). */
     val name: String = "",
     val about: String? = null,
+    /** What the reps field counts when not reps: "yd" / "m" for a carry (server 0.640+). */
+    val repsUnit: String? = null,
 )
 
 /** A suggestion: what, why, and the choices. Never applied on its own. */

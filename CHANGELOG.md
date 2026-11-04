@@ -1,4 +1,9 @@
 # Changelog
+## 0.447.0
+
+- Core day screen: each movement under its own heading, with Skip, Timer and Log once at the bottom and one "how did it feel" for the workout. The timer fills the next hold.
+- Carries (suitcase, farmer, overhead) log weight and distance in yards.
+
 ## 0.446.0
 
 - A core day is one card on the day page. It opens every movement on one screen, each in its own section, with one Log.

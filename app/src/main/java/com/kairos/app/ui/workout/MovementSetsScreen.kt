@@ -306,7 +306,7 @@ fun MovementSetsScreen(
                         )
                     }
 
-                    val chips = if (isWeight) vm.recordChips() else emptyList()
+                    val chips = if (isWeight && ui.repsUnit == null) vm.recordChips() else emptyList()
                     if (chips.isNotEmpty()) {
                         val now = vm.todayAt(ui.shift)
                         FlowRow(
@@ -366,6 +366,7 @@ fun MovementSetsScreen(
                                 vm.openToolFor(r.key)
                                 onOpenCalculator("Use for set ${i + 1}", w)
                             },
+                            repsUnit = ui.repsUnit,
                         )
                     }
 
@@ -492,6 +493,8 @@ private fun SetCard(
     /** A program fixed this set's weight: plates instead of remove (v0.427). */
     strict: Boolean = false,
     onPlates: (Double) -> Unit = {},
+    /** A carry's reps are a distance (v0.447): "yd" / "m". */
+    repsUnit: String? = null,
 ) {
     OutlinedCard(
         Modifier.fillMaxWidth(),
@@ -536,11 +539,12 @@ private fun SetCard(
                         SetField(
                             value = row.r,
                             hint = row.hintR?.let { "$it${if (row.plus) "+" else ""}" } ?: "rep",
-                            label = "Reps, set $index",
+                            label = if (repsUnit != null) "Distance, set $index" else "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
                             modifier = Modifier.weight(1f),
                         ) { vm.onReps(row.key, it) }
+                        if (repsUnit != null) UnitText(repsUnit)
                     }
                     "DURATION" -> {
                         SetField(
@@ -1110,10 +1114,11 @@ fun decodeCoreMoves(raw: String): List<CoreMoveRef> =
     }
 
 /**
- * A Core day on one screen (v0.446): each movement in its own section, the
- * way 5/3/1's warm-up and main sets are, and one Log for the whole workout.
- * Each movement keeps its own logger state (the same one its own page uses),
- * so sets save as they're ticked; Log saves anything typed and goes back.
+ * A Core day on one screen (v0.446, v0.447): each movement under its own
+ * heading, the way 5/3/1's warm-up and main sets are, with Skip, Timer and
+ * Log once at the bottom and one "how did it feel" for the workout. Each
+ * movement keeps its own logger state (the same one its own page uses), so
+ * sets save as they're ticked; Log saves anything typed and goes back.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1148,7 +1153,10 @@ fun CoreWorkoutScreen(
     }
     val states = vms.map { it.ui.collectAsState().value }
     var finishing by remember { mutableStateOf(false) }
+    var timing by remember { mutableStateOf(false) }
     val allDone = states.all { it.done }
+    val allSkipped = states.isNotEmpty() && states.all { it.skipped }
+    val timed = moves.any { it.metric == "DURATION" }
     LaunchedEffect(finishing, allDone) { if (finishing && allDone) onDone() }
     val finish = {
         if (!finishing) {
@@ -1157,6 +1165,11 @@ fun CoreWorkoutScreen(
         }
     }
     BackHandler { finish() }
+    // One answer for the workout, saved against each movement.
+    var effort by remember { mutableStateOf<String?>(null) }
+    var hurt by remember { mutableStateOf<String?>(null) }
+    val shownEffort = effort ?: states.firstNotNullOfOrNull { it.effort }
+    val shownHurt = hurt ?: states.firstNotNullOfOrNull { it.hurt }
 
     Scaffold(
         topBar = {
@@ -1171,7 +1184,28 @@ fun CoreWorkoutScreen(
             Surface(color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.navigationBarsPadding()) {
                     HorizontalDivider()
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        WorkoutActionTile(
+                            icon = KairosIcons.Moon,
+                            label = if (allSkipped) "Skipped" else "Skip",
+                            modifier = Modifier.weight(1f),
+                            highlighted = !allSkipped,
+                            fixedHeight = 64.dp,
+                        ) {
+                            val want = !allSkipped
+                            vms.forEachIndexed { i, vm -> if (states[i].skipped != want) vm.toggleSkip() }
+                        }
+                        WorkoutActionTile(
+                            icon = KairosIcons.Timer,
+                            label = "Timer",
+                            modifier = Modifier.weight(1f),
+                            highlighted = timed && !allSkipped,
+                            enabled = timed && !allSkipped,
+                            fixedHeight = 64.dp,
+                        ) { timing = true }
                         WorkoutActionTile(
                             icon = KairosIcons.Check,
                             label = "Log",
@@ -1193,7 +1227,7 @@ fun CoreWorkoutScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (late) {
                 Text(
@@ -1203,48 +1237,86 @@ fun CoreWorkoutScreen(
                 )
             }
             moves.forEachIndexed { i, m ->
-                CoreMoveSection(vm = vms[i], name = m.name, metric = m.metric, unit = m.unit)
+                CoreMoveSection(vm = vms[i], name = m.name, metric = m.metric, unit = m.unit, first = i == 0)
+            }
+            if (!allSkipped) {
+                Box(Modifier.padding(top = 12.dp)) {
+                    FeedbackCard(
+                        name = title.removePrefix("Core · "),
+                        effort = shownEffort,
+                        hurt = shownHurt,
+                        onChange = { e, h ->
+                            effort = e
+                            hurt = h
+                            vms.forEach { it.setFeedback(e, h) }
+                        },
+                    )
+                }
             }
         }
     }
+    if (timing) {
+        ConditioningTimer(
+            workout = com.kairos.app.data.remote.dto.ConditioningPlanDto(
+                name = title,
+                type = "FOR_TIME",
+                resultLabel = "Time",
+                resultMetric = "DURATION",
+            ),
+            onLog = { seconds, _ ->
+                timing = false
+                // Into the next open timed set, in order down the page.
+                val i = moves.indices.firstOrNull { j ->
+                    moves[j].metric == "DURATION" && !states[j].skipped &&
+                        states[j].rows.any { !it.saved && it.s.isBlank() }
+                }
+                if (i != null) {
+                    vms[i].openToolFor(null)
+                    vms[i].useSeconds(seconds)
+                }
+            },
+            onClose = { timing = false },
+        )
+    }
 }
 
-/** One movement's section on the Core day screen: name, today's target, its sets. */
+/** One movement under its heading on the Core day screen: today's target and its set cards. */
 @Composable
-private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: String, unit: String) {
+private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: String, unit: String, first: Boolean) {
     val ui by vm.ui.collectAsState()
     var showInfo by remember { mutableStateOf(false) }
-    var timing by remember { mutableStateOf(false) }
     val shown = ui.doingName ?: name
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Row(
+        Modifier.fillMaxWidth().padding(top = if (first) 0.dp else 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                shown.uppercase(),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            MovementInfoButton(name = shown, onClick = { showInfo = true })
-            SmallPill(label = if (ui.skipped) "Skipped" else "Skip", icon = false) { vm.toggleSkip() }
-        }
-        if (ui.loading) {
-            CircularProgressIndicator(Modifier.size(20.dp))
-            return@Column
-        }
+        Text(
+            shown.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         if (ui.targetScheme.isNotBlank()) {
-            Text("Today ${ui.targetScheme}", style = MaterialTheme.typography.labelLarge)
+            Text(
+                ui.targetScheme,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 4.dp),
+            )
         }
-        if (!ui.skipped) {
+        MovementInfoButton(name = shown, onClick = { showInfo = true })
+    }
+    when {
+        ui.loading -> CircularProgressIndicator(Modifier.size(20.dp))
+        ui.skipped -> Text(
+            "Skipped",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        else -> {
             ui.rows.forEachIndexed { i, r ->
                 SetCard(
                     index = i + 1,
@@ -1263,28 +1335,10 @@ private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: Str
                     jump = vm.jumpFor(r),
                     enabled = true,
                     strict = vm.strict(),
+                    repsUnit = ui.repsUnit,
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PillButton(label = "Add set", icon = true) { vm.addSet() }
-                if (metric == "DURATION") {
-                    PillButton(label = "Timer") {
-                        vm.openToolFor(null)
-                        timing = true
-                    }
-                }
-                if (!vm.anyEntered() && vm.hasHints()) {
-                    PillButton(label = "Same as last time", tinted = true) { vm.sameAsLast() }
-                }
-            }
-            if (ui.rows.any { it.saved }) {
-                FeedbackCard(
-                    name = shown,
-                    effort = ui.effort,
-                    hurt = ui.hurt,
-                    onChange = { e, h -> vm.setFeedback(e, h) },
-                )
-            }
+            PillButton(label = "Add set", icon = true) { vm.addSet() }
         }
     }
     ui.confirmKey?.let { k ->
@@ -1300,20 +1354,5 @@ private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: Str
     }
     if (showInfo) {
         MovementInfoDialog(name = shown, about = ui.about, onDismiss = { showInfo = false })
-    }
-    if (timing) {
-        ConditioningTimer(
-            workout = com.kairos.app.data.remote.dto.ConditioningPlanDto(
-                name = shown,
-                type = "FOR_TIME",
-                resultLabel = "Time",
-                resultMetric = "DURATION",
-            ),
-            onLog = { seconds, _ ->
-                timing = false
-                vm.useSeconds(seconds)
-            },
-            onClose = { timing = false },
-        )
     }
 }

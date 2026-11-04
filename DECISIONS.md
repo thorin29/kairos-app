@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Core day screen like 5/3/1; carry distance (v0.447.0 / web 0.640.0)
+
+`CoreWorkoutScreen` drops the per-movement bordered blocks: `CoreMoveSection`
+is a heading row (name, target, ⓘ) over the set cards, so the page reads
+background → cards, like 5/3/1's sections. The bottom bar has Skip (every
+movement), Timer (fills the next open timed set down the page via
+`openToolFor(null)` + `useSeconds`) and Log. One `FeedbackCard` at the end
+sets every movement's effort. No "Same as last time" there. `SetCard` takes
+`repsUnit` ("yd" for a carry, from `MovementLogDto.repsUnit`) and labels the
+reps field with it; record chips are off for carries.
+
+
 ## 2026-11 — Core day on one screen (v0.446.0 / web 0.639.0)
 
 `WorkoutBlockDto.core` marks a Core day; the day page draws it as one

@@ -78,6 +78,8 @@ data class MovementSetsUi(
     val recentTop: Double? = null,
     /** The how-to for the movement being done (server 0.613+), for ⓘ. */
     val about: String? = null,
+    /** A carry's reps are a distance: "yd" / "m" (server 0.640+). */
+    val repsUnit: String? = null,
 )
 
 /**
@@ -130,6 +132,7 @@ class MovementSetsViewModel(
                     suggestion = log.suggestion?.takeIf { s -> s.key !in answeredKeys() },
                     recentTop = log.recentTop,
                     about = log.about,
+                    repsUnit = log.repsUnit,
                     targetTitle = log.target?.title ?: "",
                     lastSets = last,
                     lastDate = log.last?.date,
