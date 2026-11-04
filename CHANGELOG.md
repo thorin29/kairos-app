@@ -1,4 +1,10 @@
 # Changelog
+## 0.439.0
+
+- Sets you haven't done yet stay on a lift after you leave it, so you can come back and finish.
+- Log asks first when sets are left: Keep going or Finish for now.
+- Fixes the 0.438 build.
+
 ## 0.438.0
 
 - A running timer keeps going when you leave the app: a notification with the countdown (a status-bar chip on Android 16), and a small floating window with just the time.

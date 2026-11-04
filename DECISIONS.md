@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Leaving a lift early keeps the rest; build fix (v0.439.0 / web 0.631.0)
+
+Mirrors web 0.631.0: `MovementSetsViewModel.rowsFrom` appends the target sets
+after today's logged ones; `unfinishedCount()` and a "Finish early?" dialog on
+Log. Build fix: `PipTimer` read `maxHeight` inside a `Column` (its scope hides
+`BoxWithConstraintsScope`); it's read before the Column now.
+
+
 ## 2026-11 — The timer outside the app; number font and colour (v0.438.0 / web 0.630.0)
 
 **Outside the app:** `TimerLive` (ui/workout/TimerLive.kt) holds what a

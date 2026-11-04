@@ -113,6 +113,27 @@ fun MovementSetsScreen(
     val ui by vm.ui.collectAsState()
     var swapping by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    // Log with sets still to do asks first (v0.439); finishing early keeps them.
+    var confirmLeave by remember { mutableStateOf(false) }
+    if (confirmLeave) {
+        val left = vm.unfinishedCount()
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text("Finish early?") },
+            text = {
+                Text("$left ${if (left == 1) "set isn't" else "sets aren't"} logged yet. They'll still be here when you come back.")
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmLeave = false }) { Text("Keep going") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    confirmLeave = false
+                    vm.leave()
+                }) { Text("Finish for now") }
+            },
+        )
+    }
     // A timed movement's timer (v0.427): its time fills the set.
     var timing by remember { mutableStateOf(false) }
 
@@ -229,7 +250,7 @@ fun MovementSetsScreen(
                                 loading = ui.leaving,
                                 filled = true,
                                 fixedHeight = 64.dp,
-                            ) { vm.leave() }
+                            ) { if (vm.unfinishedCount() > 0) confirmLeave = true else vm.leave() }
                         }
                     }
                 }

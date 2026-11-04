@@ -253,6 +253,8 @@ internal fun PipTimer(clock: String, status: String, color: Color, pal: TimerPal
     ) {
         val byWidth = maxWidth.value / (clock.length * 0.62f)
         val byHeight = maxHeight.value * 0.55f
+        // Read here, not inside the Column: its scope hides BoxWithConstraints'.
+        val tall = maxHeight.value > 90f
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 clock,
@@ -263,7 +265,7 @@ internal fun PipTimer(clock: String, status: String, color: Color, pal: TimerPal
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
-            if (status.isNotBlank() && maxHeight.value > 90f) {
+            if (status.isNotBlank() && tall) {
                 Text(status, color = pal.soft, fontSize = 12.sp)
             }
         }

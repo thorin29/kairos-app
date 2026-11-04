@@ -283,7 +283,7 @@ class MovementSetsViewModel(
     ): List<SetRow> {
         var k = 0
         if (today.isNotEmpty()) {
-            return today.mapIndexed { i, s ->
+            val done = today.mapIndexed { i, s ->
                 val t = target.getOrNull(i)
                 SetRow(
                     key = k++,
@@ -302,6 +302,23 @@ class MovementSetsViewModel(
                     supplemental = t?.supplemental == true,
                 )
             }
+            // The sets still to do stay after the ones logged (v0.439): leaving
+            // early (or an accidental Log) never takes the rest with it.
+            val rest = target.drop(today.size).mapIndexed { j, t ->
+                val i = today.size + j
+                SetRow(
+                    key = k++,
+                    hintW = t.weight ?: last.getOrNull(i)?.weight,
+                    hintR = t.reps,
+                    hintS = last.getOrNull(i)?.seconds,
+                    top = t.top,
+                    pct = t.pct,
+                    plus = t.plus,
+                    warmup = t.warmup,
+                    supplemental = t.supplemental,
+                )
+            }
+            return done + rest
         }
         if (target.isNotEmpty()) {
             return target.mapIndexed { i, t ->
@@ -501,6 +518,9 @@ class MovementSetsViewModel(
     }
 
     /** Log or Back: keep anything typed but not ticked, then leave. */
+    /** Sets not logged and not ready to log: Log asks before leaving them (v0.439). */
+    fun unfinishedCount(): Int = _ui.value.rows.count { !it.saved && !(typed(it) && complete(it)) }
+
     fun leave() {
         if (_ui.value.leaving) return
         val cur = _ui.value.rows
