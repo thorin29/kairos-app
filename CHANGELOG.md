@@ -1,4 +1,9 @@
 # Changelog
+## 0.445.0
+
+- Progress opens on today's muscle group, or the next one planned, instead of yesterday's. Core shows its hard sets and bests.
+- Adding a warm-up lets you pick the routine right there, or make a new one.
+
 ## 0.444.1
 
 - Fixes the 0.444.0 build.

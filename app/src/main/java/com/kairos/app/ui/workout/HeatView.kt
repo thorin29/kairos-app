@@ -216,35 +216,7 @@ internal fun HeatDetailDialog(nav: String, data: HeatGroupDto?, unit: String, on
                         HeatStat(value = fmt(data.perWeek), label = "sets a week", modifier = Modifier.weight(1f))
                         HeatStat(value = fmt(data.heavyPerWeek), label = "heavy sets a week", modifier = Modifier.weight(1f))
                     }
-                    data.bests.forEach { b ->
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            val what = when (b.kind) {
-                                "weight" -> "${b.reps} reps"
-                                "time" -> "longest hold"
-                                else -> "most reps"
-                            }
-                            Text(
-                                b.name + " · " + what,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                            val show = { n: Double -> if (b.kind == "time") clock(n) else fmt(n) }
-                            val value = if (b.from == b.to) show(b.to) else "${show(b.from)} → ${show(b.to)}"
-                            val suffix = when {
-                                b.kind == "weight" && unit.isNotEmpty() -> " $unit"
-                                b.pft != null -> " · ${b.pft} pts"
-                                else -> ""
-                            }
-                            Text(
-                                value + suffix,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
+                    HeatBests(bests = data.bests, unit = unit)
                 }
             }
         },
@@ -261,5 +233,71 @@ private fun HeatStat(value: String, label: String, modifier: Modifier = Modifier
     ) {
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Each best, then → now: weight at a rep count, most reps, or longest hold (with PFT points). */
+@Composable
+internal fun HeatBests(bests: List<com.kairos.app.data.remote.dto.HeatBestDto>, unit: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        bests.forEach { b ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                val what = when (b.kind) {
+                    "weight" -> "${b.reps} reps"
+                    "time" -> "longest hold"
+                    else -> "most reps"
+                }
+                Text(
+                    b.name + " · " + what,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                val show = { n: Double -> if (b.kind == "time") clock(n) else fmt(n) }
+                val value = if (b.from == b.to) show(b.to) else "${show(b.from)} → ${show(b.to)}"
+                val suffix = when {
+                    b.kind == "weight" && unit.isNotEmpty() -> " $unit"
+                    b.pft != null -> " · ${b.pft} pts"
+                    else -> ""
+                }
+                Text(
+                    value + suffix,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+/** A muscle with no weight charts (a core of holds and reps): its hard sets a
+ *  week over the last 12 weeks and its bests (v0.445). */
+@Composable
+internal fun HeatGroupSummary(data: HeatGroupDto?, unit: String) {
+    if (data == null || (data.perWeek <= 0.0 && data.bests.isEmpty())) {
+        Text(
+            "Nothing logged yet.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        return
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp)
+            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "${fmt(data.perWeek)} hard sets a week · last 12 weeks",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HeatBests(bests = data.bests, unit = unit)
     }
 }

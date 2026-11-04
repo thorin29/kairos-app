@@ -1274,6 +1274,8 @@ data class AddPoolRequest(
     /** The plan's name; the category's label when absent. */
     val name: String? = null,
     val exercises: List<AddPoolExercise> = emptyList(),
+    /** A Warm-up's routine (server 0.638+): "lib:<key>" or one's own id; null a plain check. */
+    val warmup: String? = null,
 )
 
 @Serializable

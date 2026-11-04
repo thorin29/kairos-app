@@ -215,21 +215,7 @@ internal fun RoutinePicker(
 ) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
-    var routines by remember { mutableStateOf<List<WarmupRoutineDto>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var editing by remember { mutableStateOf<WarmupRoutineDto?>(null) }
-    var creating by remember { mutableStateOf(false) }
-
-    fun load() {
-        scope.launch {
-            try {
-                routines = session.warmupRoutines()
-            } catch (e: ApiException) {
-                error = e.error.message
-            }
-        }
-    }
-    LaunchedEffect(Unit) { load() }
     fun pick(id: String?) {
         scope.launch {
             try {
@@ -244,28 +230,80 @@ internal fun RoutinePicker(
     FullScreen(title = "Warm-up", onClose = onClose) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            RoutineRow(name = "Just a check", sub = "", selected = current == null, onPick = { pick(null) }, onEdit = null)
-            val list = routines
-            if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
-            list?.forEach { r ->
-                RoutineRow(
-                    name = r.name,
-                    sub = r.steps.joinToString(" · ") { it.name },
-                    selected = current == r.id,
-                    onPick = { pick(r.id) },
-                    onEdit = { editing = r },
-                )
-            }
-            Text(
-                "+ New warm-up",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { creating = true }.padding(vertical = 8.dp),
-            )
+            // The same chooser Add workout uses (v0.445).
+            WarmupChooser(value = current, onChange = { pick(it) })
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
+    }
+}
+
+/**
+ * Choosing a day's warm-up (v0.445), laid out like a Core day's rotation:
+ * one row per routine, ⓘ for its steps, a pencil on your own, and New
+ * warm-up. Tapping a row chooses it.
+ */
+@Composable
+internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
+    val session = rememberContainer().sessionRepository
+    val scope = rememberCoroutineScope()
+    var routines by remember { mutableStateOf<List<WarmupRoutineDto>?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var editing by remember { mutableStateOf<WarmupRoutineDto?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    var peek by remember { mutableStateOf<WarmupRoutineDto?>(null) }
+    fun load() {
+        scope.launch {
+            try {
+                routines = session.warmupRoutines()
+            } catch (e: ApiException) {
+                error = e.error.message
+            }
+        }
+    }
+    LaunchedEffect(Unit) { load() }
+
+    Column {
+        ChooserRow(name = "Just a check", sub = "", selected = value == null, onPick = { onChange(null) })
+        val list = routines
+        if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
+        list?.forEach { r ->
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            val n = r.steps.size
+            ChooserRow(
+                name = r.name,
+                sub = "$n " + (if (n == 1) "step" else "steps") + if (r.mine) " · Yours" else "",
+                selected = value == r.id,
+                onPick = { onChange(r.id) },
+                onEdit = if (r.mine) ({ editing = r }) else null,
+                onInfo = { peek = r },
+            )
+        }
+        AccentOutlinedButton(onClick = { creating = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Text("New warm-up")
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+    }
+    peek?.let { r ->
+        AlertDialog(
+            onDismissRequest = { peek = null },
+            title = { Text(r.name) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    r.steps.forEach { st ->
+                        Row(Modifier.fillMaxWidth()) {
+                            Text(st.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(
+                                stepAmount(st),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { peek = null }) { Text("Close") } },
+        )
     }
     if (editing != null || creating) {
         RoutineEditor(
@@ -275,9 +313,54 @@ internal fun RoutinePicker(
                 editing = null
                 creating = false
                 load()
-                if (id != null) pick(id)
+                if (id != null) onChange(id)
             },
         )
+    }
+}
+
+@Composable
+private fun ChooserRow(
+    name: String,
+    sub: String,
+    selected: Boolean,
+    onPick: () -> Unit,
+    onEdit: (() -> Unit)? = null,
+    onInfo: (() -> Unit)? = null,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(
+        Modifier.fillMaxWidth().clickable { onPick() }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(if (selected) accent else androidx.compose.ui.graphics.Color.Transparent)
+                .border(width = 1.dp, color = accent, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(14.dp))
+            }
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (sub.isNotBlank()) {
+                Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+        }
+        if (onEdit != null) {
+            IconButton(onClick = onEdit) {
+                Icon(KairosIcons.Pencil, contentDescription = "Edit $name", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            }
+        }
+        if (onInfo != null) {
+            IconButton(onClick = onInfo) {
+                Icon(KairosIcons.Info, contentDescription = "About $name", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }
 

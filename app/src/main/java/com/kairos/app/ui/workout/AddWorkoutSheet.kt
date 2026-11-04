@@ -70,6 +70,8 @@ fun AddWorkoutSheet(
     var coreRotationMode by remember { mutableStateOf(true) }
     var coreRotation by remember { mutableStateOf<List<String>>(emptyList()) }
     var coreTest by remember { mutableStateOf(true) }
+    // Warm-up (v0.445): its routine chosen as it's added; null is a plain check.
+    var warmupId by remember { mutableStateOf<String?>(null) }
 
     val category = options.categories.firstOrNull { it.key == categoryKey }
     val kind = category?.kind ?: "pool"
@@ -109,6 +111,7 @@ fun AddWorkoutSheet(
                     day = day,
                     category = categoryKey,
                     muscleGroup = if (kind == "weights") muscleKey.ifBlank { null } else null,
+                    warmup = if (categoryKey == "WARMUP") warmupId else null,
                     exercises = if (kind == "metricOnly") emptyList()
                     else picked.map { (id, p) ->
                         AddPoolExercise(
@@ -209,7 +212,9 @@ fun AddWorkoutSheet(
                         onSelect = { hiitId = it },
                     )
                 }
-                // Warm-up and Cardio: nothing to pick.
+                // Warm-up: its routine, chosen like a Core day's workouts (v0.445).
+                categoryKey == "WARMUP" -> WarmupChooser(value = warmupId, onChange = { warmupId = it })
+                // Cardio: nothing to pick.
                 category?.simple == true -> Unit
                 kind == "metricOnly" -> Note("Adds a ${category?.label?.lowercase() ?: ""} day — you'll log it on completion.")
                 else -> {

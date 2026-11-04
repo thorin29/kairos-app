@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Progress focus and the warm-up chooser (v0.445.0 / web 0.638.0)
+
+`WorkoutChart` opens on `focusGroups(planDays, today)`: today's groups, else
+the next planned day's, never the last one trained. Groups with no weight
+charts (Core of holds and reps) get their region when planned or trained
+(`summaryGroups`) and a `HeatGroupSummary` block (12-week hard sets a week
+and bests, from `heat`). `HeatBests` is shared with the heat pop-up.
+Add workout → Warm-up shows `WarmupChooser` (WarmupScreens.kt) — the Core
+rotation's layout, single choice — and sends `AddPoolRequest.warmup`; the
+plan line's Warm-up screen uses the same chooser. The home card's lines are
+the server's.
+
+
 ## 2026-11 — 0.444.1: CoreActions is public
 
 `AddWorkoutSheet` is public and takes a `CoreActions`, so the interface can't

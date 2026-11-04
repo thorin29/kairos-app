@@ -91,18 +91,31 @@ fun WorkoutChart(
 
     // Only regions you actually train are live. A Chest you have never pressed
     // is drawn, but inert — a target that selects nothing is a dead end.
-    val available = remember(universe) { universe.mapNotNull { it.navRegion }.distinct() }
-
-    // What the map opens on: everything today asks for. A day that trains Core
-    // and Legs lights both, because that is what the day is.
+    // What the map opens on: everything today asks for, else the next planned
+    // day's (v0.445) — what you're about to train, not what you did yesterday.
+    // A day that trains Core and Legs lights both, because that is what the day is.
     val todayDow = remember { LocalDate.now().dayOfWeek.value % 7 }
-    val todayGroups = remember(planDays, todayDow) {
-        planDays.firstOrNull { it.day == todayDow }?.groups.orEmpty().toSet()
+    val focusOrder = remember(planDays, todayDow) { focusGroups(planDays = planDays, todayDow = todayDow) }
+    val todayGroups = focusOrder.toSet()
+
+    // Muscles with no weight charts — a core of planks and crunches — still get
+    // a place on the map when planned or trained, and show their hard sets and
+    // bests instead of charts (v0.445).
+    val heat12 = heat?.ranges?.firstOrNull { it.key == "12w" }
+    val summaryGroups = remember(universe, heat12, todayGroups) {
+        val charted = universe.mapNotNull { it.shadePrimary }.toSet()
+        val trained = heat12?.groups.orEmpty().filter { it.perWeek > 0.0 || it.bests.isNotEmpty() }.map { it.group }.toSet()
+        ON_BODY.filter { g -> g !in charted && (g in trained || g in todayGroups) }
     }
-    val todayNavs = remember(universe, todayGroups) {
-        universe.filter { sr -> sr.shadePrimary?.let { it in todayGroups } == true }
-            .mapNotNull { it.navRegion }
-            .distinct()
+    val navOfGroup = { g: String -> if (g == "DEADLIFT") "POSTERIOR_HIP" else g }
+    val available = remember(universe, summaryGroups) {
+        (universe.mapNotNull { it.navRegion } + summaryGroups.map(navOfGroup)).distinct()
+    }
+    val todayNavs = remember(universe, todayGroups, summaryGroups) {
+        (
+            universe.filter { sr -> sr.shadePrimary?.let { it in todayGroups } == true }.mapNotNull { it.navRegion } +
+                summaryGroups.filter { it in todayGroups }.map(navOfGroup)
+            ).distinct()
     }
     // Nothing planned today — fall back to the most recently trained region,
     // which is all a rotation or plan-less person has.
@@ -132,8 +145,10 @@ fun WorkoutChart(
     // which figure it paints: a deadlift lights the back and leaves the front
     // grey, a squat lights both. That separates them on the body without ever
     // taking a figure away from the reader.
-    val fillsFront = remember(shown, surface) { fillsFor(shown, surface, "front") }
-    val fillsBack = remember(shown, surface) { fillsFor(shown, surface, "back") }
+    val summaries = summaryGroups.filter { navOfGroup(it) in activeSet }
+    val summaryFills = summaries.mapNotNull { g -> muscleColor(g)?.let { g to it } }.toMap()
+    val fillsFront = remember(shown, surface, summaryFills) { fillsFor(shown, surface, "front") + summaryFills }
+    val fillsBack = remember(shown, surface, summaryFills) { fillsFor(shown, surface, "back") + summaryFills }
 
     fun blocksOf(items: List<ProgressSeriesDto>) = items
         // A movement with no muscle group is its own block, titled with its
@@ -152,7 +167,7 @@ fun WorkoutChart(
 
     // Today's groups first, in the plan's order (a program's main lift leads),
     // then the rest A–Z (v0.429).
-    val todayOrder = planDays.firstOrNull { it.day == todayDow }?.groups.orEmpty()
+    val todayOrder = focusOrder
     fun rank(key: String): Int = todayOrder.indexOf(key).let { if (it < 0) todayOrder.size else it }
     val groups = blocksOf(shown).sortedBy { rank(it.first) } + blocksOf(orphans)
 
@@ -224,6 +239,16 @@ fun WorkoutChart(
                 onDismiss = { heatPicked = null },
             )
         }
+        summaries.sortedBy { rank(it) }.forEach { g ->
+            Text(
+                muscleLabelFor(g),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = muscleColor(g) ?: MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
+            )
+            HeatGroupSummary(data = heat12?.groups?.firstOrNull { it.group == g }, unit = heat?.unit.orEmpty())
+        }
         groups.forEach { (key, label, items) ->
             Text(
                 label,
@@ -249,6 +274,19 @@ fun WorkoutChart(
             extraDays = heat?.days.orEmpty(),
         )
     }
+}
+
+/** Groups with a place on the body (Deadlift is the lower back and glutes). */
+private val ON_BODY = listOf("CHEST", "BACK", "SHOULDERS", "ARMS", "LEGS", "CORE", "DEADLIFT")
+
+/** Today's muscle groups, else the next planned day's (v0.445). */
+internal fun focusGroups(planDays: List<PlanWeekdayDto>, todayDow: Int): List<String> {
+    for (ahead in 0 until 7) {
+        val d = (todayDow + ahead) % 7
+        val groups = planDays.firstOrNull { it.day == d }?.groups.orEmpty()
+        if (groups.isNotEmpty()) return groups
+    }
+    return emptyList()
 }
 
 /** Groups to paint on ONE figure: a movement contributes only where it shows. */
