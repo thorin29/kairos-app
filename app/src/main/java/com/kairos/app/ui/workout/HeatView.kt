@@ -76,6 +76,11 @@ private fun navLabel(nav: String): String =
     if (nav == "POSTERIOR_HIP") "Deadlift"
     else nav.split('_').joinToString(" ") { it.lowercase() }.replaceFirstChar { it.uppercase() }
 
+private fun clock(sec: Double): String {
+    val s = Math.round(sec).toInt()
+    return "${s / 60}:" + (s % 60).toString().padStart(2, '0')
+}
+
 private fun fmt(n: Double): String =
     if (n == Math.floor(n)) n.toLong().toString() else String.format(java.util.Locale.US, "%.1f", n)
 
@@ -184,6 +189,10 @@ internal fun HeatKey(accent: Color, fade: Color) {
                             "Hard counts it in full; Easy counts it half.",
                     )
                     Text("Muscles a lift only helps with get half a set.")
+                    Text(
+                        "Holds count in full at two-thirds of your longest or more, half at 40%. A plank counts " +
+                            "in full at 1:10, the Marine Corps PFT minimum, and shows its PFT points (3:45 is 100).",
+                    )
                     Text("Heavy sets are 6 reps or fewer near your best weight. They're what builds strength most.")
                     Text("Around 10 or more hard sets a week is a strong week for a muscle.")
                 }
@@ -209,16 +218,27 @@ internal fun HeatDetailDialog(nav: String, data: HeatGroupDto?, unit: String, on
                     }
                     data.bests.forEach { b ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            val what = when (b.kind) {
+                                "weight" -> "${b.reps} reps"
+                                "time" -> "longest hold"
+                                else -> "most reps"
+                            }
                             Text(
-                                b.name + " · " + (if (b.kind == "weight") "${b.reps} reps" else "most reps"),
+                                b.name + " · " + what,
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
-                            val value = if (b.from == b.to) fmt(b.to) else "${fmt(b.from)} → ${fmt(b.to)}"
+                            val show = { n: Double -> if (b.kind == "time") clock(n) else fmt(n) }
+                            val value = if (b.from == b.to) show(b.to) else "${show(b.from)} → ${show(b.to)}"
+                            val suffix = when {
+                                b.kind == "weight" && unit.isNotEmpty() -> " $unit"
+                                b.pft != null -> " · ${b.pft} pts"
+                                else -> ""
+                            }
                             Text(
-                                value + if (b.kind == "weight" && unit.isNotEmpty()) " $unit" else "",
+                                value + suffix,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(start = 8.dp),

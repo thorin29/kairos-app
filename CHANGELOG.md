@@ -1,4 +1,9 @@
 # Changelog
+## 0.443.0
+
+- Workout days shows core days (and other days without weights) in their own colour; the legend sits in two tidy rows.
+- Planks and other holds count on the heat map. A plank's best shows its Marine Corps PFT points.
+
 ## 0.442.0
 
 - The body map has a heat view: tap the flame to see how many hard sets each muscle gets a week, over 1 week to all time. Tap a muscle for its heavy sets and best lifts.

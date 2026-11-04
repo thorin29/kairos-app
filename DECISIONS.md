@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Core days and the two-row legend (v0.443.0 / web 0.636.0)
+
+`ProgressSummaryCards` takes `heat.days` (`HeatDayDto`): a day a group was
+trained without weights gets that group's square, so a core day of planks
+shows in amber like any lifting day. The legend is four to a row in equal
+columns (`chunked(4)`), so a seventh group starts a lined-up second row. The
+heat pop-up shows holds as m:ss with a plank's PFT points (`HeatBestDto.pft`).
+The counting is the server's (web DECISIONS, v0.636).
+
+
 ## 2026-11 — Body-map heat view (v0.442.0 / web 0.635.0)
 
 `WorkoutChart` takes the progress payload's `heat` (`HeatMapDto`). A flame

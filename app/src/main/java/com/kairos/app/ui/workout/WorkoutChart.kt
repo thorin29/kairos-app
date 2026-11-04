@@ -246,6 +246,7 @@ fun WorkoutChart(
         ProgressSummaryCards(
             series = universe,
             planDays = planDays,
+            extraDays = heat?.days.orEmpty(),
         )
     }
 }
@@ -767,6 +768,8 @@ private fun LiftRepMaxCard(
 private fun ProgressSummaryCards(
     series: List<ProgressSeriesDto>,
     planDays: List<PlanWeekdayDto>,
+    /** Days a group was trained without weights (a core day of planks), v0.443. */
+    extraDays: List<com.kairos.app.data.remote.dto.HeatDayDto> = emptyList(),
 ) {
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
@@ -850,9 +853,9 @@ private fun ProgressSummaryCards(
             if (sr.muscleGroup != null) muscleLabelFor(sr.muscleGroup!!) else sr.name
         }
     }
+    extraDays.forEach { d -> d.groups.forEach { g -> gLabels.getOrPut(g) { muscleLabelFor(g) } } }
     val labelOf = { g: String -> gLabels[g] ?: muscleLabelFor(g) }
-    val groupsSeen = series.filter { it.points.isNotEmpty() }
-        .map { keyOf(it) }
+    val groupsSeen = (series.filter { it.points.isNotEmpty() }.map { keyOf(it) } + extraDays.flatMap { it.groups })
         .distinct()
         .sortedBy { labelOf(it).lowercase() }
     // The muscle group's own colour, so a square means the same thing here as
@@ -867,6 +870,10 @@ private fun ProgressSummaryCards(
         sr.points.forEach { p ->
             byDate.getOrPut(p.date) { mutableListOf() }.let { if (!it.contains(g)) it.add(g) }
         }
+    }
+    extraDays.forEach { d ->
+        val list = byDate.getOrPut(d.date) { mutableListOf() }
+        d.groups.forEach { g -> if (!list.contains(g)) list.add(g) }
     }
 
     // A row for each weekday the plan uses AND each weekday something was
@@ -985,13 +992,20 @@ private fun ProgressSummaryCards(
             }
         }
         }
-        FlowRow(
+        // Two tidy rows (v0.443): four to a row in even columns, so a
+        // seventh group (Core) starts a second, lined-up row instead of
+        // spilling onto a ragged one.
+        Column(
             Modifier.fillMaxWidth().padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            groupsSeen.forEach { g ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+          groupsSeen.chunked(4).forEach { rowGroups ->
+            Row(Modifier.fillMaxWidth()) {
+              (0 until 4).forEach { i ->
+                val g = rowGroups.getOrNull(i)
+                if (g == null) {
+                    Spacer(Modifier.weight(1f))
+                } else Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
                             .size(10.dp)
@@ -1002,9 +1016,12 @@ private fun ProgressSummaryCards(
                         " " + labelOf(g),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                     )
                 }
+              }
             }
+          }
         }
     }
 }

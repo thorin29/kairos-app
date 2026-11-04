@@ -1039,6 +1039,14 @@ data class WorkoutProgressDto(
 data class HeatMapDto(
     val unit: String = "",
     val ranges: List<HeatRangeDto> = emptyList(),
+    /** Days a group was trained without weights (server 0.636+), for Workout days. */
+    val days: List<HeatDayDto> = emptyList(),
+)
+
+@Serializable
+data class HeatDayDto(
+    val date: String,
+    val groups: List<String> = emptyList(),
 )
 
 @Serializable
@@ -1058,7 +1066,8 @@ data class HeatGroupDto(
     val bests: List<HeatBestDto> = emptyList(),
 )
 
-/** Best weight at `reps` (kind "weight"), or most reps (kind "reps"), then and now. */
+/** Best weight at `reps` (kind "weight"), most reps ("reps") or longest hold
+ *  in seconds ("time"), then and now. `pft`: a plank's PFT points. */
 @Serializable
 data class HeatBestDto(
     val name: String,
@@ -1066,6 +1075,7 @@ data class HeatBestDto(
     val reps: Int? = null,
     val from: Double = 0.0,
     val to: Double = 0.0,
+    val pft: Int? = null,
 )
 
 /** Weekdays the plan uses, for the attendance grid. Named for weekdays, not
