@@ -63,7 +63,7 @@ import com.kairos.app.ui.nav.KairosIcons
  */
 
 /** What the core screens can do, handed down from the plan editor. */
-internal interface CoreActions {
+interface CoreActions {
     fun save(id: String?, name: String, moves: List<CoreMoveIn>, onSaved: (String) -> Unit, onError: (String) -> Unit)
     fun delete(id: String, onDone: () -> Unit)
 }

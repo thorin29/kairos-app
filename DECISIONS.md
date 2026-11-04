@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — 0.444.1: CoreActions is public
+
+`AddWorkoutSheet` is public and takes a `CoreActions`, so the interface can't
+be internal ("public function exposes its internal parameter type").
+
+
 ## 2026-11 — Core days (v0.444.0 / web 0.637.0)
 
 Add workout → Weights → Core offers Core rotation / Pick movements

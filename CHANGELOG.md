@@ -1,4 +1,8 @@
 # Changelog
+## 0.444.1
+
+- Fixes the 0.444.0 build.
+
 ## 0.444.0
 
 - Core days: add Weights → Core to a day and pick core workouts for its rotation. Each week brings the next one, with its sets filled in; a missed week repeats it.
