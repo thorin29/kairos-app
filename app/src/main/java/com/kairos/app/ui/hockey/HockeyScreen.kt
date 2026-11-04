@@ -177,7 +177,8 @@ private fun Week(
                 onToggle = { onToggle(s.name) },
                 onUp = if (i > 0) ({ onMove(i, -1) }) else null,
                 onDown = if (i < last) ({ onMove(i, 1) }) else null,
-                onAdd = { r -> onAdd(draftFor(r), data.eventTypeId) },
+                // Each section's own event type (v0.448): public skate isn't hockey.
+                onAdd = { r -> onAdd(draftFor(r), if (s.kind != null) s.eventTypeId else data.eventTypeId) },
                 onOpen = { link -> runCatching { uri.openUri(link) } },
             )
         }

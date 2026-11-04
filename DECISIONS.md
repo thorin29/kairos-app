@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Public skate's event type (v0.448.0 / web 0.641.0)
+
+`HockeySectionDto` adds `kind` and `eventTypeId`. "Add" uses the section's own
+type when the server sends `kind` (a public skate gets a skating type or
+none), and the top-level `eventTypeId` from older servers.
+
+
 ## 2026-11 — Core day screen like 5/3/1; carry distance (v0.447.0 / web 0.640.0)
 
 `CoreWorkoutScreen` drops the per-movement bordered blocks: `CoreMoveSection`

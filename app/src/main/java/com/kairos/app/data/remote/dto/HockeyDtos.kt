@@ -30,6 +30,10 @@ data class HockeySectionDto(
      *  start collapsed until opened. */
     val open: Boolean = false,
     val rows: List<HockeyRowDto> = emptyList(),
+    /** "skating" (public skate) or "hockey" (web 0.641+); null from older servers. */
+    val kind: String? = null,
+    /** The event type "Add" uses for this section (web 0.641+): public skate isn't hockey. */
+    val eventTypeId: String? = null,
 )
 
 @Serializable

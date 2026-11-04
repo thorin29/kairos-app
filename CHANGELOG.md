@@ -1,4 +1,8 @@
 # Changelog
+## 0.448.0
+
+- Adding a public skate to the calendar doesn't file it as hockey.
+
 ## 0.447.0
 
 - Core day screen: each movement under its own heading, with Skip, Timer and Log once at the bottom and one "how did it feel" for the workout. The timer fills the next hold.
