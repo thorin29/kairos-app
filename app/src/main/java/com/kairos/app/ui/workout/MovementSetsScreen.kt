@@ -42,6 +42,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1092,5 +1093,227 @@ private fun SetsSwapDialog(
                 }
             }
         }
+    }
+}
+
+/** One movement of a Core day's screen: what [CoreWorkoutScreen] needs to open its logger. */
+data class CoreMoveRef(val slotId: String, val name: String, val metric: String, val unit: String)
+
+/** Route-safe form of the moves: one per line, fields tab-separated. */
+fun encodeCoreMoves(moves: List<CoreMoveRef>): String =
+    moves.joinToString("\n") { listOf(it.slotId, it.name, it.metric, it.unit).joinToString("\t") { f -> f.replace('\t', ' ').replace('\n', ' ') } }
+
+fun decodeCoreMoves(raw: String): List<CoreMoveRef> =
+    raw.split('\n').mapNotNull { line ->
+        val f = line.split('\t')
+        if (f.size < 4) null else CoreMoveRef(slotId = f[0], name = f[1], metric = f[2], unit = f[3])
+    }
+
+/**
+ * A Core day on one screen (v0.446): each movement in its own section, the
+ * way 5/3/1's warm-up and main sets are, and one Log for the whole workout.
+ * Each movement keeps its own logger state (the same one its own page uses),
+ * so sets save as they're ticked; Log saves anything typed and goes back.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CoreWorkoutScreen(
+    date: String,
+    plannedWorkoutId: String,
+    title: String,
+    moves: List<CoreMoveRef>,
+    late: Boolean,
+    onDone: () -> Unit,
+) {
+    val container = rememberContainer()
+    val vms = moves.map { m ->
+        key(m.slotId) {
+            viewModel<MovementSetsViewModel>(
+                key = "sets:$date:$plannedWorkoutId:${m.slotId}",
+                factory = viewModelFactory {
+                    initializer {
+                        MovementSetsViewModel(
+                            session = container.sessionRepository,
+                            date = date,
+                            plannedWorkoutId = plannedWorkoutId,
+                            slotId = m.slotId,
+                            metric = m.metric,
+                            unit = m.unit,
+                            late = late,
+                        )
+                    }
+                },
+            )
+        }
+    }
+    val states = vms.map { it.ui.collectAsState().value }
+    var finishing by remember { mutableStateOf(false) }
+    val allDone = states.all { it.done }
+    LaunchedEffect(finishing, allDone) { if (finishing && allDone) onDone() }
+    val finish = {
+        if (!finishing) {
+            finishing = true
+            vms.forEach { it.leave() }
+        }
+    }
+    BackHandler { finish() }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = {
+                    IconButton(onClick = { finish() }) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
+                },
+            )
+        },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                Column(Modifier.navigationBarsPadding()) {
+                    HorizontalDivider()
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                        WorkoutActionTile(
+                            icon = KairosIcons.Check,
+                            label = "Log",
+                            modifier = Modifier.weight(1f),
+                            highlighted = true,
+                            enabled = !finishing,
+                            loading = finishing,
+                            filled = true,
+                            fixedHeight = 64.dp,
+                        ) { finish() }
+                    }
+                }
+            }
+        },
+    ) { inner ->
+        Column(
+            Modifier
+                .padding(inner)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (late) {
+                Text(
+                    "${dayName(date)} · logging late",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            moves.forEachIndexed { i, m ->
+                CoreMoveSection(vm = vms[i], name = m.name, metric = m.metric, unit = m.unit)
+            }
+        }
+    }
+}
+
+/** One movement's section on the Core day screen: name, today's target, its sets. */
+@Composable
+private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: String, unit: String) {
+    val ui by vm.ui.collectAsState()
+    var showInfo by remember { mutableStateOf(false) }
+    var timing by remember { mutableStateOf(false) }
+    val shown = ui.doingName ?: name
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                shown.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            MovementInfoButton(name = shown, onClick = { showInfo = true })
+            SmallPill(label = if (ui.skipped) "Skipped" else "Skip", icon = false) { vm.toggleSkip() }
+        }
+        if (ui.loading) {
+            CircularProgressIndicator(Modifier.size(20.dp))
+            return@Column
+        }
+        if (ui.targetScheme.isNotBlank()) {
+            Text("Today ${ui.targetScheme}", style = MaterialTheme.typography.labelLarge)
+        }
+        if (!ui.skipped) {
+            ui.rows.forEachIndexed { i, r ->
+                SetCard(
+                    index = i + 1,
+                    row = r,
+                    vm = vm,
+                    metric = metric,
+                    unit = unit,
+                    shift = ui.shift,
+                    sub = when {
+                        r.added -> "Added today"
+                        ui.lastSets.getOrNull(i) != null ->
+                            "Last time " + MovementSetsViewModel.fmtSet(ui.lastSets[i], metric)
+                        else -> ""
+                    },
+                    newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
+                    jump = vm.jumpFor(r),
+                    enabled = true,
+                    strict = vm.strict(),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PillButton(label = "Add set", icon = true) { vm.addSet() }
+                if (metric == "DURATION") {
+                    PillButton(label = "Timer") {
+                        vm.openToolFor(null)
+                        timing = true
+                    }
+                }
+                if (!vm.anyEntered() && vm.hasHints()) {
+                    PillButton(label = "Same as last time", tinted = true) { vm.sameAsLast() }
+                }
+            }
+            if (ui.rows.any { it.saved }) {
+                FeedbackCard(
+                    name = shown,
+                    effort = ui.effort,
+                    hurt = ui.hurt,
+                    onChange = { e, h -> vm.setFeedback(e, h) },
+                )
+            }
+        }
+    }
+    ui.confirmKey?.let { k ->
+        val i = ui.rows.indexOfFirst { it.key == k }
+        val row = ui.rows.getOrNull(i)
+        AlertDialog(
+            onDismissRequest = { vm.keep() },
+            title = { Text("Remove set ${i + 1}?") },
+            text = { if (row != null) Text(MovementSetsViewModel.fmtSet(vm.valueOf(row), metric)) },
+            confirmButton = { TextButton(onClick = { vm.remove(k) }) { Text("Remove", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { vm.keep() }) { Text("Keep") } },
+        )
+    }
+    if (showInfo) {
+        MovementInfoDialog(name = shown, about = ui.about, onDismiss = { showInfo = false })
+    }
+    if (timing) {
+        ConditioningTimer(
+            workout = com.kairos.app.data.remote.dto.ConditioningPlanDto(
+                name = shown,
+                type = "FOR_TIME",
+                resultLabel = "Time",
+                resultMetric = "DURATION",
+            ),
+            onLog = { seconds, _ ->
+                timing = false
+                vm.useSeconds(seconds)
+            },
+            onClose = { timing = false },
+        )
     }
 }

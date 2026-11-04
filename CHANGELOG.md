@@ -1,4 +1,9 @@
 # Changelog
+## 0.446.0
+
+- A core day is one card on the day page. It opens every movement on one screen, each in its own section, with one Log.
+- Weights is now called Strength.
+
 ## 0.445.0
 
 - Progress opens on today's muscle group, or the next one planned, instead of yesterday's. Core shows its hard sets and bests.

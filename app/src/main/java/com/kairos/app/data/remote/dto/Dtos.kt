@@ -336,6 +336,8 @@ data class WorkoutBlockDto(
     /** The plan's category (WEIGHTS, ROWING, HIIT...). Decides whether its
      *  movements open the set logger. Appended, nullable: older servers omit it. */
     val category: String? = null,
+    /** A Core day (server 0.639+): its movements log together on one screen. */
+    val core: Boolean = false,
 )
 
 @Serializable

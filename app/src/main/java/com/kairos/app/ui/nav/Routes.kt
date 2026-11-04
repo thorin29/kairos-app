@@ -75,6 +75,16 @@ sealed interface Route {
         val late: Boolean = false,
     ) : Route
 
+    /** A Core day's movements on one screen (v0.446). `moves`: encodeCoreMoves. */
+    @Serializable
+    data class CoreWorkout(
+        val date: String,
+        val plannedWorkoutId: String,
+        val title: String,
+        val moves: String,
+        val late: Boolean = false,
+    ) : Route
+
     @Serializable
     data object RecentWorkouts : Route
 

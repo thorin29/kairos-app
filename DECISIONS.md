@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Core day on one screen (v0.446.0 / web 0.639.0)
+
+`WorkoutBlockDto.core` marks a Core day; the day page draws it as one
+`CoreDayCard`, which opens `Route.CoreWorkout` → `CoreWorkoutScreen`
+(MovementSetsScreen.kt). The screen holds one `MovementSetsViewModel` per
+movement, keyed exactly as each movement's own page, and draws a
+`CoreMoveSection` each (name, ⓘ, Skip, today's target, set cards, Add set,
+Timer for holds, how it felt). One Log calls every `leave()` and goes back
+once all are done. The moves travel in the route as `encodeCoreMoves`
+(tab/line separated). "Strength" comes from the server's labels.
+
+
 ## 2026-11 — Progress focus and the warm-up chooser (v0.445.0 / web 0.638.0)
 
 `WorkoutChart` opens on `focusGroups(planDays, today)`: today's groups, else

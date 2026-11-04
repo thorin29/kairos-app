@@ -754,9 +754,24 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         usedWeight = usedWeight,
                         onWeightConsumed = { entry.savedStateHandle["useWeight"] = null },
                         onOpenSets = { route -> navController.navigate(route) },
+                        onOpenCore = { route -> navController.navigate(route) },
                         setsSaved = setsSaved,
                         onSetsConsumed = { entry.savedStateHandle["setsSaved"] = false },
                         onWriteOwn = { navController.navigate(Route.CreatePersonalWorkout) },
+                    )
+                }
+                composable<Route.CoreWorkout> { entry ->
+                    val r = entry.toRoute<Route.CoreWorkout>()
+                    com.kairos.app.ui.workout.CoreWorkoutScreen(
+                        date = r.date,
+                        plannedWorkoutId = r.plannedWorkoutId,
+                        title = r.title,
+                        moves = com.kairos.app.ui.workout.decodeCoreMoves(r.moves),
+                        late = r.late,
+                        onDone = {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("setsSaved", true)
+                            navController.popBackStack()
+                        },
                     )
                 }
                 composable<Route.MovementSets> { entry ->

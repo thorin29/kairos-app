@@ -97,6 +97,8 @@ fun WorkoutLogScreen(
     usedWeight: String?,
     onWeightConsumed: () -> Unit,
     onOpenSets: (com.kairos.app.ui.nav.Route.MovementSets) -> Unit = {},
+    /** A Core day's screen (v0.446). */
+    onOpenCore: (com.kairos.app.ui.nav.Route.CoreWorkout) -> Unit = {},
     setsSaved: Boolean = false,
     onSetsConsumed: () -> Unit = {},
     /** "Write your own" conditioning: the personal workout builder. */
@@ -198,6 +200,27 @@ fun WorkoutLogScreen(
                             ),
                         )
                     }
+                    val openCore: (WorkoutBlock) -> Unit = { block ->
+                        val day = block.date ?: ui.date ?: today
+                        onOpenCore(
+                            com.kairos.app.ui.nav.Route.CoreWorkout(
+                                date = day,
+                                plannedWorkoutId = block.plannedWorkoutId,
+                                title = block.name,
+                                moves = encodeCoreMoves(
+                                    block.inputs.filter { it.tracked }.map { m ->
+                                        CoreMoveRef(
+                                            slotId = m.plannedExerciseId ?: m.poolExerciseId,
+                                            name = m.swappedFromName ?: m.name,
+                                            metric = m.metric,
+                                            unit = m.unit,
+                                        )
+                                    },
+                                ),
+                                late = day < today,
+                            ),
+                        )
+                    }
 
                     ui.date?.let { d ->
                         DayHeader(
@@ -264,6 +287,7 @@ fun WorkoutLogScreen(
                                 vm = vm,
                                 onOpenCalculatorFor = openCalc,
                                 onOpenSets = openSets,
+                                onOpenCore = openCore,
                             )
                         }
                     }
@@ -293,6 +317,7 @@ fun WorkoutLogScreen(
                                 vm = vm,
                                 onOpenCalculatorFor = openCalc,
                                 onOpenSets = openSets,
+                                onOpenCore = openCore,
                             )
                         }
                         conds.forEach { c ->
@@ -895,6 +920,7 @@ private fun DaySectionView(
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
     onOpenSets: (WorkoutBlock, MovementInput) -> Unit,
+    onOpenCore: (WorkoutBlock) -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -906,7 +932,9 @@ private fun DaySectionView(
             modifier = Modifier.padding(top = 6.dp, start = 2.dp),
         )
         section.blocks.forEach { block ->
-            if (opensSetLogger(block)) {
+            if (block.core && opensSetLogger(block)) {
+                CoreDayCard(block = block, overdue = overdue, onOpen = { onOpenCore(block) })
+            } else if (opensSetLogger(block)) {
                 block.inputs.forEach { m ->
                     MovementCard(
                         m = m,
@@ -917,6 +945,48 @@ private fun DaySectionView(
             } else {
                 WorkoutBlockCard(block, vm, onOpenCalculatorFor)
             }
+        }
+    }
+}
+
+/** A Core day on the day page: one card for the whole workout (v0.446). */
+@Composable
+private fun CoreDayCard(block: WorkoutBlock, overdue: Boolean, onOpen: () -> Unit) {
+    val tracked = block.inputs.filter { it.tracked }
+    val done = tracked.count { it.setCount > 0 || (it.logged && !it.skipped) }
+    val colors = if (overdue) CardDefaults.outlinedCardColors(containerColor = overdueTint())
+    else CardDefaults.outlinedCardColors()
+    OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth(), colors = colors) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    block.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "${tracked.size} " + (if (tracked.size == 1) "movement" else "movements") +
+                        if (done > 0) " \u00b7 $done logged" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (tracked.isNotEmpty() && done == tracked.size) StatusChip("Logged", positive = true)
+            Icon(
+                KairosIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

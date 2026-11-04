@@ -83,6 +83,8 @@ data class WorkoutBlock(
     val isOverdue: Boolean = false,
     /** The plan's category; strength plans open each movement's set logger. */
     val category: String? = null,
+    /** A Core day: one card, opening every movement on one screen (v0.446). */
+    val core: Boolean = false,
 )
 
 data class WorkoutLogUiState(
@@ -258,6 +260,7 @@ class WorkoutLogViewModel(
                 plannedWorkoutId = b.plannedWorkoutId,
                 name = b.name,
                 muscleGroup = b.muscleGroup,
+                core = b.core,
                 inputs = b.exercises.map { e ->
                     // A slot already logged with a swapped movement comes back as
                     // that movement, still showing what it replaced — so a reload
