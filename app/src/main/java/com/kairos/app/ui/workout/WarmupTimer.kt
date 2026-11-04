@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -253,10 +254,39 @@ internal fun WarmupTimer(
         else -> "Go"
     }
 
+    // Outside the app (v0.438): the notification and floating window show the
+    // step; published when it changes, as the notification's clock ticks itself.
+    val digits = timerDigits(pal)
+    val inPip by TimerLive.inPip.collectAsState()
+    LaunchedEffect(phase, at.segment, rightFirst) {
+        if (phase == "idle" || phase == "done") {
+            TimerLive.clear(context)
+            return@LaunchedEffect
+        }
+        val segEnd = schedule.take(at.segment + 1).sumOf { it.seconds } * 1000L
+        val runMs = banked + (if (phase == "run") SystemClock.elapsedRealtime() - runStart else 0L)
+        TimerLive.publish(
+            context,
+            LiveTimer(
+                title = current.name,
+                status = status,
+                next = next?.name,
+                clock = clockText(at.left),
+                endAt = if (phase == "run") System.currentTimeMillis() + (segEnd - runMs) else null,
+                running = phase == "run",
+            ),
+        )
+    }
+    DisposableEffect(Unit) { onDispose { TimerLive.clear(context) } }
+
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
     ) {
+        if (inPip) {
+            PipTimer(clock = clockText(shown), status = status, color = if (ready) pal.ready else pal.ink, pal = pal, digits = digits)
+            return@Dialog
+        }
         Column(
             Modifier
                 .fillMaxSize()
@@ -296,7 +326,8 @@ internal fun WarmupTimer(
                 )
                 Text(
                     clockText(shown),
-                    color = if (ready) pal.ready else pal.ink,
+                    color = if (ready) pal.ready else digits.color ?: pal.ink,
+                    fontFamily = digits.font,
                     fontSize = 96.sp,
                     fontWeight = FontWeight.Bold,
                 )

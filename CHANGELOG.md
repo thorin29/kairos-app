@@ -1,4 +1,9 @@
 # Changelog
+## 0.438.0
+
+- A running timer keeps going when you leave the app: a notification with the countdown (a status-bar chip on Android 16), and a small floating window with just the time.
+- Choose what a timer does when you leave the app, and its number font and colour (Settings → Appearance).
+
 ## 0.437.0
 
 - The warm-up card's check fills in when it's done; tap the card to open the routine.

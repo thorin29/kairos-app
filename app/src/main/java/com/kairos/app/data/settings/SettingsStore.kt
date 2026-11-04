@@ -128,6 +128,26 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_TIMER_THEME] = v }
     }
 
+    /** The timer's digits (v0.438): STANDARD, CONDENSED, MONO or SERIF. */
+    val timerFont: Flow<String> = dataStore.data.map { it[KEY_TIMER_FONT] ?: "STANDARD" }
+    suspend fun setTimerFont(v: String) {
+        dataStore.edit { it[KEY_TIMER_FONT] = v }
+    }
+
+    /** The timer's digit colour (v0.438): PLAIN (the theme's text), ACCENT,
+     *  AMBER, GREEN, RED or BLUE. */
+    val timerColor: Flow<String> = dataStore.data.map { it[KEY_TIMER_COLOR] ?: "PLAIN" }
+    suspend fun setTimerColor(v: String) {
+        dataStore.edit { it[KEY_TIMER_COLOR] = v }
+    }
+
+    /** A running timer when you leave the app (v0.438): BOTH (a notification
+     *  and a floating window), NOTIFY, FLOAT or OFF. */
+    val timerAway: Flow<String> = dataStore.data.map { it[KEY_TIMER_AWAY] ?: "BOTH" }
+    suspend fun setTimerAway(v: String) {
+        dataStore.edit { it[KEY_TIMER_AWAY] = v }
+    }
+
     /** Drawer sections the server says to hide for this person ("hockey",
      *  "money"), from /api/v1/nav. Kept so the drawer is right offline and on a
      *  cold start; empty until the first answer, so nothing hides by guesswork. */
@@ -281,6 +301,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_WIDGET_SCOPE = stringPreferencesKey("widget_scope")
         val KEY_WIDGET_THEME = stringPreferencesKey("widget_theme")
         val KEY_TIMER_THEME = stringPreferencesKey("timer_theme")
+        val KEY_TIMER_FONT = stringPreferencesKey("timer_font")
+        val KEY_TIMER_COLOR = stringPreferencesKey("timer_color")
+        val KEY_TIMER_AWAY = stringPreferencesKey("timer_away")
         val KEY_WIDGET_CACHE = stringPreferencesKey("widget_cache")
         val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
         val KEY_NAV_HIDDEN = stringPreferencesKey("nav_hidden")

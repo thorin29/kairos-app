@@ -1,5 +1,34 @@
 # Decisions
 
+## 2026-11 — The timer outside the app; number font and colour (v0.438.0 / web 0.630.0)
+
+**Outside the app:** `TimerLive` (ui/workout/TimerLive.kt) holds what a
+running timer shows; `ConditioningTimer` and `WarmupTimer` publish it when
+their step, phase or get-ready changes (not every second) and clear it when
+they finish or close.
+- **Notification:** `TimerService`, a foreground service (type `specialUse`,
+  silent `workout_timer` channel), posts it with a chronometer counting down
+  to the step's end (`setChronometerCountDown`) or up for a stopwatch, so it
+  ticks without the app; paused shows the time as text. On Android 16+ it asks
+  to be a Live Update (`setRequestPromotedOngoing`, called by name so older
+  SDKs skip it; `POST_PROMOTED_NOTIFICATIONS`), the status-bar chip. As a
+  foreground service it also keeps the process running, so the beeps don't
+  stop when the phone would otherwise freeze the app in the background.
+- **Floating window:** picture-in-picture. `MainActivity` sets auto-enter
+  (Android 12+) while a timer runs, or enters on `onUserLeaveHint` before
+  that, at 16:9; `TimerLive.inPip` makes the timer draw only `PipTimer` (the
+  time sized to the window, a word of status). A floating window can't be
+  see-through: Android draws it as a solid tile, so it's the digits on the
+  timer's background. The activity now handles size and orientation changes
+  itself (`configChanges`), so entering the window doesn't restart it and
+  lose the timer.
+- `SettingsStore.timerAway`: BOTH (default), NOTIFY, FLOAT or OFF.
+
+**Numbers:** `timerFont` (Standard, Condensed, Monospace, Serif) and
+`timerColor` (Plain, Theme colour, Amber, Green, Red, Blue), under Settings →
+Appearance → Workout timer; get-ready and rest keep their colours.
+
+
 ## 2026-11 — Warm-up check; first side (v0.437.0 / web 0.629.0)
 
 `WarmupCard` (CardioBlock.kt): Mark done is a 40 dp hollow accent check circle,

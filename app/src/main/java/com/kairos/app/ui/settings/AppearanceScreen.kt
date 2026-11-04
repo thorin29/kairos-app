@@ -172,6 +172,32 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 selected = timerTheme,
                                 onPick = { v -> save { settings.setTimerTheme(v) } },
                             )
+                            // Digits and what a running timer does when you leave
+                            // the app (v0.438).
+                            val timerFont by settings.timerFont.collectAsState(initial = "STANDARD")
+                            val timerColor by settings.timerColor.collectAsState(initial = "PLAIN")
+                            val timerAway by settings.timerAway.collectAsState(initial = "BOTH")
+                            Spacer(Modifier.height(12.dp))
+                            com.kairos.app.ui.workout.Dropdown(
+                                label = "Numbers",
+                                selected = com.kairos.app.ui.workout.TIMER_FONTS.firstOrNull { it.first == timerFont }?.second ?: "Standard",
+                                options = com.kairos.app.ui.workout.TIMER_FONTS,
+                                onSelect = { v -> scope.launch { settings.setTimerFont(v) } },
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            com.kairos.app.ui.workout.Dropdown(
+                                label = "Number colour",
+                                selected = com.kairos.app.ui.workout.TIMER_COLORS.firstOrNull { it.first == timerColor }?.second ?: "Plain",
+                                options = com.kairos.app.ui.workout.TIMER_COLORS,
+                                onSelect = { v -> scope.launch { settings.setTimerColor(v) } },
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            com.kairos.app.ui.workout.Dropdown(
+                                label = "When you leave the app",
+                                selected = com.kairos.app.ui.workout.TIMER_AWAY.firstOrNull { it.first == timerAway }?.second ?: "Notification and floating window",
+                                options = com.kairos.app.ui.workout.TIMER_AWAY,
+                                onSelect = { v -> scope.launch { settings.setTimerAway(v) } },
+                            )
                         }
                     }
                 }

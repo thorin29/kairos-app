@@ -273,10 +273,52 @@ internal fun ConditioningTimer(
     }
     val restNow = phase == "run" && !at.work
 
+    // Outside the app (v0.438): the notification and floating window show the
+    // timer; published when its part changes, as the notification ticks itself.
+    val digits = timerDigits(pal)
+    val inPip by TimerLive.inPip.collectAsState()
+    LaunchedEffect(phase, at.index, leading) {
+        if (phase == "idle" || phase == "done") {
+            TimerLive.clear(context)
+            return@LaunchedEffect
+        }
+        val now = SystemClock.elapsedRealtime()
+        val runMs = banked + (if (phase == "run") now - runStart else 0L)
+        val endAt: Long? = when {
+            phase == "lead" -> TimerLive.wallAt(leadStart + lead * 1000L)
+            phase != "run" -> null
+            plan.kind == "STOPWATCH" -> null
+            plan.kind == "COUNTDOWN" -> System.currentTimeMillis() + ((plan.totalSec ?: 0) * 1000L - runMs)
+            else -> System.currentTimeMillis() + (plan.segments.take(at.index + 1).sumOf { it.sec } * 1000L - runMs)
+        }
+        TimerLive.publish(
+            context,
+            LiveTimer(
+                title = workout.name,
+                status = status,
+                clock = if (leading) leadLeft.toString() else clockText(at.clock),
+                endAt = endAt,
+                startedAt = if (phase == "run" && plan.kind == "STOPWATCH") System.currentTimeMillis() - runMs else null,
+                running = phase == "run" || phase == "lead",
+            ),
+        )
+    }
+    DisposableEffect(Unit) { onDispose { TimerLive.clear(context) } }
+
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
     ) {
+        if (inPip) {
+            PipTimer(
+                clock = if (leading) leadLeft.toString() else clockText(at.clock),
+                status = status,
+                color = if (leading) pal.ready else if (restNow) pal.rest else pal.ink,
+                pal = pal,
+                digits = digits,
+            )
+            return@Dialog
+        }
         Column(
             Modifier
                 .fillMaxSize()
@@ -308,7 +350,8 @@ internal fun ConditioningTimer(
                 Text("${workout.name} · ${plan.title}", color = pal.soft, fontSize = 13.sp, textAlign = TextAlign.Center)
                 Text(
                     if (leading) leadLeft.toString() else clockText(at.clock),
-                    color = if (leading) pal.ready else if (restNow) pal.rest else pal.ink,
+                    color = if (leading) pal.ready else if (restNow) pal.rest else digits.color ?: pal.ink,
+                    fontFamily = digits.font,
                     fontSize = 84.sp,
                     fontWeight = FontWeight.Bold,
                 )

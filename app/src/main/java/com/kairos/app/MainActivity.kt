@@ -38,6 +38,20 @@ class MainActivity : ComponentActivity() {
         com.kairos.app.data.notifications.NotificationWorker.enqueueAfterMidnight(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(this)
         val settings = container.settingsStore
+        // The floating timer window (v0.438): while a timer runs and Settings
+        // allow it, leaving the app shrinks it to the time in a corner.
+        lifecycleScope.launch {
+            kotlinx.coroutines.flow.combine(
+                com.kairos.app.ui.workout.TimerLive.current,
+                settings.timerAway,
+            ) { t, away -> t?.running == true && (away == "BOTH" || away == "FLOAT") }
+                .collect { want ->
+                    pipWanted = want
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canPip()) {
+                        runCatching { setPictureInPictureParams(pipParams(want)) }
+                    }
+                }
+        }
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
             val mode by settings.themeMode.collectAsState(initial = "SYSTEM")
@@ -75,6 +89,38 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private var pipWanted = false
+
+    private fun canPip(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private fun pipParams(auto: Boolean): android.app.PictureInPictureParams =
+        android.app.PictureInPictureParams.Builder()
+            .setAspectRatio(android.util.Rational(16, 9))
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    setAutoEnterEnabled(auto)
+                    setSeamlessResizeEnabled(false)
+                }
+            }
+            .build()
+
+    /** Before Android 12 there's no auto-enter: go to the floating window as
+     *  the person leaves. */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (pipWanted && canPip() && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            runCatching { enterPictureInPictureMode(pipParams(true)) }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        com.kairos.app.ui.workout.TimerLive.inPip.value = isInPictureInPictureMode
     }
 
     /** Leaving the app refreshes the home-screen widget, so anything changed

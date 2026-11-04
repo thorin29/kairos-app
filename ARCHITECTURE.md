@@ -251,6 +251,10 @@ is what that rule exists to prevent.
 - `ui/workout/WarmupTimer.kt` — the warm-up countdown: a timed step and the
   timed steps after it, both sides, get-ready and a pause between (web:
   `warmup-timer.tsx`, `warmup-library.ts`).
+- `ui/workout/TimerLive.kt` — a running timer outside the app: `TimerLive`
+  (what's running, `inPip`), `TimerService` (the foreground notification with
+  a live countdown, a Live Update on Android 16+), `PipTimer` (the floating
+  window) and the timer's number font and colour (`timerDigits`).
 - `ui/common/AccentOutlinedButton.kt` — the accent-outlined secondary button.
 - `ui/workout/ProgramsScreen.kt` — programs: the running one and its
   end-of-cycle dialog, the chooser (Programs / My plans / Household via
