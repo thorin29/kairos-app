@@ -148,6 +148,17 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_TIMER_AWAY] = v }
     }
 
+    /** The body map's heat view (v0.442): on or off, and its range
+     *  (1w, 4w, 12w, 6m or all). Kept on this phone. */
+    val heatOn: Flow<Boolean> = dataStore.data.map { it[KEY_HEAT_ON] ?: false }
+    suspend fun setHeatOn(v: Boolean) {
+        dataStore.edit { it[KEY_HEAT_ON] = v }
+    }
+    val heatRange: Flow<String> = dataStore.data.map { it[KEY_HEAT_RANGE] ?: "12w" }
+    suspend fun setHeatRange(v: String) {
+        dataStore.edit { it[KEY_HEAT_RANGE] = v }
+    }
+
     /** Drawer sections the server says to hide for this person ("hockey",
      *  "money"), from /api/v1/nav. Kept so the drawer is right offline and on a
      *  cold start; empty until the first answer, so nothing hides by guesswork. */
@@ -304,6 +315,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_TIMER_FONT = stringPreferencesKey("timer_font")
         val KEY_TIMER_COLOR = stringPreferencesKey("timer_color")
         val KEY_TIMER_AWAY = stringPreferencesKey("timer_away")
+        val KEY_HEAT_ON = booleanPreferencesKey("heat_on")
+        val KEY_HEAT_RANGE = stringPreferencesKey("heat_range")
         val KEY_WIDGET_CACHE = stringPreferencesKey("widget_cache")
         val KEY_NAV_EXPANDED = booleanPreferencesKey("nav_expanded")
         val KEY_NAV_HIDDEN = stringPreferencesKey("nav_hidden")

@@ -1030,6 +1030,42 @@ data class WorkoutProgressDto(
     val history: List<WorkoutHistoryDto> = emptyList(),
     /** Weekdays (0 = Sunday) the plan uses, with the muscle groups on each. */
     val planDays: List<PlanWeekdayDto> = emptyList(),
+    /** The body map's heat view (server 0.635+). Null from older servers. */
+    val heat: HeatMapDto? = null,
+)
+
+/** Hard sets a week per muscle group, for each range (v0.442). */
+@Serializable
+data class HeatMapDto(
+    val unit: String = "",
+    val ranges: List<HeatRangeDto> = emptyList(),
+)
+
+@Serializable
+data class HeatRangeDto(
+    val key: String,
+    val label: String = "",
+    val groups: List<HeatGroupDto> = emptyList(),
+)
+
+@Serializable
+data class HeatGroupDto(
+    val group: String,
+    val perWeek: Double = 0.0,
+    val heavyPerWeek: Double = 0.0,
+    /** 0 none, 1 under 4 a week, 2 4–9, 3 10 or more. */
+    val level: Int = 0,
+    val bests: List<HeatBestDto> = emptyList(),
+)
+
+/** Best weight at `reps` (kind "weight"), or most reps (kind "reps"), then and now. */
+@Serializable
+data class HeatBestDto(
+    val name: String,
+    val kind: String = "weight",
+    val reps: Int? = null,
+    val from: Double = 0.0,
+    val to: Double = 0.0,
 )
 
 /** Weekdays the plan uses, for the attendance grid. Named for weekdays, not

@@ -1,4 +1,8 @@
 # Changelog
+## 0.442.0
+
+- The body map has a heat view: tap the flame to see how many hard sets each muscle gets a week, over 1 week to all time. Tap a muscle for its heavy sets and best lifts.
+
 ## 0.441.0
 
 - Progress shows everything you've lifted, whatever your plan is now: muscles you no longer program (like Arms) stay on the body map, in Workout days and in your records.

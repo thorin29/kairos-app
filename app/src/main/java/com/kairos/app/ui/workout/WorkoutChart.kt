@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import com.kairos.app.data.remote.dto.PlanWeekdayDto
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
 import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.hypot
@@ -66,8 +68,18 @@ fun WorkoutChart(
     series: List<ProgressSeriesDto>,
     defaultId: String?,
     planDays: List<PlanWeekdayDto> = emptyList(),
+    heat: com.kairos.app.data.remote.dto.HeatMapDto? = null,
 ) {
     if (series.isEmpty()) return
+    // The heat view (v0.442): a flame in the map's corner swaps the
+    // primary/secondary view for hard sets a week. Kept on this phone.
+    val settings = com.kairos.app.ui.common.rememberContainer().settingsStore
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val heatPref by settings.heatOn.collectAsState(initial = false)
+    val heatKey by settings.heatRange.collectAsState(initial = "12w")
+    val heatOn = heat != null && heatPref
+    val heatRange = heat?.ranges?.firstOrNull { it.key == heatKey }
+    var heatPicked by remember { mutableStateOf<String?>(null) }
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
     // headed sections instead of a dropdown you have to discover.
@@ -147,16 +159,44 @@ fun WorkoutChart(
     Column(Modifier.fillMaxWidth()) {
         if (available.isNotEmpty()) {
             Box(Modifier.fillMaxWidth()) {
-                BodyMap(
-                    selected = active,
-                    fillsFront = fillsFront,
-                    fillsBack = fillsBack,
-                    onSelect = { picked = it },
-                    available = available,
-                    inert = figure.body,
-                    ring = figure.ring,
-                )
-                if (picked != null) {
+                if (heatOn) {
+                    val accent = MaterialTheme.colorScheme.primary
+                    val shade = heatFills(range = heatRange, accent = accent, fade = surface)
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        BodyMap(
+                            selected = emptyList(),
+                            fillsFront = shade,
+                            fillsBack = shade,
+                            onSelect = { heatPicked = it },
+                            available = heatAvailable(heatRange),
+                            inert = figure.body,
+                            ring = figure.ring,
+                        )
+                        HeatKey(accent = accent, fade = surface)
+                        HeatRangeChips(
+                            value = heatKey,
+                            onChange = { k -> scope.launch { settings.setHeatRange(k) } },
+                        )
+                    }
+                } else {
+                    BodyMap(
+                        selected = active,
+                        fillsFront = fillsFront,
+                        fillsBack = fillsBack,
+                        onSelect = { picked = it },
+                        available = available,
+                        inert = figure.body,
+                        ring = figure.ring,
+                    )
+                }
+                if (heat != null) {
+                    HeatToggle(
+                        on = heatOn,
+                        onClick = { scope.launch { settings.setHeatOn(!heatOn) } },
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                }
+                if (!heatOn && picked != null) {
                     // The app has no Material Icons dependency; KairosIcons is
                     // the app's own set, drawn from the same path data as the
                     // web's, so this is the same glyph on both. Reset rather
@@ -175,6 +215,14 @@ fun WorkoutChart(
                     )
                 }
             }
+        }
+        heatPicked?.let { nav ->
+            HeatDetailDialog(
+                nav = nav,
+                data = heatRange?.groups?.firstOrNull { it.group == heatGroupOf(nav) },
+                unit = heat?.unit.orEmpty(),
+                onDismiss = { heatPicked = null },
+            )
         }
         groups.forEach { (key, label, items) ->
             Text(

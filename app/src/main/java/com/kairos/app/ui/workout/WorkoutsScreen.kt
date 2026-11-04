@@ -178,7 +178,7 @@ fun WorkoutsScreen(
                                     fontWeight = FontWeight.SemiBold,
                                 )
                                 Spacer(Modifier.height(8.dp))
-                                WorkoutChart(p.series, p.defaultId, p.planDays)
+                                WorkoutChart(p.series, p.defaultId, p.planDays, heat = p.heat)
                             }
                         }
                     }

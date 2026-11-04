@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Body-map heat view (v0.442.0 / web 0.635.0)
+
+`WorkoutChart` takes the progress payload's `heat` (`HeatMapDto`). A flame
+toggle (`HeatToggle`, top-left of the map) swaps the primary/secondary view
+for hard sets a week per muscle; range chips 1 wk / 4 wk / 12 wk (default) /
+6 mo / All. Both kept in `SettingsStore` (`heatOn`, `heatRange`). One hue at
+three strengths (`heatShade`, the theme primary blended toward the figure's
+fade), a key with an ⓘ pop-up, and a tap opens `HeatDetailDialog` (sets a
+week, heavy sets a week, bests then → now). The server does all the counting
+(see the web's DECISIONS, v0.635), so the phone just draws it. Older servers
+send no `heat`, and the flame doesn't show.
+
+
 ## 2026-11 — Progress is history, not the plan (v0.441.0 / web 0.634.0)
 
 `WorkoutChart`'s universe was the plan's tracked movements whenever any were
