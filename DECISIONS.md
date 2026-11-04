@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Progress is history, not the plan (v0.441.0 / web 0.634.0)
+
+`WorkoutChart`'s universe was the plan's tracked movements whenever any were
+tracked, so a muscle no longer programmed dropped off the body map, records
+and Workout days. It's now every series with logged points; the plan still
+picks what the map opens on.
+
+
 ## 2026-11 — Timer looks as they look; black floating window (v0.440.0 / web 0.632.0)
 
 `TimerLookPicker` (TimerLive.kt) replaces the Numbers and Number colour

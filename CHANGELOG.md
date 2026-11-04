@@ -1,4 +1,8 @@
 # Changelog
+## 0.441.0
+
+- Progress shows everything you've lifted, whatever your plan is now: muscles you no longer program (like Arms) stay on the body map, in Workout days and in your records.
+
 ## 0.440.0
 
 - Timer number choices show each font and colour as it looks; the colours are neon.
