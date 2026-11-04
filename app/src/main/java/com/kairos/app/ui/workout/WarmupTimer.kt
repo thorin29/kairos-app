@@ -66,15 +66,17 @@ internal data class WarmupSegment(val kind: String, val interval: Int, val secon
 /** Choices for the pause between intervals, in seconds (WARMUP_GAPS). */
 internal val WARMUP_GAPS = listOf(0, 1, 2, 3, 5, 10)
 
-internal fun warmupIntervals(steps: List<WarmupStepDto>, from: Int): List<WarmupInterval> {
+/** [rightFirst]: an each-side step starts on the right (v0.437, chosen on the timer). */
+internal fun warmupIntervals(steps: List<WarmupStepDto>, from: Int, rightFirst: Boolean = false): List<WarmupInterval> {
+    val (a, b) = if (rightFirst) "right" to "left" else "left" to "right"
     val out = mutableListOf<WarmupInterval>()
     for (i in from until steps.size) {
         val s = steps[i]
         val sec = s.seconds ?: 0
         if (s.kind != "TIME" || sec <= 0) break
         if (s.sides) {
-            out += WarmupInterval(step = i, name = "${s.name} · left", seconds = sec)
-            out += WarmupInterval(step = i, name = "${s.name} · right", seconds = sec)
+            out += WarmupInterval(step = i, name = "${s.name} · $a", seconds = sec)
+            out += WarmupInterval(step = i, name = "${s.name} · $b", seconds = sec)
         } else {
             out += WarmupInterval(step = i, name = s.name, seconds = sec)
         }
@@ -119,7 +121,10 @@ internal fun WarmupTimer(
     val context = LocalContext.current
     val pal = timerPalette()
     val prefs = remember { context.getSharedPreferences("kairos_timer", Context.MODE_PRIVATE) }
-    val intervals = remember(steps, from) { warmupIntervals(steps = steps, from = from) }
+    var rightFirst by remember { mutableStateOf(prefs.getBoolean("warmup_right_first", false)) }
+    val intervals = remember(steps, from, rightFirst) { warmupIntervals(steps = steps, from = from, rightFirst = rightFirst) }
+    // Each-side steps in this run: the timer asks which side to start on.
+    val hasSides = intervals.withIndex().any { (i, iv) -> intervals.getOrNull(i + 1)?.step == iv.step }
     var sound by remember { mutableStateOf(prefs.getBoolean("warmup_sound", true)) }
     var lead by remember { mutableIntStateOf(prefs.getInt("warmup_lead", 5).takeIf { it in TIMER_LEADS } ?: 5) }
     var gap by remember { mutableIntStateOf(prefs.getInt("warmup_gap", 10).takeIf { it in WARMUP_GAPS } ?: 10) }
@@ -315,6 +320,19 @@ internal fun WarmupTimer(
                     lead = v
                     prefs.edit().putInt("warmup_lead", v).apply()
                 }
+                if (hasSides) {
+                    ChipRow(
+                        label = "Start on",
+                        values = listOf(0, 1),
+                        chosen = if (rightFirst) 1 else 0,
+                        pal = pal,
+                        text = { if (it == 1) "Right" else "Left" },
+                        chipWidth = 72,
+                    ) { v ->
+                        rightFirst = v == 1
+                        prefs.edit().putBoolean("warmup_right_first", rightFirst).apply()
+                    }
+                }
                 if (intervals.size > 1) {
                     ChipRow(label = "Between", values = WARMUP_GAPS, chosen = gap, pal = pal) { v ->
                         gap = v
@@ -363,7 +381,15 @@ internal fun WarmupTimer(
 
 /** A label over a row of second choices ("0s", "5s" …), the chosen one filled. */
 @Composable
-private fun ChipRow(label: String, values: List<Int>, chosen: Int, pal: TimerPalette, onPick: (Int) -> Unit) {
+private fun ChipRow(
+    label: String,
+    values: List<Int>,
+    chosen: Int,
+    pal: TimerPalette,
+    text: (Int) -> String = { "${it}s" },
+    chipWidth: Int = 46,
+    onPick: (Int) -> Unit,
+) {
     Column(
         Modifier.fillMaxWidth().padding(bottom = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -376,12 +402,12 @@ private fun ChipRow(label: String, values: List<Int>, chosen: Int, pal: TimerPal
                 Box(
                     Modifier
                         .heightIn(min = 36.dp)
-                        .width(46.dp)
+                        .width(chipWidth.dp)
                         .background(if (on) pal.accent else Color.Transparent, RoundedCornerShape(999.dp))
                         .border(1.dp, if (on) pal.accent else pal.line, RoundedCornerShape(999.dp))
                         .clickable { onPick(v) },
                     contentAlignment = Alignment.Center,
-                ) { Text("${v}s", color = if (on) pal.onAccent else pal.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                ) { Text(text(v), color = if (on) pal.onAccent else pal.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
     }

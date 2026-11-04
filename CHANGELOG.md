@@ -1,4 +1,10 @@
 # Changelog
+## 0.437.0
+
+- The warm-up card's check fills in when it's done; tap the card to open the routine.
+- The warm-up timer asks which side to start on.
+- Bodyweight movements like push-ups ask for reps only (with web 0.629).
+
 ## 0.436.0
 
 - Button outlines are thinner.

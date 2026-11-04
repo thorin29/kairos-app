@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Warm-up check; first side (v0.437.0 / web 0.629.0)
+
+`WarmupCard` (CardioBlock.kt): Mark done is a 40 dp hollow accent check circle,
+filled when done; the card opens `WarmupWindow`. `WarmupTimer`: "Start on"
+Left / Right when the run has an each-side step (`warmup_right_first` in the
+timer prefs); `warmupIntervals(…, rightFirst)`; `ChipRow` takes a label and
+width. Push-ups and the like ask for reps only once the server sends REPS
+(web 0.629); the set logger already handled REPS.
+
+
 ## 2026-11 — Thinner outlines; one-row Cardio card; home workout card (v0.436.0 / web 0.628.0)
 
 `AccentOutlinedButton` and the set logger's / Swap pills use a 1 dp outline

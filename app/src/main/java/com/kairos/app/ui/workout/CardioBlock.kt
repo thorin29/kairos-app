@@ -2,6 +2,11 @@ package com.kairos.app.ui.workout
 
 import com.kairos.app.ui.common.AccentOutlinedButton
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -145,16 +150,25 @@ internal fun WarmupCard(
                 TextButton(onClick = { onSkip(!plan.skipped) }) { Text(if (plan.skipped) "Skipped" else "Skip") }
             }
             if (!plan.skipped) {
-                if (finished) {
-                    AccentOutlinedButton(onClick = { onDone(false) }) {
-                        Icon(KairosIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text("Done", modifier = Modifier.padding(start = 6.dp))
-                    }
-                } else {
-                    Button(onClick = { onDone(true) }) {
-                        Icon(KairosIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text("Mark done", modifier = Modifier.padding(start = 6.dp))
-                    }
+                // A hollow check in the theme colour that fills in once done
+                // (v0.437); the card itself opens the routine.
+                val primary = MaterialTheme.colorScheme.primary
+                androidx.compose.foundation.layout.Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(if (finished) primary else MaterialTheme.colorScheme.surface)
+                        .border(1.5.dp, primary, androidx.compose.foundation.shape.CircleShape)
+                        .clickable { onDone(!finished) }
+                        .semantics { contentDescription = if (finished) "${plan.name} done" else "Mark ${plan.name} done" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        KairosIcons.Check,
+                        contentDescription = null,
+                        tint = if (finished) MaterialTheme.colorScheme.onPrimary else primary,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
         }
