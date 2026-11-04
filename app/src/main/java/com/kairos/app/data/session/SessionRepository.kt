@@ -690,6 +690,27 @@ class SessionRepository(
     suspend fun deleteWarmupRoutine(id: String): WorkoutAckDto =
         runAuthed { requireService().deleteWarmupRoutine(com.kairos.app.data.remote.dto.SharedPlanIdRequest(id = id)) }
 
+    /** Make a Core day on `day`, or change `plannedWorkoutId`'s rotation (server 0.637+). */
+    suspend fun setCoreDay(plannedWorkoutId: String?, day: Int?, rotation: List<String>, test: Boolean): String =
+        runAuthed {
+            requireService().setCoreDay(
+                com.kairos.app.data.remote.dto.SetCoreDayRequest(
+                    plannedWorkoutId = plannedWorkoutId,
+                    day = day,
+                    rotation = rotation,
+                    test = test,
+                ),
+            )
+        }.id
+
+    suspend fun saveCoreWorkout(id: String?, name: String, moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>): String =
+        runAuthed {
+            requireService().saveCoreWorkout(com.kairos.app.data.remote.dto.SaveCoreWorkoutRequest(id = id, name = name, moves = moves))
+        }.id
+
+    suspend fun deleteCoreWorkout(id: String): WorkoutAckDto =
+        runAuthed { requireService().deleteCoreWorkout(com.kairos.app.data.remote.dto.SharedPlanIdRequest(id = id)) }
+
     suspend fun setPlanWarmup(plannedWorkoutId: String, warmup: String?): WorkoutAckDto =
         runAuthed {
             requireService().setPlanWarmup(com.kairos.app.data.remote.dto.PlanWarmupRequest(plannedWorkoutId = plannedWorkoutId, warmup = warmup))
@@ -1251,6 +1272,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 508
+        const val CLIENT_BUILD = 509
     }
 }

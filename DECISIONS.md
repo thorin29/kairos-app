@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — Core days (v0.444.0 / web 0.637.0)
+
+Add workout → Weights → Core offers Core rotation / Pick movements
+(`CoreModeSwitch`); the rotation picker (`CoreRotationPicker`, CoreDays.kt)
+numbers workouts in tap order, ⓘ lists a workout's movements, and "New core
+workout" / the pencil open `CoreWorkoutEditor` (movement, Reps / Hold /
+Weight, sets × min–max). A Core day's plan line (`CorePlanLine`) shows the
+workout planned now and a Rotation button (`CoreRotationDialog`). Writes go
+through `EditPlanViewModel` (`setCoreDay`, `saveCoreWorkout`,
+`deleteCoreWorkout`, handed to the screens as `CoreActions`); the options
+reload after a save so the new workout shows. The server picks the workout
+due and writes its movements, so the day page and logger need nothing new
+except hold targets: `TargetSetDto.seconds` fills the time hint. Older
+servers send no `coreWorkouts`, and the switch doesn't show.
+
+
 ## 2026-11 — Core days and the two-row legend (v0.443.0 / web 0.636.0)
 
 `ProgressSummaryCards` takes `heat.days` (`HeatDayDto`): a day a group was

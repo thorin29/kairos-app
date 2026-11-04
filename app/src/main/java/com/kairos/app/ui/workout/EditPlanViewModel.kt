@@ -82,6 +82,50 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
     fun remove(id: String) = act { session.planRemove(id) }
     fun addPool(body: com.kairos.app.data.remote.dto.AddPoolRequest) = act { session.planAddPool(body) }
     fun addHiit(day: Int, hiitWorkoutId: String) = act { session.planAddHiit(day, hiitWorkoutId) }
+    // --- core days (server 0.637+) -----------------------------------------
+
+    /** Make a Core day on `day`, or change `plannedWorkoutId`'s rotation. */
+    fun setCoreDay(plannedWorkoutId: String?, day: Int?, rotation: List<String>, test: Boolean) =
+        act { session.setCoreDay(plannedWorkoutId = plannedWorkoutId, day = day, rotation = rotation, test = test) }
+
+    /** Save one's own core workout; the options reload so it shows in the list. */
+    fun saveCoreWorkout(
+        id: String?,
+        name: String,
+        moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>,
+        onSaved: (String) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            try {
+                val saved = session.saveCoreWorkout(id = id, name = name, moves = moves)
+                refreshOptions()
+                if (id != null) load(initial = false)
+                onSaved(saved)
+            } catch (e: ApiException) {
+                onError(e.error.message)
+            }
+        }
+    }
+
+    fun deleteCoreWorkout(id: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                session.deleteCoreWorkout(id)
+                refreshOptions()
+                load(initial = false)
+                onDone()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(error = e.error.message) }
+            }
+        }
+    }
+
+    private suspend fun refreshOptions() {
+        val o = runCatching { session.loadPlanOptions() }.getOrNull() ?: return
+        _ui.update { it.copy(options = o) }
+    }
+
     fun setScheme(plannedWorkoutId: String, poolExerciseId: String, scheme: String) =
         act { session.setPlanScheme(plannedWorkoutId = plannedWorkoutId, poolExerciseId = poolExerciseId, scheme = scheme) }
 

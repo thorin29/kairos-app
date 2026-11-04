@@ -734,6 +734,8 @@ data class TargetSetDto(
     val warmup: Boolean = false,
     /** A supplemental set after them, BBB or FSL (server 0.623+). */
     val supplemental: Boolean = false,
+    /** A timed hold's target in seconds (server 0.637+); reps is 0 then. */
+    val seconds: Int? = null,
 )
 
 /** A person's running program, as the day page and Workouts page show it. */
@@ -1251,6 +1253,8 @@ data class PlanOptionsDto(
     val hiitWorkouts: List<HiitOptionDto> = emptyList(),
     /** Set structures a weights movement can take (server 0.615+). */
     val schemes: List<SchemeChoiceDto> = emptyList(),
+    /** Core workouts for a Core day's rotation (server 0.637+). */
+    val coreWorkouts: List<CoreWorkoutDto> = emptyList(),
 )
 
 @Serializable
@@ -1286,7 +1290,68 @@ data class PlanWorkoutDto(
     val category: String? = null,
     /** A Warm-up's routine id ("lib:<key>" or one's own); null: a plain check (server 0.622+). */
     val warmup: String? = null,
+    /** A Core day's rotation (server 0.637+); null for anything else. */
+    val core: CoreDayDto? = null,
     val exercises: List<PlanMovementDto> = emptyList(),
+)
+
+/** A Core day's rotation: core workout ids in order, the monthly plank test,
+ *  and which one is planned now. */
+@Serializable
+data class CoreDayDto(
+    val rotation: List<String> = emptyList(),
+    val test: Boolean = true,
+    val at: Int = 0,
+)
+
+/** A core workout (server 0.637+): the library's ("lib:<key>") or one's own. */
+@Serializable
+data class CoreWorkoutDto(
+    val id: String,
+    val name: String = "",
+    val minutes: Int = 0,
+    val gear: String = "",
+    val mine: Boolean = false,
+    val moves: List<CoreMoveDto> = emptyList(),
+)
+
+/** `kind`: REPS, TIME (min/max in seconds) or WEIGHT. `label`: "3 × 8–12", "3 × 0:30–0:45". */
+@Serializable
+data class CoreMoveDto(
+    val name: String = "",
+    val poolExerciseId: String? = null,
+    val kind: String = "REPS",
+    val sets: Int = 3,
+    val min: Int = 10,
+    val max: Int = 15,
+    val label: String = "",
+)
+
+@Serializable
+data class CoreWorkoutsDto(val workouts: List<CoreWorkoutDto> = emptyList())
+
+@Serializable
+data class SetCoreDayRequest(
+    val plannedWorkoutId: String? = null,
+    val day: Int? = null,
+    val rotation: List<String>,
+    val test: Boolean,
+)
+
+@Serializable
+data class CoreMoveIn(
+    val poolExerciseId: String,
+    val kind: String,
+    val sets: Int,
+    val min: Int,
+    val max: Int,
+)
+
+@Serializable
+data class SaveCoreWorkoutRequest(
+    val id: String? = null,
+    val name: String,
+    val moves: List<CoreMoveIn>,
 )
 
 /** A movement in the plan, with its set structure (server 0.615+). */

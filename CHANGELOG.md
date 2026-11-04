@@ -1,4 +1,11 @@
 # Changelog
+## 0.444.0
+
+- Core days: add Weights → Core to a day and pick core workouts for its rotation. Each week brings the next one, with its sets filled in; a missed week repeats it.
+- Eight ready-made core workouts, with equipment or without, and you can make your own.
+- On the first core day of the month, a max plank comes first, scored on the Marine Corps PFT.
+- Timed holds now show target times to beat.
+
 ## 0.443.0
 
 - Workout days shows core days (and other days without weights) in their own colour; the legend sits in two tidy rows.

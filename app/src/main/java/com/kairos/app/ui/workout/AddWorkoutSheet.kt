@@ -57,12 +57,19 @@ fun AddWorkoutSheet(
     onAddHiit: (String) -> Unit,
     onMarkRest: () -> Unit,
     onDismiss: () -> Unit,
+    /** A Core day: its rotation and the monthly plank test (server 0.637+). */
+    onAddCore: (List<String>, Boolean) -> Unit = { _, _ -> },
+    coreActions: CoreActions? = null,
 ) {
     var rest by remember { mutableStateOf(false) }
     var categoryKey by remember { mutableStateOf(options.categories.firstOrNull()?.key ?: "WEIGHTS") }
     var muscleKey by remember { mutableStateOf(options.muscleGroups.firstOrNull()?.key ?: "") }
     var picked by remember { mutableStateOf<Map<String, Pick>>(emptyMap()) }
     var hiitId by remember { mutableStateOf("") }
+    // Core (v0.444): a rotation of core workouts, or movements picked by hand.
+    var coreRotationMode by remember { mutableStateOf(true) }
+    var coreRotation by remember { mutableStateOf<List<String>>(emptyList()) }
+    var coreTest by remember { mutableStateOf(true) }
 
     val category = options.categories.firstOrNull { it.key == categoryKey }
     val kind = category?.kind ?: "pool"
@@ -76,8 +83,11 @@ fun AddWorkoutSheet(
     }
     val ownMetrics = exercises.mapNotNull { e -> e.metric?.let { e.id to it } }.toMap()
 
+    val coreRot = kind == "weights" && muscleKey == "CORE" && coreRotationMode &&
+        options.coreWorkouts.isNotEmpty() && coreActions != null
     val canSave = when {
         rest -> true
+        coreRot -> coreRotation.isNotEmpty()
         kind == "hiit" -> hiitId.isNotBlank()
         kind == "metricOnly" -> true
         else -> picked.isNotEmpty()
@@ -87,6 +97,7 @@ fun AddWorkoutSheet(
         if (!canSave || busy) return
         when {
             rest -> onMarkRest()
+            coreRot -> onAddCore(coreRotation, coreTest)
             // Conditioning with no workout chosen ahead: picked, built or
             // written on the day (server 0.617+).
             kind == "hiit" && hiitId == PICK_ON_THE_DAY -> onAddPool(
@@ -165,7 +176,20 @@ fun AddWorkoutSheet(
                             listOf("" to NO_GROUP_LABEL),
                         onSelect = { muscleKey = it; picked = emptyMap() },
                     )
-                    ExerciseList(
+                    if (muscleKey == "CORE" && options.coreWorkouts.isNotEmpty() && coreActions != null) {
+                        CoreModeSwitch(rotation = coreRotationMode, onRotation = { coreRotationMode = it })
+                    }
+                    if (coreRot && coreActions != null) {
+                        CoreRotationWithEditor(
+                            workouts = options.coreWorkouts,
+                            exercises = options.exercises,
+                            rotation = coreRotation,
+                            onRotation = { coreRotation = it },
+                            test = coreTest,
+                            onTest = { coreTest = it },
+                            actions = coreActions,
+                        )
+                    } else ExerciseList(
                         items = exercises.map { it.id to it.name },
                         picked = picked,
                         metrics = metrics,
@@ -207,9 +231,40 @@ fun AddWorkoutSheet(
             enabled = canSave && !busy,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Text(if (busy) "Adding…" else "Add workout")
+            Text(if (busy) "Adding…" else if (coreRot) "Add core day" else "Add workout")
         }
         }
+        }
+    }
+}
+
+/** Core rotation or Pick movements, as two halves of one outlined bar. */
+@Composable
+private fun CoreModeSwitch(rotation: Boolean, onRotation: (Boolean) -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(width = 1.dp, color = accent, shape = shape),
+    ) {
+        listOf(true to "Core rotation", false to "Pick movements").forEach { (k, label) ->
+            val on = k == rotation
+            Box(
+                Modifier
+                    .weight(1f)
+                    .background(if (on) accent else androidx.compose.ui.graphics.Color.Transparent)
+                    .clickable { onRotation(k) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else accent,
+                )
+            }
         }
     }
 }

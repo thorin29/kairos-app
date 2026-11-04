@@ -64,6 +64,21 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
     val ui by vm.ui.collectAsState()
     val todayDow = remember { LocalDate.now().dayOfWeek.value % 7 }
     var addingDay by remember { mutableStateOf<Int?>(null) }
+    // A Core day whose rotation is being changed (v0.444).
+    var editingCore by remember { mutableStateOf<com.kairos.app.data.remote.dto.PlanWorkoutDto?>(null) }
+    val coreActions = remember(vm) {
+        object : CoreActions {
+            override fun save(
+                id: String?,
+                name: String,
+                moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>,
+                onSaved: (String) -> Unit,
+                onError: (String) -> Unit,
+            ) = vm.saveCoreWorkout(id = id, name = name, moves = moves, onSaved = onSaved, onError = onError)
+
+            override fun delete(id: String, onDone: () -> Unit) = vm.deleteCoreWorkout(id = id, onDone = onDone)
+        }
+    }
     var showStart by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -162,6 +177,7 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             onMarkRest = { vm.markRest(d.day) },
                             onAdd = { addingDay = d.day },
                             onWarmupChanged = { vm.reload() },
+                            onCoreRotation = { editingCore = it },
                         )
                     }
                     // Save, share, export and import at the foot of the plan
@@ -184,6 +200,26 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                     onAddHiit = { hid -> vm.addHiit(ad, hid); addingDay = null },
                     onMarkRest = { vm.markRest(ad); addingDay = null },
                     onDismiss = { addingDay = null },
+                    onAddCore = { rot, test ->
+                        vm.setCoreDay(plannedWorkoutId = null, day = ad, rotation = rot, test = test)
+                        addingDay = null
+                    },
+                    coreActions = coreActions,
+                )
+            }
+            val ec = editingCore
+            if (ec != null && opts != null) {
+                CoreRotationDialog(
+                    w = ec,
+                    workouts = opts.coreWorkouts,
+                    exercises = opts.exercises,
+                    busy = ui.busy,
+                    actions = coreActions,
+                    onSave = { rot, test ->
+                        vm.setCoreDay(plannedWorkoutId = ec.id, day = null, rotation = rot, test = test)
+                        editingCore = null
+                    },
+                    onDismiss = { editingCore = null },
                 )
             }
         }
@@ -206,6 +242,7 @@ private fun DayCard(
     onMarkRest: () -> Unit,
     onAdd: () -> Unit,
     onWarmupChanged: () -> Unit,
+    onCoreRotation: (com.kairos.app.data.remote.dto.PlanWorkoutDto) -> Unit = {},
 ) {
     val hasRest = day.workouts.any { it.isRest }
     var pendingRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -281,7 +318,9 @@ private fun DayCard(
                         fontWeight = FontWeight.Medium,
                     )
                     val withSchemes = schemes.isNotEmpty() && w.exercises.any { it.weights }
-                    if (withSchemes) {
+                    if (w.core != null) {
+                        CorePlanLine(w = w, onRotation = { onCoreRotation(w) })
+                    } else if (withSchemes) {
                         w.exercises.forEach { e ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
