@@ -532,7 +532,7 @@ private fun SetCard(
                             label = "Weight, set $index",
                             decimal = true,
                             enabled = enabled,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.width(88.dp),
                         ) { vm.onWeight(row.key, it) }
                         UnitText(unit)
                         UnitText("×")
@@ -542,20 +542,21 @@ private fun SetCard(
                             label = if (repsUnit != null) "Distance, set $index" else "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.width(if (repsUnit != null) 76.dp else 68.dp),
                         ) { vm.onReps(row.key, it) }
                         if (repsUnit != null) UnitText(repsUnit)
+                        Spacer(Modifier.weight(1f))
                     }
                     "DURATION" -> {
-                        SetField(
-                            value = row.s,
-                            hint = row.hintS?.toString() ?: "0",
-                            label = "Seconds, set $index",
-                            decimal = false,
+                        // Minutes and seconds, typed like a microwave (v0.449).
+                        ClockField(
+                            seconds = row.s,
+                            hint = row.hintS?.let { clockOf(it) } ?: "0:00",
+                            label = "Time, set $index",
                             enabled = enabled,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.width(96.dp),
                         ) { vm.onSeconds(row.key, it) }
-                        UnitText("sec")
+                        Spacer(Modifier.weight(1f))
                     }
                     else -> {
                         SetField(
@@ -564,9 +565,10 @@ private fun SetCard(
                             label = "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.width(68.dp),
                         ) { vm.onReps(row.key, it) }
                         UnitText("reps")
+                        Spacer(Modifier.weight(1f))
                     }
                 }
                 // ✓ fills in once the set is saved.
@@ -666,6 +668,42 @@ private fun SetField(
         singleLine = true,
         enabled = enabled,
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
+        modifier = modifier.semantics { contentDescription = label },
+    )
+}
+
+/** Seconds as m:ss ("2:06"). */
+internal fun clockOf(seconds: Int): String = "${seconds / 60}:" + (seconds % 60).toString().padStart(2, '0')
+
+/** What was typed ("2:06", "2:065") → seconds as text; digits fill from the right. */
+internal fun secondsFromTyped(typed: String): String {
+    val d = typed.filter { it.isDigit() }.trimStart('0').take(4)
+    if (d.isEmpty()) return ""
+    val n = d.toInt()
+    return ((n / 100) * 60 + n % 100).toString()
+}
+
+/** A time in minutes and seconds: shows m:ss, typed digits fill from the right. */
+@Composable
+private fun ClockField(
+    seconds: String,
+    hint: String,
+    label: String,
+    enabled: Boolean,
+    modifier: Modifier,
+    onChange: (String) -> Unit,
+) {
+    val shown = seconds.toIntOrNull()?.let { clockOf(it) } ?: ""
+    OutlinedTextField(
+        value = androidx.compose.ui.text.input.TextFieldValue(
+            text = shown,
+            selection = androidx.compose.ui.text.TextRange(shown.length),
+        ),
+        onValueChange = { v -> onChange(secondsFromTyped(v.text)) },
+        placeholder = { Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+        singleLine = true,
+        enabled = enabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = modifier.semantics { contentDescription = label },
     )
 }
@@ -1153,7 +1191,9 @@ fun CoreWorkoutScreen(
     }
     val states = vms.map { it.ui.collectAsState().value }
     var finishing by remember { mutableStateOf(false) }
-    var timing by remember { mutableStateOf(false) }
+    // The movement the timer is timing: the next with open timed sets, and
+    // only that one (v0.449). A side-at-a-time movement gets Switch.
+    var timing by remember { mutableStateOf<Int?>(null) }
     val allDone = states.all { it.done }
     val allSkipped = states.isNotEmpty() && states.all { it.skipped }
     val timed = moves.any { it.metric == "DURATION" }
@@ -1205,7 +1245,11 @@ fun CoreWorkoutScreen(
                             highlighted = timed && !allSkipped,
                             enabled = timed && !allSkipped,
                             fixedHeight = 64.dp,
-                        ) { timing = true }
+                        ) {
+                            timing = moves.indices.firstOrNull { j ->
+                                moves[j].metric == "DURATION" && !states[j].skipped && vms[j].openTimed() > 0
+                            }
+                        }
                         WorkoutActionTile(
                             icon = KairosIcons.Check,
                             label = "Log",
@@ -1255,28 +1299,33 @@ fun CoreWorkoutScreen(
             }
         }
     }
-    if (timing) {
-        ConditioningTimer(
-            workout = com.kairos.app.data.remote.dto.ConditioningPlanDto(
-                name = title,
-                type = "FOR_TIME",
-                resultLabel = "Time",
-                resultMetric = "DURATION",
-            ),
-            onLog = { seconds, _ ->
-                timing = false
-                // Into the next open timed set, in order down the page.
-                val i = moves.indices.firstOrNull { j ->
-                    moves[j].metric == "DURATION" && !states[j].skipped &&
-                        states[j].rows.any { !it.saved && it.s.isBlank() }
-                }
-                if (i != null) {
-                    vms[i].openToolFor(null)
-                    vms[i].useSeconds(seconds)
-                }
-            },
-            onClose = { timing = false },
-        )
+    timing?.let { i ->
+        val shownName = states[i].doingName ?: moves[i].name
+        if (states[i].sides) {
+            SidesTimer(
+                name = shownName,
+                sets = vms[i].openTimed(),
+                onDone = { list ->
+                    timing = null
+                    vms[i].fillSeconds(list)
+                },
+                onClose = { timing = null },
+            )
+        } else {
+            ConditioningTimer(
+                workout = com.kairos.app.data.remote.dto.ConditioningPlanDto(
+                    name = shownName,
+                    type = "FOR_TIME",
+                    resultLabel = "Time",
+                    resultMetric = "DURATION",
+                ),
+                onLog = { seconds, _ ->
+                    timing = null
+                    vms[i].fillSeconds(listOf(seconds))
+                },
+                onClose = { timing = null },
+            )
+        }
     }
 }
 

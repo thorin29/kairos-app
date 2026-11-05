@@ -686,6 +686,8 @@ data class MovementLogDto(
     val about: String? = null,
     /** What the reps field counts when not reps: "yd" / "m" for a carry (server 0.640+). */
     val repsUnit: String? = null,
+    /** Done a side at a time, a set per side (server 0.642+): its timer switches sides. */
+    val sides: Boolean = false,
 )
 
 /** A suggestion: what, why, and the choices. Never applied on its own. */

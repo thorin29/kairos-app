@@ -80,6 +80,8 @@ data class MovementSetsUi(
     val about: String? = null,
     /** A carry's reps are a distance: "yd" / "m" (server 0.640+). */
     val repsUnit: String? = null,
+    /** Done a side at a time (server 0.642+): its timer switches sides. */
+    val sides: Boolean = false,
 )
 
 /**
@@ -133,6 +135,7 @@ class MovementSetsViewModel(
                     recentTop = log.recentTop,
                     about = log.about,
                     repsUnit = log.repsUnit,
+                    sides = log.sides,
                     targetTitle = log.target?.title ?: "",
                     lastSets = last,
                     lastDate = log.last?.date,
@@ -380,6 +383,20 @@ class MovementSetsViewModel(
     fun onWeight(key: Int, v: String) = edit(key) { it.copy(w = clean(v, true), saved = false) }
     fun onReps(key: Int, v: String) = edit(key) { it.copy(r = clean(v, false), saved = false) }
     fun onSeconds(key: Int, v: String) = edit(key) { it.copy(s = clean(v, false), saved = false) }
+
+    /** Timed sets still open (blank, not ticked). */
+    fun openTimed(): Int = _ui.value.rows.count { !it.saved && it.s.isBlank() }
+
+    /** A timer's times into the open timed sets, in order (v0.449). */
+    fun fillSeconds(values: List<Int>) {
+        val open = _ui.value.rows.filter { !it.saved && it.s.isBlank() }.map { it.key }
+        _ui.update { u ->
+            u.copy(rows = u.rows.map { r ->
+                val i = open.indexOf(r.key)
+                if (i in values.indices) r.copy(s = values[i].toString(), saved = false) else r
+            })
+        }
+    }
 
     private fun edit(key: Int, f: (SetRow) -> SetRow) =
         _ui.update { u -> u.copy(rows = u.rows.map { if (it.key == key) f(it) else it }) }

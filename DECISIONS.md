@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — m:ss entry, narrower set boxes, SidesTimer (v0.449.0 / web 0.642.0)
+
+`ClockField` shows a timed set as m:ss and reads typed digits from the right
+(`secondsFromTyped`), keeping seconds in the row. Set boxes have fixed widths
+(weight 88, reps 68, distance 76, time 96 dp) with a spacer before ✓ / ✕.
+On the Core day screen, Timer picks the next movement with open timed sets;
+one with `sides` (from `MovementLogDto.sides`) opens `SidesTimer` (Start on
+Left/Right, 1/2/3 s pause, Switch keeps each side's time), and the times fill
+that movement's open sets via `fillSeconds`. Others use the stopwatch, filling
+one set.
+
+
 ## 2026-11 — Public skate's event type (v0.448.0 / web 0.641.0)
 
 `HockeySectionDto` adds `kind` and `eventTypeId`. "Add" uses the section's own

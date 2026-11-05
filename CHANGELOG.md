@@ -1,4 +1,9 @@
 # Changelog
+## 0.449.0
+
+- Times show and type as minutes and seconds (2:06), and the set boxes are narrower.
+- On a core day, the timer for a side plank has Switch: it keeps each side's time, pauses 1–3 seconds, and fills every set.
+
 ## 0.448.0
 
 - Adding a public skate to the calendar doesn't file it as hockey.
