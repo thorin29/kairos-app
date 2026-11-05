@@ -1,4 +1,8 @@
 # Changelog
+## 0.457.0
+
+- Hockey is now Ice time, with a skate icon.
+
 ## 0.456.0
 
 - A rest day in your plan just says Rest day: no Rest / skip and no + Conditioning. Anything you do log that day still shows.

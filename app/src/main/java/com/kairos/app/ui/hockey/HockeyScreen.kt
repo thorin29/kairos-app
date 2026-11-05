@@ -85,7 +85,7 @@ fun HockeyScreen(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text("Hockey") },
+                title = { Text("Ice time") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
                 actions = {
                     if (ui.data?.state == "ok" && (ui.data?.sections?.size ?: 0) > 1) {
@@ -110,7 +110,7 @@ fun HockeyScreen(
                     }
                     data == null || data.state != "ok" -> Message(
                         text = when {
-                            data?.state == "off" -> "Hockey isn’t set up. An admin can connect ice-time on the web under Admin → Hockey."
+                            data?.state == "off" -> "Ice time isn’t set up. An admin can connect ice-time on the web under Admin → Ice time."
                             data?.state == "error" -> data.error ?: "Couldn’t reach ice-time."
                             else -> ui.loadError ?: "Couldn’t load hockey."
                         },

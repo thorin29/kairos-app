@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Hockey renamed Ice time (v0.457.0)
+
+Section label, screen title and empty-state text read "Ice time"; the icon
+(`KairosIcons.Hockey`, name kept) is now an ice skate. The section id stays
+"hockey", so saved section order and visibility carry over.
+
 ## 2026-11 — A planned rest day is a rest day (v0.456.0)
 
 `restPlanned` (server 0.646+) hides Rest / skip, the suggestion and benchmark
