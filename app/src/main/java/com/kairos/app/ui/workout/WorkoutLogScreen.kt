@@ -250,14 +250,14 @@ fun WorkoutLogScreen(
                     }
                     // Resting or skipping the whole day lives here, with the
                     // day (v0.432; it was on the Workouts page).
-                    if (ui.date != null && !ui.loggedAny && !ui.rested && !ui.loading) {
+                    if (ui.date != null && !ui.loggedAny && !ui.rested && !ui.restPlanned && !ui.loading) {
                         AccentOutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
                             Icon(KairosIcons.Moon, contentDescription = null, modifier = Modifier.size(16.dp))
                             Text("Rest / skip day", modifier = Modifier.padding(start = 6.dp))
                         }
                     }
 
-                    ui.suggestion?.let { sg ->
+                    ui.suggestion?.takeIf { !ui.restPlanned }?.let { sg ->
                         SuggestionCard(
                             title = sg.title,
                             why = sg.why,
@@ -265,7 +265,7 @@ fun WorkoutLogScreen(
                         ) { vm.answerDaySuggestion(it) }
                     }
 
-                    ui.benchmark?.let { b ->
+                    ui.benchmark?.takeIf { !ui.restPlanned }?.let { b ->
                         BenchmarkCard(
                             benchmark = b,
                             onAnswer = { vm.answerBenchmark(it) },
@@ -299,7 +299,9 @@ fun WorkoutLogScreen(
                         // puts conditioning, planned or not (v0.433).
                         add("CONDITIONING")
                     }
-                    val todaySections = daySections(todayBlocks, ui.order, simpleKinds)
+                    // A rest day in the plan has no sections, + Conditioning
+                    // included: just what was logged, below (v0.456).
+                    val todaySections = if (ui.restPlanned) emptyList() else daySections(todayBlocks, ui.order, simpleKinds)
                     todaySections.forEach { section ->
                         // A planned conditioning workout gets its own card with
                         // the timer; anything else in the section as before.

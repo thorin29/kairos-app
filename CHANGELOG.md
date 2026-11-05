@@ -1,4 +1,8 @@
 # Changelog
+## 0.456.0
+
+- A rest day in your plan just says Rest day: no Rest / skip and no + Conditioning. Anything you do log that day still shows.
+
 ## 0.455.0
 
 - A past day you already logged no longer says "logging late" when you open a movement or a core workout.

@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — A planned rest day is a rest day (v0.456.0)
+
+`restPlanned` (server 0.646+) hides Rest / skip, the suggestion and benchmark
+cards, and every section (+ Conditioning included) on the day page; the title
+comes from the server ("Rest day") and Logged lists whatever was done, rows
+and conditioning included. Log an additional workout is unchanged.
+
 ## 2026-11 — "Logging late" only while nothing is logged, on every screen (v0.455.0)
 
 v0.431 fixed the day page, but the set logger and the core workout screen

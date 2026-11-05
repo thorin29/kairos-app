@@ -387,6 +387,9 @@ data class WorkoutPlanDto(
     val loggedAny: Boolean = false,
     /** Marked a rest day (server 0.624+). */
     val rested: Boolean = false,
+    /** The plan makes this weekday a rest day (server 0.646+): no Rest / skip
+     *  and no sections; `loggedOther` lists rows and conditioning too. */
+    val restPlanned: Boolean = false,
 )
 
 @Serializable

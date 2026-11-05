@@ -145,6 +145,8 @@ data class WorkoutLogUiState(
     val loggedOther: List<com.kairos.app.data.remote.dto.LoggedOtherDto> = emptyList(),
     val loggedAny: Boolean = false,
     val rested: Boolean = false,
+    /** A rest day in the plan (v0.456). */
+    val restPlanned: Boolean = false,
     /** Pick one's list, loaded when it opens. */
     val choices: com.kairos.app.data.remote.dto.ConditioningChoicesDto? = null,
     val choicesError: String? = null,
@@ -352,6 +354,7 @@ class WorkoutLogViewModel(
                 loggedOther = plan.loggedOther,
                 loggedAny = plan.loggedAny,
                 rested = plan.rested,
+                restPlanned = plan.restPlanned,
             )
         }
     }
