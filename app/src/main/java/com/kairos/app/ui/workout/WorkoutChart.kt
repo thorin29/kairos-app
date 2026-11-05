@@ -247,6 +247,7 @@ fun WorkoutChart(
                 color = muscleColor(g) ?: MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
+            if (g == "CORE") PlankBench(tests = heat?.plank.orEmpty())
             HeatGroupSummary(data = heat12?.groups?.firstOrNull { it.group == g }, unit = heat?.unit.orEmpty())
         }
         groups.forEach { (key, label, items) ->

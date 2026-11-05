@@ -235,7 +235,7 @@ is what that rule exists to prevent.
   hides Remaining sets; a DURATION movement's Timer tile opens the conditioning
   timer and `useSeconds` fills the set. `WorkoutLogScreen.kt` — + Conditioning
   (Pick one / Build one / Write your own) and the extras logged that day
-  (`conditioningDone`). `BodyMap.kt` — the posterior-hip region shades Deadlift. `CoreDays.kt` — Core days: rotation picker, own core workout editor, the plan line and its Rotation dialog. `HeatView.kt` — the body map's heat view (flame toggle, range chips, key, muscle pop-up), drawn from the server's `heat`.
+  (`conditioningDone`). `BodyMap.kt` — the posterior-hip region shades Deadlift. `CoreDays.kt` — Core days: rotation picker, own core workout editor, the plan line and its Rotation dialog. `HeatView.kt` — the body map's heat view (flame toggle, range chips, key, muscle pop-up), drawn from the server's `heat`. `PlankBench.kt` — core's plank-test benchmark (tiles + chart) from `heat.plank`.
 - `data/remote/` offline writes — `OfflineInterceptor` (ApiClient.kt) queues a
   write the server never saw onto `WriteQueue` (never `concept2/sync` or a
   request with `X-Kairos-No-Queue`); `SyncManager` replays it on reconnect,

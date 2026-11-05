@@ -1,4 +1,8 @@
 # Changelog
+## 0.452.0
+
+- Core's chart is now the plank test: your best and latest time with PFT points, and every test over time.
+
 ## 0.451.0
 
 - Fixes the home-screen widget showing "Can't show content" on a busy week.

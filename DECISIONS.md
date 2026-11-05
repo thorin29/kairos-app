@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Plank test as core's benchmark (v0.452.0)
+
+Core's summary under the body map leads with `PlankBench` (PlankBench.kt):
+best, last, change, time to 3:45, days since best, test count, and a Canvas
+chart of every test with dashed 1:10 / 3:45 lines. Data is `heat.plank`
+(server 0.643+); an older server sends none and the card is simply absent.
+
 ## 2026-11 — Widget too big to send (v0.451.0)
 
 The 0.450 breadcrumb caught it: `TransactionTooLargeException`, 1.2 MB. Every

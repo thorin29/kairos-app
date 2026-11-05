@@ -1049,6 +1049,15 @@ data class HeatMapDto(
     val ranges: List<HeatRangeDto> = emptyList(),
     /** Days a group was trained without weights (server 0.636+), for Workout days. */
     val days: List<HeatDayDto> = emptyList(),
+    /** Each day's longest plank, oldest first (server 0.643+): core's benchmark. */
+    val plank: List<PlankTestDto> = emptyList(),
+)
+
+@Serializable
+data class PlankTestDto(
+    val date: String,
+    val seconds: Int,
+    val pft: Int? = null,
 )
 
 @Serializable
