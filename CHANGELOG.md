@@ -1,4 +1,8 @@
 # Changelog
+## 0.454.0
+
+- The workout plan shows "Saved" after each change, with a Done button at the bottom.
+
 ## 0.453.0
 
 - The monthly plank test is its own card on the day, apart from the core workout.

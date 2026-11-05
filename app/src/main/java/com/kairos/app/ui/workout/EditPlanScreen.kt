@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -81,7 +82,27 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
     }
     var showStart by remember { mutableStateOf(false) }
 
+    // Every change saves as it's made (v0.454): "Saved" confirms each one,
+    // and Done at the bottom leaves.
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    androidx.compose.runtime.LaunchedEffect(ui.savedAt) {
+        if (ui.savedAt > 0L) {
+            snackbar.currentSnackbarData?.dismiss()
+            snackbar.showSnackbar(message = "Saved", duration = androidx.compose.material3.SnackbarDuration.Short)
+        }
+    }
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(hostState = snackbar) },
+        bottomBar = {
+            androidx.compose.material3.Button(
+                onClick = onBack,
+                enabled = !ui.busy,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            ) { Text(if (ui.busy) "Saving…" else "Done") }
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Workout plan") },

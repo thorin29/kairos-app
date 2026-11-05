@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Workout plan: "Saved" after each change, Done (v0.454.0)
+
+Every plan change already saves at once. `EditPlanUiState.savedAt` moves on
+each successful write (`act`, core workout save/delete, section order, the
+warm-up picker's reload) and a Snackbar shows "Saved"; the Scaffold's bottom
+bar is a full-width Done (the rotation page's Save style) that goes back. No
+discard warning, since nothing is ever held unsaved.
+
 ## 2026-11 — Plank test card, Core plan line, plank tiles (v0.453.0)
 
 - `WorkoutBlockDto.coreTest` (server 0.644+): on a core day with the monthly

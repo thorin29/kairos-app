@@ -23,6 +23,9 @@ data class EditPlanUiState(
     val orders: com.kairos.app.data.remote.dto.DayOrdersDto? = null,
     val busy: Boolean = false,
     val error: String? = null,
+    /** When the last change was saved (every change saves at once): the
+     *  screen shows "Saved" each time it moves (v0.454). */
+    val savedAt: Long = 0L,
     /** Household plans, loaded when that sheet opens (server 0.618+). */
     val sharedPlans: List<com.kairos.app.data.remote.dto.SharedPlanDto>? = null,
     /** What the chosen file or household plan would do. */
@@ -46,7 +49,12 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
     }
 
     /** Reload after a change made elsewhere (a warm-up's routine, v0.430). */
-    fun reload() = load(initial = false)
+    fun reload() {
+        markSaved()
+        load(initial = false)
+    }
+
+    private fun markSaved() = _ui.update { it.copy(savedAt = System.currentTimeMillis()) }
 
     private fun load(initial: Boolean) {
         if (initial) _ui.update { it.copy(loading = true) }
@@ -68,6 +76,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 block()
+                markSaved()
                 load(initial = false)
             } catch (e: ApiException) {
                 _ui.update { it.copy(busy = false, error = e.error.message) }
@@ -100,6 +109,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
             try {
                 val saved = session.saveCoreWorkout(id = id, name = name, moves = moves)
                 refreshOptions()
+                markSaved()
                 if (id != null) load(initial = false)
                 onSaved(saved)
             } catch (e: ApiException) {
@@ -113,6 +123,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
             try {
                 session.deleteCoreWorkout(id)
                 refreshOptions()
+                markSaved()
                 load(initial = false)
                 onDone()
             } catch (e: ApiException) {
@@ -144,7 +155,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 val saved = session.saveDayOrder(day = day, order = order)
-                _ui.update { it.copy(orders = saved) }
+                _ui.update { it.copy(orders = saved, savedAt = System.currentTimeMillis()) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(error = e.error.message) }
             }
