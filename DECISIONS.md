@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Plank test shows with Core's charts (v0.452.1)
+
+`PlankBench` was only in the summary (no-charts) branch of WorkoutChart; Core
+with a weighted carry is a charted group, so it never drew. Now it leads the
+CORE block in both branches, and shows "No plank logged yet." when empty.
+
 ## 2026-11 — Plank test as core's benchmark (v0.452.0)
 
 Core's summary under the body map leads with `PlankBench` (PlankBench.kt):

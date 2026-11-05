@@ -1,4 +1,8 @@
 # Changelog
+## 0.452.1
+
+- The plank test shows under Core even when Core has weighted charts too.
+
 ## 0.452.0
 
 - Core's chart is now the plank test: your best and latest time with PFT points, and every test over time.

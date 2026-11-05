@@ -52,7 +52,23 @@ private fun points(t: PlankTestDto): String = t.pft?.let { "$it pts" } ?: "under
  */
 @Composable
 internal fun PlankBench(tests: List<PlankTestDto>) {
-    if (tests.isEmpty()) return
+    if (tests.isEmpty()) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp)
+                .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Text("Plank test", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                "No plank logged yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
     val best = tests.maxBy { it.seconds }
     val last = tests.last()
     val prev = tests.getOrNull(tests.size - 2)

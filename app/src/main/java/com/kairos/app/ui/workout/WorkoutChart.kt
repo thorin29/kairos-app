@@ -258,6 +258,7 @@ fun WorkoutChart(
                 color = muscleColor(key) ?: MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
+            if (key == "CORE") PlankBench(tests = heat?.plank.orEmpty())
             items.forEach { item ->
                 LiftBlock(s = item)
             }
