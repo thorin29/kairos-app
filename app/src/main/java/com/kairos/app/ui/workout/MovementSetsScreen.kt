@@ -269,7 +269,9 @@ fun MovementSetsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (late) {
+                    // Only while nothing is logged that day (v0.455): a day already
+                    // logged isn't late, as on the day page (v0.431).
+                    if (late && ui.rows.none { it.saved }) {
                         Text(
                             "${dayName(date)} · logging late",
                             style = MaterialTheme.typography.labelLarge,
@@ -1273,7 +1275,7 @@ fun CoreWorkoutScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (late) {
+            if (late && states.none { st -> st.rows.any { it.saved } }) {
                 Text(
                     "${dayName(date)} · logging late",
                     style = MaterialTheme.typography.labelLarge,

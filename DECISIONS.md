@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — "Logging late" only while nothing is logged, on every screen (v0.455.0)
+
+v0.431 fixed the day page, but the set logger and the core workout screen
+still showed "logging late" for any past day, from the route's `late` flag
+alone. Both now show it only while none of the screen's sets are saved, the
+same rule as the day page. (`late` itself still drives the completed-on date.)
+
 ## 2026-11 — Workout plan: "Saved" after each change, Done (v0.454.0)
 
 Every plan change already saves at once. `EditPlanUiState.savedAt` moves on

@@ -1,4 +1,8 @@
 # Changelog
+## 0.455.0
+
+- A past day you already logged no longer says "logging late" when you open a movement or a core workout.
+
 ## 0.454.0
 
 - The workout plan shows "Saved" after each change, with a Done button at the bottom.
