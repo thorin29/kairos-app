@@ -1,4 +1,8 @@
 # Changelog
+## 0.450.0
+
+- When the home-screen widget can't draw, Settings → Diagnostics now says why.
+
 ## 0.449.0
 
 - Times show and type as minutes and seconds (2:06), and the set boxes are narrower.

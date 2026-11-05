@@ -88,11 +88,37 @@ class KairosWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         WidgetStore.ensure(context)
         // Fresh data when it comes quickly; the cached copy otherwise.
-        runCatching { WidgetStore.refresh(context) }
+        val fresh = runCatching { WidgetStore.refresh(context) }
+        com.kairos.app.data.diag.Breadcrumbs.drop(
+            "widget draw" + (fresh.exceptionOrNull()?.let { " refresh failed: ${it::class.java.simpleName}" } ?: ""),
+        )
         provideContent {
             val st by WidgetStore.state.collectAsState()
             WidgetBody(context, st)
         }
+    }
+
+    /**
+     * When drawing the widget throws, Glance shows "Can't show content" and
+     * says nothing more (v0.450). Keep what went wrong in Settings →
+     * Diagnostics — the exception, its message and where it was thrown —
+     * so a phone without logcat can still say why.
+     */
+    override fun onCompositionError(
+        context: Context,
+        glanceId: GlanceId,
+        appWidgetId: Int,
+        throwable: Throwable,
+    ) {
+        val root = generateSequence(throwable) { it.cause }.last()
+        val at = root.stackTrace.firstOrNull { it.className.startsWith("com.kairos") }
+            ?: root.stackTrace.firstOrNull()
+        com.kairos.app.data.diag.Breadcrumbs.drop(
+            "widget error " + root::class.java.simpleName + ": " + (root.message ?: "").take(160) +
+                (at?.let { " at ${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}" } ?: ""),
+        )
+        android.util.Log.e("KairosWidget", "widget composition failed", throwable)
+        super.onCompositionError(context, glanceId, appWidgetId, throwable)
     }
 
     companion object {

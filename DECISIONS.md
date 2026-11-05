@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Widget errors in Diagnostics (v0.450.0)
+
+"Can't show content" on the widget is Glance 1.1's own error layout: drawing
+the widget threw in the app's process (not a launcher problem). Glance says
+nothing more, and a stock phone has no logcat to hand, so `KairosWidget`
+overrides `onCompositionError` to drop a breadcrumb — the root exception's
+class, message (160 chars) and the first frame in the app — then shows
+Glance's default as before. Each draw also drops "widget draw" (and a failed
+refresh), so Diagnostics shows whether the widget ran at all.
+
+
 ## 2026-11 — m:ss entry, narrower set boxes, SidesTimer (v0.449.0 / web 0.642.0)
 
 `ClockField` shows a timed set as m:ss and reads typed digits from the right
