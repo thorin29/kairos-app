@@ -653,8 +653,8 @@ private fun WorkSummaryCard(
         SectionHeader(title, category)
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
@@ -706,6 +706,10 @@ private fun WorkSummaryCard(
     }
 }
 
+/** Every home card is at least this tall (v0.458): the workout card's size
+ *  (v0.436), so Chores, School, Workouts, Reading and the rest line up. */
+private val HOME_CARD_MIN = 64.dp
+
 @Composable
 private fun WorkoutSummaryCard(
     today: List<TaskDto>,
@@ -724,7 +728,7 @@ private fun WorkoutSummaryCard(
             Row(
                 // At least the height of a two-line card (Chores), so the
                 // workout card isn't the short one (v0.436).
-                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -797,7 +801,10 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
             )
         }
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            ) {
                 reading.forEach { r ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1457,7 +1464,11 @@ private fun SectionBlock(header: String, category: String? = null, content: @Com
     Column {
         SectionHeader(header, category)
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), content = content)
+            Column(
+                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.Center,
+                content = content,
+            )
         }
     }
 }

@@ -1,4 +1,8 @@
 # Changelog
+## 0.458.0
+
+- Home cards are all at least as tall as the Workouts card, so they line up.
+
 ## 0.457.0
 
 - Hockey is now Ice time, with a skate icon.

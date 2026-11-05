@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — One minimum height for home cards (v0.458.0)
+
+`HOME_CARD_MIN` (64 dp, the Workouts card's minimum since v0.436) now sets
+the floor for every section card on Home: Chores, School, Workouts, Reading,
+and the category blocks (Bible and the like, and Today's schedule, whose
+"Nothing scheduled" line was the short one). Content centres vertically when
+the card is taller than it. Prompts (money, family goal, sport) are taller
+already and are left as they are.
+
 ## 2026-11 — Hockey renamed Ice time (v0.457.0)
 
 Section label, screen title and empty-state text read "Ice time"; the icon
