@@ -1,4 +1,8 @@
 # Changelog
+## 0.451.0
+
+- Fixes the home-screen widget showing "Can't show content" on a busy week.
+
 ## 0.450.0
 
 - When the home-screen widget can't draw, Settings → Diagnostics now says why.

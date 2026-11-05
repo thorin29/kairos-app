@@ -151,6 +151,22 @@ class MainActivity : ComponentActivity() {
                 container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.ShowEvent(it)
             }
         }
+        // 0.451+: the tap carries the event's id and day; the event itself is in
+        // the widget's cached week.
+        intent?.getStringExtra(com.kairos.app.widget.KairosWidget.EXTRA_EVENT_ID)?.let { id ->
+            val day = intent.getStringExtra(com.kairos.app.widget.KairosWidget.EXTRA_EVENT_DAY)
+            lifecycleScope.launch {
+                val week = runCatching { com.kairos.app.widget.WidgetStore.ensure(this@MainActivity).data }.getOrNull()
+                val event = week?.days.orEmpty()
+                    .filter { day == null || it.date == day }
+                    .flatMap { it.events }
+                    .firstOrNull { it.id == id }
+                    ?: week?.days.orEmpty().flatMap { it.events }.firstOrNull { it.id == id }
+                if (event != null) {
+                    container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.ShowEvent(event)
+                }
+            }
+        }
         // A notification tap carries a target screen.
         intent?.getStringExtra(
             com.kairos.app.data.notifications.Notifications.EXTRA_OPEN,

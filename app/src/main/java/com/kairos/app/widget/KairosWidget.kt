@@ -122,8 +122,18 @@ class KairosWidget : GlanceAppWidget() {
     }
 
     companion object {
-        /** Intent extra: the tapped event as CalEventDto JSON (MainActivity). */
+        /** Intent extra: the tapped event as CalEventDto JSON (before 0.451). */
         const val EXTRA_EVENT = "widgetEvent"
+
+        /** Intent extras: the tapped event's id and day (0.451+). MainActivity
+         *  finds the event itself in the widget's cached week: carrying each
+         *  event whole, notes and all, in every tap made the widget too big to
+         *  send on a busy week ("Can't show content"). */
+        const val EXTRA_EVENT_ID = "widgetEventId"
+        const val EXTRA_EVENT_DAY = "widgetEventDay"
+
+        /** At most this many lines; a busier week ends with "More in Kairos". */
+        const val MAX_ROWS = 60
 
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -220,6 +230,10 @@ private fun rowsFor(data: WidgetDto?): List<WRow> {
         d.tasks.forEach { t -> out += WRow.TaskLine(d.date, i == 0, i == total - 1, t); i++ }
         d.events.forEach { e -> out += WRow.EventLine(d.date, i == 0, i == total - 1, e); i++ }
     }
+    // A widget update has a size limit; a very busy week stops short of it.
+    if (out.size > KairosWidget.MAX_ROWS) {
+        return out.take(KairosWidget.MAX_ROWS - 1) + WRow.Message("More in Kairos")
+    }
     return out
 }
 
@@ -232,10 +246,8 @@ private fun openApp(context: Context, route: String, event: CalEventDto? = null)
         )
         putExtra(Notifications.EXTRA_OPEN, route)
         if (event != null) {
-            putExtra(
-                KairosWidget.EXTRA_EVENT,
-                ApiClient.json.encodeToString(CalEventDto.serializer(), event),
-            )
+            putExtra(KairosWidget.EXTRA_EVENT_ID, event.id)
+            putExtra(KairosWidget.EXTRA_EVENT_DAY, event.dayISO)
         }
     }
     return actionStartActivity(intent)

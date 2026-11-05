@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Widget too big to send (v0.451.0)
+
+The 0.450 breadcrumb caught it: `TransactionTooLargeException`, 1.2 MB. Every
+event line's tap carried the whole event as JSON (notes, attendees, member
+lists…) in its intent, and the widget sends a copy of its layout for each size
+the launcher asks for — the Pixel launcher asks for more than one, so a busy
+week passed Android's 1 MB limit there and not on GrapheneOS. A tap now
+carries only the event's id and day (`EXTRA_EVENT_ID`, `EXTRA_EVENT_DAY`);
+MainActivity finds the event in the widget's cached week (`WidgetStore`). The
+old whole-event extra is still read, for taps from a widget drawn before the
+update. The list also stops at 60 lines ("More in Kairos") so an unusually
+busy week can't hit the limit another way.
+
+
 ## 2026-11 — Widget errors in Diagnostics (v0.450.0)
 
 "Can't show content" on the widget is Glance 1.1's own error layout: drawing
