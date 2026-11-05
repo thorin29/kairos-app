@@ -207,34 +207,18 @@ internal fun CoreRotationPicker(
     }
 }
 
-/** A Core day in the plan editor: the workout planned now, and a button to change the rotation. */
+/** A Core day in the plan editor, laid out like a warm-up (v0.453): the
+ *  workout planned now as a link that opens the rotation. */
 @Composable
 internal fun CorePlanLine(w: PlanWorkoutDto, onRotation: () -> Unit) {
-    val core = w.core ?: return
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        w.exercises.forEach { e ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    e.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                coreSchemeText(e.scheme)?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "${core.rotation.size} in the rotation" + if (core.test) " · plank test monthly" else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            AccentOutlinedButton(onClick = onRotation) { Text("Rotation") }
-        }
-    }
+    if (w.core == null) return
+    Text(
+        "${w.name.removePrefix("Core · ").ifBlank { "Pick workouts" }} ›",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.clickable { onRotation() }.padding(vertical = 4.dp),
+    )
 }
 
 /** Change a Core day's rotation, full screen like Add workout. */

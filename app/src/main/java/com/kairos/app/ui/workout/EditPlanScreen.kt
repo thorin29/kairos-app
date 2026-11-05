@@ -313,7 +313,12 @@ private fun DayCard(
                 Column(Modifier.weight(1f)) {
                     val kindLabel = KIND_LABELS[w.kind]?.takeIf { w.kind != "STRENGTH" && it != w.name }
                     Text(
-                        if (kindLabel != null) "${w.name}  ·  $kindLabel" else w.name,
+                        when {
+                            // Like Warm-up: the kind, then the workout as a link (v0.453).
+                            w.core != null -> "Core"
+                            kindLabel != null -> "${w.name}  ·  $kindLabel"
+                            else -> w.name
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                     )

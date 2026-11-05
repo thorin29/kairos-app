@@ -338,6 +338,9 @@ data class WorkoutBlockDto(
     val category: String? = null,
     /** A Core day (server 0.639+): its movements log together on one screen. */
     val core: Boolean = false,
+    /** The month's plank test on a core day (server 0.644+): its pool id. It
+     *  gets its own card, apart from the workout. */
+    val coreTest: String? = null,
 )
 
 @Serializable

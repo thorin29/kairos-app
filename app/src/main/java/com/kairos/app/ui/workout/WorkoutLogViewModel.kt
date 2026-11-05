@@ -85,6 +85,8 @@ data class WorkoutBlock(
     val category: String? = null,
     /** A Core day: one card, opening every movement on one screen (v0.446). */
     val core: Boolean = false,
+    /** The month's plank test's pool id on a core day: its own card (v0.453). */
+    val coreTest: String? = null,
 )
 
 data class WorkoutLogUiState(
@@ -261,6 +263,7 @@ class WorkoutLogViewModel(
                 name = b.name,
                 muscleGroup = b.muscleGroup,
                 core = b.core,
+                coreTest = b.coreTest,
                 inputs = b.exercises.map { e ->
                     // A slot already logged with a swapped movement comes back as
                     // that movement, still showing what it replaced — so a reload

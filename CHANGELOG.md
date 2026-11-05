@@ -1,4 +1,10 @@
 # Changelog
+## 0.453.0
+
+- The monthly plank test is its own card on the day, apart from the core workout.
+- In the workout plan, Core reads like Warm-up: tap the workout's name to change the rotation.
+- The plank test numbers look like the other record tiles.
+
 ## 0.452.1
 
 - The plank test shows under Core even when Core has weighted charts too.

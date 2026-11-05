@@ -662,7 +662,7 @@ private fun fmt(v: Double): String =
  *  what have the last few sessions looked like. All from real logged sets. */
 /** One headline number with its unit and a line of context under it. */
 @Composable
-private fun StatTile(
+internal fun StatTile(
     key: String,
     value: String,
     unit: String,

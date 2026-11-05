@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Plank test card, Core plan line, plank tiles (v0.453.0)
+
+- `WorkoutBlockDto.coreTest` (server 0.644+): on a core day with the monthly
+  plank test, `DaySectionView` draws a "Plank test" MovementCard that opens
+  CoreWorkoutScreen with just the plank, and the CoreDayCard leaves it out.
+- `CorePlanLine` is now the warm-up's shape: the row reads "Core" and the
+  workout's name is an accent link opening the rotation.
+- `PlankBench` reuses WorkoutChart's `StatTile` (now internal) with a plain
+  title, no frame — the same look as a lift's record tiles.
+- The rotation fix (moves on at the next core day) is server-side only.
+
 ## 2026-11 — Plank test shows with Core's charts (v0.452.1)
 
 `PlankBench` was only in the summary (no-charts) branch of WorkoutChart; Core

@@ -1,20 +1,17 @@
 package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -22,7 +19,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kairos.app.data.remote.dto.PlankTestDto
@@ -52,91 +48,83 @@ private fun points(t: PlankTestDto): String = t.pft?.let { "$it pts" } ?: "under
  */
 @Composable
 internal fun PlankBench(tests: List<PlankTestDto>) {
-    if (tests.isEmpty()) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp)
-                .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        ) {
-            Text("Plank test", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    // Laid out like a lift's numbers (the Suitcase carry tiles): a title, then
+    // two columns of tiles, no frame (v0.453).
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "Plank test",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        if (tests.isEmpty()) {
             Text(
                 "No plank logged yet.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            return@Column
         }
-        return
-    }
-    val best = tests.maxBy { it.seconds }
-    val last = tests.last()
-    val prev = tests.getOrNull(tests.size - 2)
-    val change = prev?.let { last.seconds - it.seconds }
-    val toMax = (PFT_PLANK_MAX_SEC - best.seconds).coerceAtLeast(0)
-    val sinceBest = dayOf(best.date)?.let { ChronoUnit.DAYS.between(it, LocalDate.now()).coerceAtLeast(0) }
-
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp)
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("Plank test", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        val best = tests.maxBy { it.seconds }
+        val last = tests.last()
+        val prev = tests.getOrNull(tests.size - 2)
+        val change = prev?.let { last.seconds - it.seconds }
+        val toMax = (PFT_PLANK_MAX_SEC - best.seconds).coerceAtLeast(0)
+        val sinceBest = dayOf(best.date)?.let { ChronoUnit.DAYS.between(it, LocalDate.now()).coerceAtLeast(0) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlankTile(label = "Best", value = plankClock(best.seconds), sub = "${points(best)} · ${shortDate(best.date)}", modifier = Modifier.weight(1f))
-            PlankTile(label = "Last", value = plankClock(last.seconds), sub = "${points(last)} · ${shortDate(last.date)}", modifier = Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlankTile(
-                label = "Change",
-                value = change?.let { (if (it >= 0) "+" else "−") + plankClock(kotlin.math.abs(it)) } ?: "—",
-                sub = if (change == null) "first test" else "since the test before",
-                up = change != null && change > 0,
+            StatTile(
+                key = "best",
+                value = plankClock(best.seconds),
+                unit = "",
+                sub = "${points(best)} · ${shortDate(best.date)}",
                 modifier = Modifier.weight(1f),
             )
-            PlankTile(
-                label = "To 100 pts",
+            StatTile(
+                key = "last",
+                value = plankClock(last.seconds),
+                unit = "",
+                sub = "${points(last)} · ${shortDate(last.date)}",
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile(
+                key = "change",
+                value = change?.let { (if (it >= 0) "+" else "−") + plankClock(kotlin.math.abs(it)) } ?: "—",
+                unit = "",
+                sub = if (change == null) "first test" else "since the test before",
+                modifier = Modifier.weight(1f),
+                up = change != null && change > 0,
+            )
+            StatTile(
+                key = "to 100 pts",
                 value = if (toMax == 0) "Done" else plankClock(toMax),
+                unit = "",
                 sub = if (toMax == 0) "3:45 reached" else "more than your best",
                 modifier = Modifier.weight(1f),
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlankTile(label = "Since best", value = sinceBest?.let { "$it d" } ?: "—", sub = "last record", modifier = Modifier.weight(1f))
-            PlankTile(label = "Tests", value = "${tests.size}", sub = "since ${shortDate(tests.first().date)}", modifier = Modifier.weight(1f))
+            StatTile(
+                key = "since best",
+                value = when (sinceBest) {
+                    null -> "—"
+                    0L -> "today"
+                    else -> "$sinceBest"
+                },
+                unit = if (sinceBest != null && sinceBest > 0L) "days" else "",
+                sub = "last record",
+                modifier = Modifier.weight(1f),
+            )
+            StatTile(
+                key = "tests",
+                value = "${tests.size}",
+                unit = "",
+                sub = "since ${shortDate(tests.first().date)}",
+                modifier = Modifier.weight(1f),
+            )
         }
         if (tests.size > 1) PlankChart(tests = tests)
-    }
-}
-
-@Composable
-private fun PlankTile(label: String, value: String, sub: String, modifier: Modifier, up: Boolean = false) {
-    Column(
-        modifier
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-    ) {
-        Text(
-            label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = if (up) Color(0xFF059669) else MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            sub,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

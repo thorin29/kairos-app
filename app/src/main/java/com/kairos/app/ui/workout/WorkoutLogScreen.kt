@@ -933,7 +933,18 @@ private fun DaySectionView(
         )
         section.blocks.forEach { block ->
             if (block.core && opensSetLogger(block)) {
-                CoreDayCard(block = block, overdue = overdue, onOpen = { onOpenCore(block) })
+                // The month's plank test is its own card, before the workout (v0.453).
+                val test = block.coreTest?.let { id -> block.inputs.firstOrNull { it.poolExerciseId == id } }
+                if (test != null) {
+                    val testBlock = block.copy(name = "Plank test", inputs = listOf(test), coreTest = null)
+                    MovementCard(
+                        m = test.copy(name = "Plank test", swappedFromName = null),
+                        overdue = overdue,
+                        onOpen = { onOpenCore(testBlock) },
+                    )
+                }
+                val workout = if (test != null) block.copy(inputs = block.inputs - test, coreTest = null) else block
+                CoreDayCard(block = workout, overdue = overdue, onOpen = { onOpenCore(workout) })
             } else if (opensSetLogger(block)) {
                 block.inputs.forEach { m ->
                     MovementCard(
