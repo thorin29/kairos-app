@@ -18,9 +18,11 @@ import java.util.Locale
  * to keep on in release and to show on a diagnostics screen.
  */
 object Breadcrumbs {
-    private const val MAX = 30
+    // 150 lines (v0.459; it was 30, which a night of widget draws filled).
+    private const val MAX = 150
     private val ring = ArrayDeque<String>()
-    private val fmt = SimpleDateFormat("HH:mm:ss", Locale.US)
+    private val fmt = SimpleDateFormat("MM-dd HH:mm:ss", Locale.US)
+    private val repeat = Regex("""^(\S+ \S+)  (.*?)(?: ×(\d+) since (\S+ \S+))?$""")
     private var store: SettingsStore? = null
     private var scope: CoroutineScope? = null
 
@@ -46,10 +48,21 @@ object Breadcrumbs {
      *  Cheap and safe to call from any thread or composable. */
     fun drop(msg: String) {
         Log.i("KairosUI", msg)
-        val line = "${fmt.format(Date())}  $msg"
+        val now = fmt.format(Date())
         val snapshot: String
         synchronized(ring) {
-            ring.addLast(line)
+            // The same event again straight after (the widget's half-hourly draw
+            // overnight) updates one line, "×N since <first>", instead of pushing
+            // older lines out (v0.459).
+            val last = ring.lastOrNull()?.let { repeat.matchEntire(it) }
+            if (last != null && last.groupValues[2] == msg) {
+                val n = (last.groupValues[3].toIntOrNull() ?: 1) + 1
+                val since = last.groupValues[4].ifBlank { last.groupValues[1] }
+                ring.removeLast()
+                ring.addLast("$now  $msg ×$n since $since")
+            } else {
+                ring.addLast("$now  $msg")
+            }
             while (ring.size > MAX) ring.removeFirst()
             snapshot = ring.joinToString("\n")
         }

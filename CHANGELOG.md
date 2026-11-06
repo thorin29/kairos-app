@@ -1,4 +1,9 @@
 # Changelog
+## 0.459.0
+
+- The offline bar clears itself as soon as Kairos answers, or when you come back to the app.
+- Diagnostics keeps more history, folds repeats into one line, records when the network goes and comes back, and uses a smaller font.
+
 ## 0.458.0
 
 - Home cards are all at least as tall as the Workouts card, so they line up.

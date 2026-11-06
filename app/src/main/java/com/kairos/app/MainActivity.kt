@@ -186,6 +186,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         val container = (application as KairosApp).container
+        // An "offline" the callbacks missed clearing ends here (v0.459).
+        container.networkMonitor.recheck()
         lifecycleScope.launch(Dispatchers.IO) { container.syncManager.safeReplay() }
     }
 

@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-11 — Offline bar corrected by evidence; longer, folded diagnostics (v0.459.0)
+
+- "You're offline" came only from ConnectivityManager callbacks. After the
+  phone slept it could stay up while the app was talking to the server (the
+  log showed live requests going out under an "offline" bar) — most likely
+  Android unblocking the app's network without a fresh onAvailable — until a
+  screen change. NetworkMonitor is now a MutableStateFlow set by the
+  callbacks (plus onBlockedStatusChanged) and also by evidence: any server
+  answer through OfflineInterceptor (`onAnswer`), MainActivity.onResume
+  (`recheck`), and SyncManager's 15 s probe, which now also runs while the bar
+  says offline but the system reports a network.
+- Each network change is a breadcrumb naming its cause ("network offline:
+  lost", "network online: server answered"), so a stuck bar can be traced.
+- Breadcrumbs: 150 lines (was 30, which a night of half-hourly widget draws
+  filled), a date on each line, and an event repeated back to back updates one
+  line ("widget draw ×6 since 11-06 03:19:07"). Diagnostics lines are 10 sp
+  monospace — they're for copying.
+- Ice time's "updated N min ago" is the rinks' check time carried in the
+  data, so it stays right when the screen shows a saved copy: no change.
+
 ## 2026-11 — One minimum height for home cards (v0.458.0)
 
 `HOME_CARD_MIN` (64 dp, the Workouts card's minimum since v0.436) now sets

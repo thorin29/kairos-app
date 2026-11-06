@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kairos.app.BuildConfig
 import com.kairos.app.data.diag.Breadcrumbs
 import com.kairos.app.ui.common.rememberContainer
@@ -74,7 +75,7 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
         LazyColumn(
             Modifier.fillMaxSize().padding(inner),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             item { Text(header, style = MaterialTheme.typography.titleSmall) }
             lossReason?.let { r ->
@@ -90,6 +91,7 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
                 Text(
                     "Recent activity (newest first)",
                     style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
                 )
             }
             if (crumbs.isEmpty()) {
@@ -102,10 +104,13 @@ fun DiagnosticsScreen(onBack: () -> Unit) {
                 }
             } else {
                 items(crumbs) { line ->
+                    // Small: it's for copying, not reading (v0.459).
                     Text(
                         line,
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp,
                     )
                 }
             }

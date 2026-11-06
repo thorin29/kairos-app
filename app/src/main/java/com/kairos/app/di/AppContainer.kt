@@ -109,6 +109,8 @@ class AppContainer(context: Context) {
         tokenProvider = { tokenStore.current() },
         baseUrlProvider = { sessionRepository.baseUrlRaw },
         scope = appScope,
+        bannerOffline = { !networkMonitor.online.value },
+        onServerAnswer = { networkMonitor.confirmOnline(why = "server answered a probe") },
     )
 
     /** Coil loader for device-authed avatars: reuses the same bearer token as

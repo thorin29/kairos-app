@@ -60,7 +60,7 @@ object ApiClient {
             // and writes are queued (or fail fast) instead of hanging.
             builder
                 .cache(cache)
-                .addInterceptor(OfflineInterceptor(monitor::isOnline, queue))
+                .addInterceptor(OfflineInterceptor(isOnline = monitor::isOnline, queue = queue).apply { onAnswer = { monitor.confirmOnline() } })
                 .addNetworkInterceptor(CacheableResponseInterceptor())
         }
         val ok = builder
@@ -160,11 +160,15 @@ private class CacheableResponseInterceptor : Interceptor {
 /** Application interceptor: when offline, serve GETs from the disk cache (any
  *  age) and capture writes into the [WriteQueue] so they replay on reconnect
  *  (returning a synthetic success so the action isn't lost or shown as an
- *  error). Auth calls are never queued — they only make sense online. */
+ *  error). Auth calls are never queued — they only make sense online.
+ *  [onAnswer] runs whenever the server sends any answer (v0.459): proof of a
+ *  network, which clears an "offline" banner the callbacks left up. */
 internal class OfflineInterceptor(
     private val isOnline: () -> Boolean,
     private val queue: WriteQueue?,
 ) : Interceptor {
+    var onAnswer: () -> Unit = {}
+
     override fun intercept(chain: Interceptor.Chain): OkResponse {
         val req = chain.request()
         if (isOnline()) {
@@ -174,7 +178,7 @@ internal class OfflineInterceptor(
                 // surface as an error the user had to redo later; queue it instead,
                 // exactly as if the phone itself were offline.
                 val live = try {
-                    chain.proceed(req)
+                    chain.proceed(req).also { onAnswer() }
                 } catch (e: IOException) {
                     // Only queue when the request demonstrably never reached the
                     // server: no route to the host, or DNS didn't resolve. A read
@@ -218,6 +222,7 @@ internal class OfflineInterceptor(
             RefreshTracker.begin()
             try {
                 val live = chain.proceed(req)
+                onAnswer()
                 // Proxy answered but the Kairos upstream is down/slow (502/503/504):
                 // treat it like being offline and serve the last cached copy if we
                 // have one, so a rebooting host doesn't blank the screen.

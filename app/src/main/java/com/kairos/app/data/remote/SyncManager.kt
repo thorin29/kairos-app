@@ -44,6 +44,10 @@ class SyncManager(
     tokenProvider: () -> String?,
     private val baseUrlProvider: () -> String?,
     scope: CoroutineScope,
+    /** The banner says "offline" (v0.459): probe like a server outage. */
+    private val bannerOffline: () -> Boolean = { false },
+    /** The server answered a probe: the network is there (v0.459). */
+    private val onServerAnswer: () -> Unit = {},
 ) {
     private val jsonType = "application/json".toMediaType()
     private val client = OkHttpClient.Builder()
@@ -101,7 +105,9 @@ class SyncManager(
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             while (true) {
                 kotlinx.coroutines.delay(RETRY_INTERVAL_MS)
-                if (ServerStatusTracker.unavailable.value && isOnline()) probeServer()
+                // Also while the banner says "offline" but the system says
+                // there's a network: a missed callback, cleared by any answer.
+                if ((ServerStatusTracker.unavailable.value || bannerOffline()) && isOnline()) probeServer()
             }
         }
         // 3. Nothing is watching. If every write is queued and the user isn't
@@ -122,6 +128,7 @@ class SyncManager(
         val url = ApiClient.normalizeBase(base) + "meta"
         runCatching {
             client.newCall(Request.Builder().url(url).get().build()).execute().use { resp ->
+                onServerAnswer()
                 if (resp.isSuccessful) ServerStatusTracker.markReachable("meta ${resp.code}")
             }
         }
