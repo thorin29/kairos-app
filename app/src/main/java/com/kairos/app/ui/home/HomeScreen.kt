@@ -294,7 +294,7 @@ private fun DashboardContent(
                 d.groups.forEach { catOrder.add(it.category) }
                 d.overdue.forEach { catOrder.add(it.category) }
                 if (d.personalReading != null) catOrder.add("BIBLE")
-                if (d.workoutOverdue > 0) catOrder.add("EXERCISE")
+                if (d.workoutOverdue > 0 || d.workoutRest != null) catOrder.add("EXERCISE")
                 if (d.reading.isNotEmpty()) catOrder.add("READING")
                 if (d.getAhead.isNotEmpty()) catOrder.add("CHORE")
                 if (d.alwaysOpen.isNotEmpty()) catOrder.add("CHORE")
@@ -348,6 +348,8 @@ private fun DashboardContent(
                             WorkoutSummaryCard(
                                 today = d.groups.firstOrNull { it.category == "EXERCISE" }?.items ?: emptyList(),
                                 overdueCount = d.workoutOverdue,
+                                rest = d.workoutRest,
+                                extraLogged = d.workoutExtraLogged,
                                 onOpen = { onLogWorkout(d.date) },
                             )
                         }
@@ -714,14 +716,21 @@ private val HOME_CARD_MIN = 64.dp
 private fun WorkoutSummaryCard(
     today: List<TaskDto>,
     overdueCount: Int,
+    rest: String? = null,
+    extraLogged: Boolean = false,
     onOpen: () -> Unit,
 ) {
-    val todayNames = today.filter { it.status != "COMPLETE" }.map { it.title }
+    // A rest day reads "Rest day!" (v0.460): the plan's Rest, or Rest / skip
+    // pressed. A skipped day where something else got done (a game, another
+    // workout) reads "Complete for today!" instead.
+    val restDay = rest != null && !(rest == "skipped" && extraLogged)
+    val todayNames = if (rest != null) emptyList() else today.filter { it.status != "COMPLETE" }.map { it.title }
     // What else the day holds, under the title (server 0.628+): conditioning,
     // cardio, a game on the calendar ("Hockey game 7:30 PM").
     val extras = today.mapNotNull { it.subtitle?.takeIf { s -> s.isNotBlank() } }.distinct()
     val hadWork = today.isNotEmpty() || overdueCount > 0
-    val completeForToday = todayNames.isEmpty() && overdueCount == 0 && hadWork
+    val completeForToday =
+        !restDay && todayNames.isEmpty() && overdueCount == 0 && (hadWork || (rest == "skipped" && extraLogged))
     Column {
         SectionHeader("Workouts", "EXERCISE")
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
@@ -733,7 +742,21 @@ private fun WorkoutSummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (completeForToday) {
+                    if (restDay) {
+                        Text(
+                            "Rest day!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (overdueCount > 0) {
+                            Text(
+                                "$overdueCount overdue",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    } else if (completeForToday) {
                         Text(
                             "Complete for today!",
                             style = MaterialTheme.typography.bodyMedium,

@@ -144,6 +144,11 @@ data class DashboardDto(
     val categories: List<CategoryBarDto> = emptyList(),
     val overdue: List<TaskDto> = emptyList(),
     val workoutOverdue: Int = 0,
+    /** A rest day (server 0.650+): "planned" (the plan's Rest) or "skipped"
+     *  (Rest / skip pressed); null otherwise. */
+    val workoutRest: String? = null,
+    /** Something else was logged that day (a game, a row, another workout). */
+    val workoutExtraLogged: Boolean = false,
     val reading: List<ReadingProgressDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
@@ -653,6 +658,8 @@ data class WorkoutStripDayDto(
     val task: String? = null,
     val rested: Boolean = false,
     val logged: Boolean = false,
+    /** The plan makes this weekday a rest day (server 0.650+). */
+    val restPlanned: Boolean = false,
 )
 
 /** One set as stored: weight and reps, reps alone, or seconds. */

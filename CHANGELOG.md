@@ -1,4 +1,9 @@
 # Changelog
+## 0.460.0
+
+- Rest days say Rest day! on the Workouts card, whether the plan has them or you pressed Rest / skip.
+- A rest day shows as a grey dot in the week, and a skipped day's workouts fade so nothing looks open.
+
 ## 0.459.0
 
 - The offline bar clears itself as soon as Kairos answers, or when you come back to the app.

@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.kairos.app.data.remote.dto.PoolExerciseDto
@@ -302,112 +303,119 @@ fun WorkoutLogScreen(
                     // A rest day in the plan has no sections, + Conditioning
                     // included: just what was logged, below (v0.456).
                     val todaySections = if (ui.restPlanned) emptyList() else daySections(todayBlocks, ui.order, simpleKinds)
-                    todaySections.forEach { section ->
-                        // A planned conditioning workout gets its own card with
-                        // the timer; anything else in the section as before.
-                        val conds = section.blocks.mapNotNull { b ->
-                            ui.conditioning.firstOrNull { it.plannedWorkoutId == b.plannedWorkoutId }
-                        }
-                        val rest = section.blocks.filter { b -> ui.conditioning.none { it.plannedWorkoutId == b.plannedWorkoutId } }
-                        if (rest.isEmpty()) {
-                            SectionLabel(section.title)
-                        } else {
-                            DaySectionView(
-                                label = section.title,
-                                section = section.copy(blocks = rest),
-                                overdue = false,
-                                vm = vm,
-                                onOpenCalculatorFor = openCalc,
-                                onOpenSets = openSets,
-                                onOpenCore = openCore,
-                            )
-                        }
-                        conds.forEach { c ->
-                            val block = section.blocks.first { it.plannedWorkoutId == c.plannedWorkoutId }
-                            ConditioningCard(
-                                workout = c,
-                                skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped },
-                                onLog = { v, version ->
-                                    vm.logConditioning(
-                                        hiitWorkoutId = c.hiitWorkoutId,
-                                        built = null,
-                                        value = v,
-                                        version = version,
-                                    )
-                                },
-                                onSkip = { vm.setBlockSkipped(block.key, it) },
-                                onFeedback = { e, h -> vm.conditioningFeedback(plannedWorkoutId = c.plannedWorkoutId, effort = e, hurt = h) },
-                            )
-                        }
-                        when (section.kind) {
-                            "CONDITIONING" -> {
-                                ui.picks.forEach { p ->
-                                    PickConditioningCard(
-                                        plan = p,
-                                        onPick = {
-                                            openWorkoutId = null
-                                            conditioningSheet = "pick"
-                                        },
-                                        onBuild = {
-                                            // The starting version (Scaled for younger people) comes with the list.
-                                            if (ui.choices == null) vm.loadChoices()
-                                            conditioningSheet = "build"
-                                        },
-                                        onWriteOwn = onWriteOwn,
-                                        onSkip = { vm.setPickSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = it) },
-                                        onFeedback = { e, h -> vm.pickFeedback(plannedWorkoutId = p.plannedWorkoutId, effort = e, hurt = h) },
-                                    )
-                                }
-                                // A one-off conditioning session on any day (v0.427): what's
-                                // been done that no card above shows, then + Conditioning.
-                                if (ui.picks.isEmpty()) {
-                                    val planned = ui.conditioning.map { it.name.take(40) }.toSet()
-                                    val extra = ui.conditioningDone.filter { it.name.take(40) !in planned }
-                                    if (extra.isNotEmpty()) {
-                                        OutlinedCard(Modifier.fillMaxWidth()) {
-                                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                extra.forEach { d ->
-                                                    Text(
-                                                        d.name + (d.result?.let { " \u00b7 $it" } ?: ""),
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                    )
+                    // A skipped day (Rest / skip) keeps its plan in view but faded,
+                    // so nothing on it looks open (v0.460).
+                    Column(
+                        Modifier.alpha(if (ui.rested) 0.4f else 1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        todaySections.forEach { section ->
+                            // A planned conditioning workout gets its own card with
+                            // the timer; anything else in the section as before.
+                            val conds = section.blocks.mapNotNull { b ->
+                                ui.conditioning.firstOrNull { it.plannedWorkoutId == b.plannedWorkoutId }
+                            }
+                            val rest = section.blocks.filter { b -> ui.conditioning.none { it.plannedWorkoutId == b.plannedWorkoutId } }
+                            if (rest.isEmpty()) {
+                                SectionLabel(section.title)
+                            } else {
+                                DaySectionView(
+                                    label = section.title,
+                                    section = section.copy(blocks = rest),
+                                    overdue = false,
+                                    vm = vm,
+                                    onOpenCalculatorFor = openCalc,
+                                    onOpenSets = openSets,
+                                    onOpenCore = openCore,
+                                )
+                            }
+                            conds.forEach { c ->
+                                val block = section.blocks.first { it.plannedWorkoutId == c.plannedWorkoutId }
+                                ConditioningCard(
+                                    workout = c,
+                                    skipped = block.inputs.isNotEmpty() && block.inputs.all { it.skipped },
+                                    onLog = { v, version ->
+                                        vm.logConditioning(
+                                            hiitWorkoutId = c.hiitWorkoutId,
+                                            built = null,
+                                            value = v,
+                                            version = version,
+                                        )
+                                    },
+                                    onSkip = { vm.setBlockSkipped(block.key, it) },
+                                    onFeedback = { e, h -> vm.conditioningFeedback(plannedWorkoutId = c.plannedWorkoutId, effort = e, hurt = h) },
+                                )
+                            }
+                            when (section.kind) {
+                                "CONDITIONING" -> {
+                                    ui.picks.forEach { p ->
+                                        PickConditioningCard(
+                                            plan = p,
+                                            onPick = {
+                                                openWorkoutId = null
+                                                conditioningSheet = "pick"
+                                            },
+                                            onBuild = {
+                                                // The starting version (Scaled for younger people) comes with the list.
+                                                if (ui.choices == null) vm.loadChoices()
+                                                conditioningSheet = "build"
+                                            },
+                                            onWriteOwn = onWriteOwn,
+                                            onSkip = { vm.setPickSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = it) },
+                                            onFeedback = { e, h -> vm.pickFeedback(plannedWorkoutId = p.plannedWorkoutId, effort = e, hurt = h) },
+                                        )
+                                    }
+                                    // A one-off conditioning session on any day (v0.427): what's
+                                    // been done that no card above shows, then + Conditioning.
+                                    if (ui.picks.isEmpty()) {
+                                        val planned = ui.conditioning.map { it.name.take(40) }.toSet()
+                                        val extra = ui.conditioningDone.filter { it.name.take(40) !in planned }
+                                        if (extra.isNotEmpty()) {
+                                            OutlinedCard(Modifier.fillMaxWidth()) {
+                                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    extra.forEach { d ->
+                                                        Text(
+                                                            d.name + (d.result?.let { " \u00b7 $it" } ?: ""),
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                    AccentOutlinedButton(onClick = { addingConditioning = true }) {
+                                        Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
+                                    }
                                 }
-                                AccentOutlinedButton(onClick = { addingConditioning = true }) {
-                                    Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
+                                "WARMUP" -> ui.simple.filter { it.category == "WARMUP" }.forEach { w ->
+                                    WarmupCard(
+                                        plan = w,
+                                        onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
+                                        onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
+                                        onChanged = { vm.load() },
+                                    )
                                 }
-                            }
-                            "WARMUP" -> ui.simple.filter { it.category == "WARMUP" }.forEach { w ->
-                                WarmupCard(
-                                    plan = w,
-                                    onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
-                                    onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
-                                    onChanged = { vm.load() },
+                                "CARDIO" -> CardioBlock(
+                                    name = ui.simple.firstOrNull { it.category == "CARDIO" }?.name ?: "Cardio",
+                                    entries = ui.cardio,
+                                    concept2 = ui.concept2,
+                                    checking = ui.concept2Checking,
+                                    saving = ui.cardioSaving,
+                                    error = ui.cardioError,
+                                    skippedPlan = ui.simple.firstOrNull { it.category == "CARDIO" && it.skipped && ui.cardio.isEmpty() },
+                                    onCheck = { vm.checkConcept2(force = true) },
+                                    onUndo = { vm.undoConcept2(it) },
+                                    onRemove = { vm.removeCardio(it) },
+                                    onFeedback = { id, e, h -> vm.cardioFeedback(sessionId = id, effort = e, hurt = h) },
+                                    onLog = { a, m, dist, sec, load, done ->
+                                        vm.logCardio(activity = a, meters = m, distance = dist, seconds = sec, carried = load, onDone = done)
+                                    },
+                                    onSkip = ui.simple.firstOrNull { it.category == "CARDIO" }?.let { p ->
+                                        { skipped: Boolean -> vm.setSimpleSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = skipped) }
+                                    },
                                 )
                             }
-                            "CARDIO" -> CardioBlock(
-                                name = ui.simple.firstOrNull { it.category == "CARDIO" }?.name ?: "Cardio",
-                                entries = ui.cardio,
-                                concept2 = ui.concept2,
-                                checking = ui.concept2Checking,
-                                saving = ui.cardioSaving,
-                                error = ui.cardioError,
-                                skippedPlan = ui.simple.firstOrNull { it.category == "CARDIO" && it.skipped && ui.cardio.isEmpty() },
-                                onCheck = { vm.checkConcept2(force = true) },
-                                onUndo = { vm.undoConcept2(it) },
-                                onRemove = { vm.removeCardio(it) },
-                                onFeedback = { id, e, h -> vm.cardioFeedback(sessionId = id, effort = e, hurt = h) },
-                                onLog = { a, m, dist, sec, load, done ->
-                                    vm.logCardio(activity = a, meters = m, distance = dist, seconds = sec, carried = load, onDone = done)
-                                },
-                                onSkip = ui.simple.firstOrNull { it.category == "CARDIO" }?.let { p ->
-                                    { skipped: Boolean -> vm.setSimpleSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = skipped) }
-                                },
-                            )
                         }
                     }
 
@@ -1111,6 +1119,8 @@ private fun WeekStrip(
             val num = d.date.takeLast(2).trimStart('0')
             val fill = when (state) {
                 "done" -> MaterialTheme.colorScheme.primary
+                // A rest day: a grey dot with its date (v0.460, was a moon).
+                "rest" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
                 "partial" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 "open" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                 else -> Color.Transparent
@@ -1146,16 +1156,12 @@ private fun WeekStrip(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (state == "rest") {
-                        Icon(KairosIcons.Moon, contentDescription = "Rest", tint = fg, modifier = Modifier.size(14.dp))
-                    } else {
-                        Text(
-                            num,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = fg,
-                            fontWeight = if (isSel || state == "today") FontWeight.Bold else FontWeight.Normal,
-                        )
-                    }
+                    Text(
+                        num,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = fg,
+                        fontWeight = if (isSel || state == "today") FontWeight.Bold else FontWeight.Normal,
+                    )
                 }
             }
         }
@@ -1168,7 +1174,9 @@ private fun stripState(
     today: String,
     overdue: Set<String>,
 ): String = when {
-    d.rested -> "rest"
+    // Rested, but something else got done (a game): done (v0.460).
+    d.rested -> if (d.logged) "done" else "rest"
+    d.restPlanned && !d.logged -> "rest"
     d.task == "COMPLETE" -> "done"
     d.task == "SKIPPED" -> if (d.logged) "done" else "rest"
     d.task == "PENDING" -> when {

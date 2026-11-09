@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Rest days look like rest days (v0.460.0)
+
+`WorkoutSummaryCard` takes the dashboard's `workoutRest` / `workoutExtraLogged`
+(server 0.650+): "Rest day!" in muted text, or "Complete for today!" for a
+skipped day with something else logged; the card is listed on a rest day even
+with no workout task. WeekStrip draws rest as a grey filled circle with the
+date (no moon); `stripState` treats rested + logged as done and reads
+`restPlanned`. A rested day's sections sit in a 40% alpha Column.
+
 ## 2026-11 — Offline bar corrected by evidence; longer, folded diagnostics (v0.459.0)
 
 - "You're offline" came only from ConnectivityManager callbacks. After the
