@@ -186,9 +186,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         val container = (application as KairosApp).container
+        container.networkMonitor.foreground = true
         // An "offline" the callbacks missed clearing ends here (v0.459).
         container.networkMonitor.recheck()
         lifecycleScope.launch(Dispatchers.IO) { container.syncManager.safeReplay() }
+    }
+
+    override fun onPause() {
+        (application as KairosApp).container.networkMonitor.foreground = false
+        super.onPause()
     }
 
     /** An .ics opened (VIEW) or shared (SEND) into the app: read it off the main

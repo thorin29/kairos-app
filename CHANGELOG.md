@@ -1,4 +1,9 @@
 # Changelog
+## 0.462.0
+
+- The week strip pages smoothly: the card no longer grows when Today shows, and opening a coming day keeps its dates.
+- Diagnostics leaves out the network pauses Android makes while the app is in the background.
+
 ## 0.461.0
 
 - Look ahead (and back) in the week: page the days with the arrows or a swipe, and open a coming day to see what's planned.

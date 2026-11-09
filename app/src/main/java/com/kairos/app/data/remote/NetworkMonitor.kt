@@ -42,10 +42,17 @@ class NetworkMonitor(context: Context, @Suppress("UNUSED_PARAMETER") scope: Coro
     private val _online = MutableStateFlow(snapshot())
     val online: StateFlow<Boolean> = _online.asStateFlow()
 
+    /** The app is on screen (v0.462): MainActivity sets it on resume/pause. */
+    @Volatile var foreground: Boolean = false
+
     private fun set(value: Boolean, why: String) {
         if (_online.value == value) return
         _online.value = value
-        Breadcrumbs.drop("network ${if (value) "online" else "offline"}: $why")
+        // Android pauses a backgrounded app's network and resumes it for every
+        // widget refresh; logging each pair filled diagnostics with noise. Only
+        // changes while the app is in use, or real losses, are kept (v0.462).
+        val routine = why == "blocked" || why == "unblocked"
+        if (foreground || !routine) Breadcrumbs.drop("network ${if (value) "online" else "offline"}: $why")
     }
 
     init {

@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Week strip holds still; quieter network log (v0.462.0)
+
+- DayHeader owns the PagerState (initial page = the one holding the shown
+  day) so "Today" can be a text link at the end of the date line: no extra
+  row, no height change. PagedWeekStrip keeps a 56 dp floor per page.
+- `loadStripPage` always refetches (the old page stays until replaced) and
+  the page in view refetches whenever the day reloads (`LaunchedEffect(page,
+  first)`); applyPlan no longer clears the pages — clearing blanked the page
+  in view after tapping a coming day, and nothing asked for it again.
+- No progress bar on a coming day.
+- NetworkMonitor logs blocked/unblocked only while `foreground` (set in
+  MainActivity onResume/onPause); losses and evidence-based changes always.
+
 ## 2026-11 — Week strip pages; Arms days (v0.461.0)
 
 - `PagedWeekStrip`: a HorizontalPager of 8-day pages (8 back, 4 ahead) with

@@ -342,8 +342,6 @@ class WorkoutLogViewModel(
                 planName = planName,
                 title = plan.title,
                 strip = plan.strip,
-                // A log can change a past page's dots: fetch pages again.
-                stripPages = emptyMap(),
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
@@ -638,9 +636,10 @@ class WorkoutLogViewModel(
     }
 
     /** Switch the day being logged (from the date picker) and reload its plan. */
-    /** Fetch one page of the week strip, once (page 0 comes with the day). */
+    /** Fetch (or refresh) one page of the week strip; page 0 comes with the
+     *  day. The old copy stays up until the new one lands. */
     fun loadStripPage(page: Int) {
-        if (page == 0 || _ui.value.stripPages.containsKey(page)) return
+        if (page == 0) return
         viewModelScope.launch {
             val got = runCatching { session.loadWorkoutStrip(page = page) }.getOrNull() ?: return@launch
             _ui.update { it.copy(stripPages = it.stripPages + (page to got)) }

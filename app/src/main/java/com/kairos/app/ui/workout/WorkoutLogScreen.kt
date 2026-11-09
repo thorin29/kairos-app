@@ -241,7 +241,8 @@ fun WorkoutLogScreen(
                             },
                             logged = ui.loggedAny,
                             planned = todayBlocks.isNotEmpty() || ui.simple.isNotEmpty() || ui.picks.isNotEmpty(),
-                            progress = dayProgress(todayBlocks).let { (d, t) ->
+                            // A day still to come has nothing done yet: no bar (v0.462).
+                            progress = if (future) 0 to 0 else dayProgress(todayBlocks).let { (d, t) ->
                                 // Warm-up and Cardio plans count like any block.
                                 (d + ui.simple.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
                                     (t + ui.simple.size + ui.picks.size)
@@ -874,10 +875,26 @@ private fun DayHeader(
     onNeedPage: (Int) -> Unit = {},
     onToday: () -> Unit = {},
 ) {
+    // The strip's pages live here so "Today" can sit on the date line: the
+    // card is the same height on every page (v0.462).
+    // Opens on the page holding the day shown, so a reload never jumps back.
+    val startPage = remember(date, today) {
+        runCatching {
+            val off = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.parse(today), LocalDate.parse(date)).toInt()
+            val p = if (off > 0) (off + 7) / 8 else -((-off) / 8)
+            STRIP_BACK + p.coerceIn(-STRIP_BACK, STRIP_AHEAD)
+        }.getOrDefault(STRIP_BACK)
+    }
+    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = startPage) {
+        STRIP_BACK + STRIP_AHEAD + 1
+    }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
+                    .weight(1f, fill = false)
                     .clip(RoundedCornerShape(8.dp))
                     .clickable { onPickDate() }
                     .padding(vertical = 2.dp),
@@ -896,6 +913,23 @@ private fun DayHeader(
                     color = if (date < today && planned && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Spacer(Modifier.weight(1f))
+            if (strip != null && (pager.currentPage != STRIP_BACK || date != today)) {
+                Text(
+                    "Today",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            scope.launch { pager.animateScrollToPage(STRIP_BACK) }
+                            onToday()
+                        }
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+          }
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             if (programLine.isNotBlank()) {
                 Text(
@@ -929,12 +963,12 @@ private fun DayHeader(
             strip?.takeIf { it.days.isNotEmpty() }?.let {
                 Spacer(Modifier.height(2.dp))
                 PagedWeekStrip(
+                    pager = pager,
                     first = it,
                     pageOf = stripPage,
                     onNeedPage = onNeedPage,
                     selected = date,
                     onPick = onPickDay,
-                    onToday = onToday,
                 )
             }
         }
@@ -1130,54 +1164,42 @@ private const val STRIP_AHEAD = 4
  */
 @Composable
 private fun PagedWeekStrip(
+    pager: androidx.compose.foundation.pager.PagerState,
     first: com.kairos.app.data.remote.dto.WorkoutStripDto,
     pageOf: (Int) -> com.kairos.app.data.remote.dto.WorkoutStripDto?,
     onNeedPage: (Int) -> Unit,
     selected: String?,
     onPick: (String) -> Unit,
-    onToday: () -> Unit,
 ) {
-    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = STRIP_BACK) {
-        STRIP_BACK + STRIP_AHEAD + 1
-    }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val page = pager.currentPage - STRIP_BACK
-    androidx.compose.runtime.LaunchedEffect(page) { onNeedPage(page) }
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        if (page != 0 || selected != first.today) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        scope.launch { pager.animateScrollToPage(STRIP_BACK) }
-                        onToday()
-                    },
-                ) { Text("Today", fontWeight = FontWeight.SemiBold) }
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.material3.IconButton(
-                onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
-                enabled = pager.currentPage > 0,
-                modifier = Modifier.size(32.dp),
-            ) { Icon(KairosIcons.ChevronLeft, contentDescription = "Earlier days") }
-            androidx.compose.foundation.pager.HorizontalPager(
-                state = pager,
-                modifier = Modifier.weight(1f),
-            ) { idx ->
-                val p = idx - STRIP_BACK
-                val data = if (p == 0) first else pageOf(p)
+    // Fetch (or refresh) the page in view, and again after each day load:
+    // the page keeps showing what it had until the new copy arrives (v0.462).
+    androidx.compose.runtime.LaunchedEffect(page, first) { onNeedPage(page) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.material3.IconButton(
+            onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
+            enabled = pager.currentPage > 0,
+            modifier = Modifier.size(32.dp),
+        ) { Icon(KairosIcons.ChevronLeft, contentDescription = "Earlier days") }
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pager,
+            modifier = Modifier.weight(1f),
+        ) { idx ->
+            val p = idx - STRIP_BACK
+            val data = if (p == 0) first else pageOf(p)
+            // A page not here yet holds the strip's height, so nothing jumps.
+            Box(Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 if (data != null && data.days.isNotEmpty()) {
                     WeekStrip(strip = data, selected = selected, onPick = onPick)
-                } else {
-                    Box(Modifier.fillMaxWidth().height(52.dp))
                 }
             }
-            androidx.compose.material3.IconButton(
-                onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
-                enabled = pager.currentPage < STRIP_BACK + STRIP_AHEAD,
-                modifier = Modifier.size(32.dp),
-            ) { Icon(KairosIcons.ChevronRight, contentDescription = "Later days") }
         }
+        androidx.compose.material3.IconButton(
+            onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
+            enabled = pager.currentPage < STRIP_BACK + STRIP_AHEAD,
+            modifier = Modifier.size(32.dp),
+        ) { Icon(KairosIcons.ChevronRight, contentDescription = "Later days") }
     }
 }
 
