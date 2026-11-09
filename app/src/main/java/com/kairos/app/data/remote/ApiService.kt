@@ -350,6 +350,10 @@ interface ApiService {
     @GET("workouts/week")
     suspend fun workoutWeek(): Response<WeekResponse>
 
+    /** One 8-day page of the week strip (server 0.651+): 0 = up to today. */
+    @GET("workouts/strip")
+    suspend fun workoutStrip(@Query("page") page: Int): Response<com.kairos.app.data.remote.dto.WorkoutStripDto>
+
     @GET("workouts/browse")
     suspend fun workoutBrowse(): Response<BrowseResponse>
 

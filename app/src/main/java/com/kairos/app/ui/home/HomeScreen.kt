@@ -744,7 +744,7 @@ private fun WorkoutSummaryCard(
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (restDay) {
                         Text(
-                            "Rest day!",
+                            "Rest day",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

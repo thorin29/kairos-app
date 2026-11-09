@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Week strip pages; Arms days (v0.461.0)
+
+- `PagedWeekStrip`: a HorizontalPager of 8-day pages (8 back, 4 ahead) with
+  ‹ › IconButtons and a "Today" TextButton; page 0 is the day's own strip,
+  others come from `GET /workouts/strip?page=` (`loadStripPage`, cleared on
+  each day load). The pager owns its swipe, like the Bible cards. A future
+  day's sections are faded (55%) with taps consumed; Rest / skip,
+  suggestion and benchmark are hidden.
+- Arms days ride Core's screens with a `kind`: AddWorkoutSheet offers an
+  Arms rotation when the muscle is Arms (`armsWorkouts`), CoreRotationDialog
+  / editor / picker take `kind` (no plank test, arms movements to choose
+  from, "New arms workout"), and CoreActions.save carries it. The day card
+  and logger need nothing new (the server marks an Arms entry `core`).
+
 ## 2026-11 — Rest days look like rest days (v0.460.0)
 
 `WorkoutSummaryCard` takes the dashboard's `workoutRest` / `workoutExtraLogged`

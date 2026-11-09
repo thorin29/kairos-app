@@ -94,8 +94,8 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
     // --- core days (server 0.637+) -----------------------------------------
 
     /** Make a Core day on `day`, or change `plannedWorkoutId`'s rotation. */
-    fun setCoreDay(plannedWorkoutId: String?, day: Int?, rotation: List<String>, test: Boolean) =
-        act { session.setCoreDay(plannedWorkoutId = plannedWorkoutId, day = day, rotation = rotation, test = test) }
+    fun setCoreDay(plannedWorkoutId: String?, day: Int?, rotation: List<String>, test: Boolean, kind: String = "core") =
+        act { session.setCoreDay(plannedWorkoutId = plannedWorkoutId, day = day, rotation = rotation, test = test, kind = kind) }
 
     /** Save one's own core workout; the options reload so it shows in the list. */
     fun saveCoreWorkout(
@@ -104,10 +104,11 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
         moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>,
         onSaved: (String) -> Unit,
         onError: (String) -> Unit,
+        kind: String = "core",
     ) {
         viewModelScope.launch {
             try {
-                val saved = session.saveCoreWorkout(id = id, name = name, moves = moves)
+                val saved = session.saveCoreWorkout(id = id, name = name, moves = moves, kind = kind)
                 refreshOptions()
                 markSaved()
                 if (id != null) load(initial = false)

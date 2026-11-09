@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.kairos.app.data.remote.dto.PoolExerciseDto
@@ -79,6 +80,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.layout.widthIn
+import kotlinx.coroutines.launch
 
 /** Three digits wide. Every numeric entry box on this screen uses it, so a
  *  weight, a rep count and a seconds field are never three different sizes. */
@@ -187,6 +189,8 @@ fun WorkoutLogScreen(
                         onOpenCalculator()
                     }
                     val today = ui.strip?.today?.takeIf { it.isNotBlank() } ?: LocalDate.now().toString()
+                    // A day still to come: its plan as a preview only (v0.461).
+                    val future = ui.date != null && ui.date!! > today
                     val openSets: (WorkoutBlock, MovementInput) -> Unit = { block, m ->
                         val day = block.date ?: ui.date ?: today
                         onOpenSets(
@@ -247,18 +251,21 @@ fun WorkoutLogScreen(
                             light = ui.light,
                             onPickDate = { showDatePicker = true },
                             onPickDay = { vm.setDate(it) },
+                            stripPage = { ui.stripPages[it] },
+                            onNeedPage = { vm.loadStripPage(it) },
+                            onToday = { ui.strip?.today?.let { vm.setDate(it) } },
                         )
                     }
                     // Resting or skipping the whole day lives here, with the
                     // day (v0.432; it was on the Workouts page).
-                    if (ui.date != null && !ui.loggedAny && !ui.rested && !ui.restPlanned && !ui.loading) {
+                    if (ui.date != null && !future && !ui.loggedAny && !ui.rested && !ui.restPlanned && !ui.loading) {
                         AccentOutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
                             Icon(KairosIcons.Moon, contentDescription = null, modifier = Modifier.size(16.dp))
                             Text("Rest / skip day", modifier = Modifier.padding(start = 6.dp))
                         }
                     }
 
-                    ui.suggestion?.takeIf { !ui.restPlanned }?.let { sg ->
+                    ui.suggestion?.takeIf { !ui.restPlanned && !future }?.let { sg ->
                         SuggestionCard(
                             title = sg.title,
                             why = sg.why,
@@ -266,7 +273,7 @@ fun WorkoutLogScreen(
                         ) { vm.answerDaySuggestion(it) }
                     }
 
-                    ui.benchmark?.takeIf { !ui.restPlanned }?.let { b ->
+                    ui.benchmark?.takeIf { !ui.restPlanned && !future }?.let { b ->
                         BenchmarkCard(
                             benchmark = b,
                             onAnswer = { vm.answerBenchmark(it) },
@@ -306,7 +313,10 @@ fun WorkoutLogScreen(
                     // A skipped day (Rest / skip) keeps its plan in view but faded,
                     // so nothing on it looks open (v0.460).
                     Column(
-                        Modifier.alpha(if (ui.rested) 0.4f else 1f),
+                        Modifier
+                            .alpha(if (ui.rested) 0.4f else if (future) 0.55f else 1f)
+                            // A day still to come only previews its plan (v0.461).
+                            .then(if (future) Modifier.pointerInput(Unit) { consumeAllTaps() } else Modifier),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         todaySections.forEach { section ->
@@ -860,6 +870,9 @@ private fun DayHeader(
     planned: Boolean = true,
     onPickDate: () -> Unit,
     onPickDay: (String) -> Unit,
+    stripPage: (Int) -> com.kairos.app.data.remote.dto.WorkoutStripDto? = { null },
+    onNeedPage: (Int) -> Unit = {},
+    onToday: () -> Unit = {},
 ) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -915,7 +928,14 @@ private fun DayHeader(
             }
             strip?.takeIf { it.days.isNotEmpty() }?.let {
                 Spacer(Modifier.height(2.dp))
-                WeekStrip(strip = it, selected = date, onPick = onPickDay)
+                PagedWeekStrip(
+                    first = it,
+                    pageOf = stripPage,
+                    onNeedPage = onNeedPage,
+                    selected = date,
+                    onPick = onPickDay,
+                    onToday = onToday,
+                )
             }
         }
     }
@@ -1099,6 +1119,68 @@ internal fun StatusChip(label: String, positive: Boolean) {
     )
 }
 
+private const val STRIP_BACK = 8
+private const val STRIP_AHEAD = 4
+
+/**
+ * The week strip in 8-day pages (v0.461): swipe inside it or tap ‹ › to look
+ * back, or ahead at what's planned. The swipe is the strip's own, so the rest
+ * of the page drags and opens the menu as everywhere else (like the Bible
+ * page's cards). "Today" comes back.
+ */
+@Composable
+private fun PagedWeekStrip(
+    first: com.kairos.app.data.remote.dto.WorkoutStripDto,
+    pageOf: (Int) -> com.kairos.app.data.remote.dto.WorkoutStripDto?,
+    onNeedPage: (Int) -> Unit,
+    selected: String?,
+    onPick: (String) -> Unit,
+    onToday: () -> Unit,
+) {
+    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = STRIP_BACK) {
+        STRIP_BACK + STRIP_AHEAD + 1
+    }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val page = pager.currentPage - STRIP_BACK
+    androidx.compose.runtime.LaunchedEffect(page) { onNeedPage(page) }
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        if (page != 0 || selected != first.today) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        scope.launch { pager.animateScrollToPage(STRIP_BACK) }
+                        onToday()
+                    },
+                ) { Text("Today", fontWeight = FontWeight.SemiBold) }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.IconButton(
+                onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
+                enabled = pager.currentPage > 0,
+                modifier = Modifier.size(32.dp),
+            ) { Icon(KairosIcons.ChevronLeft, contentDescription = "Earlier days") }
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pager,
+                modifier = Modifier.weight(1f),
+            ) { idx ->
+                val p = idx - STRIP_BACK
+                val data = if (p == 0) first else pageOf(p)
+                if (data != null && data.days.isNotEmpty()) {
+                    WeekStrip(strip = data, selected = selected, onPick = onPick)
+                } else {
+                    Box(Modifier.fillMaxWidth().height(52.dp))
+                }
+            }
+            androidx.compose.material3.IconButton(
+                onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
+                enabled = pager.currentPage < STRIP_BACK + STRIP_AHEAD,
+                modifier = Modifier.size(32.dp),
+            ) { Icon(KairosIcons.ChevronRight, contentDescription = "Later days") }
+        }
+    }
+}
+
 /** The last 8 days: tap one to log it. Done, part-done, rest, open and
  *  expired days read the same as on the web. */
 @Composable
@@ -1150,8 +1232,13 @@ private fun WeekStrip(
                         .clip(RoundedCornerShape(14.dp))
                         .background(fill)
                         .border(
-                            if (isSel) 1.5.dp else 0.dp,
-                            if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            if (isSel) 1.5.dp else if (state == "planned") 1.dp else 0.dp,
+                            when {
+                                isSel -> MaterialTheme.colorScheme.primary
+                                // A day still to come with a workout (v0.461).
+                                state == "planned" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                else -> Color.Transparent
+                            },
                             RoundedCornerShape(14.dp),
                         ),
                     contentAlignment = Alignment.Center,
@@ -1174,6 +1261,8 @@ private fun stripState(
     today: String,
     overdue: Set<String>,
 ): String = when {
+    // A day still to come (v0.461): what the plan has for it.
+    d.date > today -> if (d.restPlanned) "rest" else if (d.planned) "planned" else "none"
     // Rested, but something else got done (a game): done (v0.460).
     d.rested -> if (d.logged) "done" else "rest"
     d.restPlanned && !d.logged -> "rest"
@@ -1715,3 +1804,11 @@ private fun HistoryLine(label: String, value: String) {
 private fun fmtNum(v: Double): String =
     if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
 
+/** Swallow every touch inside (a planned day's preview can't be logged). */
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.consumeAllTaps() {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial).changes.forEach { it.consume() }
+        }
+    }
+}

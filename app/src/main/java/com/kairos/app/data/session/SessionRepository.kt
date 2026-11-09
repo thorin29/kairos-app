@@ -474,6 +474,9 @@ class SessionRepository(
     suspend fun loadWorkout(date: String? = null): com.kairos.app.data.remote.dto.WorkoutPlanDto =
         runAuthed { requireService().workoutPlan(date) }
 
+    suspend fun loadWorkoutStrip(page: Int): com.kairos.app.data.remote.dto.WorkoutStripDto =
+        runAuthed { requireService().workoutStrip(page) }
+
     suspend fun loadWorkoutProgress(): com.kairos.app.data.remote.dto.WorkoutProgressDto =
         runAuthed { requireService().workoutProgress() }
 
@@ -691,7 +694,7 @@ class SessionRepository(
         runAuthed { requireService().deleteWarmupRoutine(com.kairos.app.data.remote.dto.SharedPlanIdRequest(id = id)) }
 
     /** Make a Core day on `day`, or change `plannedWorkoutId`'s rotation (server 0.637+). */
-    suspend fun setCoreDay(plannedWorkoutId: String?, day: Int?, rotation: List<String>, test: Boolean): String =
+    suspend fun setCoreDay(plannedWorkoutId: String?, day: Int?, rotation: List<String>, test: Boolean, kind: String = "core"): String =
         runAuthed {
             requireService().setCoreDay(
                 com.kairos.app.data.remote.dto.SetCoreDayRequest(
@@ -699,13 +702,21 @@ class SessionRepository(
                     day = day,
                     rotation = rotation,
                     test = test,
+                    kind = kind,
                 ),
             )
         }.id
 
-    suspend fun saveCoreWorkout(id: String?, name: String, moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>): String =
+    suspend fun saveCoreWorkout(
+        id: String?,
+        name: String,
+        moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>,
+        kind: String = "core",
+    ): String =
         runAuthed {
-            requireService().saveCoreWorkout(com.kairos.app.data.remote.dto.SaveCoreWorkoutRequest(id = id, name = name, moves = moves))
+            requireService().saveCoreWorkout(
+                com.kairos.app.data.remote.dto.SaveCoreWorkoutRequest(id = id, name = name, moves = moves, kind = kind),
+            )
         }.id
 
     suspend fun deleteCoreWorkout(id: String): WorkoutAckDto =
@@ -1272,6 +1283,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 527
+        const val CLIENT_BUILD = 528
     }
 }

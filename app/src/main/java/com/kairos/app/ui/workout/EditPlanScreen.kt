@@ -75,7 +75,8 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                 moves: List<com.kairos.app.data.remote.dto.CoreMoveIn>,
                 onSaved: (String) -> Unit,
                 onError: (String) -> Unit,
-            ) = vm.saveCoreWorkout(id = id, name = name, moves = moves, onSaved = onSaved, onError = onError)
+                kind: String,
+            ) = vm.saveCoreWorkout(id = id, name = name, moves = moves, onSaved = onSaved, onError = onError, kind = kind)
 
             override fun delete(id: String, onDone: () -> Unit) = vm.deleteCoreWorkout(id = id, onDone = onDone)
         }
@@ -221,8 +222,8 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                     onAddHiit = { hid -> vm.addHiit(ad, hid); addingDay = null },
                     onMarkRest = { vm.markRest(ad); addingDay = null },
                     onDismiss = { addingDay = null },
-                    onAddCore = { rot, test ->
-                        vm.setCoreDay(plannedWorkoutId = null, day = ad, rotation = rot, test = test)
+                    onAddCore = { rot, test, kind ->
+                        vm.setCoreDay(plannedWorkoutId = null, day = ad, rotation = rot, test = test, kind = kind)
                         addingDay = null
                     },
                     coreActions = coreActions,
@@ -232,12 +233,12 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
             if (ec != null && opts != null) {
                 CoreRotationDialog(
                     w = ec,
-                    workouts = opts.coreWorkouts,
+                    workouts = if (ec.core?.kind == "arms") opts.armsWorkouts else opts.coreWorkouts,
                     exercises = opts.exercises,
                     busy = ui.busy,
                     actions = coreActions,
                     onSave = { rot, test ->
-                        vm.setCoreDay(plannedWorkoutId = ec.id, day = null, rotation = rot, test = test)
+                        vm.setCoreDay(plannedWorkoutId = ec.id, day = null, rotation = rot, test = test, kind = ec.core?.kind ?: "core")
                         editingCore = null
                     },
                     onDismiss = { editingCore = null },
@@ -336,7 +337,7 @@ private fun DayCard(
                     Text(
                         when {
                             // Like Warm-up: the kind, then the workout as a link (v0.453).
-                            w.core != null -> "Core"
+                            w.core != null -> if (w.core.kind == "arms") "Arms" else "Core"
                             kindLabel != null -> "${w.name}  ·  $kindLabel"
                             else -> w.name
                         },

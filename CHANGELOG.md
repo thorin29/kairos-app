@@ -1,4 +1,10 @@
 # Changelog
+## 0.461.0
+
+- Look ahead (and back) in the week: page the days with the arrows or a swipe, and open a coming day to see what's planned.
+- Arms days: a rotation of arms workouts like Core days. Pick which are in it, or make your own.
+- Rest days say Rest day.
+
 ## 0.460.0
 
 - Rest days say Rest day! on the Workouts card, whether the plan has them or you pressed Rest / skip.

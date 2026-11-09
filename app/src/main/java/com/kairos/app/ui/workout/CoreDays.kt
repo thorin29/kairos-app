@@ -64,7 +64,15 @@ import com.kairos.app.ui.nav.KairosIcons
 
 /** What the core screens can do, handed down from the plan editor. */
 interface CoreActions {
-    fun save(id: String?, name: String, moves: List<CoreMoveIn>, onSaved: (String) -> Unit, onError: (String) -> Unit)
+    /** [kind] "arms" saves an Arms workout (v0.462). */
+    fun save(
+        id: String?,
+        name: String,
+        moves: List<CoreMoveIn>,
+        onSaved: (String) -> Unit,
+        onError: (String) -> Unit,
+        kind: String = "core",
+    )
     fun delete(id: String, onDone: () -> Unit)
 }
 
@@ -98,6 +106,7 @@ internal fun CoreRotationPicker(
     onTest: (Boolean) -> Unit,
     onNew: () -> Unit,
     onEdit: (CoreWorkoutDto) -> Unit,
+    kind: String = "core",
 ) {
     val accent = MaterialTheme.colorScheme.primary
     var peek by remember { mutableStateOf<CoreWorkoutDto?>(null) }
@@ -166,18 +175,21 @@ internal fun CoreRotationPicker(
             }
         }
         AccentOutlinedButton(onClick = onNew, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("New core workout")
+            Text(if (kind == "arms") "New arms workout" else "New core workout")
         }
-        Row(
-            Modifier.fillMaxWidth().padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Plank test, first core day each month",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(checked = test, onCheckedChange = onTest)
+        // The plank test is Core's (an Arms day has none).
+        if (kind != "arms") {
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Plank test, first core day each month",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = test, onCheckedChange = onTest)
+            }
         }
     }
     peek?.let { w ->
@@ -213,7 +225,7 @@ internal fun CoreRotationPicker(
 internal fun CorePlanLine(w: PlanWorkoutDto, onRotation: () -> Unit) {
     if (w.core == null) return
     Text(
-        "${w.name.removePrefix("Core · ").ifBlank { "Pick workouts" }} ›",
+        "${w.name.removePrefix("Core · ").removePrefix("Arms · ").ifBlank { "Pick workouts" }} ›",
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
@@ -234,7 +246,8 @@ internal fun CoreRotationDialog(
 ) {
     var rotation by remember { mutableStateOf(w.core?.rotation.orEmpty()) }
     var test by remember { mutableStateOf(w.core?.test ?: true) }
-    CoreScreen(title = "Core rotation", onDismiss = onDismiss, footer = {
+    val kind = w.core?.kind ?: "core"
+    CoreScreen(title = if (kind == "arms") "Arms rotation" else "Core rotation", onDismiss = onDismiss, footer = {
         Button(
             onClick = { onSave(rotation, test) },
             enabled = rotation.isNotEmpty() && !busy,
@@ -249,6 +262,7 @@ internal fun CoreRotationDialog(
             test = test,
             onTest = { test = it },
             actions = actions,
+            kind = kind,
         )
     }
 }
@@ -263,6 +277,7 @@ internal fun CoreRotationWithEditor(
     test: Boolean,
     onTest: (Boolean) -> Unit,
     actions: CoreActions,
+    kind: String = "core",
 ) {
     // null: closed; "": new; else the id being edited.
     var editing by remember { mutableStateOf<String?>(null) }
@@ -274,12 +289,14 @@ internal fun CoreRotationWithEditor(
         onTest = onTest,
         onNew = { editing = "" },
         onEdit = { editing = it.id },
+        kind = kind,
     )
     editing?.let { id ->
         CoreWorkoutEditor(
             initial = workouts.firstOrNull { it.id == id },
             exercises = exercises,
             actions = actions,
+            kind = kind,
             onSaved = { newId ->
                 editing = null
                 if (!rotation.contains(newId)) onRotation(rotation + newId)
@@ -310,10 +327,11 @@ internal fun CoreWorkoutEditor(
     onSaved: (String) -> Unit,
     onDeleted: (String) -> Unit,
     onDismiss: () -> Unit,
+    kind: String = "core",
 ) {
-    // Core movements, and holds from the isometric list.
+    // Core movements and holds, or arms movements for an Arms workout (v0.462).
     val choices = exercises
-        .filter { it.muscleGroup == "CORE" || it.category == "ISOMETRIC" }
+        .filter { if (kind == "arms") it.muscleGroup == "ARMS" else it.muscleGroup == "CORE" || it.category == "ISOMETRIC" }
         .sortedBy { it.name.lowercase() }
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     val rows = remember {
@@ -346,11 +364,12 @@ internal fun CoreWorkoutEditor(
             moves = moves,
             onSaved = { id -> busy = false; onSaved(id) },
             onError = { msg -> busy = false; error = msg },
+            kind = kind,
         )
     }
 
     CoreScreen(
-        title = if (initial != null) "Edit core workout" else "New core workout",
+        title = (if (initial != null) "Edit " else "New ") + (if (kind == "arms") "arms workout" else "core workout"),
         onDismiss = onDismiss,
         footer = {
             Row(

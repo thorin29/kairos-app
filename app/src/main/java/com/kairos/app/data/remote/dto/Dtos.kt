@@ -660,6 +660,8 @@ data class WorkoutStripDayDto(
     val logged: Boolean = false,
     /** The plan makes this weekday a rest day (server 0.650+). */
     val restPlanned: Boolean = false,
+    /** The plan has a workout that weekday (server 0.651+). */
+    val planned: Boolean = false,
 )
 
 /** One set as stored: weight and reps, reps alone, or seconds. */
@@ -1283,6 +1285,8 @@ data class PlanOptionsDto(
     val schemes: List<SchemeChoiceDto> = emptyList(),
     /** Core workouts for a Core day's rotation (server 0.637+). */
     val coreWorkouts: List<CoreWorkoutDto> = emptyList(),
+    /** Arms days' workouts (server 0.651+). */
+    val armsWorkouts: List<CoreWorkoutDto> = emptyList(),
 )
 
 @Serializable
@@ -1332,6 +1336,8 @@ data class CoreDayDto(
     val rotation: List<String> = emptyList(),
     val test: Boolean = true,
     val at: Int = 0,
+    /** "arms" for an Arms day (server 0.651+), else "core". */
+    val kind: String = "core",
 )
 
 /** A core workout (server 0.637+): the library's ("lib:<key>") or one's own. */
@@ -1366,6 +1372,8 @@ data class SetCoreDayRequest(
     val day: Int? = null,
     val rotation: List<String>,
     val test: Boolean,
+    /** "arms" makes an Arms day (server 0.651+). */
+    val kind: String = "core",
 )
 
 @Serializable
@@ -1382,6 +1390,8 @@ data class SaveCoreWorkoutRequest(
     val id: String? = null,
     val name: String,
     val moves: List<CoreMoveIn>,
+    /** "arms" for an Arms workout (server 0.651+). */
+    val kind: String = "core",
 )
 
 /** A movement in the plan, with its set structure (server 0.615+). */

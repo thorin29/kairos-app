@@ -114,6 +114,8 @@ data class WorkoutLogUiState(
     val title: String = "",
     /** The last 8 days, for the week strip. */
     val strip: com.kairos.app.data.remote.dto.WorkoutStripDto? = null,
+    /** Other 8-day pages of the strip, by page (v0.461): + ahead, - back. */
+    val stripPages: Map<Int, com.kairos.app.data.remote.dto.WorkoutStripDto> = emptyMap(),
     /** "Strength waves · Week 2 of 4", when a program is running. */
     val programLine: String = "",
     /** The day's suggestion card, hidden once answered (server 0.612+). */
@@ -340,6 +342,8 @@ class WorkoutLogViewModel(
                 planName = planName,
                 title = plan.title,
                 strip = plan.strip,
+                // A log can change a past page's dots: fetch pages again.
+                stripPages = emptyMap(),
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
@@ -634,6 +638,15 @@ class WorkoutLogViewModel(
     }
 
     /** Switch the day being logged (from the date picker) and reload its plan. */
+    /** Fetch one page of the week strip, once (page 0 comes with the day). */
+    fun loadStripPage(page: Int) {
+        if (page == 0 || _ui.value.stripPages.containsKey(page)) return
+        viewModelScope.launch {
+            val got = runCatching { session.loadWorkoutStrip(page = page) }.getOrNull() ?: return@launch
+            _ui.update { it.copy(stripPages = it.stripPages + (page to got)) }
+        }
+    }
+
     fun setDate(iso: String) {
         if (iso == date) return
         requestedDate = iso

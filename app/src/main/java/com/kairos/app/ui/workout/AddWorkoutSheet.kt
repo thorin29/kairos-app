@@ -58,7 +58,8 @@ fun AddWorkoutSheet(
     onMarkRest: () -> Unit,
     onDismiss: () -> Unit,
     /** A Core day: its rotation and the monthly plank test (server 0.637+). */
-    onAddCore: (List<String>, Boolean) -> Unit = { _, _ -> },
+    /** rotation, plank test, kind ("core" or "arms", v0.462). */
+    onAddCore: (List<String>, Boolean, String) -> Unit = { _, _, _ -> },
     coreActions: CoreActions? = null,
 ) {
     var rest by remember { mutableStateOf(false) }
@@ -85,8 +86,11 @@ fun AddWorkoutSheet(
     }
     val ownMetrics = exercises.mapNotNull { e -> e.metric?.let { e.id to it } }.toMap()
 
-    val coreRot = kind == "weights" && muscleKey == "CORE" && coreRotationMode &&
-        options.coreWorkouts.isNotEmpty() && coreActions != null
+    // Core and Arms (v0.462) both rotate through workouts.
+    val rotKind = if (muscleKey == "ARMS") "arms" else "core"
+    val rotWorkouts = if (rotKind == "arms") options.armsWorkouts else options.coreWorkouts
+    val coreRot = kind == "weights" && (muscleKey == "CORE" || muscleKey == "ARMS") && coreRotationMode &&
+        rotWorkouts.isNotEmpty() && coreActions != null
     val canSave = when {
         rest -> true
         coreRot -> coreRotation.isNotEmpty()
@@ -99,7 +103,7 @@ fun AddWorkoutSheet(
         if (!canSave || busy) return
         when {
             rest -> onMarkRest()
-            coreRot -> onAddCore(coreRotation, coreTest)
+            coreRot -> onAddCore(coreRotation, coreTest && rotKind == "core", rotKind)
             // Conditioning with no workout chosen ahead: picked, built or
             // written on the day (server 0.617+).
             kind == "hiit" && hiitId == PICK_ON_THE_DAY -> onAddPool(
@@ -177,14 +181,19 @@ fun AddWorkoutSheet(
                         else options.muscleGroups.firstOrNull { it.key == muscleKey }?.label ?: "",
                         options = options.muscleGroups.map { it.key to it.label } +
                             listOf("" to NO_GROUP_LABEL),
-                        onSelect = { muscleKey = it; picked = emptyMap() },
+                        onSelect = { muscleKey = it; picked = emptyMap(); coreRotation = emptyList() },
                     )
-                    if (muscleKey == "CORE" && options.coreWorkouts.isNotEmpty() && coreActions != null) {
-                        CoreModeSwitch(rotation = coreRotationMode, onRotation = { coreRotationMode = it })
+                    if ((muscleKey == "CORE" || muscleKey == "ARMS") && rotWorkouts.isNotEmpty() && coreActions != null) {
+                        CoreModeSwitch(
+                            rotation = coreRotationMode,
+                            onRotation = { coreRotationMode = it },
+                            label = if (rotKind == "arms") "Arms rotation" else "Core rotation",
+                        )
                     }
                     if (coreRot && coreActions != null) {
                         CoreRotationWithEditor(
-                            workouts = options.coreWorkouts,
+                            kind = rotKind,
+                            workouts = rotWorkouts,
                             exercises = options.exercises,
                             rotation = coreRotation,
                             onRotation = { coreRotation = it },
@@ -236,7 +245,7 @@ fun AddWorkoutSheet(
             enabled = canSave && !busy,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Text(if (busy) "Adding…" else if (coreRot) "Add core day" else "Add workout")
+            Text(if (busy) "Adding…" else if (coreRot) "Add $rotKind day" else "Add workout")
         }
         }
         }
@@ -245,7 +254,8 @@ fun AddWorkoutSheet(
 
 /** Core rotation or Pick movements, as two halves of one outlined bar. */
 @Composable
-private fun CoreModeSwitch(rotation: Boolean, onRotation: (Boolean) -> Unit) {
+private fun CoreModeSwitch(rotation: Boolean, onRotation: (Boolean) -> Unit, label: String = "Core rotation") {
+    val rotationLabel = label
     val accent = MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(10.dp)
     Row(
@@ -254,7 +264,7 @@ private fun CoreModeSwitch(rotation: Boolean, onRotation: (Boolean) -> Unit) {
             .clip(shape)
             .border(width = 1.dp, color = accent, shape = shape),
     ) {
-        listOf(true to "Core rotation", false to "Pick movements").forEach { (k, label) ->
+        listOf(true to rotationLabel, false to "Pick movements").forEach { (k, label) ->
             val on = k == rotation
             Box(
                 Modifier
