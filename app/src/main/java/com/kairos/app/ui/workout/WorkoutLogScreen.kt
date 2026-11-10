@@ -875,20 +875,19 @@ private fun DayHeader(
     onNeedPage: (Int) -> Unit = {},
     onToday: () -> Unit = {},
 ) {
-    // The strip's pages live here so "Today" can sit on the date line: the
-    // card is the same height on every page (v0.462).
-    // Opens on the page holding the day shown, so a reload never jumps back.
-    val startPage = remember(date, today) {
-        runCatching {
-            val off = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.parse(today), LocalDate.parse(date)).toInt()
-            val p = if (off > 0) (off + 7) / 8 else -((-off) / 8)
-            STRIP_BACK + p.coerceIn(-STRIP_BACK, STRIP_AHEAD)
-        }.getOrDefault(STRIP_BACK)
+    // The strip scrolls day by day across ~3 months (v0.463). Its state lives
+    // here so the reset button can sit in the card's corner.
+    val stripDays = remember(today) { stripDayRange(today) }
+    val todayIdx = STRIP_DAYS_BACK
+    val firstFor = { iso: String ->
+        (stripDays.indexOf(iso).takeIf { it >= 0 } ?: todayIdx).minus(STRIP_VISIBLE - 1)
+            .coerceIn(0, stripDays.size - STRIP_VISIBLE)
     }
-    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = startPage) {
-        STRIP_BACK + STRIP_AHEAD + 1
-    }
+    val list = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = firstFor(date))
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val offToday by androidx.compose.runtime.remember {
+        androidx.compose.runtime.derivedStateOf { list.firstVisibleItemIndex != firstFor(today) }
+    }
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
           Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -914,20 +913,22 @@ private fun DayHeader(
                 )
             }
             Spacer(Modifier.weight(1f))
-            if (strip != null && (pager.currentPage != STRIP_BACK || date != today)) {
-                Text(
-                    "Today",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            scope.launch { pager.animateScrollToPage(STRIP_BACK) }
-                            onToday()
-                        }
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
+            // Back to today (v0.463): only when the strip or the day is elsewhere.
+            if (strip != null && (offToday || date != today)) {
+                androidx.compose.material3.IconButton(
+                    onClick = {
+                        scope.launch { list.animateScrollToItem(firstFor(today)) }
+                        onToday()
+                    },
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(
+                        KairosIcons.Refresh,
+                        contentDescription = "Back to today",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
           }
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -962,8 +963,9 @@ private fun DayHeader(
             }
             strip?.takeIf { it.days.isNotEmpty() }?.let {
                 Spacer(Modifier.height(2.dp))
-                PagedWeekStrip(
-                    pager = pager,
+                ScrollingWeekStrip(
+                    list = list,
+                    days = stripDays,
                     first = it,
                     pageOf = stripPage,
                     onNeedPage = onNeedPage,
@@ -1153,18 +1155,35 @@ internal fun StatusChip(label: String, positive: Boolean) {
     )
 }
 
-private const val STRIP_BACK = 8
-private const val STRIP_AHEAD = 4
+private const val STRIP_PAGES_BACK = 8
+private const val STRIP_PAGES_AHEAD = 4
+/** Days the strip reaches (8-day server pages): ~2 months back, ~1 ahead. */
+private const val STRIP_DAYS_BACK = STRIP_PAGES_BACK * 8
+private const val STRIP_DAYS_AHEAD = STRIP_PAGES_AHEAD * 8
+private const val STRIP_VISIBLE = 8
+
+/** Every day the strip can show, oldest first; today is at STRIP_DAYS_BACK. */
+private fun stripDayRange(today: String): List<String> {
+    val t = runCatching { LocalDate.parse(today) }.getOrElse { LocalDate.now() }
+    return (-STRIP_DAYS_BACK..STRIP_DAYS_AHEAD).map { t.plusDays(it.toLong()).toString() }
+}
+
+/** The server page (8 days, 0 = up to today) holding day [idx] of the range. */
+private fun stripPageOf(idx: Int): Int {
+    val off = idx - STRIP_DAYS_BACK
+    return if (off > 0) (off + 7) / 8 else -((-off) / 8)
+}
 
 /**
- * The week strip in 8-day pages (v0.461): swipe inside it or tap ‹ › to look
- * back, or ahead at what's planned. The swipe is the strip's own, so the rest
- * of the page drags and opens the menu as everywhere else (like the Bible
- * page's cards). "Today" comes back.
+ * The week strip, scrolled freely a day or many at a time (v0.463); ‹ ›
+ * jump a week. Days are known up front, so a day whose dots haven't loaded
+ * still shows its date. The strip owns its swipe (like the Bible cards), so
+ * the rest of the page and the side menu behave as everywhere else.
  */
 @Composable
-private fun PagedWeekStrip(
-    pager: androidx.compose.foundation.pager.PagerState,
+private fun ScrollingWeekStrip(
+    list: androidx.compose.foundation.lazy.LazyListState,
+    days: List<String>,
     first: com.kairos.app.data.remote.dto.WorkoutStripDto,
     pageOf: (Int) -> com.kairos.app.data.remote.dto.WorkoutStripDto?,
     onNeedPage: (Int) -> Unit,
@@ -1172,32 +1191,51 @@ private fun PagedWeekStrip(
     onPick: (String) -> Unit,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val page = pager.currentPage - STRIP_BACK
-    // Fetch (or refresh) the page in view, and again after each day load:
-    // the page keeps showing what it had until the new copy arrives (v0.462).
-    androidx.compose.runtime.LaunchedEffect(page, first) { onNeedPage(page) }
+    // Ask for the pages in view as the strip moves (and after each day load).
+    val visiblePages by androidx.compose.runtime.remember {
+        androidx.compose.runtime.derivedStateOf {
+            val f = list.firstVisibleItemIndex
+            setOf(stripPageOf(f), stripPageOf((f + STRIP_VISIBLE - 1).coerceAtMost(days.size - 1)))
+        }
+    }
+    androidx.compose.runtime.LaunchedEffect(visiblePages, first) {
+        visiblePages.filter { it != 0 }.forEach(onNeedPage)
+    }
+    val byDate = buildMap {
+        (STRIP_PAGES_AHEAD downTo -STRIP_PAGES_BACK).forEach { p ->
+            val src = if (p == 0) first else pageOf(p)
+            src?.days?.forEach { put(it.date, it) }
+        }
+        first.days.forEach { put(it.date, it) }
+    }
+    val overdue = first.overdue.toSet()
     Row(verticalAlignment = Alignment.CenterVertically) {
         androidx.compose.material3.IconButton(
-            onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
-            enabled = pager.currentPage > 0,
+            onClick = { scope.launch { list.animateScrollToItem((list.firstVisibleItemIndex - 7).coerceAtLeast(0)) } },
             modifier = Modifier.size(32.dp),
         ) { Icon(KairosIcons.ChevronLeft, contentDescription = "Earlier days") }
-        androidx.compose.foundation.pager.HorizontalPager(
-            state = pager,
-            modifier = Modifier.weight(1f),
-        ) { idx ->
-            val p = idx - STRIP_BACK
-            val data = if (p == 0) first else pageOf(p)
-            // A page not here yet holds the strip's height, so nothing jumps.
-            Box(Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                if (data != null && data.days.isNotEmpty()) {
-                    WeekStrip(strip = data, selected = selected, onPick = onPick)
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f)) {
+            val cell = maxWidth / STRIP_VISIBLE
+            androidx.compose.foundation.lazy.LazyRow(state = list, modifier = Modifier.fillMaxWidth()) {
+                items(count = days.size, key = { days[it] }) { i ->
+                    val iso = days[i]
+                    val d = byDate[iso] ?: com.kairos.app.data.remote.dto.WorkoutStripDayDto(date = iso)
+                    StripDayCell(
+                        d = d,
+                        state = stripState(d, first.today, overdue),
+                        selected = iso == selected,
+                        onPick = onPick,
+                        modifier = Modifier.width(cell),
+                    )
                 }
             }
         }
         androidx.compose.material3.IconButton(
-            onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
-            enabled = pager.currentPage < STRIP_BACK + STRIP_AHEAD,
+            onClick = {
+                scope.launch {
+                    list.animateScrollToItem((list.firstVisibleItemIndex + 7).coerceAtMost(days.size - STRIP_VISIBLE))
+                }
+            },
             modifier = Modifier.size(32.dp),
         ) { Icon(KairosIcons.ChevronRight, contentDescription = "Later days") }
     }
@@ -1205,74 +1243,69 @@ private fun PagedWeekStrip(
 
 /** The last 8 days: tap one to log it. Done, part-done, rest, open and
  *  expired days read the same as on the web. */
+/** One day of the week strip: weekday, date, and its state's look. */
 @Composable
-private fun WeekStrip(
-    strip: com.kairos.app.data.remote.dto.WorkoutStripDto,
-    selected: String?,
+private fun StripDayCell(
+    d: com.kairos.app.data.remote.dto.WorkoutStripDayDto,
+    state: String,
+    selected: Boolean,
     onPick: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val overdue = strip.overdue.toSet()
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        strip.days.forEach { d ->
-            val state = stripState(d, strip.today, overdue)
-            val isSel = d.date == selected
-            val dow = runCatching {
-                LocalDate.parse(d.date).dayOfWeek
-                    .getDisplayName(java.time.format.TextStyle.NARROW, java.util.Locale.getDefault())
-            }.getOrDefault("")
-            val num = d.date.takeLast(2).trimStart('0')
-            val fill = when (state) {
-                "done" -> MaterialTheme.colorScheme.primary
-                // A rest day: a grey dot with its date (v0.460, was a moon).
-                "rest" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-                "partial" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                "open" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                else -> Color.Transparent
-            }
-            val fg = when (state) {
-                "done" -> MaterialTheme.colorScheme.onPrimary
-                "expired", "none" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                "open" -> MaterialTheme.colorScheme.error
-                else -> MaterialTheme.colorScheme.onSurface
-            }
-            Column(
-                Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent,
-                    )
-                    .then(if (state != "expired") Modifier.clickable { onPick(d.date) } else Modifier)
-                    .padding(vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(dow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Box(
-                    Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(fill)
-                        .border(
-                            if (isSel) 1.5.dp else if (state == "planned") 1.dp else 0.dp,
-                            when {
-                                isSel -> MaterialTheme.colorScheme.primary
-                                // A day still to come with a workout (v0.461).
-                                state == "planned" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                else -> Color.Transparent
-                            },
-                            RoundedCornerShape(14.dp),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        num,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = fg,
-                        fontWeight = if (isSel || state == "today") FontWeight.Bold else FontWeight.Normal,
-                    )
-                }
-            }
+    val isSel = selected
+    val dow = runCatching {
+        LocalDate.parse(d.date).dayOfWeek
+            .getDisplayName(java.time.format.TextStyle.NARROW, java.util.Locale.getDefault())
+    }.getOrDefault("")
+    val num = d.date.takeLast(2).trimStart('0')
+    val fill = when (state) {
+        "done" -> MaterialTheme.colorScheme.primary
+        // A rest day: a grey dot with its date (v0.460, was a moon).
+        "rest" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+        "partial" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        "open" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+        else -> Color.Transparent
+    }
+    val fg = when (state) {
+        "done" -> MaterialTheme.colorScheme.onPrimary
+        "expired", "none" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        "open" -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Column(
+        modifier
+            .padding(horizontal = 2.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent)
+            .then(if (state != "expired") Modifier.clickable { onPick(d.date) } else Modifier)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(dow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(
+            Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(fill)
+                .border(
+                    if (isSel) 1.5.dp else if (state == "planned") 1.dp else 0.dp,
+                    when {
+                        isSel -> MaterialTheme.colorScheme.primary
+                        // A day still to come with a workout (v0.461).
+                        state == "planned" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        else -> Color.Transparent
+                    },
+                    RoundedCornerShape(14.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                num,
+                style = MaterialTheme.typography.labelMedium,
+                color = fg,
+                fontWeight = if (isSel || state == "today") FontWeight.Bold else FontWeight.Normal,
+            )
         }
     }
 }

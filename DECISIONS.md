@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Week strip scrolls freely (v0.463.0)
+
+`ScrollingWeekStrip` is a LazyRow over every day in reach (STRIP_DAYS_BACK
+64, AHEAD 32), cells 1/8 of the width, no snap; ‹ › animate 7 items. The
+LazyListState lives in DayHeader (initial item puts the shown day at the
+right end) so a reset IconButton sits top-right of the card, shown only when
+off today. Missing days render from the date alone; pages in view are
+requested via `loadStripPage`, which now fetches each page once per day load
+(`stripFetched`, cleared in applyPlan). `StripDayCell` is the old WeekStrip
+cell, extracted.
+
 ## 2026-11 — Week strip holds still; quieter network log (v0.462.0)
 
 - DayHeader owns the PagerState (initial page = the one holding the shown

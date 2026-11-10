@@ -1,4 +1,8 @@
 # Changelog
+## 0.463.0
+
+- The week strip scrolls a day or many at a time; the arrows still jump a week, and a reset button brings you back to today.
+
 ## 0.462.0
 
 - The week strip pages smoothly: the card no longer grows when Today shows, and opening a coming day keeps its dates.

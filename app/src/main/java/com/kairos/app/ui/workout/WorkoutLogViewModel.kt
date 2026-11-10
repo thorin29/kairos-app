@@ -341,7 +341,7 @@ class WorkoutLogViewModel(
                 blocks = blocks,
                 planName = planName,
                 title = plan.title,
-                strip = plan.strip,
+                strip = plan.strip.also { stripFetched.clear() },
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
@@ -636,12 +636,17 @@ class WorkoutLogViewModel(
     }
 
     /** Switch the day being logged (from the date picker) and reload its plan. */
+    /** Strip pages fetched since the day last loaded (v0.463): scrolling asks
+     *  often, each page goes once; a day load starts over (dots can change). */
+    private val stripFetched = java.util.Collections.synchronizedSet(HashSet<Int>())
+
     /** Fetch (or refresh) one page of the week strip; page 0 comes with the
      *  day. The old copy stays up until the new one lands. */
     fun loadStripPage(page: Int) {
-        if (page == 0) return
+        if (page == 0 || !stripFetched.add(page)) return
         viewModelScope.launch {
-            val got = runCatching { session.loadWorkoutStrip(page = page) }.getOrNull() ?: return@launch
+            val got = runCatching { session.loadWorkoutStrip(page = page) }.getOrNull()
+                ?: run { stripFetched.remove(page); return@launch }
             _ui.update { it.copy(stripPages = it.stripPages + (page to got)) }
         }
     }
