@@ -233,7 +233,11 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
             if (ec != null && opts != null) {
                 CoreRotationDialog(
                     w = ec,
-                    workouts = if (ec.core?.kind == "arms") opts.armsWorkouts else opts.coreWorkouts,
+                    workouts = when (ec.core?.kind) {
+                        "arms" -> opts.armsWorkouts
+                        "iso" -> opts.isoWorkouts
+                        else -> opts.coreWorkouts
+                    },
                     exercises = opts.exercises,
                     busy = ui.busy,
                     actions = coreActions,
@@ -337,7 +341,7 @@ private fun DayCard(
                     Text(
                         when {
                             // Like Warm-up: the kind, then the workout as a link (v0.453).
-                            w.core != null -> if (w.core.kind == "arms") "Arms" else "Core"
+                            w.core != null -> rotationWord(w.core.kind)
                             kindLabel != null -> "${w.name}  ·  $kindLabel"
                             else -> w.name
                         },

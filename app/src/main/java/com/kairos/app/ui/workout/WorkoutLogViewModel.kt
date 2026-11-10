@@ -87,6 +87,9 @@ data class WorkoutBlock(
     val core: Boolean = false,
     /** The month's plank test's pool id on a core day: its own card (v0.453). */
     val coreTest: String? = null,
+    /** Every test movement (v0.471): the plank, or Isometric's three holds. */
+    val coreTests: List<String> = emptyList(),
+    val coreTestName: String? = null,
 )
 
 data class WorkoutLogUiState(
@@ -270,6 +273,8 @@ class WorkoutLogViewModel(
                 muscleGroup = b.muscleGroup,
                 core = b.core,
                 coreTest = b.coreTest,
+                coreTests = b.coreTests.ifEmpty { listOfNotNull(b.coreTest) },
+                coreTestName = b.coreTestName,
                 inputs = b.exercises.map { e ->
                     // A slot already logged with a swapped movement comes back as
                     // that movement, still showing what it replaced — so a reload

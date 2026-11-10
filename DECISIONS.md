@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Isometric days (v0.471.0, server 0.661.0)
+
+Isometric reuses the Core screens with kind "iso" (`rotationWord` names it):
+Add workout's Isometric category gets the Core-style switch (rotation or
+pick holds), the rotation editor offers isometric and timed movements, and
+the day groups iso entries under "Isometric". The month's test is read from
+`coreTests` / `coreTestName` (falling back to `coreTest`); more than one
+test movement shows as one card that opens them together.
+
 ## 2026-11 — Day header date on one line; warm-up card trimmed (v0.470.0)
 
 The date row had the date at `weight(1f, fill = false)` and a

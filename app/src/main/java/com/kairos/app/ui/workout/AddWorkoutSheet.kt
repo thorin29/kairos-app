@@ -86,11 +86,20 @@ fun AddWorkoutSheet(
     }
     val ownMetrics = exercises.mapNotNull { e -> e.metric?.let { e.id to it } }.toMap()
 
-    // Core and Arms (v0.462) both rotate through workouts.
-    val rotKind = if (muscleKey == "ARMS") "arms" else "core"
-    val rotWorkouts = if (rotKind == "arms") options.armsWorkouts else options.coreWorkouts
-    val coreRot = kind == "weights" && (muscleKey == "CORE" || muscleKey == "ARMS") && coreRotationMode &&
-        rotWorkouts.isNotEmpty() && coreActions != null
+    // Core and Arms (v0.462) and Isometric (v0.471) all rotate through workouts.
+    val isIso = categoryKey == "ISOMETRIC"
+    val rotKind = when {
+        isIso -> "iso"
+        muscleKey == "ARMS" -> "arms"
+        else -> "core"
+    }
+    val rotWorkouts = when (rotKind) {
+        "arms" -> options.armsWorkouts
+        "iso" -> options.isoWorkouts
+        else -> options.coreWorkouts
+    }
+    val rotatable = isIso || (kind == "weights" && (muscleKey == "CORE" || muscleKey == "ARMS"))
+    val coreRot = rotatable && coreRotationMode && rotWorkouts.isNotEmpty() && coreActions != null
     val canSave = when {
         rest -> true
         coreRot -> coreRotation.isNotEmpty()
@@ -103,7 +112,7 @@ fun AddWorkoutSheet(
         if (!canSave || busy) return
         when {
             rest -> onMarkRest()
-            coreRot -> onAddCore(coreRotation, coreTest && rotKind == "core", rotKind)
+            coreRot -> onAddCore(coreRotation, coreTest && rotKind != "arms", rotKind)
             // Conditioning with no workout chosen ahead: picked, built or
             // written on the day (server 0.617+).
             kind == "hiit" && hiitId == PICK_ON_THE_DAY -> onAddPool(
@@ -169,6 +178,7 @@ fun AddWorkoutSheet(
                         picked = emptyMap()
                         hiitId = ""
                         warmupId = null
+                        coreRotation = emptyList()
                     }
                 },
             )
@@ -188,7 +198,7 @@ fun AddWorkoutSheet(
                         CoreModeSwitch(
                             rotation = coreRotationMode,
                             onRotation = { coreRotationMode = it },
-                            label = if (rotKind == "arms") "Arms rotation" else "Core rotation",
+                            label = "${rotationWord(rotKind)} rotation",
                         )
                     }
                     if (coreRot && coreActions != null) {
@@ -227,6 +237,35 @@ fun AddWorkoutSheet(
                 // Mobility (v0.469): the same chooser, its own routines.
                 categoryKey == "MOBILITY" -> androidx.compose.runtime.key("mobility") {
                     WarmupChooser(value = warmupId, onChange = { warmupId = it }, kind = "mobility")
+                }
+                // Isometric (v0.471): a rotation like Core, or holds picked by hand.
+                isIso && options.isoWorkouts.isNotEmpty() && coreActions != null -> {
+                    CoreModeSwitch(
+                        rotation = coreRotationMode,
+                        onRotation = { coreRotationMode = it },
+                        label = "Isometric rotation",
+                    )
+                    if (coreRot) {
+                        CoreRotationWithEditor(
+                            kind = rotKind,
+                            workouts = rotWorkouts,
+                            exercises = options.exercises,
+                            rotation = coreRotation,
+                            onRotation = { coreRotation = it },
+                            test = coreTest,
+                            onTest = { coreTest = it },
+                            actions = coreActions,
+                        )
+                    } else {
+                        ExerciseList(
+                            items = exercises.map { it.id to it.name },
+                            picked = picked,
+                            metrics = metrics,
+                            defMetric = defMetric,
+                            own = ownMetrics,
+                            about = exercises.associate { it.id to it.about },
+                        ) { picked = it }
+                    }
                 }
                 // Cardio: nothing to pick.
                 category?.simple == true -> Unit

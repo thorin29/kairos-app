@@ -850,14 +850,18 @@ private fun daySections(
     blocks.forEach { b ->
         val kind = blockKind(b)
         val mg = b.muscleGroup?.takeIf { it.isNotBlank() }
+        // Isometric entries (v0.471) share one "Isometric" section.
+        val iso = mg == null && b.category == "ISOMETRIC"
         val key = when {
             kind != "STRENGTH" -> "k:$kind"
             mg != null -> "mg:$mg"
+            iso -> "cat:ISOMETRIC"
             else -> "w:${b.key}"
         }
         val title = when {
             kind != "STRENGTH" -> KIND_TITLE[kind] ?: b.name
             mg != null -> muscleLabel(mg)
+            iso -> "Isometric"
             else -> b.name
         }
         val cur = seen[key]?.second
@@ -1088,17 +1092,23 @@ private fun DaySectionView(
         )
         section.blocks.forEach { block ->
             if (block.core && opensSetLogger(block)) {
-                // The month's plank test is its own card, before the workout (v0.453).
-                val test = block.coreTest?.let { id -> block.inputs.firstOrNull { it.poolExerciseId == id } }
-                if (test != null) {
-                    val testBlock = block.copy(name = "Plank test", inputs = listOf(test), coreTest = null)
-                    MovementCard(
-                        m = test.copy(name = "Plank test", swappedFromName = null),
-                        overdue = overdue,
-                        onOpen = { onOpenCore(testBlock) },
-                    )
+                // The month's test is its own card, before the workout (v0.453;
+                // Isometric's three holds share one card, v0.471).
+                val tests = block.inputs.filter { it.poolExerciseId in block.coreTests }
+                val testName = block.coreTestName ?: "Plank test"
+                if (tests.isNotEmpty()) {
+                    val testBlock = block.copy(name = testName, inputs = tests, coreTest = null, coreTests = emptyList())
+                    if (tests.size == 1) {
+                        MovementCard(
+                            m = tests[0].copy(name = testName, swappedFromName = null),
+                            overdue = overdue,
+                            onOpen = { onOpenCore(testBlock) },
+                        )
+                    } else {
+                        CoreDayCard(block = testBlock, overdue = overdue, onOpen = { onOpenCore(testBlock) })
+                    }
                 }
-                val workout = if (test != null) block.copy(inputs = block.inputs - test, coreTest = null) else block
+                val workout = if (tests.isNotEmpty()) block.copy(inputs = block.inputs - tests.toSet(), coreTest = null, coreTests = emptyList()) else block
                 CoreDayCard(block = workout, overdue = overdue, onOpen = { onOpenCore(workout) })
             } else if (opensSetLogger(block)) {
                 block.inputs.forEach { m ->

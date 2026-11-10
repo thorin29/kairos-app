@@ -346,6 +346,11 @@ data class WorkoutBlockDto(
     /** The month's plank test on a core day (server 0.644+): its pool id. It
      *  gets its own card, apart from the workout. */
     val coreTest: String? = null,
+    /** The month's test movements (server 0.661+): the plank, or an
+     *  Isometric day's three holds. One card for all of them. */
+    val coreTests: List<String> = emptyList(),
+    /** "Plank test" or "Monthly test" (server 0.661+). */
+    val coreTestName: String? = null,
 )
 
 @Serializable
@@ -1289,6 +1294,8 @@ data class PlanOptionsDto(
     val coreWorkouts: List<CoreWorkoutDto> = emptyList(),
     /** Arms days' workouts (server 0.651+). */
     val armsWorkouts: List<CoreWorkoutDto> = emptyList(),
+    /** Isometric days' workouts (server 0.661+). */
+    val isoWorkouts: List<CoreWorkoutDto> = emptyList(),
 )
 
 @Serializable

@@ -1,4 +1,9 @@
 # Changelog
+## 0.471.0
+
+- Isometric days: a rotation of timed holds like Core, on any day. Pick Isometric when adding a workout.
+- A monthly test on the first isometric day: max wall sit, dead hang and push-up hold, on one card.
+
 ## 0.470.0
 
 - The date at the top of the day stays on one line.

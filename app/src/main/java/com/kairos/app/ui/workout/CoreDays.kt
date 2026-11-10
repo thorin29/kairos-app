@@ -56,6 +56,14 @@ import com.kairos.app.data.remote.dto.PlanWorkoutDto
 import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.nav.KairosIcons
 
+
+/** "Core" / "Arms" / "Isometric" (v0.471). */
+internal fun rotationWord(kind: String?) = when (kind) {
+    "arms" -> "Arms"
+    "iso" -> "Isometric"
+    else -> "Core"
+}
+
 /**
  * Core days (v0.444): the core workouts a Core day rotates through, making
  * your own, and the plan line for a Core day. The server keeps the day on
@@ -175,16 +183,20 @@ internal fun CoreRotationPicker(
             }
         }
         AccentOutlinedButton(onClick = onNew, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text(if (kind == "arms") "New arms workout" else "New core workout")
+            Text("New ${rotationWord(kind).lowercase()} workout")
         }
-        // The plank test is Core's (an Arms day has none).
+        // Core has the plank test, Isometric its three holds (v0.471); an Arms day has none.
         if (kind != "arms") {
             Row(
                 Modifier.fillMaxWidth().padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Plank test, first core day each month",
+                    if (kind == "iso") {
+                        "Monthly test (wall sit, dead hang, push-up hold), first isometric day each month"
+                    } else {
+                        "Plank test, first core day each month"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -247,7 +259,7 @@ internal fun CoreRotationDialog(
     var rotation by remember { mutableStateOf(w.core?.rotation.orEmpty()) }
     var test by remember { mutableStateOf(w.core?.test ?: true) }
     val kind = w.core?.kind ?: "core"
-    CoreScreen(title = if (kind == "arms") "Arms rotation" else "Core rotation", onDismiss = onDismiss, footer = {
+    CoreScreen(title = "${rotationWord(kind)} rotation", onDismiss = onDismiss, footer = {
         Button(
             onClick = { onSave(rotation, test) },
             enabled = rotation.isNotEmpty() && !busy,
@@ -331,7 +343,14 @@ internal fun CoreWorkoutEditor(
 ) {
     // Core movements and holds, or arms movements for an Arms workout (v0.462).
     val choices = exercises
-        .filter { if (kind == "arms") it.muscleGroup == "ARMS" else it.muscleGroup == "CORE" || it.category == "ISOMETRIC" }
+        .filter {
+            when (kind) {
+                "arms" -> it.muscleGroup == "ARMS"
+                // Holds (v0.471): isometric movements and any logged as time.
+                "iso" -> it.category == "ISOMETRIC" || it.metric == "DURATION"
+                else -> it.muscleGroup == "CORE" || it.category == "ISOMETRIC"
+            }
+        }
         .sortedBy { it.name.lowercase() }
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     val rows = remember {
@@ -369,7 +388,7 @@ internal fun CoreWorkoutEditor(
     }
 
     CoreScreen(
-        title = (if (initial != null) "Edit " else "New ") + (if (kind == "arms") "arms workout" else "core workout"),
+        title = (if (initial != null) "Edit " else "New ") + "${rotationWord(kind).lowercase()} workout",
         onDismiss = onDismiss,
         footer = {
             Row(
@@ -456,7 +475,7 @@ internal fun CoreWorkoutEditor(
             }
         }
         AccentOutlinedButton(
-            onClick = { rows.add(DraftMove("", "REPS", "3", "10", "15")) },
+            onClick = { rows.add(if (kind == "iso") DraftMove("", "TIME", "3", "30", "60") else DraftMove("", "REPS", "3", "10", "15")) },
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
         ) { Text("Add movement") }
         error?.let {
