@@ -710,13 +710,20 @@ class SessionRepository(
     suspend fun useSharedPlan(id: String, mode: String): com.kairos.app.data.remote.dto.ImportAddedDto? =
         runAuthed { requireService().useSharedPlan(com.kairos.app.data.remote.dto.UseSharedPlanRequest(id = id, mode = mode)) }.added
 
-    /** Warm-up routines (server 0.622+). */
-    suspend fun warmupRoutines(): List<com.kairos.app.data.remote.dto.WarmupRoutineDto> =
-        runAuthed { requireService().warmupRoutines() }.routines
+    /** Warm-up routines (server 0.622+), or Mobility ones (kind "mobility", server 0.659+). */
+    suspend fun warmupRoutines(kind: String = "warmup"): List<com.kairos.app.data.remote.dto.WarmupRoutineDto> =
+        runAuthed { requireService().warmupRoutines(kind = kind) }.routines
 
-    suspend fun saveWarmupRoutine(id: String?, name: String, steps: List<com.kairos.app.data.remote.dto.WarmupStepDto>): String =
+    suspend fun saveWarmupRoutine(
+        id: String?,
+        name: String,
+        steps: List<com.kairos.app.data.remote.dto.WarmupStepDto>,
+        kind: String = "warmup",
+    ): String =
         runAuthed {
-            requireService().saveWarmupRoutine(com.kairos.app.data.remote.dto.SaveWarmupRequest(id = id, name = name, steps = steps))
+            requireService().saveWarmupRoutine(
+                com.kairos.app.data.remote.dto.SaveWarmupRequest(id = id, name = name, steps = steps, kind = kind),
+            )
         }.id
 
     suspend fun deleteWarmupRoutine(id: String): WorkoutAckDto =
@@ -1312,6 +1319,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 535
+        const val CLIENT_BUILD = 536
     }
 }

@@ -352,7 +352,15 @@ fun WorkoutLogScreen(
                     }
 
                     val simpleKinds = buildSet {
-                        ui.simple.forEach { add(if (it.category == "WARMUP") "WARMUP" else "CARDIO") }
+                        ui.simple.forEach {
+                            add(
+                                when (it.category) {
+                                    "WARMUP" -> "WARMUP"
+                                    "MOBILITY" -> "MOBILITY"
+                                    else -> "CARDIO"
+                                },
+                            )
+                        }
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
                         // Always: + Conditioning sits where the person's order
                         // puts conditioning, planned or not (v0.433).
@@ -449,7 +457,8 @@ fun WorkoutLogScreen(
                                         Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
                                     }
                                 }
-                                "WARMUP" -> ui.simple.filter { it.category == "WARMUP" }.forEach { w ->
+                                // Mobility (v0.469) shows like a Warm-up: its routine, done with a tap.
+                                "WARMUP", "MOBILITY" -> ui.simple.filter { it.category == section.kind }.forEach { w ->
                                     WarmupCard(
                                         plan = w,
                                         onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
@@ -792,7 +801,7 @@ private data class DaySectionUi(
 )
 
 /** The default order (blocks.ts DEFAULT_ORDER); the server sends the person's. */
-private val DEFAULT_ORDER = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "STRETCH", "SPORT")
+private val DEFAULT_ORDER = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "MOBILITY", "STRETCH", "SPORT")
 
 /** The person's order made whole: known kinds once, missing ones where the
  *  default has them (blocks.ts cleanOrder), then OTHER. */
@@ -811,6 +820,7 @@ private fun blockKind(b: WorkoutBlock): String = when (b.category) {
     "HIIT" -> "CONDITIONING"
     "CARDIO", "ROWING", "RUNNING", "RUCKING" -> "CARDIO"
     "WARMUP" -> "WARMUP"
+    "MOBILITY" -> "MOBILITY"
     "STRETCHING" -> "STRETCH"
     "SPORT" -> "SPORT"
     null, "WEIGHTS", "ISOMETRIC" -> "STRENGTH"
@@ -821,6 +831,7 @@ private val KIND_TITLE = mapOf(
     "WARMUP" to "Warm-up",
     "CARDIO" to "Cardio",
     "CONDITIONING" to "Conditioning",
+    "MOBILITY" to "Mobility",
     "STRETCH" to "Stretching",
     "SPORT" to "Sport",
     "OTHER" to "Other",

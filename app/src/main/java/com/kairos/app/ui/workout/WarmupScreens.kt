@@ -60,6 +60,11 @@ import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
 
+/** "warm-up" or "routine" (Mobility, v0.469). */
+private fun oneWord(kind: String) = if (kind == "mobility") "routine" else "warm-up"
+private fun titleWord(kind: String) = if (kind == "mobility") "Mobility" else "Warm-up"
+private fun newWord(kind: String) = if (kind == "mobility") "New mobility routine" else "New warm-up"
+
 /** "10–15", "30 s each side", "3:00" (the web's stepAmount). */
 internal fun stepAmount(s: WarmupStepDto): String {
     val side = if (s.sides) " each side" else ""
@@ -105,6 +110,15 @@ private fun FullScreen(title: String, onClose: () -> Unit, content: @Composable 
 private fun WarmupSteps(steps: List<WarmupStepDto>) {
     val ticked = remember(steps) { mutableStateListOf<Int>() }
     var timing by remember(steps) { mutableStateOf<Int?>(null) }
+    var cue by remember(steps) { mutableStateOf<WarmupStepDto?>(null) }
+    cue?.let { st ->
+        AlertDialog(
+            onDismissRequest = { cue = null },
+            title = { Text(st.name) },
+            text = { Text(st.cue.orEmpty(), style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = { TextButton(onClick = { cue = null }) { Text("Close") } },
+        )
+    }
     timing?.let { from ->
         WarmupTimer(
             steps = steps,
@@ -143,6 +157,12 @@ private fun WarmupSteps(steps: List<WarmupStepDto>) {
                     )
                     Text(stepAmount(s), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                // How to do it (v0.469), behind an ⓘ.
+                if (!s.cue.isNullOrBlank()) {
+                    IconButton(onClick = { cue = s }) {
+                        Icon(KairosIcons.Info, contentDescription = "How to do ${s.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                    }
+                }
                 if (s.kind == "TIME") {
                     AccentOutlinedButton(onClick = { timing = i }) {
                         Icon(KairosIcons.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -166,9 +186,10 @@ internal fun WarmupWindow(
     onDone: () -> Unit,
     onClose: () -> Unit,
     onChanged: () -> Unit,
+    kind: String = "warmup",
 ) {
     var switching by remember { mutableStateOf(false) }
-    FullScreen(title = routine?.name ?: "Warm-up", onClose = onClose) {
+    FullScreen(title = routine?.name ?: titleWord(kind), onClose = onClose) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         ) {
@@ -194,6 +215,7 @@ internal fun WarmupWindow(
         RoutinePicker(
             plannedWorkoutId = plannedWorkoutId,
             current = routine?.id,
+            kind = kind,
             onClose = { switching = false },
             onPicked = {
                 switching = false
@@ -213,6 +235,7 @@ internal fun RoutinePicker(
     current: String?,
     onClose: () -> Unit,
     onPicked: () -> Unit,
+    kind: String = "warmup",
 ) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
@@ -228,12 +251,12 @@ internal fun RoutinePicker(
         }
     }
 
-    FullScreen(title = "Warm-up", onClose = onClose) {
+    FullScreen(title = titleWord(kind), onClose = onClose) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         ) {
             // The same chooser Add workout uses (v0.445).
-            WarmupChooser(value = current, onChange = { pick(it) })
+            WarmupChooser(value = current, onChange = { pick(it) }, kind = kind)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
     }
@@ -245,7 +268,7 @@ internal fun RoutinePicker(
  * warm-up. Tapping a row chooses it.
  */
 @Composable
-internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
+internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit, kind: String = "warmup") {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
     var routines by remember { mutableStateOf<List<WarmupRoutineDto>?>(null) }
@@ -256,13 +279,13 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
     fun load() {
         scope.launch {
             try {
-                routines = session.warmupRoutines()
+                routines = session.warmupRoutines(kind = kind)
             } catch (e: ApiException) {
                 error = e.error.message
             }
         }
     }
-    LaunchedEffect(Unit) { load() }
+    LaunchedEffect(kind) { load() }
     // One warm-up, Match the day, or a Rotation you order (v0.465).
     var mode by remember {
         mutableStateOf(
@@ -278,7 +301,7 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
     }
 
     Column {
-        WarmupModeSwitch(mode = mode, onMode = { mode = it })
+        WarmupModeSwitch(mode = mode, onMode = { mode = it }, kind = kind)
         val list = routines
         if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
         if (mode == "match") {
@@ -373,7 +396,7 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
             )
         }
         AccentOutlinedButton(onClick = { creating = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("New warm-up")
+            Text(newWord(kind))
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     }
@@ -401,6 +424,7 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
     if (editing != null || creating) {
         RoutineEditor(
             routine = editing,
+            kind = kind,
             onClose = { editing = null; creating = false },
             onSaved = { id ->
                 editing = null
@@ -500,7 +524,7 @@ private data class DraftStep(val k: Int, val step: WarmupStepDto)
  * Editing a ready-made one saves your own copy.
  */
 @Composable
-private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSaved: (String?) -> Unit) {
+private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSaved: (String?) -> Unit, kind: String = "warmup") {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf(routine?.name ?: "") }
@@ -526,7 +550,7 @@ private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSav
         steps[j] = a
     }
 
-    FullScreen(title = if (routine?.mine == true) "Edit warm-up" else "New warm-up", onClose = onClose) {
+    FullScreen(title = if (routine?.mine == true) "Edit ${oneWord(kind)}" else newWord(kind), onClose = onClose) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -557,6 +581,12 @@ private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSav
                             Icon(KairosIcons.Trash, contentDescription = "Remove step ${i + 1}", modifier = Modifier.size(18.dp))
                         }
                     }
+                    OutlinedTextField(
+                        value = s.cue ?: "",
+                        onValueChange = { v -> set(d.k) { it.copy(cue = v.take(300).ifEmpty { null }) } },
+                        placeholder = { Text("How (optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("REPS" to "Reps", "TIME" to "Time").forEach { (k, label) ->
                             ProgramPill(
@@ -623,6 +653,7 @@ private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSav
                                 id = routine?.id?.takeIf { routine.mine },
                                 name = name.trim(),
                                 steps = steps.map { it.step },
+                                kind = kind,
                             )
                             onSaved(id)
                         } catch (e: ApiException) {
@@ -659,7 +690,7 @@ private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSav
 
 /** A Warm-up entry in the plan editor: its routine, tapped to choose another. */
 @Composable
-internal fun WarmupPlanLine(plannedWorkoutId: String, warmup: String?, onChanged: () -> Unit) {
+internal fun WarmupPlanLine(plannedWorkoutId: String, warmup: String?, onChanged: () -> Unit, kind: String = "warmup") {
     val session = rememberContainer().sessionRepository
     var open by remember { mutableStateOf(false) }
     var name by remember(warmup) { mutableStateOf<String?>(null) }
@@ -668,7 +699,7 @@ internal fun WarmupPlanLine(plannedWorkoutId: String, warmup: String?, onChanged
             warmup == null -> null
             warmup == "match" -> "Match the day"
             warmup.startsWith("rot:") -> "Rotation \u00b7 ${warmup.removePrefix("rot:").split(",").count { it.isNotBlank() }}"
-            else -> runCatching { session.warmupRoutines() }.getOrNull()?.firstOrNull { it.id == warmup }?.name
+            else -> runCatching { session.warmupRoutines(kind = kind) }.getOrNull()?.firstOrNull { it.id == warmup }?.name
         }
     }
     Text(
@@ -682,6 +713,7 @@ internal fun WarmupPlanLine(plannedWorkoutId: String, warmup: String?, onChanged
         RoutinePicker(
             plannedWorkoutId = plannedWorkoutId,
             current = warmup,
+            kind = kind,
             onClose = { open = false },
             onPicked = {
                 open = false
@@ -705,17 +737,20 @@ fun WarmupsScreen(onBack: () -> Unit) {
     var viewing by remember { mutableStateOf<WarmupRoutineDto?>(null) }
     var editing by remember { mutableStateOf<WarmupRoutineDto?>(null) }
     var creating by remember { mutableStateOf(false) }
+    // Warm-ups and Mobility (v0.469) are both routines.
+    var kind by remember { mutableStateOf("warmup") }
     fun load() {
         scope.launch {
             try {
-                routines = session.warmupRoutines()
+                routines = null
+                routines = session.warmupRoutines(kind = kind)
                 error = null
             } catch (e: ApiException) {
                 error = e.error.message
             }
         }
     }
-    LaunchedEffect(Unit) { load() }
+    LaunchedEffect(kind) { load() }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -726,15 +761,20 @@ fun WarmupsScreen(onBack: () -> Unit) {
                 IconButton(onClick = onBack) {
                     Icon(KairosIcons.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                 }
-                Text("Warm-ups", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text("Routines", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                SegmentSwitch(
+                    options = listOf("warmup" to "Warm-ups", "mobility" to "Mobility"),
+                    selected = kind,
+                    onSelect = { kind = it },
+                )
                 Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Text("New warm-up", modifier = Modifier.padding(start = 6.dp))
+                    Text(newWord(kind), modifier = Modifier.padding(start = 6.dp))
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 val list = routines
@@ -777,6 +817,7 @@ fun WarmupsScreen(onBack: () -> Unit) {
     if (editing != null || creating) {
         RoutineEditor(
             routine = editing,
+            kind = kind,
             onClose = { editing = null; creating = false },
             onSaved = {
                 editing = null
@@ -800,7 +841,19 @@ private val MATCH_WARMUPS = setOf(
 )
 
 @Composable
-private fun WarmupModeSwitch(mode: String, onMode: (String) -> Unit) {
+private fun WarmupModeSwitch(mode: String, onMode: (String) -> Unit, kind: String = "warmup") {
+    // Mobility (v0.469): one routine or a rotation, no Match the day.
+    val modes = if (kind == "mobility") {
+        listOf("one" to "One routine", "rotation" to "Rotation")
+    } else {
+        listOf("one" to "One warm-up", "match" to "Match the day", "rotation" to "Rotation")
+    }
+    SegmentSwitch(options = modes, selected = mode, onSelect = onMode)
+}
+
+/** A row of equal choices in an accent outline, the chosen one filled. */
+@Composable
+private fun SegmentSwitch(options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
     val accent = MaterialTheme.colorScheme.primary
     val shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
     Row(
@@ -810,14 +863,15 @@ private fun WarmupModeSwitch(mode: String, onMode: (String) -> Unit) {
             .clip(shape)
             .border(width = 1.dp, color = accent, shape = shape),
     ) {
-        listOf("one" to "One warm-up", "match" to "Match the day", "rotation" to "Rotation").forEach { (k, label) ->
+        options.forEach { (k, label) ->
+            val mode = selected
             val on = k == mode
             Box(
                 Modifier
                     .weight(1f)
                     .heightIn(min = 40.dp)
                     .background(if (on) accent else androidx.compose.ui.graphics.Color.Transparent)
-                    .clickable { onMode(k) },
+                    .clickable { onSelect(k) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

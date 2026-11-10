@@ -1,4 +1,8 @@
 # Changelog
+## 0.469.0
+
+- Mobility: add it to a day like a Warm-up, as one routine or a weekly rotation. Ready-made routines or your own; tap ⓘ on a move for how to do it.
+
 ## 0.468.0
 
 - Go light is now Adjust today: Low energy, Short on time, Sick, or Hurt. Short on time fits a warm-up and your picks into 15, 30 or 45 minutes.

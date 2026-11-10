@@ -366,8 +366,13 @@ private fun DayCard(
                                 }
                             }
                         }
-                    } else if (w.category == "WARMUP") {
-                        WarmupPlanLine(plannedWorkoutId = w.id, warmup = w.warmup, onChanged = onWarmupChanged)
+                    } else if (w.category == "WARMUP" || w.category == "MOBILITY") {
+                        WarmupPlanLine(
+                            plannedWorkoutId = w.id,
+                            warmup = w.warmup,
+                            onChanged = onWarmupChanged,
+                            kind = if (w.category == "MOBILITY") "mobility" else "warmup",
+                        )
                     } else if (w.detail.isNotBlank()) {
                         Text(w.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -405,13 +410,14 @@ private fun DayCard(
 }
 
 /** The sections a day can hold, in the default order (the web's blocks.ts). */
-private val PLAN_KINDS = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "STRETCH", "SPORT")
+private val PLAN_KINDS = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "MOBILITY", "STRETCH", "SPORT")
 
 private val KIND_LABELS = mapOf(
     "WARMUP" to "Warm-up",
     "CARDIO" to "Cardio",
     "STRENGTH" to "Strength (each muscle group)",
     "CONDITIONING" to "Conditioning",
+    "MOBILITY" to "Mobility",
     "STRETCH" to "Stretching",
     "SPORT" to "Sport",
 )

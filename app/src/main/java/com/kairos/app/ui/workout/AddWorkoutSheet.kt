@@ -115,7 +115,7 @@ fun AddWorkoutSheet(
                     day = day,
                     category = categoryKey,
                     muscleGroup = if (kind == "weights") muscleKey.ifBlank { null } else null,
-                    warmup = if (categoryKey == "WARMUP") warmupId else null,
+                    warmup = if (categoryKey == "WARMUP" || categoryKey == "MOBILITY") warmupId else null,
                     exercises = if (kind == "metricOnly") emptyList()
                     else picked.map { (id, p) ->
                         AddPoolExercise(
@@ -168,6 +168,7 @@ fun AddWorkoutSheet(
                         categoryKey = key
                         picked = emptyMap()
                         hiitId = ""
+                        warmupId = null
                     }
                 },
             )
@@ -223,6 +224,10 @@ fun AddWorkoutSheet(
                 }
                 // Warm-up: its routine, chosen like a Core day's workouts (v0.445).
                 categoryKey == "WARMUP" -> WarmupChooser(value = warmupId, onChange = { warmupId = it })
+                // Mobility (v0.469): the same chooser, its own routines.
+                categoryKey == "MOBILITY" -> androidx.compose.runtime.key("mobility") {
+                    WarmupChooser(value = warmupId, onChange = { warmupId = it }, kind = "mobility")
+                }
                 // Cardio: nothing to pick.
                 category?.simple == true -> Unit
                 kind == "metricOnly" -> Note("Adds a ${category?.label?.lowercase() ?: ""} day — you'll log it on completion.")

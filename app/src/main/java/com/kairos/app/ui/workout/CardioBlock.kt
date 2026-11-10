@@ -93,7 +93,7 @@ internal fun SectionLabel(title: String) {
     )
 }
 
-/** A Warm-up in the plan: Mark done (tap again to undo), or Skip. */
+/** A Warm-up (or Mobility, v0.469) in the plan: Mark done (tap again to undo), or Skip. */
 @Composable
 internal fun WarmupCard(
     plan: SimplePlanDto,
@@ -110,6 +110,7 @@ internal fun WarmupCard(
         WarmupWindow(
             plannedWorkoutId = plan.plannedWorkoutId,
             routine = plan.routine,
+            kind = if (plan.category == "MOBILITY") "mobility" else "warmup",
             done = finished,
             onDone = {
                 onDone(true)

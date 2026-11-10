@@ -3127,13 +3127,15 @@ data class WarmupStepDto(
     val amount: String? = null,
     val seconds: Int? = null,
     val sides: Boolean = false,
+    /** How to do it (server 0.659+), behind an ⓘ. */
+    val cue: String? = null,
 )
 
 @Serializable
 data class WarmupRoutinesDto(val routines: List<WarmupRoutineDto> = emptyList())
 
 @Serializable
-data class SaveWarmupRequest(val id: String?, val name: String, val steps: List<WarmupStepDto>)
+data class SaveWarmupRequest(val id: String?, val name: String, val steps: List<WarmupStepDto>, val kind: String = "warmup")
 
 @Serializable
 data class SaveWarmupDto(val status: String = "", val id: String = "")

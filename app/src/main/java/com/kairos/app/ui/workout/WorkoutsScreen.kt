@@ -277,8 +277,8 @@ fun WorkoutsScreen(
                         ) { ui.date?.let(onLogWorkout) }
                         // Rest / skip moved to the day itself (v0.432).
                         ActionCard(
-                            KairosIcons.Flame, "Warm-ups", Modifier.weight(1f),
-                            subtitle = "Create / edit",
+                            KairosIcons.Flame, "Routines", Modifier.weight(1f),
+                            subtitle = "Warm-up \u00b7 Mobility",
                         ) { onOpenWarmups() }
                     }
 

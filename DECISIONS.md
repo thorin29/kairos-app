@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Mobility (v0.469.0, server 0.659.0)
+
+Mobility reuses the warm-up screens with a `kind` ("warmup" | "mobility"):
+`WarmupChooser` (One routine / Rotation for Mobility), `RoutinePicker`,
+`RoutineEditor` (adds "How (optional)", a step's `cue`), `WarmupWindow` and
+`WarmupPlanLine`. The day shows a Mobility section with `WarmupCard`; the
+Workouts page's Warm-ups card is now Routines with a Warm-ups / Mobility
+switch. Steps with a `cue` show an ⓘ that opens it.
+
 ## 2026-11 — Adjust today (v0.468.0, server 0.658.0)
 
 `AdjustTodayScreen` (AdjustToday.kt) replaces `GoLightScreen`: the start

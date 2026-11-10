@@ -269,7 +269,7 @@ interface ApiService {
     suspend fun deleteSavedPlan(@Body body: com.kairos.app.data.remote.dto.SharedPlanIdRequest): Response<WorkoutAckDto>
 
     @GET("workouts/warmups")
-    suspend fun warmupRoutines(): Response<com.kairos.app.data.remote.dto.WarmupRoutinesDto>
+    suspend fun warmupRoutines(@Query("kind") kind: String = "warmup"): Response<com.kairos.app.data.remote.dto.WarmupRoutinesDto>
 
     @POST("workouts/warmups")
     suspend fun saveWarmupRoutine(@Body body: com.kairos.app.data.remote.dto.SaveWarmupRequest): Response<com.kairos.app.data.remote.dto.SaveWarmupDto>
