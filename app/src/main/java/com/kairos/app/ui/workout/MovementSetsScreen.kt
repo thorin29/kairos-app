@@ -58,6 +58,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -159,11 +160,9 @@ fun MovementSetsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            if (swapped) ui.doingName ?: name else name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        // A long name shrinks to fit on one line before it's cut
+                        // off (v0.473), so the bar keeps its height.
+                        FitTitle(text = if (swapped) ui.doingName ?: name else name)
                         val status = when {
                             ui.status.isNotBlank() -> ui.status
                             ui.lastDate != null -> "Last: ${shortDate(ui.lastDate!!)}"
@@ -199,7 +198,8 @@ fun MovementSetsScreen(
                         if (swapped) {
                             SmallPill(label = "Undo", icon = false) { vm.swapTo(null) }
                         } else if (!ui.skipped && !ui.loading) {
-                            SmallPill(label = "Swap", icon = true) { vm.loadPool(); swapping = true }
+                            // Just the icon (v0.473): more room for the name.
+                            SwapIconButton { vm.loadPool(); swapping = true }
                         }
                     }
                 },
@@ -1023,6 +1023,40 @@ internal fun ChoicePill(label: String, selected: Boolean, warn: Boolean = false,
 }
 
 /** The Log workout card's Swap pill. */
+@Composable
+/** The top bar's title: one line, shrinking from the bar's size down to 15 sp
+ *  before it ends in "…". */
+@Composable
+private fun FitTitle(text: String) {
+    val base = MaterialTheme.typography.titleLarge.fontSize
+    var fs by remember(text) { mutableStateOf(base) }
+    Text(
+        text,
+        fontSize = fs,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Ellipsis,
+        onTextLayout = { r ->
+            if ((r.hasVisualOverflow || r.isLineEllipsized(0)) && fs.value > 15f) fs = (fs.value - 1f).sp
+        },
+    )
+}
+
+/** Swap as an outlined icon (v0.473). */
+@Composable
+private fun SwapIconButton(onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            .clickable(onClickLabel = "Swap") { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(KairosIcons.Swap, contentDescription = "Swap", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+    }
+}
+
 @Composable
 private fun SmallPill(label: String, icon: Boolean, onClick: () -> Unit) {
     Row(

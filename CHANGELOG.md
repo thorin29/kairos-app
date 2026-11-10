@@ -1,4 +1,10 @@
 # Changelog
+## 0.473.0
+
+- Stretching: add it to a day like Mobility, one routine or a rotation, including goalie hips and splits.
+- Long movement names fit in the top bar; Swap is now its icon.
+- A day without a program workout is titled by its own workout.
+
 ## 0.472.0
 
 - On a hockey day, the warm-up can be for your workout (as planned) or for hockey; switch it inside the warm-up. A hockey warm-up is there to open whenever the planned one isn't for hockey.

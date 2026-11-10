@@ -112,7 +112,7 @@ internal fun WarmupCard(
         WarmupWindow(
             plannedWorkoutId = plan.plannedWorkoutId,
             routine = plan.routine,
-            kind = if (plan.category == "MOBILITY") "mobility" else "warmup",
+            kind = routineKindOf(plan.category),
             sport = sport,
             done = finished,
             onDone = {

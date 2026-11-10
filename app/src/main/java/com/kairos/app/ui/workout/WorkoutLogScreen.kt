@@ -352,15 +352,7 @@ fun WorkoutLogScreen(
                     }
 
                     val simpleKinds = buildSet {
-                        ui.simple.forEach {
-                            add(
-                                when (it.category) {
-                                    "WARMUP" -> "WARMUP"
-                                    "MOBILITY" -> "MOBILITY"
-                                    else -> "CARDIO"
-                                },
-                            )
-                        }
+                        ui.simple.forEach { add(simpleSection(it.category)) }
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
                         // A sport on the day (v0.472): a Warm-up section for its warm-up.
                         if (ui.sportDay != null) add("WARMUP")
@@ -460,9 +452,9 @@ fun WorkoutLogScreen(
                                     }
                                 }
                                 // Mobility (v0.469) shows like a Warm-up: its routine, done with a tap.
-                                "WARMUP", "MOBILITY" -> {
+                                "WARMUP", "MOBILITY", "STRETCH" -> {
                                   val sd = ui.sportDay
-                                  ui.simple.filter { it.category == section.kind }.forEach { w ->
+                                  ui.simple.filter { simpleSection(it.category) == section.kind }.forEach { w ->
                                     WarmupCard(
                                         plan = w,
                                         sport = if (w.category == "WARMUP" && sd != null) {
@@ -814,6 +806,14 @@ private data class DaySectionUi(
     val blocks: List<WorkoutBlock>,
     val kind: String = "STRENGTH",
 )
+
+/** The section a done-with-a-tap plan sits in (Stretching routines, v0.473). */
+private fun simpleSection(category: String?) = when (category) {
+    "WARMUP" -> "WARMUP"
+    "MOBILITY" -> "MOBILITY"
+    "STRETCHING" -> "STRETCH"
+    else -> "CARDIO"
+}
 
 /** The default order (blocks.ts DEFAULT_ORDER); the server sends the person's. */
 private val DEFAULT_ORDER = listOf("WARMUP", "CARDIO", "STRENGTH", "CONDITIONING", "MOBILITY", "STRETCH", "SPORT")

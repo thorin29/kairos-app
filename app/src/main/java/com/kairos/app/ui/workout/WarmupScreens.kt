@@ -61,9 +61,24 @@ import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
 
 /** "warm-up" or "routine" (Mobility, v0.469). */
-private fun oneWord(kind: String) = if (kind == "mobility") "routine" else "warm-up"
-private fun titleWord(kind: String) = if (kind == "mobility") "Mobility" else "Warm-up"
-private fun newWord(kind: String) = if (kind == "mobility") "New mobility routine" else "New warm-up"
+private fun oneWord(kind: String) = if (kind == "warmup") "warm-up" else "routine"
+private fun titleWord(kind: String) = when (kind) {
+    "mobility" -> "Mobility"
+    "stretching" -> "Stretching"
+    else -> "Warm-up"
+}
+private fun newWord(kind: String) = when (kind) {
+    "mobility" -> "New mobility routine"
+    "stretching" -> "New stretching routine"
+    else -> "New warm-up"
+}
+
+/** The routine kind a done-with-a-tap category uses (v0.473). */
+internal fun routineKindOf(category: String?) = when (category) {
+    "MOBILITY" -> "mobility"
+    "STRETCHING" -> "stretching"
+    else -> "warmup"
+}
 
 /** "10–15", "30 s each side", "3:00" (the web's stepAmount). */
 internal fun stepAmount(s: WarmupStepDto): String {
@@ -777,7 +792,7 @@ fun WarmupsScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SegmentSwitch(
-                    options = listOf("warmup" to "Warm-ups", "mobility" to "Mobility"),
+                    options = listOf("warmup" to "Warm-ups", "mobility" to "Mobility", "stretching" to "Stretching"),
                     selected = kind,
                     onSelect = { kind = it },
                 )
@@ -852,7 +867,7 @@ private val MATCH_WARMUPS = setOf(
 @Composable
 private fun WarmupModeSwitch(mode: String, onMode: (String) -> Unit, kind: String = "warmup") {
     // Mobility (v0.469): one routine or a rotation, no Match the day.
-    val modes = if (kind == "mobility") {
+    val modes = if (kind != "warmup") {
         listOf("one" to "One routine", "rotation" to "Rotation")
     } else {
         listOf("one" to "One warm-up", "match" to "Match the day", "rotation" to "Rotation")

@@ -370,12 +370,12 @@ private fun DayCard(
                                 }
                             }
                         }
-                    } else if (w.category == "WARMUP" || w.category == "MOBILITY") {
+                    } else if (w.category == "WARMUP" || w.category == "MOBILITY" || (w.category == "STRETCHING" && w.exercises.isEmpty())) {
                         WarmupPlanLine(
                             plannedWorkoutId = w.id,
                             warmup = w.warmup,
                             onChanged = onWarmupChanged,
-                            kind = if (w.category == "MOBILITY") "mobility" else "warmup",
+                            kind = routineKindOf(w.category),
                         )
                     } else if (w.detail.isNotBlank()) {
                         Text(w.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

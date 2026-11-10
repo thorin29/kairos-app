@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Stretching; movement title fits (v0.473.0, server 0.663.0)
+
+Stretching routines reuse the warm-up screens with kind "stretching"
+(`routineKindOf`); a simple STRETCHING plan sits in the STRETCH section
+(`simpleSection`). The movement screen's title (`FitTitle`) drops a sp at a
+time from titleLarge to 15 sp while it overflows, then ellipsizes; Swap is
+`SwapIconButton` (outlined circle, content description "Swap"). The day's
+title comes from the server, which now names a non-program day by its plan.
+
 ## 2026-11 — Warm-up on a sport day (v0.472.0, server 0.662.0)
 
 `sportDay` from `GET /workouts` drives it: the Warm-up window shows a

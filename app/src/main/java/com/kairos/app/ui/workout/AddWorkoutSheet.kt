@@ -124,7 +124,7 @@ fun AddWorkoutSheet(
                     day = day,
                     category = categoryKey,
                     muscleGroup = if (kind == "weights") muscleKey.ifBlank { null } else null,
-                    warmup = if (categoryKey == "WARMUP" || categoryKey == "MOBILITY") warmupId else null,
+                    warmup = if (categoryKey == "WARMUP" || categoryKey == "MOBILITY" || categoryKey == "STRETCHING") warmupId else null,
                     exercises = if (kind == "metricOnly") emptyList()
                     else picked.map { (id, p) ->
                         AddPoolExercise(
@@ -235,8 +235,8 @@ fun AddWorkoutSheet(
                 // Warm-up: its routine, chosen like a Core day's workouts (v0.445).
                 categoryKey == "WARMUP" -> WarmupChooser(value = warmupId, onChange = { warmupId = it })
                 // Mobility (v0.469): the same chooser, its own routines.
-                categoryKey == "MOBILITY" -> androidx.compose.runtime.key("mobility") {
-                    WarmupChooser(value = warmupId, onChange = { warmupId = it }, kind = "mobility")
+                categoryKey == "MOBILITY" || categoryKey == "STRETCHING" -> androidx.compose.runtime.key(categoryKey) {
+                    WarmupChooser(value = warmupId, onChange = { warmupId = it }, kind = routineKindOf(categoryKey))
                 }
                 // Isometric (v0.471): a rotation like Core, or holds picked by hand.
                 isIso && options.isoWorkouts.isNotEmpty() && coreActions != null -> {
