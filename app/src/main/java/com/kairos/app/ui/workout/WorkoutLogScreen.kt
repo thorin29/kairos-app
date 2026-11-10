@@ -115,6 +115,7 @@ fun WorkoutLogScreen(
     )
     val ui by vm.ui.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
+    var showGoLight by remember { mutableStateOf(false) }
     // Which card's movement launched the calculator, so its returned weight goes
     // to the right input.
     // Survives navigating to the calculator and back (a plain remember is wiped
@@ -250,6 +251,8 @@ fun WorkoutLogScreen(
                             strip = ui.strip,
                             programLine = ui.programLine,
                             light = ui.light,
+                            goLight = ui.goLight?.title,
+                            onUndoGoLight = { vm.goLight(key = null) },
                             onPickDate = { showDatePicker = true },
                             onPickDay = { vm.setDate(it) },
                             stripPage = { ui.stripPages[it] },
@@ -259,11 +262,40 @@ fun WorkoutLogScreen(
                     }
                     // Resting or skipping the whole day lives here, with the
                     // day (v0.432; it was on the Workouts page).
-                    if (ui.date != null && !future && !ui.loggedAny && !ui.rested && !ui.restPlanned && !ui.loading) {
-                        AccentOutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
-                            Icon(KairosIcons.Moon, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Rest / skip day", modifier = Modifier.padding(start = 6.dp))
+                    val canRest = ui.date != null && !future && !ui.loggedAny && !ui.rested && !ui.restPlanned && !ui.loading
+                    // Go light (v0.464): today only, until it's chosen.
+                    val canGoLight = ui.date == today && !ui.rested && !ui.restPlanned && !ui.loading && ui.goLight == null
+                    if (canRest || canGoLight) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (canRest) {
+                                AccentOutlinedButton(onClick = { vm.restDay() }, enabled = !ui.saving) {
+                                    Icon(KairosIcons.Moon, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Text("Rest / skip day", modifier = Modifier.padding(start = 6.dp))
+                                }
+                            }
+                            if (canGoLight) {
+                                AccentOutlinedButton(onClick = { showGoLight = true }, enabled = !ui.saving) {
+                                    Text("Go light")
+                                }
+                            }
                         }
+                    }
+                    if (showGoLight) {
+                        GoLightScreen(
+                            busy = ui.saving,
+                            onAsk = { why, minutes, hurt, neck, onPick ->
+                                vm.goLightOptions(why = why, minutes = minutes, hurt = hurt, neck = neck, onPick = onPick)
+                            },
+                            onUse = { key, minutes ->
+                                vm.goLight(key = key, minutes = minutes)
+                                showGoLight = false
+                            },
+                            onRest = {
+                                vm.restDay()
+                                showGoLight = false
+                            },
+                            onDismiss = { showGoLight = false },
+                        )
                     }
 
                     ui.suggestion?.takeIf { !ui.restPlanned && !future }?.let { sg ->
@@ -865,6 +897,9 @@ private fun DayHeader(
     strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
     programLine: String = "",
     light: Double? = null,
+    /** A Go light day's option title (v0.464), with Undo. */
+    goLight: String? = null,
+    onUndoGoLight: () -> Unit = {},
     /** Something was logged that day: a past day isn't "logging late" (v0.431). */
     logged: Boolean = false,
     /** Something was planned that day: a day with nothing planned is never late (v0.435). */
@@ -939,7 +974,22 @@ private fun DayHeader(
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
-            if (light != null) {
+            if (goLight != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Light day \u00b7 $goLight",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        "Undo",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { onUndoGoLight() }.padding(horizontal = 4.dp),
+                    )
+                }
+            } else if (light != null) {
                 Text(
                     "Lighter today \u00b7 ${kotlin.math.round(light * 100).toInt()}% of the usual weights",
                     style = MaterialTheme.typography.labelLarge,

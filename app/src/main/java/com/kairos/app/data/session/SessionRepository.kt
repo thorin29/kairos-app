@@ -474,6 +474,23 @@ class SessionRepository(
     suspend fun loadWorkout(date: String? = null): com.kairos.app.data.remote.dto.WorkoutPlanDto =
         runAuthed { requireService().workoutPlan(date) }
 
+    suspend fun goLightOptions(why: String, minutes: Int, hurt: Boolean, neck: String?): com.kairos.app.data.remote.dto.GoPickDto =
+        runAuthed {
+            requireService().goLightOptions(
+                com.kairos.app.data.remote.dto.GoLightRequest(action = "options", why = why, minutes = minutes, hurt = hurt, neck = neck),
+            )
+        }
+
+    /** Make today light with [key], or undo it (key null). */
+    suspend fun goLight(key: String?, minutes: Int) {
+        runAuthed {
+            requireService().goLight(
+                if (key == null) com.kairos.app.data.remote.dto.GoLightRequest(action = "undo")
+                else com.kairos.app.data.remote.dto.GoLightRequest(action = "apply", key = key, minutes = minutes),
+            )
+        }
+    }
+
     suspend fun loadWorkoutStrip(page: Int): com.kairos.app.data.remote.dto.WorkoutStripDto =
         runAuthed { requireService().workoutStrip(page) }
 
@@ -1283,6 +1300,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 530
+        const val CLIENT_BUILD = 531
     }
 }

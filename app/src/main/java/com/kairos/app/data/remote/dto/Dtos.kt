@@ -370,6 +370,8 @@ data class WorkoutPlanDto(
     val suggestion: SuggestionDto? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
+    /** A Go light day (server 0.654+): the option chosen. */
+    val goLight: GoOptionDto? = null,
     /** Section order for this weekday: WARMUP, CARDIO, STRENGTH, CONDITIONING,
      *  STRETCH, SPORT (server 0.615+; empty on an older server). */
     val order: List<String> = emptyList(),
@@ -3150,3 +3152,25 @@ data class LoggedOtherDto(
 
 @Serializable
 data class LoggedLineDto(val name: String = "", val summary: String = "")
+
+/** A Go light option (server 0.654+). */
+@Serializable
+data class GoOptionDto(val key: String = "", val title: String = "", val detail: String = "")
+
+/** Go light's suggestion and alternatives; `rest` = resting is suggested. */
+@Serializable
+data class GoPickDto(
+    val rest: Boolean = false,
+    val suggest: GoOptionDto = GoOptionDto(),
+    val others: List<GoOptionDto> = emptyList(),
+)
+
+@Serializable
+data class GoLightRequest(
+    val action: String,
+    val why: String? = null,
+    val minutes: Int? = null,
+    val hurt: Boolean? = null,
+    val neck: String? = null,
+    val key: String? = null,
+)

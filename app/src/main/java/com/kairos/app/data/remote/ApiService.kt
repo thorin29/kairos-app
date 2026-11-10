@@ -350,6 +350,13 @@ interface ApiService {
     @GET("workouts/week")
     suspend fun workoutWeek(): Response<WeekResponse>
 
+    /** Go light (server 0.654+): options, apply or undo, today only. */
+    @POST("workouts/go-light")
+    suspend fun goLightOptions(@Body body: com.kairos.app.data.remote.dto.GoLightRequest): Response<com.kairos.app.data.remote.dto.GoPickDto>
+
+    @POST("workouts/go-light")
+    suspend fun goLight(@Body body: com.kairos.app.data.remote.dto.GoLightRequest): Response<com.kairos.app.data.remote.dto.WorkoutAckDto>
+
     /** One 8-day page of the week strip (server 0.651+): 0 = up to today. */
     @GET("workouts/strip")
     suspend fun workoutStrip(@Query("page") page: Int): Response<com.kairos.app.data.remote.dto.WorkoutStripDto>

@@ -1,4 +1,8 @@
 # Changelog
+## 0.464.0
+
+- Go light: on a low-energy, sore, busy or sick day, answer a few questions and get a lighter version of today. It counts as done, and you can undo it.
+
 ## 0.463.0
 
 - The week strip scrolls a day or many at a time; the arrows still jump a week, and a reset button brings you back to today.

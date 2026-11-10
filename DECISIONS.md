@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Go light (v0.464.0)
+
+`GoLightScreen` (GoLight.kt, a CoreScreen full-screen dialog): question chips,
+then the suggestion and alternatives as selectable cards, "Use this" →
+`POST /workouts/go-light` apply. The day page shows "Go light" beside Rest /
+skip on today until chosen, and DayHeader shows "Light day · <option> ·
+Undo" from `goLight` (server 0.654+). The server trims the plan, so the cards
+and completion need nothing else.
+
 ## 2026-11 — Week strip scrolls freely (v0.463.0)
 
 `ScrollingWeekStrip` is a LazyRow over every day in reach (STRIP_DAYS_BACK
