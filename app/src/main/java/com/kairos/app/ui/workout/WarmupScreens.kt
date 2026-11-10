@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -262,12 +263,51 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
         }
     }
     LaunchedEffect(Unit) { load() }
+    // One warm-up, Match the day, or a Rotation you order (v0.465).
+    var mode by remember {
+        mutableStateOf(
+            when {
+                value == "match" -> "match"
+                value?.startsWith("rot:") == true -> "rotation"
+                else -> "one"
+            },
+        )
+    }
+    var rot by remember {
+        mutableStateOf(if (value?.startsWith("rot:") == true) value.removePrefix("rot:").split(",").filter { it.isNotBlank() } else emptyList())
+    }
 
     Column {
-        ChooserRow(name = "Just a check", sub = "", selected = value == null, onPick = { onChange(null) })
+        WarmupModeSwitch(mode = mode, onMode = { mode = it })
         val list = routines
         if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
-        list?.forEach { r ->
+        if (mode == "match") {
+            list?.filter { it.id in MATCH_WARMUPS }?.forEach { r ->
+                Text(r.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 10.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+            Button(onClick = { onChange("match") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Save") }
+        }
+        if (mode == "rotation") {
+            list?.forEach { r ->
+                val at = rot.indexOf(r.id)
+                ChooserRow(
+                    name = (if (at >= 0) "${at + 1}. " else "") + r.name,
+                    sub = "",
+                    selected = at >= 0,
+                    onPick = { rot = if (at >= 0) rot - r.id else rot + r.id },
+                    onInfo = { peek = r },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+            Button(
+                onClick = { onChange("rot:" + rot.joinToString(",")) },
+                enabled = rot.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) { Text("Save") }
+        }
+        if (mode == "one") ChooserRow(name = "Just a check", sub = "", selected = value == null, onPick = { onChange(null) })
+        if (mode == "one") list?.forEach { r ->
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             val n = r.steps.size
             ChooserRow(
@@ -571,7 +611,12 @@ internal fun WarmupPlanLine(plannedWorkoutId: String, warmup: String?, onChanged
     var open by remember { mutableStateOf(false) }
     var name by remember(warmup) { mutableStateOf<String?>(null) }
     LaunchedEffect(warmup) {
-        name = if (warmup == null) null else runCatching { session.warmupRoutines() }.getOrNull()?.firstOrNull { it.id == warmup }?.name
+        name = when {
+            warmup == null -> null
+            warmup == "match" -> "Match the day"
+            warmup.startsWith("rot:") -> "Rotation \u00b7 ${warmup.removePrefix("rot:").split(",").count { it.isNotBlank() }}"
+            else -> runCatching { session.warmupRoutines() }.getOrNull()?.firstOrNull { it.id == warmup }?.name
+        }
     }
     Text(
         "${name ?: "Just a check"} ›",
@@ -687,5 +732,48 @@ fun WarmupsScreen(onBack: () -> Unit) {
                 load()
             },
         )
+    }
+}
+
+/** The warm-ups "Match the day" picks from (server 0.655+). */
+private val MATCH_WARMUPS = setOf(
+    "lib:squat-legs",
+    "lib:deadlift-back",
+    "lib:upper-push",
+    "lib:upper-pull",
+    "lib:core-day",
+    "lib:arms-day",
+    "lib:hockey-legs",
+)
+
+@Composable
+private fun WarmupModeSwitch(mode: String, onMode: (String) -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .clip(shape)
+            .border(width = 1.dp, color = accent, shape = shape),
+    ) {
+        listOf("one" to "One warm-up", "match" to "Match the day", "rotation" to "Rotation").forEach { (k, label) ->
+            val on = k == mode
+            Box(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 40.dp)
+                    .background(if (on) accent else androidx.compose.ui.graphics.Color.Transparent)
+                    .clickable { onMode(k) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else accent,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
     }
 }

@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Warm-up modes (v0.465.0)
+
+`WarmupChooser` gains a three-way switch (One warm-up / Match the day /
+Rotation). Match lists the routines it picks from (`MATCH_WARMUPS`) and saves
+"match"; Rotation numbers routines in tap order and saves "rot:<ids>". The
+plan line reads "Match the day" or "Rotation · N". The day page needs
+nothing: the server resolves the routine and adds Shoulder prep.
+
 ## 2026-11 — Go light (v0.464.0)
 
 `GoLightScreen` (GoLight.kt, a CoreScreen full-screen dialog): question chips,

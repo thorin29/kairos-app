@@ -1,4 +1,9 @@
 # Changelog
+## 0.465.0
+
+- A warm-up can be one routine, match the day's lifts, or rotate through a list you pick.
+- New warm-ups for each kind of day, and Shoulder prep on any day with weights.
+
 ## 0.464.0
 
 - Go light: on a low-energy, sore, busy or sick day, answer a few questions and get a lighter version of today. It counts as done, and you can undo it.
