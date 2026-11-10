@@ -1022,8 +1022,6 @@ internal fun ChoicePill(label: String, selected: Boolean, warn: Boolean = false,
     }
 }
 
-/** The Log workout card's Swap pill. */
-@Composable
 /** The top bar's title: one line, shrinking from the bar's size down to 15 sp
  *  before it ends in "…". */
 @Composable
@@ -1057,6 +1055,7 @@ private fun SwapIconButton(onClick: () -> Unit) {
     }
 }
 
+/** The Log workout card's Swap pill. */
 @Composable
 private fun SmallPill(label: String, icon: Boolean, onClick: () -> Unit) {
     Row(
