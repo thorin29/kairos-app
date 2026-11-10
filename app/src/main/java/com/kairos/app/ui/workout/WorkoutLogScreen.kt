@@ -116,6 +116,7 @@ fun WorkoutLogScreen(
     val ui by vm.ui.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showGoLight by remember { mutableStateOf(false) }
+    var editSport by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     // Which card's movement launched the calculator, so its returned weight goes
     // to the right input.
     // Survives navigating to the calculator and back (a plain remember is wiped
@@ -278,6 +279,20 @@ fun WorkoutLogScreen(
                                     Text("Go light")
                                 }
                             }
+                        }
+                    }
+                    editSport?.let { g ->
+                        val sp = g.sport
+                        if (sp != null) {
+                            SportEditDialog(
+                                title = g.label ?: g.name,
+                                sport = sp,
+                                onSave = { minutes, effort, hurt ->
+                                    vm.editSport(sessionId = sp.sessionId, minutes = minutes, effort = effort, hurt = hurt)
+                                    editSport = null
+                                },
+                                onDismiss = { editSport = null },
+                            )
                         }
                     }
                     if (showGoLight) {
@@ -466,14 +481,18 @@ fun WorkoutLogScreen(
                     // one-off), so a past day shows what was done (v0.431).
                     if (ui.loggedOther.isNotEmpty()) {
                         Text(
-                            "LOGGED",
+                            "ADDITIONAL",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
                         )
                         ui.loggedOther.forEach { g ->
-                            OutlinedCard(Modifier.fillMaxWidth()) {
+                            OutlinedCard(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .then(if (g.sport != null) Modifier.clickable { editSport = g } else Modifier),
+                            ) {
                                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
@@ -1266,7 +1285,12 @@ private fun ScrollingWeekStrip(
         ) { Icon(KairosIcons.ChevronLeft, contentDescription = "Earlier days") }
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f)) {
             val cell = maxWidth / STRIP_VISIBLE
-            androidx.compose.foundation.lazy.LazyRow(state = list, modifier = Modifier.fillMaxWidth()) {
+            // Snaps to whole days (v0.466): a swipe never leaves a day half shown.
+            androidx.compose.foundation.lazy.LazyRow(
+                state = list,
+                modifier = Modifier.fillMaxWidth(),
+                flingBehavior = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(lazyListState = list),
+            ) {
                 items(count = days.size, key = { days[it] }) { i ->
                     val iso = days[i]
                     val d = byDate[iso] ?: com.kairos.app.data.remote.dto.WorkoutStripDayDto(date = iso)
@@ -1916,4 +1940,49 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.consumeA
             awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial).changes.forEach { it.consume() }
         }
     }
+}
+
+/** A confirmed game, edited from the Additional card (v0.466): how hard it
+ *  was, and how long you stayed when its event type's time varies. */
+@Composable
+private fun SportEditDialog(
+    title: String,
+    sport: com.kairos.app.data.remote.dto.SportSessionDto,
+    onSave: (minutes: Int?, effort: String?, hurt: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var effort by remember { mutableStateOf(sport.effort) }
+    var hurt by remember { mutableStateOf(sport.hurt) }
+    var minutes by remember { mutableStateOf(sport.minutes?.toString().orEmpty()) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                EffortChooser(
+                    question = "How hard was $title?",
+                    effort = effort,
+                    hurt = hurt,
+                    onChange = { e, h -> effort = e; hurt = h },
+                )
+                if (sport.flexTime) {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = minutes,
+                        onValueChange = { v -> minutes = v.filter { it.isDigit() }.take(3) },
+                        label = { Text("How long you stayed (min)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        ),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = { onSave(if (sport.flexTime) minutes.toIntOrNull() else null, effort, hurt) },
+            ) { Text("Save") }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

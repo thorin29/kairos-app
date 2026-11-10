@@ -283,22 +283,75 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit) {
         if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
         if (mode == "match") {
             list?.filter { it.id in MATCH_WARMUPS }?.forEach { r ->
-                Text(r.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 10.dp))
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(r.name, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${r.steps.size} steps",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    androidx.compose.material3.IconButton(onClick = { peek = r }) {
+                        Icon(KairosIcons.Info, contentDescription = "About ${r.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
             Button(onClick = { onChange("match") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Save") }
         }
         if (mode == "rotation") {
-            list?.forEach { r ->
+            // Laid out like the Core rotation (v0.466): numbered squares in order.
+            Text(
+                "IN THE ROTATION, IN ORDER",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val accent = MaterialTheme.colorScheme.primary
+            list?.forEachIndexed { i, r ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 val at = rot.indexOf(r.id)
-                ChooserRow(
-                    name = (if (at >= 0) "${at + 1}. " else "") + r.name,
-                    sub = "",
-                    selected = at >= 0,
-                    onPick = { rot = if (at >= 0) rot - r.id else rot + r.id },
-                    onInfo = { peek = r },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { rot = if (at >= 0) rot - r.id else rot + r.id }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        Modifier
+                            .size(24.dp)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
+                            .background(if (at >= 0) accent else androidx.compose.ui.graphics.Color.Transparent)
+                            .border(width = 1.dp, color = accent, shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (at >= 0) {
+                            Text(
+                                "${at + 1}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${r.steps.size} " + (if (r.steps.size == 1) "step" else "steps") + if (r.mine) " \u00b7 Yours" else "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (r.mine) {
+                        androidx.compose.material3.IconButton(onClick = { editing = r }) {
+                            Icon(KairosIcons.Pencil, contentDescription = "Edit ${r.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    androidx.compose.material3.IconButton(onClick = { peek = r }) {
+                        Icon(KairosIcons.Info, contentDescription = "About ${r.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             Button(
                 onClick = { onChange("rot:" + rot.joinToString(",")) },

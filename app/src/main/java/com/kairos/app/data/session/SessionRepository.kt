@@ -481,6 +481,14 @@ class SessionRepository(
             )
         }
 
+    suspend fun editSportSession(sessionId: String, minutes: Int?, effort: String?, hurt: String?) {
+        runAuthed {
+            requireService().editSportSession(
+                com.kairos.app.data.remote.dto.SportSessionEditRequest(sessionId = sessionId, minutes = minutes, effort = effort, hurt = hurt),
+            )
+        }
+    }
+
     /** Make today light with [key], or undo it (key null). */
     suspend fun goLight(key: String?, minutes: Int) {
         runAuthed {
@@ -1300,6 +1308,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 532
+        const val CLIENT_BUILD = 533
     }
 }

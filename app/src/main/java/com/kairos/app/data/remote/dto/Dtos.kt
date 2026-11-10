@@ -3148,6 +3148,26 @@ data class LoggedOtherDto(
     /** The short name for the page title: a game's event type ("Hockey game"), v0.625 servers. */
     val label: String? = null,
     val lines: List<LoggedLineDto> = emptyList(),
+    /** A calendar-confirmed session (server 0.656+): tap to edit. */
+    val sport: SportSessionDto? = null,
+)
+
+/** How hard a confirmed game was, and its minutes when its time varies. */
+@Serializable
+data class SportSessionDto(
+    val sessionId: String = "",
+    val minutes: Int? = null,
+    val flexTime: Boolean = false,
+    val effort: String? = null,
+    val hurt: String? = null,
+)
+
+@Serializable
+data class SportSessionEditRequest(
+    val sessionId: String,
+    val minutes: Int? = null,
+    val effort: String? = null,
+    val hurt: String? = null,
 )
 
 @Serializable

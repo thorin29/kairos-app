@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Snap, one-tap game confirm, Additional edit (v0.466.0)
+
+- The strip's LazyRow uses `rememberSnapFlingBehavior` (whole days).
+- Home: Yes on a sport prompt no longer opens the "How hard?" card.
+- Day page: "ADDITIONAL" (was LOGGED); a card with `sport` opens
+  `SportEditDialog` (EffortChooser, and a minutes field when `flexTime`) →
+  `POST /workouts/sport-session` (server 0.656+).
+- GoLightScreen: "Any" (0) time. WarmupChooser: Match rows get ⓘ; Rotation
+  rows copy CoreRotationPicker's numbered squares.
+
 ## 2026-11 — Warm-up modes (v0.465.0)
 
 `WarmupChooser` gains a three-way switch (One warm-up / Match the day /

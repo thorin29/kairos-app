@@ -68,7 +68,7 @@ internal fun GoLightScreen(
                 if (why == "sick") {
                     Question("Where is it?", listOf("above" to "Above the neck", "below" to "Below the neck"), neck) { neck = it }
                 }
-                Question("How long have you got?", listOf(10 to "10 min", 20 to "20 min", 30 to "30 min"), minutes) { minutes = it }
+                Question("How long have you got?", listOf(10 to "10 min", 20 to "20 min", 30 to "30 min", 0 to "Any"), minutes) { minutes = it }
                 Question("Anything hurt?", listOf(false to "No", true to "Yes"), hurt) { hurt = it }
             }
         } else {

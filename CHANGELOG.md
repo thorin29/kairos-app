@@ -1,4 +1,10 @@
 # Changelog
+## 0.466.0
+
+- The week strip snaps to whole days.
+- Yes on "Did you do…?" saves straight away; tap the game under Additional on the day to set how hard it was, or how long you stayed when its time varies.
+- Go light has an Any option for time. Match the day shows what each warm-up holds, and the warm-up rotation looks like the core rotation.
+
 ## 0.465.0
 
 - A warm-up can be one routine, match the day's lifts, or rotate through a list you pick.

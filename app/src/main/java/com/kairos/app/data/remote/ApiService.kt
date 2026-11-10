@@ -350,6 +350,10 @@ interface ApiService {
     @GET("workouts/week")
     suspend fun workoutWeek(): Response<WeekResponse>
 
+    /** Change a confirmed game's effort / minutes (server 0.656+). */
+    @POST("workouts/sport-session")
+    suspend fun editSportSession(@Body body: com.kairos.app.data.remote.dto.SportSessionEditRequest): Response<com.kairos.app.data.remote.dto.WorkoutAckDto>
+
     /** Go light (server 0.654+): options, apply or undo, today only. */
     @POST("workouts/go-light")
     suspend fun goLightOptions(@Body body: com.kairos.app.data.remote.dto.GoLightRequest): Response<com.kairos.app.data.remote.dto.GoPickDto>

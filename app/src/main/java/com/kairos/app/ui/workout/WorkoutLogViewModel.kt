@@ -1082,6 +1082,18 @@ class WorkoutLogViewModel(
         }
     }
 
+    /** Change a confirmed game from the Additional card (v0.466). */
+    fun editSport(sessionId: String, minutes: Int?, effort: String?, hurt: String?) {
+        viewModelScope.launch {
+            try {
+                session.editSportSession(sessionId = sessionId, minutes = minutes, effort = effort, hurt = hurt)
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
     /** Make today light with [key], or undo it (key null). */
     fun goLight(key: String?, minutes: Int = 20) {
         _ui.update { it.copy(saving = true, actionError = null) }
