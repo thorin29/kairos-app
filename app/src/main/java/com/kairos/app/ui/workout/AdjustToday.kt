@@ -38,7 +38,7 @@ import com.kairos.app.ui.common.AccentOutlinedButton
 private val TIME_CHOICES = listOf(15, 30, 45)
 private val CARDIO_CHOICES = listOf(10, 15, 20)
 private val PICKS = listOf("weights" to "Short weights", "cardio" to "Cardio", "conditioning" to "Conditioning")
-private val HURT_AREAS = listOf(
+private val ADJUST_AREAS = listOf(
     "shoulder" to "Shoulder",
     "elbow" to "Elbow / wrist",
     "back" to "Back",
@@ -142,7 +142,7 @@ internal fun AdjustTodayScreen(
                 AdjustOption(title = "Easy day", detail = "Warm-up and easy cardio, no lifting", on = how == "easy") { how = "easy" }
             }
             "hurt" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Chips(label = "Where?", values = HURT_AREAS, chosen = area) { a ->
+                Chips(label = "Where?", values = ADJUST_AREAS, chosen = area) { a ->
                     area = a
                     preview = null
                     onPreview("hurt", null, a) { preview = it }
