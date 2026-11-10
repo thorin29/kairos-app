@@ -354,14 +354,19 @@ class HomeViewModel(
         viewModelScope.launch {
             try {
                 if (done) session.sportConfirm(eventId, date) else session.sportDecline(eventId, date)
+                val title = _ui.value.dashboard?.sportPrompts?.firstOrNull { it.eventId == eventId }?.title.orEmpty()
                 val data = freshDashboard()
                 _ui.update {
                     it.copy(
                         dashboard = data,
                         busyIds = it.busyIds - key,
-                        // Yes saves and clears at once (v0.466); how hard it was
-                        // is set from the day's Additional card instead.
-                        sportFeel = it.sportFeel,
+                        // Yes asks how hard it was; the check mark saves and
+                        // clears it (v0.467, no Done step).
+                        sportFeel = if (done && date != null) {
+                            it.sportFeel + SportFeel(eventId = eventId, title = title, dateISO = date)
+                        } else {
+                            it.sportFeel
+                        },
                     )
                 }
             } catch (e: ApiException) {

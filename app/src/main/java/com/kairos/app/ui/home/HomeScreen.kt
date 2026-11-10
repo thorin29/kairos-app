@@ -272,10 +272,14 @@ private fun DashboardContent(
                                         question = "How hard was ${f.title.ifBlank { "it" }}?",
                                         effort = f.effort,
                                         hurt = f.hurt,
-                                        onChange = { e, h -> vm.sportFeedback(eventId = f.eventId, effort = e, hurt = h) },
+                                        onChange = { e, h ->
+                                            vm.sportFeedback(eventId = f.eventId, effort = e, hurt = h)
+                                            // The check mark saves and clears the card (v0.467).
+                                            if (e != null && e != f.effort) vm.closeSportFeel(f.eventId)
+                                        },
                                     )
                                     androidx.compose.material3.TextButton(onClick = { vm.closeSportFeel(f.eventId) }) {
-                                        Text(if (f.effort != null || f.hurt != null) "Done" else "Skip")
+                                        Text("Skip")
                                     }
                                 }
                             }

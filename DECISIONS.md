@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Game "How hard?": the check mark finishes it (v0.467.0)
+
+Yes on a sport prompt shows the How hard? card again (0.466 dropped it by
+mistake); an effort chosen with the check mark saves and closes it. "Skip"
+remains; "Done" is gone.
+
 ## 2026-11 — Snap, one-tap game confirm, Additional edit (v0.466.0)
 
 - The strip's LazyRow uses `rememberSnapFlingBehavior` (whole days).

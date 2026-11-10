@@ -1,4 +1,8 @@
 # Changelog
+## 0.467.0
+
+- After Yes on a game, How hard? is back; the check mark saves it and clears the card, with no Done step.
+
 ## 0.466.0
 
 - The week strip snaps to whole days.
