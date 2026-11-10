@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Adjust today (v0.468.0, server 0.658.0)
+
+`AdjustTodayScreen` (AdjustToday.kt) replaces `GoLightScreen`: the start
+choices, then Low energy (preview, Confirm), Sick (Lighter / Easy day,
+Confirm), Hurt (area chips, preview, Confirm; Rest / skip when nothing is
+left to lift) or Short on time (time, picks with estimates, the can't-fit
+fixes, preview, Confirm / Change). Estimates and previews come from
+`POST /workouts/adjust`; the phone works nothing out itself. The day header
+shows the server's `adjusted.label` with Undo. The warm-up card lists the
+routine's steps under its name.
+
 ## 2026-11 — Game "How hard?": the check mark finishes it (v0.467.0)
 
 Yes on a sport prompt shows the How hard? card again (0.466 dropped it by

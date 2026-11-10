@@ -355,11 +355,14 @@ interface ApiService {
     suspend fun editSportSession(@Body body: com.kairos.app.data.remote.dto.SportSessionEditRequest): Response<com.kairos.app.data.remote.dto.WorkoutAckDto>
 
     /** Go light (server 0.654+): options, apply or undo, today only. */
-    @POST("workouts/go-light")
-    suspend fun goLightOptions(@Body body: com.kairos.app.data.remote.dto.GoLightRequest): Response<com.kairos.app.data.remote.dto.GoPickDto>
+    @POST("workouts/adjust")
+    suspend fun adjustShort(@Body body: com.kairos.app.data.remote.dto.AdjustRequest): Response<com.kairos.app.data.remote.dto.ShortAnswerDto>
 
-    @POST("workouts/go-light")
-    suspend fun goLight(@Body body: com.kairos.app.data.remote.dto.GoLightRequest): Response<com.kairos.app.data.remote.dto.WorkoutAckDto>
+    @POST("workouts/adjust")
+    suspend fun adjustPreview(@Body body: com.kairos.app.data.remote.dto.AdjustRequest): Response<com.kairos.app.data.remote.dto.AdjustPreviewDto>
+
+    @POST("workouts/adjust")
+    suspend fun adjust(@Body body: com.kairos.app.data.remote.dto.AdjustRequest): Response<com.kairos.app.data.remote.dto.WorkoutAckDto>
 
     /** One 8-day page of the week strip (server 0.651+): 0 = up to today. */
     @GET("workouts/strip")

@@ -1,4 +1,9 @@
 # Changelog
+## 0.468.0
+
+- Go light is now Adjust today: Low energy, Short on time, Sick, or Hurt. Short on time fits a warm-up and your picks into 15, 30 or 45 minutes.
+- The warm-up card lists every move, Shoulder prep included.
+
 ## 0.467.0
 
 - After Yes on a game, How hard? is back; the check mark saves it and clears the card, with no Done step.

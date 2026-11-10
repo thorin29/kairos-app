@@ -370,8 +370,8 @@ data class WorkoutPlanDto(
     val suggestion: SuggestionDto? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
-    /** A Go light day (server 0.654+): the option chosen. */
-    val goLight: GoOptionDto? = null,
+    /** Today's adjustment (server 0.658+): which, its header, what it drops. */
+    val adjusted: AdjustedDto? = null,
     /** Section order for this weekday: WARMUP, CARDIO, STRENGTH, CONDITIONING,
      *  STRETCH, SPORT (server 0.615+; empty on an older server). */
     val order: List<String> = emptyList(),
@@ -3173,24 +3173,49 @@ data class SportSessionEditRequest(
 @Serializable
 data class LoggedLineDto(val name: String = "", val summary: String = "")
 
-/** A Go light option (server 0.654+). */
+/** Today's adjustment (server 0.658+). The server already leaves out what it drops. */
 @Serializable
-data class GoOptionDto(val key: String = "", val title: String = "", val detail: String = "")
+data class AdjustedDto(val mode: String = "", val label: String = "")
 
-/** Go light's suggestion and alternatives; `rest` = resting is suggested. */
 @Serializable
-data class GoPickDto(
-    val rest: Boolean = false,
-    val suggest: GoOptionDto = GoOptionDto(),
-    val others: List<GoOptionDto> = emptyList(),
+data class ShortItemDto(val label: String = "", val minutes: Int? = null)
+
+@Serializable
+data class ShortFixDto(val label: String = "", val drop: String? = null, val minutes: Int? = null)
+
+/** Short on time: each pick's estimate, the preview, and fixes when it can't fit. */
+@Serializable
+data class ShortAnswerDto(
+    val items: List<ShortItemDto> = emptyList(),
+    val total: Int = 0,
+    val fits: Boolean = true,
+    val need: Int = 0,
+    val fixes: List<ShortFixDto> = emptyList(),
+    val weightsMin: Int = 0,
+    val conditioningMin: Int = 0,
+    val available: Map<String, Boolean> = emptyMap(),
 )
 
 @Serializable
-data class GoLightRequest(
+data class AdjustLineDto(val label: String = "", val detail: String? = null, val dropped: Boolean = false)
+
+/** Low energy / Sick / Hurt preview; `empty` = nothing left to lift. */
+@Serializable
+data class AdjustPreviewDto(
+    val title: String = "",
+    val tag: String = "",
+    val note: String? = null,
+    val lines: List<AdjustLineDto> = emptyList(),
+    val empty: Boolean = false,
+)
+
+@Serializable
+data class AdjustRequest(
     val action: String,
-    val why: String? = null,
+    val mode: String? = null,
+    val how: String? = null,
+    val area: String? = null,
     val minutes: Int? = null,
-    val hurt: Boolean? = null,
-    val neck: String? = null,
-    val key: String? = null,
+    val picks: List<String>? = null,
+    val cardioMin: Int? = null,
 )

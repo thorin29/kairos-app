@@ -474,10 +474,19 @@ class SessionRepository(
     suspend fun loadWorkout(date: String? = null): com.kairos.app.data.remote.dto.WorkoutPlanDto =
         runAuthed { requireService().workoutPlan(date) }
 
-    suspend fun goLightOptions(why: String, minutes: Int, hurt: Boolean, neck: String?): com.kairos.app.data.remote.dto.GoPickDto =
+    /** Adjust today, Short on time: estimates and the preview (server 0.658+). */
+    suspend fun adjustShort(minutes: Int, picks: List<String>, cardioMin: Int): com.kairos.app.data.remote.dto.ShortAnswerDto =
         runAuthed {
-            requireService().goLightOptions(
-                com.kairos.app.data.remote.dto.GoLightRequest(action = "options", why = why, minutes = minutes, hurt = hurt, neck = neck),
+            requireService().adjustShort(
+                com.kairos.app.data.remote.dto.AdjustRequest(action = "short", minutes = minutes, picks = picks, cardioMin = cardioMin),
+            )
+        }
+
+    /** Adjust today: the preview for Low energy ("low"), Sick or Hurt. */
+    suspend fun adjustPreview(mode: String, how: String?, area: String?): com.kairos.app.data.remote.dto.AdjustPreviewDto =
+        runAuthed {
+            requireService().adjustPreview(
+                com.kairos.app.data.remote.dto.AdjustRequest(action = "preview", mode = mode, how = how, area = area),
             )
         }
 
@@ -489,14 +498,9 @@ class SessionRepository(
         }
     }
 
-    /** Make today light with [key], or undo it (key null). */
-    suspend fun goLight(key: String?, minutes: Int) {
-        runAuthed {
-            requireService().goLight(
-                if (key == null) com.kairos.app.data.remote.dto.GoLightRequest(action = "undo")
-                else com.kairos.app.data.remote.dto.GoLightRequest(action = "apply", key = key, minutes = minutes),
-            )
-        }
+    /** Adjust today with [req] (action "apply"), or undo it (null). */
+    suspend fun adjust(req: com.kairos.app.data.remote.dto.AdjustRequest?) {
+        runAuthed { requireService().adjust(req ?: com.kairos.app.data.remote.dto.AdjustRequest(action = "undo")) }
     }
 
     suspend fun loadWorkoutStrip(page: Int): com.kairos.app.data.remote.dto.WorkoutStripDto =
@@ -1308,6 +1312,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 534
+        const val CLIENT_BUILD = 535
     }
 }

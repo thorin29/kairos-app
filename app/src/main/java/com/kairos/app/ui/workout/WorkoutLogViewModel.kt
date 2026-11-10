@@ -123,7 +123,7 @@ data class WorkoutLogUiState(
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
     /** A Go light day (v0.464): the option chosen. */
-    val goLight: com.kairos.app.data.remote.dto.GoOptionDto? = null,
+    val adjusted: com.kairos.app.data.remote.dto.AdjustedDto? = null,
     /** The day's rows from Concept2, when connected (server 0.614+). */
     val concept2: com.kairos.app.data.remote.dto.Concept2DayDto? = null,
     val concept2Checking: Boolean = false,
@@ -348,7 +348,7 @@ class WorkoutLogViewModel(
                 programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
                 light = plan.light,
-                goLight = plan.goLight,
+                adjusted = plan.adjusted,
                 order = plan.order,
                 simple = plan.simple,
                 cardio = plan.cardio,
@@ -1065,17 +1065,22 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** Go light's options for today's answers (v0.464). */
-    fun goLightOptions(
-        why: String,
-        minutes: Int,
-        hurt: Boolean,
-        neck: String?,
-        onPick: (com.kairos.app.data.remote.dto.GoPickDto) -> Unit,
-    ) {
+    /** Adjust today, Short on time: estimates and the preview (v0.468). */
+    fun adjustShort(minutes: Int, picks: List<String>, cardioMin: Int, onAnswer: (com.kairos.app.data.remote.dto.ShortAnswerDto) -> Unit) {
         viewModelScope.launch {
             try {
-                onPick(session.goLightOptions(why = why, minutes = minutes, hurt = hurt, neck = neck))
+                onAnswer(session.adjustShort(minutes = minutes, picks = picks, cardioMin = cardioMin))
+            } catch (e: ApiException) {
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Adjust today: the preview for Low energy, Sick or Hurt. */
+    fun adjustPreview(mode: String, how: String?, area: String?, onPreview: (com.kairos.app.data.remote.dto.AdjustPreviewDto) -> Unit) {
+        viewModelScope.launch {
+            try {
+                onPreview(session.adjustPreview(mode = mode, how = how, area = area))
             } catch (e: ApiException) {
                 _ui.update { it.copy(actionError = e.error.message) }
             }
@@ -1094,12 +1099,12 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** Make today light with [key], or undo it (key null). */
-    fun goLight(key: String?, minutes: Int = 20) {
+    /** Adjust today with [req], or undo it (null). */
+    fun adjust(req: com.kairos.app.data.remote.dto.AdjustRequest?) {
         _ui.update { it.copy(saving = true, actionError = null) }
         viewModelScope.launch {
             try {
-                session.goLight(key = key, minutes = minutes)
+                session.adjust(req)
                 _ui.update { it.copy(saving = false, savedTick = it.savedTick + 1) }
                 load()
             } catch (e: ApiException) {
