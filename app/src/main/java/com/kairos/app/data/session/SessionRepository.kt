@@ -649,6 +649,10 @@ class SessionRepository(
     suspend fun removeCardio(date: String, sessionId: String): List<com.kairos.app.data.remote.dto.CardioEntryDto> =
         runAuthed { requireService().removeCardio(com.kairos.app.data.remote.dto.CardioRemoveRequest(date = date, sessionId = sessionId)) }.cardio
 
+    /** A sport day's Warm-up: for the sport, or the planned workout (server 0.662+). */
+    suspend fun setWarmupForSport(date: String, forSport: Boolean): WorkoutAckDto =
+        runAuthed { requireService().setWarmupFor(com.kairos.app.data.remote.dto.WarmupForRequest(date = date, forSport = forSport)) }
+
     suspend fun setWarmup(date: String, plannedWorkoutId: String, done: Boolean, completedOn: String?): WorkoutAckDto =
         runAuthed {
             requireService().setWarmup(
@@ -1319,6 +1323,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 538
+        const val CLIENT_BUILD = 539
     }
 }

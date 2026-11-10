@@ -101,6 +101,8 @@ internal fun WarmupCard(
     onSkip: (Boolean) -> Unit,
     /** The routine was switched (v0.430): reload the day. */
     onChanged: () -> Unit = {},
+    /** A sport on the day (v0.472): warm up for it or for the planned workout. */
+    sport: SportChoice? = null,
 ) {
     val finished = plan.done && !plan.skipped
     // Tapping the card opens its routine (steps and timers); the check
@@ -111,6 +113,7 @@ internal fun WarmupCard(
             plannedWorkoutId = plan.plannedWorkoutId,
             routine = plan.routine,
             kind = if (plan.category == "MOBILITY") "mobility" else "warmup",
+            sport = sport,
             done = finished,
             onDone = {
                 onDone(true)

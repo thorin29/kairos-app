@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Warm-up on a sport day (v0.472.0, server 0.662.0)
+
+`sportDay` from `GET /workouts` drives it: the Warm-up window shows a
+Workout / sport switch (`SportChoice`, `SegmentSwitch`) that posts
+`workouts/warmup-for`; the Warm-up section always exists on a sport day and
+shows `SportWarmupCard` (view-only routine with timers) while the planned
+Warm-up isn't for the sport.
+
 ## 2026-11 — Isometric days (v0.471.0, server 0.661.0)
 
 Isometric reuses the Core screens with kind "iso" (`rotationWord` names it):

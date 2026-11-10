@@ -127,6 +127,8 @@ data class WorkoutLogUiState(
     val light: Double? = null,
     /** A Go light day (v0.464): the option chosen. */
     val adjusted: com.kairos.app.data.remote.dto.AdjustedDto? = null,
+    /** A sport on the day (v0.472): the warm-up switch and its optional warm-up. */
+    val sportDay: com.kairos.app.data.remote.dto.SportDayDto? = null,
     /** The day's rows from Concept2, when connected (server 0.614+). */
     val concept2: com.kairos.app.data.remote.dto.Concept2DayDto? = null,
     val concept2Checking: Boolean = false,
@@ -354,6 +356,7 @@ class WorkoutLogViewModel(
                 suggestion = plan.suggestion,
                 light = plan.light,
                 adjusted = plan.adjusted,
+                sportDay = plan.sportDay,
                 order = plan.order,
                 simple = plan.simple,
                 cardio = plan.cardio,
@@ -567,6 +570,16 @@ class WorkoutLogViewModel(
                     ),
                 )
             }
+        }
+    }
+
+    /** A sport day's Warm-up: for the sport, or the planned workout (v0.472). */
+    fun setWarmupForSport(forSport: Boolean) {
+        val d = date ?: return
+        _ui.update { u -> u.copy(sportDay = u.sportDay?.copy(forSport = forSport)) }
+        viewModelScope.launch {
+            runCatching { session.setWarmupForSport(date = d, forSport = forSport) }
+            load()
         }
     }
 

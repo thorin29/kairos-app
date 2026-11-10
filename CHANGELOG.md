@@ -1,4 +1,8 @@
 # Changelog
+## 0.472.0
+
+- On a hockey day, the warm-up can be for your workout (as planned) or for hockey; switch it inside the warm-up. A hockey warm-up is there to open whenever the planned one isn't for hockey.
+
 ## 0.471.0
 
 - Isometric days: a rotation of timed holds like Core, on any day. Pick Isometric when adding a workout.

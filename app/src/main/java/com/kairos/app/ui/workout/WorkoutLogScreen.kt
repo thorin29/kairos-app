@@ -362,6 +362,8 @@ fun WorkoutLogScreen(
                             )
                         }
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
+                        // A sport on the day (v0.472): a Warm-up section for its warm-up.
+                        if (ui.sportDay != null) add("WARMUP")
                         // Always: + Conditioning sits where the person's order
                         // puts conditioning, planned or not (v0.433).
                         add("CONDITIONING")
@@ -458,13 +460,26 @@ fun WorkoutLogScreen(
                                     }
                                 }
                                 // Mobility (v0.469) shows like a Warm-up: its routine, done with a tap.
-                                "WARMUP", "MOBILITY" -> ui.simple.filter { it.category == section.kind }.forEach { w ->
+                                "WARMUP", "MOBILITY" -> {
+                                  val sd = ui.sportDay
+                                  ui.simple.filter { it.category == section.kind }.forEach { w ->
                                     WarmupCard(
                                         plan = w,
+                                        sport = if (w.category == "WARMUP" && sd != null) {
+                                            SportChoice(label = sd.label, forSport = sd.forSport, onChange = { vm.setWarmupForSport(it) })
+                                        } else {
+                                            null
+                                        },
                                         onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
                                         onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
                                         onChanged = { vm.load() },
                                     )
+                                  }
+                                  // The day's sport, optional, when the planned Warm-up isn't for it.
+                                  val sr = sd?.routine
+                                  if (section.kind == "WARMUP" && sd != null && !sd.forSport && sr != null) {
+                                      SportWarmupCard(label = sd.label, routine = sr)
+                                  }
                                 }
                                 "CARDIO" -> CardioBlock(
                                     name = ui.simple.firstOrNull { it.category == "CARDIO" }?.name ?: "Cardio",

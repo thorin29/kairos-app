@@ -187,12 +187,21 @@ internal fun WarmupWindow(
     onClose: () -> Unit,
     onChanged: () -> Unit,
     kind: String = "warmup",
+    sport: SportChoice? = null,
 ) {
     var switching by remember { mutableStateOf(false) }
     FullScreen(title = routine?.name ?: titleWord(kind), onClose = onClose) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         ) {
+            // A sport on the day (v0.472): the planned workout's warm-up, or the sport's.
+            if (sport != null) {
+                SegmentSwitch(
+                    options = listOf("workout" to "Workout", "sport" to sport.label),
+                    selected = if (sport.forSport) "sport" else "workout",
+                    onSelect = { k -> if ((k == "sport") != sport.forSport) sport.onChange(k == "sport") },
+                )
+            }
             if (routine != null) {
                 WarmupSteps(steps = routine.steps)
             } else {
@@ -880,6 +889,40 @@ private fun SegmentSwitch(options: List<Pair<String, String>>, selected: String,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
+            }
+        }
+    }
+}
+
+/** A sport day's warm-up choice (v0.472). */
+internal data class SportChoice(val label: String, val forSport: Boolean, val onChange: (Boolean) -> Unit)
+
+/** The day's sport warm-up (v0.472): optional, never part of the plan;
+ *  opens its routine with timers. */
+@Composable
+internal fun SportWarmupCard(label: String, routine: WarmupRoutineDto) {
+    var open by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clip(shape)
+            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = shape)
+            .clickable { open = true }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("$label warm-up", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(routine.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (open) {
+        FullScreen(title = "$label warm-up", onClose = { open = false }) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+                WarmupSteps(steps = routine.steps)
             }
         }
     }

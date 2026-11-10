@@ -377,6 +377,8 @@ data class WorkoutPlanDto(
     val light: Double? = null,
     /** Today's adjustment (server 0.658+): which, its header, what it drops. */
     val adjusted: AdjustedDto? = null,
+    /** A sport on the calendar that day (server 0.662+): the warm-up switch. */
+    val sportDay: SportDayDto? = null,
     /** Section order for this weekday: WARMUP, CARDIO, STRENGTH, CONDITIONING,
      *  STRETCH, SPORT (server 0.615+; empty on an older server). */
     val order: List<String> = emptyList(),
@@ -3181,6 +3183,14 @@ data class SportSessionEditRequest(
 
 @Serializable
 data class LoggedLineDto(val name: String = "", val summary: String = "")
+
+/** A sport on the day (server 0.662+): what it's called, whether the day's
+ *  Warm-up is for it, and its warm-up routine. */
+@Serializable
+data class SportDayDto(val label: String = "Hockey", val forSport: Boolean = false, val routine: WarmupRoutineDto? = null)
+
+@Serializable
+data class WarmupForRequest(val date: String, val forSport: Boolean)
 
 /** Today's adjustment (server 0.658+). The server already leaves out what it drops. */
 @Serializable
