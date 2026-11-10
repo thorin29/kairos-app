@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Day header date on one line; warm-up card trimmed (v0.470.0)
+
+The date row had the date at `weight(1f, fill = false)` and a
+`Spacer(weight(1f))` before the reset icon, so the two split the spare width
+and the date could use only about half the card ("Saturday, November" / "7").
+The spacer is gone; the row uses SpaceBetween so the date takes what it needs
+and the icon stays at the end. The warm-up card no longer lists its steps
+(0.468); they're inside when it's opened.
+
 ## 2026-11 — Mobility (v0.469.0, server 0.659.0)
 
 Mobility reuses the warm-up screens with a `kind` ("warmup" | "mobility"):

@@ -1,4 +1,9 @@
 # Changelog
+## 0.470.0
+
+- The date at the top of the day stays on one line.
+- The warm-up card is back to its name and routine; tap it to see the moves.
+
 ## 0.469.0
 
 - Mobility: add it to a day like a Warm-up, as one routine or a weekly rotation. Ready-made routines or your own; tap ⓘ on a move for how to do it.

@@ -958,7 +958,14 @@ private fun DayHeader(
     }
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-          Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+          // The date takes all the room it needs; the reset icon sits at the end
+          // (v0.470: a weighted spacer used to take half the row, wrapping
+          // long dates like "Saturday, November 7").
+          Row(
+              Modifier.fillMaxWidth(),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.SpaceBetween,
+          ) {
             Row(
                 Modifier
                     .weight(1f, fill = false)
@@ -980,7 +987,6 @@ private fun DayHeader(
                     color = if (date < today && planned && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.weight(1f))
             // Back to today (v0.463): only when the strip or the day is elsewhere.
             if (strip != null && (offToday || date != today)) {
                 androidx.compose.material3.IconButton(
