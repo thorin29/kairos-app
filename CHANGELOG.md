@@ -1,4 +1,10 @@
 # Changelog
+## 0.478.0
+
+- Repeating tasks keep their due date: it's the first due date, and repeats count from it.
+- Repeats: Daily, Weekly, Monthly, Yearly, or Custom for every 90 days and the like.
+- Every 90 days now saves as 90 (it was cut to 52).
+
 ## 0.477.0
 
 - + Conditioning is now + Additional: add conditioning, or a mobility or stretching routine or an isometric workout, to just that day.

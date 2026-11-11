@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Task repeats (v0.478.0, server 0.668.0)
+
+AssignTaskScreen: with Repeat on, "First due" (the due date) shows and is sent
+as `startDate` (it used to be today). "Repeats" offers Daily / Weekly on
+<day> / Monthly on the <n> / Yearly on <date> (every one, from the first due
+date; weekly sends that date's weekday) and Custom…, a dialog with Repeats
+every N + day/week/month/year chips, weekdays for weeks, and Ends (Never / On
+/ After N occurrences). Ends stays on the form too. The "Every X" field, the
+monthly "Starts" field and the no-due-date notice are gone. A saved series
+with interval 1 (and, weekly, just its start's weekday) opens as its preset,
+otherwise as Custom. `taskRecurLabel` mirrors the server's `recurLabel`.
+Needs server 0.668 for Yearly and intervals over 52.
+
 ## 2026-11 — "+ Additional" (v0.477.0, server 0.667.0)
 
 The Conditioning section's button is "+ Additional": `AdditionalMenu`

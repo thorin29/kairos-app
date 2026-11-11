@@ -83,7 +83,6 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
     )
     val ui by vm.ui.collectAsState()
     val scope = rememberCoroutineScope()
-    val seenRecurNoDue by container.settingsStore.seenRecurNoDue.collectAsState(initial = false)
     val data = ui.data
 
     Scaffold(
@@ -115,16 +114,17 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
         // Advanced (optional): due date + recurrence, mirroring web admin.
         var advanced by remember { mutableStateOf(false) }
         var repeats by remember { mutableStateOf(false) }
-        var freq by remember { mutableStateOf("WEEKLY") }
+        // Repeats (v0.478): DAILY / WEEKLY / MONTHLY / YEARLY mean every one,
+        // counted from the first due date; CUSTOM uses freq / interval / byday.
+        var repeatChoice by remember { mutableStateOf("WEEKLY") }
+        var freq by remember { mutableStateOf("DAILY") }
         var interval by remember { mutableStateOf("1") }
         var byday by remember { mutableStateOf(emptySet<String>()) }
+        var showCustom by remember { mutableStateOf(false) }
         var endMode by remember { mutableStateOf("NEVER") }
         var count by remember { mutableStateOf("10") }
         var until by remember { mutableStateOf(LocalDate.now().plusMonths(1).toString()) }
         var showUntil by remember { mutableStateOf(false) }
-        var monthStart by remember { mutableStateOf(LocalDate.now().toString()) }
-        var showStart by remember { mutableStateOf(false) }
-        var showRecurNotice by remember { mutableStateOf(false) }
         var notify by remember { mutableStateOf(false) }
         var notifyMin by remember { mutableStateOf(9 * 60) }
         var showNotifyTime by remember { mutableStateOf(false) }
@@ -141,14 +141,18 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
             advanced = e.recurring || e.dueDate != null || e.notifyMinutes != null
             hasDue = !e.recurring && e.dueDate != null
             if (e.dueDate != null) dueDate = e.dueDate
+            // A repeating task's first due date is its start.
+            if (e.recurring && e.startDate.isNotBlank()) dueDate = e.startDate
             repeats = e.recurring
             freq = e.freq
             interval = e.interval.toString()
             if (e.byday.isNotEmpty()) byday = e.byday.toSet()
+            val startDow = runCatching { dowCode(LocalDate.parse(dueDate).dayOfWeek) }.getOrNull()
+            val plain = e.interval <= 1 && (e.freq != "WEEKLY" || e.byday.isEmpty() || e.byday.toSet() == setOfNotNull(startDow))
+            repeatChoice = if (plain) e.freq else "CUSTOM"
             endMode = e.endMode
             if (e.maxCount != null) count = e.maxCount.toString()
             if (e.until.isNotBlank()) until = e.until
-            if (e.startDate.isNotBlank()) monthStart = e.startDate
             notify = e.notifyMinutes != null
             if (e.notifyMinutes != null) notifyMin = e.notifyMinutes
             prefilled = true
@@ -157,7 +161,14 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
         val personName = orderedPeople.firstOrNull { it.id == personId }?.name ?: ""
         val dueLabel = try { LocalDate.parse(dueDate).format(NICE) } catch (_: Exception) { dueDate }
         val untilLabel = try { LocalDate.parse(until).format(NICE) } catch (_: Exception) { until }
-        val startLabel = try { LocalDate.parse(monthStart).format(NICE) } catch (_: Exception) { monthStart }
+        val startDow = runCatching { dowCode(LocalDate.parse(dueDate).dayOfWeek) }.getOrDefault("SU")
+        val outFreq = if (repeatChoice == "CUSTOM") freq else repeatChoice
+        val outInterval = if (repeatChoice == "CUSTOM") interval.toIntOrNull()?.coerceIn(1, 999) ?: 1 else 1
+        val outByday = when {
+            outFreq != "WEEKLY" -> emptyList()
+            repeatChoice == "CUSTOM" && byday.isNotEmpty() -> WEEKDAYS.map { it.first }.filter { it in byday }
+            else -> listOf(startDow)
+        }
 
         Column(
             Modifier.padding(inner).fillMaxSize()
@@ -186,6 +197,16 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
                     }
 
                     if (advanced) {
+                        if (repeats) {
+                            Labeled("First due") {
+                                Box(
+                                    Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                                        .clickable { showDate = true }.padding(horizontal = 14.dp, vertical = 12.dp),
+                                ) {
+                                    Text(dueLabel, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
                         if (!repeats) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -211,51 +232,23 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
                             }
                             Switch(checked = repeats, onCheckedChange = { on ->
                                 repeats = on
-                                if (on) {
-                                    hasDue = false
-                                    if (!seenRecurNoDue) {
-                                        showRecurNotice = true
-                                        scope.launch { container.settingsStore.setSeenRecurNoDue() }
-                                    }
-                                }
+                                // The due date already picked becomes the first due date.
+                                if (on && !hasDue) dueDate = LocalDate.now().toString()
                             })
                         }
 
                         if (repeats) {
-                            RollPicker("Frequency", freqLabel(freq), listOf("DAILY" to "Daily", "WEEKLY" to "Weekly", "MONTHLY" to "Monthly"), { freq = it }, !ui.busy, Modifier.fillMaxWidth())
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Every", style = MaterialTheme.typography.bodyLarge)
-                                Box(Modifier.width(64.dp)) {
-                                    Field(interval, { interval = it.filter { c -> c.isDigit() }.take(2) }, "1")
-                                }
-                                Text(freqUnit(freq), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val presets = listOf("DAILY", "WEEKLY", "MONTHLY", "YEARLY").map { f ->
+                                f to taskRecurLabel(freq = f, interval = 1, byday = emptyList(), startISO = dueDate)
                             }
-                            if (freq == "MONTHLY") {
-                                Text("Starts", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Box(
-                                    Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                                        .clickable { showStart = true }.padding(horizontal = 14.dp, vertical = 12.dp),
-                                ) {
-                                    Text(startLabel, style = MaterialTheme.typography.bodyLarge)
-                                }
-                            }
-                            if (freq == "WEEKLY") {
-                                Text("On", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    WEEKDAYS.forEach { (code, label) ->
-                                        val on = code in byday
-                                        Box(
-                                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                                                .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                                                .clickable { byday = if (on) byday - code else byday + code }
-                                                .padding(vertical = 8.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(label, style = MaterialTheme.typography.labelMedium, color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                }
-                            }
+                            RollPicker(
+                                "Repeats",
+                                taskRecurLabel(freq = outFreq, interval = outInterval, byday = outByday, startISO = dueDate),
+                                presets + ("CUSTOM" to "Custom\u2026"),
+                                { if (it == "CUSTOM") showCustom = true else repeatChoice = it },
+                                !ui.busy,
+                                Modifier.fillMaxWidth(),
+                            )
                             RollPicker("Ends", endLabel(endMode), listOf("NEVER" to "Never", "COUNT" to "After a number of times", "UNTIL" to "On a date"), { endMode = it }, !ui.busy, Modifier.fillMaxWidth())
                             if (endMode == "COUNT") {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -306,10 +299,10 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
                     val wantNotify = advanced && notify && (repeats || hasDue)
                     val recur = if (advanced && repeats) {
                         com.kairos.app.data.remote.dto.RecurRequest(
-                            freq = freq,
-                            interval = interval.toIntOrNull()?.coerceAtLeast(1) ?: 1,
-                            byday = if (freq == "WEEKLY") byday.toList() else emptyList(),
-                            startDate = if (freq == "MONTHLY") monthStart else LocalDate.now().toString(),
+                            freq = outFreq,
+                            interval = outInterval,
+                            byday = outByday,
+                            startDate = dueDate,
                             endMode = endMode,
                             maxCount = if (endMode == "COUNT") count.toIntOrNull() else null,
                             until = if (endMode == "UNTIL") until else "",
@@ -410,38 +403,28 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
             )
         }
 
-        if (showRecurNotice) {
-            AlertDialog(
-                onDismissRequest = { showRecurNotice = false },
-                title = { Text("No due dates for recurrent tasks") },
-                text = { Text("Recurrent tasks do not use due dates, the end date is determined through recurrence settings.") },
-                confirmButton = { TextButton(onClick = { showRecurNotice = false }) { Text("Got it") } },
+        if (showCustom) {
+            CustomRecurrenceDialog(
+                freq = if (repeatChoice == "CUSTOM") freq else repeatChoice,
+                interval = if (repeatChoice == "CUSTOM") interval else "1",
+                byday = if (repeatChoice == "CUSTOM" && byday.isNotEmpty()) byday else setOf(startDow),
+                endMode = endMode,
+                count = count,
+                untilLabel = untilLabel,
+                onPickUntil = { showUntil = true },
+                onDismiss = { showCustom = false },
+                onDone = { f, n, days, end, c ->
+                    freq = f
+                    interval = n
+                    byday = days
+                    endMode = end
+                    count = c
+                    repeatChoice = "CUSTOM"
+                    showCustom = false
+                },
             )
         }
 
-        if (showStart) {
-            val sstate = rememberDatePickerState(
-                initialSelectedDateMillis = try {
-                    LocalDate.parse(monthStart).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-                } catch (_: Exception) {
-                    System.currentTimeMillis()
-                },
-            )
-            DatePickerDialog(
-                onDismissRequest = { showStart = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        sstate.selectedDateMillis?.let { ms ->
-                            monthStart = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate().format(ISO)
-                        }
-                        showStart = false
-                    }) { Text("OK") }
-                },
-                dismissButton = { TextButton(onClick = { showStart = false }) { Text("Cancel") } },
-            ) {
-                DatePicker(state = sstate)
-            }
-        }
         if (showUntil) {
             val ustate = rememberDatePickerState(
                 initialSelectedDateMillis = try {
@@ -496,9 +479,132 @@ private val WEEKDAYS = listOf(
 private fun dowCode(d: java.time.DayOfWeek): String =
     listOf("MO", "TU", "WE", "TH", "FR", "SA", "SU")[d.value - 1]
 
-private fun freqLabel(f: String) = when (f) { "DAILY" -> "Daily"; "MONTHLY" -> "Monthly"; else -> "Weekly" }
+private val DAY_SHORT = mapOf("SU" to "Sun", "MO" to "Mon", "TU" to "Tue", "WE" to "Wed", "TH" to "Thu", "FR" to "Fri", "SA" to "Sat")
+private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-private fun freqUnit(f: String) = when (f) { "DAILY" -> "days"; "MONTHLY" -> "months"; else -> "weeks" }
+private fun ordinal(n: Int): String {
+    val s = if (n % 100 in 11..13) "th" else when (n % 10) { 1 -> "st"; 2 -> "nd"; 3 -> "rd"; else -> "th" }
+    return "$n$s"
+}
+
+/** The web's recurLabel: "Every 90 days", "Weekly on Wed", "Monthly on the 30th", "Yearly on Jan 30". */
+internal fun taskRecurLabel(freq: String, interval: Int, byday: List<String>, startISO: String): String {
+    val n = interval.coerceAtLeast(1)
+    val start = runCatching { LocalDate.parse(startISO) }.getOrNull() ?: LocalDate.now()
+    return when (freq) {
+        "DAILY" -> if (n > 1) "Every $n days" else "Daily"
+        "MONTHLY" -> (if (n > 1) "Every $n months" else "Monthly") + " on the ${ordinal(start.dayOfMonth)}"
+        "YEARLY" -> (if (n > 1) "Every $n years" else "Yearly") + " on ${MONTHS[start.monthValue - 1]} ${start.dayOfMonth}"
+        else -> {
+            val days = byday.ifEmpty { listOf(dowCode(start.dayOfWeek)) }.joinToString(", ") { DAY_SHORT[it] ?: it }
+            (if (n > 1) "Every $n weeks" else "Weekly") + " on $days"
+        }
+    }
+}
+
+/** Custom recurrence (v0.478): repeats every N days, weeks, months or years,
+ *  weekdays for weeks, and when it ends. OK keeps it; Cancel drops it. */
+@Composable
+private fun CustomRecurrenceDialog(
+    freq: String,
+    interval: String,
+    byday: Set<String>,
+    endMode: String,
+    count: String,
+    untilLabel: String,
+    onPickUntil: () -> Unit,
+    onDismiss: () -> Unit,
+    onDone: (freq: String, interval: String, byday: Set<String>, endMode: String, count: String) -> Unit,
+) {
+    var f by remember { mutableStateOf(freq) }
+    var n by remember { mutableStateOf(interval) }
+    var days by remember { mutableStateOf(byday) }
+    var end by remember { mutableStateOf(endMode) }
+    var c by remember { mutableStateOf(count) }
+    val plural = (n.toIntOrNull() ?: 1) != 1
+    val units = listOf("DAILY" to "day", "WEEKLY" to "week", "MONTHLY" to "month", "YEARLY" to "year")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Custom") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Repeats every", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.width(80.dp)) {
+                    Field(n, { n = it.filter { ch -> ch.isDigit() }.take(3) }, "1")
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    units.forEach { (code, label) ->
+                        val on = code == f
+                        Box(
+                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                                .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { f = code }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                if (plural) "${label}s" else label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (f == "WEEKLY") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        WEEKDAYS.forEach { (code, label) ->
+                            val on = code in days
+                            Box(
+                                Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                                    .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { days = if (on) days - code else days + code }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(label, style = MaterialTheme.typography.labelSmall, color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                androidx.compose.material3.HorizontalDivider()
+                Text("Ends", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.RadioButton(selected = end == "NEVER", onClick = { end = "NEVER" })
+                    Text("Never")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.RadioButton(selected = end == "UNTIL", onClick = { end = "UNTIL" })
+                    Text("On")
+                    Box(
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                            .clickable {
+                                end = "UNTIL"
+                                onPickUntil()
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(untilLabel, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.RadioButton(selected = end == "COUNT", onClick = { end = "COUNT" })
+                    Text("After")
+                    Box(Modifier.width(72.dp)) {
+                        Field(c, { c = it.filter { ch -> ch.isDigit() }.take(3) }, "10")
+                    }
+                    Text(if ((c.toIntOrNull() ?: 1) == 1) "occurrence" else "occurrences")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val num = (n.toIntOrNull() ?: 1).coerceIn(1, 999).toString()
+                onDone(f, num, if (f == "WEEKLY") days else emptySet(), end, c)
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
 
 private fun endLabel(e: String) = when (e) { "COUNT" -> "After a number of times"; "UNTIL" -> "On a date"; else -> "Never" }
 
