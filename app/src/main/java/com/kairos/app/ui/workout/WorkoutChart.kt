@@ -76,9 +76,7 @@ fun WorkoutChart(
     val settings = com.kairos.app.ui.common.rememberContainer().settingsStore
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val heatPref by settings.heatOn.collectAsState(initial = false)
-    val heatKey by settings.heatRange.collectAsState(initial = "12w")
     val heatOn = heat != null && heatPref
-    val heatRange = heat?.ranges?.firstOrNull { it.key == heatKey }
     var heatPicked by remember { mutableStateOf<String?>(null) }
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
@@ -175,23 +173,25 @@ fun WorkoutChart(
         if (available.isNotEmpty()) {
             Box(Modifier.fillMaxWidth()) {
                 if (heatOn) {
-                    val accent = MaterialTheme.colorScheme.primary
-                    val shade = heatFills(range = heatRange, accent = accent, fade = surface)
+                    // The training heat map (v0.474): one picture, no ranges.
+                    val training = heat?.training
+                    val shade = trainFills(training)
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        BodyMap(
-                            selected = emptyList(),
-                            fillsFront = shade,
-                            fillsBack = shade,
-                            onSelect = { heatPicked = it },
-                            available = heatAvailable(heatRange),
-                            inert = figure.body,
-                            ring = figure.ring,
-                        )
-                        HeatKey(accent = accent, fade = surface)
-                        HeatRangeChips(
-                            value = heatKey,
-                            onChange = { k -> scope.launch { settings.setHeatRange(k) } },
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.weight(1f)) {
+                                BodyMap(
+                                    selected = emptyList(),
+                                    fillsFront = shade,
+                                    fillsBack = shade,
+                                    onSelect = { heatPicked = it },
+                                    available = trainAvailable(training),
+                                    inert = figure.body,
+                                    ring = figure.ring,
+                                )
+                            }
+                            EnduranceHeart(data = training?.endurance, neutral = figure.body, onOpen = { heatPicked = "ENDURANCE" })
+                        }
+                        TrainKey(neutral = figure.body)
                     }
                 } else {
                     BodyMap(
@@ -232,10 +232,13 @@ fun WorkoutChart(
             }
         }
         heatPicked?.let { nav ->
-            HeatDetailDialog(
-                nav = nav,
-                data = heatRange?.groups?.firstOrNull { it.group == heatGroupOf(nav) },
+            val t = heat?.training
+            TrainDetailDialog(
+                title = trainTitle(nav),
+                data = if (nav == "ENDURANCE") t?.endurance else t?.groups?.firstOrNull { it.group == heatGroupOf(nav) },
+                bests = if (nav == "ENDURANCE") emptyList() else heat12?.groups?.firstOrNull { it.group == heatGroupOf(nav) }?.bests.orEmpty(),
                 unit = heat?.unit.orEmpty(),
+                neutral = figure.body,
                 onDismiss = { heatPicked = null },
             )
         }

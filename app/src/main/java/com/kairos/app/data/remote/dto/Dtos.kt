@@ -1075,6 +1075,19 @@ data class HeatMapDto(
     val days: List<HeatDayDto> = emptyList(),
     /** Each day's longest plank, oldest first (server 0.643+): core's benchmark. */
     val plank: List<PlankTestDto> = emptyList(),
+    /** The training heat map (server 0.664+): warmth by consistency and progress. */
+    val training: TrainingHeatDto? = null,
+)
+
+/** A muscle group's (or endurance's) warmth, −3 cold to 5 hot, and why. */
+@Serializable
+data class TrainGroupDto(val group: String = "", val level: Int = 0, val line: String = "")
+
+@Serializable
+data class TrainingHeatDto(
+    val groups: List<TrainGroupDto> = emptyList(),
+    val endurance: TrainGroupDto? = null,
+    val paused: Boolean = false,
 )
 
 @Serializable

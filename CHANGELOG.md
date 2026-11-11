@@ -1,4 +1,9 @@
 # Changelog
+## 0.474.0
+
+- A new heat map: muscles warm up as you train them steadily and improve, cool off when missed, and only turn blue after about a month away or a real loss of strength. Tap a muscle to see why.
+- A heart beside the body shows endurance, from hockey, rowing, running, rucking and conditioning.
+
 ## 0.473.0
 
 - Stretching: add it to a day like Mobility, one routine or a rotation, including goalie hips and splits.

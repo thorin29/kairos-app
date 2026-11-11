@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Training heat map (v0.474.0, server 0.664.0)
+
+The heat view reads `heat.training` (TrainingHeatDto): `trainFills` colours
+each group by level (TRAIN_WARM 1–5, TRAIN_COLD −1..−3, the figure's grey at
+0), `EnduranceHeart` draws the endurance level as a heart (path parsed from
+the web's SVG), `TrainKey` is the legend with ⓘ, and `TrainDetailDialog`
+shows the server's one-line reason plus the 12-week bests. The range chips
+are gone (the stored range preference is simply unused).
+
 ## 2026-11 — Stretching; movement title fits (v0.473.0, server 0.663.0)
 
 Stretching routines reuse the warm-up screens with kind "stretching"

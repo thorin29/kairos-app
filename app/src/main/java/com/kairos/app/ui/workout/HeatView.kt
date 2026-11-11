@@ -30,11 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.HeatGroupDto
 import com.kairos.app.data.remote.dto.HeatRangeDto
+import com.kairos.app.data.remote.dto.TrainGroupDto
+import com.kairos.app.data.remote.dto.TrainingHeatDto
 import com.kairos.app.ui.nav.KairosIcons
 
 /**
@@ -301,3 +304,127 @@ internal fun HeatGroupSummary(data: HeatGroupDto?, unit: String) {
         HeatBests(bests = data.bests, unit = unit)
     }
 }
+
+// --- the training heat map (v0.474) -------------------------------------------
+
+/** Warmth 1–5 pale yellow to red, −1 to −3 light to deep blue (the web's
+ *  TRAIN_WARM / TRAIN_COLD); the same on every theme. Neutral is the figure's grey. */
+private val TRAIN_WARM = listOf(Color(0xFFFDE68A), Color(0xFFFACC15), Color(0xFFFB923C), Color(0xFFEA580C), Color(0xFFDC2626))
+private val TRAIN_COLD = listOf(Color(0xFFBFDBFE), Color(0xFF60A5FA), Color(0xFF2563EB))
+
+internal fun trainColor(level: Int): Color? = when {
+    level > 0 -> TRAIN_WARM[minOf(5, level) - 1]
+    level < 0 -> TRAIN_COLD[minOf(3, -level) - 1]
+    else -> null
+}
+
+internal fun trainFills(t: TrainingHeatDto?): Map<String, Color> = buildMap {
+    t?.groups.orEmpty().forEach { g -> trainColor(g.level)?.let { put(g.group, it) } }
+}
+
+internal fun trainAvailable(t: TrainingHeatDto?): List<String> =
+    t?.groups.orEmpty().map { if (it.group == "DEADLIFT") "POSTERIOR_HIP" else it.group }
+
+@Composable
+internal fun TrainKey(neutral: Color) {
+    var about by remember { mutableStateOf(false) }
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        Text("cooled", style = MaterialTheme.typography.labelSmall, color = muted, modifier = Modifier.padding(end = 4.dp))
+        (TRAIN_COLD.reversed() + neutral + TRAIN_WARM).forEach { c ->
+            Box(
+                Modifier
+                    .padding(horizontal = 1.5.dp)
+                    .size(width = 16.dp, height = 11.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(c),
+            )
+        }
+        Text("hot", style = MaterialTheme.typography.labelSmall, color = muted, modifier = Modifier.padding(start = 4.dp))
+        Icon(
+            KairosIcons.Info,
+            contentDescription = "About the heat map",
+            tint = muted,
+            modifier = Modifier
+                .padding(start = 4.dp)
+                .size(24.dp)
+                .clip(CircleShape)
+                .clickable { about = true }
+                .padding(4.dp),
+        )
+    }
+    if (about) {
+        AlertDialog(
+            onDismissRequest = { about = false },
+            title = { Text("Heat map") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Each muscle warms a step for every week you give it real work, and fastest when you're coming back to where you were.")
+                    Text("The hottest step is for training it steadily and setting a new best in the last six weeks.")
+                    Text("A missed week cools it a step. It only turns blue after it's cooled to grey and you've missed it about a month.")
+                    Text(
+                        "Strength that keeps slipping for two weeks cools it too. Light, deload and test weeks, " +
+                            "adjusted days, and your first session back aren't judged.",
+                    )
+                    Text("The heart is endurance: sport, rowing, running, rucking and conditioning, by minutes and how hard they felt.")
+                }
+            },
+            confirmButton = { TextButton(onClick = { about = false }) { Text("Close") } },
+        )
+    }
+}
+
+private const val HEART_D =
+    "M12 21s-8.5-5.4-10.6-10.3C-0.2 6.7 2.3 2 6.6 2c2.2 0 3.9 1.2 5.4 3 1.5-1.8 3.2-3 5.4-3C21.7 2 24.2 6.7 22.6 10.7 20.5 15.6 12 21 12 21z"
+
+/** The endurance gauge: a heart in the same colours. */
+@Composable
+internal fun EnduranceHeart(data: TrainGroupDto?, neutral: Color, onOpen: () -> Unit) {
+    val path = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString(HEART_D).toPath() }
+    val c = data?.let { trainColor(it.level) } ?: neutral
+    Column(
+        Modifier.clip(RoundedCornerShape(8.dp)).clickable { onOpen() }.padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        androidx.compose.foundation.Canvas(Modifier.size(width = 36.dp, height = 33.dp)) {
+            val s = size.width / 24f
+            withTransform({ scale(scaleX = s, scaleY = s, pivot = androidx.compose.ui.geometry.Offset.Zero) }) {
+                drawPath(path = path, color = c)
+            }
+        }
+        Text("Endurance", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A tapped muscle (or the heart): why it's this colour, and its bests. */
+@Composable
+internal fun TrainDetailDialog(
+    title: String,
+    data: TrainGroupDto?,
+    bests: List<com.kairos.app.data.remote.dto.HeatBestDto>,
+    unit: String,
+    neutral: Color,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(data?.let { trainColor(it.level) } ?: neutral),
+                    )
+                    Text(data?.line ?: "Nothing logged yet.")
+                }
+                if (bests.isNotEmpty()) HeatBests(bests = bests, unit = unit)
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+internal fun trainTitle(nav: String): String = if (nav == "ENDURANCE") "Endurance" else navLabel(nav)
