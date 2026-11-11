@@ -721,6 +721,10 @@ class SessionRepository(
     suspend fun warmupRoutines(kind: String = "warmup"): List<com.kairos.app.data.remote.dto.WarmupRoutineDto> =
         runAuthed { requireService().warmupRoutines(kind = kind) }.routines
 
+    /** A lift's next planned top set (v0.480), or null. */
+    suspend fun liftNext(movement: String): com.kairos.app.data.remote.dto.LiftNextDto? =
+        runAuthed { requireService().liftNext(movement = movement) }.next
+
     suspend fun coreWorkouts(kind: String = "core"): List<com.kairos.app.data.remote.dto.CoreWorkoutDto> =
         runAuthed { requireService().coreWorkouts(kind = kind) }.workouts
 
@@ -1336,6 +1340,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 546
+        const val CLIENT_BUILD = 547
     }
 }

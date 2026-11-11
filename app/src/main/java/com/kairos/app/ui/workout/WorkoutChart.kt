@@ -16,6 +16,12 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -78,6 +84,8 @@ fun WorkoutChart(
     val heatPref by settings.heatOn.collectAsState(initial = false)
     val heatOn = heat != null && heatPref
     var heatPicked by remember { mutableStateOf<String?>(null) }
+    // A lift's page (v0.480), opened from its row, with its group's name.
+    var openLift by remember { mutableStateOf<Pair<ProgressSeriesDto, String>?>(null) }
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
     // headed sections instead of a dropdown you have to discover.
@@ -262,8 +270,16 @@ fun WorkoutChart(
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
             if (key == "CORE") PlankBench(tests = heat?.plank.orEmpty())
-            items.forEach { item ->
-                LiftBlock(s = item)
+            // One row per lift (v0.480); a row opens its page.
+            androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                items.forEachIndexed { i, item ->
+                    if (i > 0) androidx.compose.material3.HorizontalDivider()
+                    LiftRow(
+                        s = item,
+                        tone = muscleColor(key) ?: muscleColor(item.muscleGroup) ?: LINE,
+                        onOpen = { openLift = item to label },
+                    )
+                }
             }
         }
 
@@ -278,6 +294,9 @@ fun WorkoutChart(
             planDays = planDays,
             extraDays = heat?.days.orEmpty(),
         )
+    }
+    openLift?.let { (lift, label) ->
+        LiftPageDialog(s = lift, groupLabel = label, marks = heat?.marks.orEmpty(), onDismiss = { openLift = null })
     }
 }
 
@@ -338,298 +357,405 @@ private fun BandChip(label: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
+/** A lift as one row in its muscle group's card (v0.480; replaced six tiles):
+ *  best and last set, a small line of the top set per session, and the
+ *  30-day change or how long it has been flat. The row opens its page. */
 @Composable
-private fun LiftBlock(
+private fun LiftRow(s: ProgressSeriesDto, tone: Color, onOpen: () -> Unit) {
+    val sorted = s.points.sortedBy { it.date }
+    val last = sorted.lastOrNull()
+    val trend = liftTrend(s)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable { onOpen() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                s.name.replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                (s.best?.let { "Best " + setText(it.value, it.reps) } ?: "No weight yet") +
+                    (last?.let { " \u00b7 last " + setText(it.value, it.reps) } ?: ""),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        val spark = sorted.takeLast(12)
+        Canvas(Modifier.width(84.dp).height(30.dp)) {
+            if (spark.size >= 2) {
+                val lo = spark.minOf { it.value }
+                val hi = spark.maxOf { it.value }
+                val pts = spark.mapIndexed { i, p ->
+                    Offset(
+                        4.dp.toPx() + i * (size.width - 8.dp.toPx()) / (spark.size - 1),
+                        size.height - 4.dp.toPx() - ((p.value - lo) / maxOf(1.0, hi - lo)).toFloat() * (size.height - 8.dp.toPx()),
+                    )
+                }
+                for (k in 1 until pts.size) drawLine(tone, pts[k - 1], pts[k], strokeWidth = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawCircle(tone, radius = 2.5.dp.toPx(), center = pts.last())
+            }
+        }
+        Column(Modifier.width(64.dp), horizontalAlignment = Alignment.End) {
+            when (trend) {
+                is LiftTrend.Up -> {
+                    Text("+" + fmt(trend.delta) + " " + s.unit, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFF047857))
+                    Text("30 days", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                is LiftTrend.Flat -> {
+                    Text("Flat", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFFB45309))
+                    Text("${trend.weeks} " + if (trend.weeks == 1) "week" else "weeks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                null -> {}
+            }
+        }
+        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+    }
+}
+
+private fun setText(v: Double, reps: Int?): String = fmt(v) + (reps?.takeIf { it > 0 }?.let { " \u00d7 $it" } ?: "")
+
+private sealed interface LiftTrend {
+    data class Up(val delta: Double) : LiftTrend
+    data class Flat(val weeks: Int) : LiftTrend
+}
+
+/** The web's liftTrend: climbing over 30 days, else whole weeks since the best. */
+private fun liftTrend(s: ProgressSeriesDto): LiftTrend? {
+    val pts = s.points.sortedBy { it.date }
+    if (pts.isEmpty()) return null
+    val cutoff = LocalDate.now().minusDays(30).toString()
+    val before = pts.filter { it.date <= cutoff }
+    if (before.isNotEmpty()) {
+        val delta = (pts.last().value - before.maxOf { it.value }).roundToInt().toDouble()
+        if (delta > 0) return LiftTrend.Up(delta = delta)
+    }
+    val best = s.best ?: return null
+    val weeks = ((LocalDate.now().toEpochDay() - (epochDay(best.date) ?: LocalDate.now().toEpochDay())) / 7).toInt()
+    if (before.isEmpty() && weeks < 1) return null
+    return LiftTrend.Flat(weeks = weeks.coerceAtLeast(0))
+}
+
+/** The web's estimatedMax: Epley from the best set of 12 reps or fewer, down to a plate step. */
+private fun estimatedMax(s: ProgressSeriesDto): Double? {
+    var best = 0.0
+    s.repMaxes.forEach { r ->
+        if (r.reps in 1..12 && r.value > 0) {
+            val e = if (r.reps == 1) r.value else r.value * (1 + r.reps / 30.0)
+            if (e > best) best = e
+        }
+    }
+    if (best <= 0) return null
+    val step = if (s.unit == "kg") 2.5 else 5.0
+    return floor(best / step) * step
+}
+
+/** Monday of a date's week. */
+private fun mondayOf(iso: String): Long? = epochDay(iso)?.let { d ->
+    val dow = LocalDate.ofEpochDay(d).dayOfWeek.value // 1 = Monday
+    d - (dow - 1)
+}
+
+/**
+ * One lift's page (v0.480): every session's top set, with light weeks shaded,
+ * changed days (sick, hurt…) marked, the record circled and the next planned
+ * top set ahead; then its numbers (an estimated max among them), the best
+ * weight at each rep count and the recent sessions. A full screen.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LiftPageDialog(
     s: ProgressSeriesDto,
+    groupLabel: String,
+    marks: List<com.kairos.app.data.remote.dto.HeatMarkDto>,
+    onDismiss: () -> Unit,
 ) {
-    val selectedId = s.poolExerciseId
-    // "All", or one rep range so a set of 5 is compared with other sets of 4–6
-    // (server 0.610 `bands`).
-    var band by remember(selectedId) { mutableStateOf("all") }
-    val points = if (band == "all") s.points else s.bands.firstOrNull { it.key == band }?.points ?: emptyList()
+    val session = com.kairos.app.ui.common.rememberContainer().sessionRepository
+    var next by remember(s.poolExerciseId) { mutableStateOf<com.kairos.app.data.remote.dto.LiftNextDto?>(null) }
+    androidx.compose.runtime.LaunchedEffect(s.poolExerciseId) {
+        next = runCatching { session.liftNext(movement = s.poolExerciseId) }.getOrNull()
+    }
+    var band by remember(s.poolExerciseId) { mutableStateOf("all") }
+    val all = s.points.sortedBy { it.date }
+    val points = if (band == "all") all else s.bands.firstOrNull { it.key == band }?.points ?: emptyList()
+    val ahead = next?.takeIf { band == "all" }
+    val tone = muscleColor(s.muscleGroup) ?: LINE
     val kg = s.unit == "kg"
     val step = if (kg) 5.0 else 10.0
-
-    val lo = points.minOfOrNull { it.value } ?: 0.0
-    val hi = points.maxOfOrNull { it.value } ?: (step * 2)
+    val values = points.map { it.value } + listOfNotNull(ahead?.weight)
+    val lo = values.minOrNull() ?: 0.0
+    val hi = values.maxOrNull() ?: (step * 2)
     val yMin = floor(lo / step) * step
     var yMax = ceil(hi / step) * step
     if (yMax <= yMin) yMax = yMin + step * 2
-
-    val xs = points.mapNotNull { epochDay(it.date) }
+    val xs = points.mapNotNull { epochDay(it.date) } + listOfNotNull(ahead?.date?.let { epochDay(it) })
     val xMin = xs.minOrNull() ?: 0L
     val xMax = xs.maxOrNull() ?: 1L
-
     fun px(day: Long, w: Float): Float =
         if (xMax == xMin) w / 2f else ((day - xMin).toFloat() / (xMax - xMin).toFloat()) * w
     fun py(v: Double, h: Float): Float =
         if (yMax == yMin) h / 2f else (h - ((v - yMin) / (yMax - yMin)).toFloat() * h)
+    val shade = all.filter { it.intent == "LIGHT" }.mapNotNull { mondayOf(it.date) }.distinct()
+    val firstISO = all.firstOrNull()?.date ?: ""
+    val today = LocalDate.now().toString()
+    val shownMarks = marks.filter { it.date >= firstISO && it.date <= today }
+    var tapped by remember(s.poolExerciseId) { mutableStateOf<GraphPointDto?>(null) }
+    var tappedOffset by remember(s.poolExerciseId) { mutableStateOf(Offset.Zero) }
+    val markColor = Color(0xFFB45309)
+    val shadeColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+    val surface = MaterialTheme.colorScheme.surface
+    val trend = liftTrend(s)
+    val est = estimatedMax(s)
 
-    // The muscle group's colour, not the chart default: the dots should read as
-    // the same thing the body map above just highlighted.
-    val dotTone = muscleColor(s.muscleGroup) ?: LINE
-    var tapped by remember(selectedId) { mutableStateOf<GraphPointDto?>(null) }
-    var tappedOffset by remember(selectedId) { mutableStateOf(Offset.Zero) }
-
-    Column(Modifier.fillMaxWidth()) {
-        // Which movement these numbers are: a group can hold several (a curl
-        // and a skull crusher under Arms).
-        Text(
-            s.name.replaceFirstChar { it.uppercase() },
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
-        )
-        // Numbers first: the record, whether it is moving, how long since it
-        // moved, and how many sessions. A single current value is a tile, not a
-        // plot. The chart lives under "Show details" with everything else.
-        val stats = remember(s.poolExerciseId, s.points) { liftStats(s) }
-        var showDetails by remember { mutableStateOf(false) }
-        val sorted = s.points.sortedBy { it.date }
-        val firstDay = sorted.firstOrNull()
-        val lastDay = sorted.lastOrNull()
-        // Two equal columns, three rows. They were fixed-width in a wrapping
-        // row before, which bunched them to the left with ragged gaps.
-        Column(
-            Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            listOf(
-                listOf<@Composable RowScope.() -> Unit>(
-                    {
-                        StatTile(
-                            "record",
-                            s.best?.let { fmt(it.value) } ?: "\u2014",
-                            s.unit,
-                            s.best?.let { longDate(it.date) } ?: "",
-                            Modifier.weight(1f),
-                        )
-                    },
-                    {
-                        // Reps at the record, falling back to the best rep count
-                        // logged at any weight. The record predates reps being
-                        // stored, so this read "none logged yet" while LAST, on
-                        // the same card, showed the movement at x2.
-                        val topRep = s.repMaxes.maxByOrNull { it.reps }
-                        val atRecord = s.best?.reps
-                        val shown = atRecord ?: topRep?.reps
-                        StatTile(
-                            "reps",
-                            shown?.toString() ?: "\u2014",
-                            if (shown != null) "reps" else "",
-                            when {
-                                atRecord != null -> "at the record"
-                                topRep != null -> "best, at ${fmt(topRep.value)} ${s.unit}"
-                                else -> "none logged yet"
-                            },
-                            Modifier.weight(1f),
-                        )
-                    },
-                ),
-                listOf<@Composable RowScope.() -> Unit>(
-                    {
-                        StatTile(
-                            "30 days",
-                            stats.delta?.let { (if (it > 0) "+" else "") + fmt(it) } ?: "\u2014",
-                            if (stats.delta != null) s.unit else "",
-                            when {
-                                stats.delta == null -> "no older session"
-                                stats.delta > 0 -> "still climbing"
-                                else -> "flat"
-                            },
-                            Modifier.weight(1f),
-                            up = (stats.delta ?: 0.0) > 0,
-                        )
-                    },
-                    {
-                        StatTile(
-                            "since best",
-                            stats.sincePR.removePrefix("best ").removeSuffix(" ago"),
-                            "",
-                            "last record",
-                            Modifier.weight(1f),
-                        )
-                    },
-                ),
-                listOf<@Composable RowScope.() -> Unit>(
-                    {
-                        StatTile(
-                            "sessions",
-                            stats.sessions.toString(),
-                            "",
-                            firstDay?.let { "since " + longDate(it.date) } ?: "",
-                            Modifier.weight(1f),
-                        )
-                    },
-                    {
-                        StatTile(
-                            "last",
-                            lastDay?.let { fmt(it.value) } ?: "\u2014",
-                            lastDay?.let { s.unit + (it.reps?.let { r -> " \u00d7 " + r } ?: "") } ?: "",
-                            lastDay?.let { longDate(it.date) } ?: "",
-                            Modifier.weight(1f),
-                        )
-                    },
-                ),
-            ).forEach { row ->
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                 Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) { row.forEach { it() } }
-            }
-        }
-
-        Text(
-            if (showDetails) "Hide charts" else "Additional charts",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { showDetails = !showDetails }
-                .padding(vertical = 6.dp, horizontal = 2.dp),
-        )
-
-        if (showDetails) {
-            Spacer(Modifier.height(12.dp))
-            // Only when there is something in it. An empty-state card inside a
-            // disclosure called "Additional charts" is a chart that isn't one.
-            if (s.repMaxes.isNotEmpty()) {
-                LiftRepMaxCard(selected = s)
-                Spacer(Modifier.height(10.dp))
-            }
-            if (s.bands.isNotEmpty()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    (listOf("all" to "All") + s.bands.map { it.key to it.label }).forEach { (key, label) ->
-                        BandChip(label = label, selected = band == key) {
-                            band = key
-                            tapped = null
-                        }
+                    androidx.compose.material3.IconButton(onClick = onDismiss) {
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Column {
+                        Text(
+                            s.name.replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(groupLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = tone)
                     }
                 }
-            }
-            Row(Modifier.fillMaxWidth().height(160.dp)) {
                 Column(
-                    Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.End,
+                    Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(fmt(yMax), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(fmt((yMin + yMax) / 2), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(fmt(yMin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-
-                Box(Modifier.weight(1f).fillMaxWidth().height(160.dp)) {
-                    Canvas(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .pointerInput(points, selectedId) {
-                                detectTapGestures { tap ->
-                                    var best: GraphPointDto? = null
-                                    var bestOffset = Offset.Zero
-                                    var bestD = Float.MAX_VALUE
-                                    for (p in points) {
-                                        val d = epochDay(p.date) ?: continue
-                                        val o = Offset(px(d, size.width.toFloat()), py(p.value, size.height.toFloat()))
-                                        val dist = hypot(tap.x - o.x, tap.y - o.y)
-                                        if (dist < bestD) { bestD = dist; best = p; bestOffset = o }
-                                    }
-                                    if (best != null && bestD < 60f) {
-                                        tapped = best; tappedOffset = bestOffset
-                                    } else {
-                                        tapped = null
-                                    }
+                    if (s.bands.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            (listOf("all" to "All") + s.bands.map { it.key to it.label }).forEach { (key, label) ->
+                                BandChip(label = label, selected = band == key) {
+                                    band = key
+                                    tapped = null
                                 }
-                            },
-                    ) {
-                        val w = size.width
-                        val h = size.height
-                        val gridSolid = Color(0x33000000)
-                        val gridDash = Color(0x1F000000)
-                        val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-                        // Solid lines at the quarter marks, dashed lines halfway between,
-                        // so it's easier to read where a point lands on the scale.
-                        for (i in 0..4) {
-                            val y = h * i / 4f
-                            drawLine(gridSolid, Offset(0f, y), Offset(w, y), 1.5f)
-                        }
-                        for (i in 0 until 4) {
-                            val y = h * (i + 0.5f) / 4f
-                            drawLine(gridDash, Offset(0f, y), Offset(w, y), 1f, pathEffect = dash)
-                        }
-                        // Points only, no connecting stroke: a line between two
-                        // sessions draws a lift on days nobody trained.
-                        // A program's light or test day is drawn hollow: it
-                        // isn't meant to beat anything.
-                        points.forEach { p ->
-                            val d = epochDay(p.date) ?: return@forEach
-                            val o = Offset(px(d, w), py(p.value, h))
-                            if (p.intent != null) {
-                                drawCircle(dotTone, radius = 5f, center = o, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
-                            } else {
-                                drawCircle(dotTone, radius = 5f, center = o)
                             }
                         }
-                        tapped?.let { drawCircle(Color.White, radius = 4f, center = tappedOffset) }
                     }
-
-                    tapped?.let { tp ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            shadowElevation = 4.dp,
-                            color = MaterialTheme.colorScheme.inverseSurface,
-                            modifier = Modifier.offset {
-                                IntOffset(
-                                    (tappedOffset.x - 44.dp.toPx()).roundToInt().coerceAtLeast(0),
-                                    (tappedOffset.y - 40.dp.toPx()).roundToInt().coerceAtLeast(0),
-                                )
-                            },
+                    Row(Modifier.fillMaxWidth().height(200.dp)) {
+                        Column(
+                            Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
+                            verticalArrangement = Arrangement.SpaceBetween,
+                            horizontalAlignment = Alignment.End,
                         ) {
-                            Text(
-                                "${dateLabel(epochDay(tp.date) ?: 0L)} · ${fmt(tp.value)} ${s.unit}" +
-                                    (tp.reps?.takeIf { it > 0 }?.let { " \u00d7 $it" } ?: "") +
-                                    when (tp.intent) {
-                                        "LIGHT" -> " \u00b7 light day"
-                                        "TEST" -> " \u00b7 test day"
-                                        else -> ""
+                            Text(fmt(yMax), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(fmt((yMin + yMax) / 2), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(fmt(yMin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            Canvas(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight()
+                                    .pointerInput(points, band) {
+                                        detectTapGestures { tap ->
+                                            var best: GraphPointDto? = null
+                                            var bestOffset = Offset.Zero
+                                            var bestD = Float.MAX_VALUE
+                                            for (p in points) {
+                                                val d = epochDay(p.date) ?: continue
+                                                val o = Offset(px(d, size.width.toFloat()), py(p.value, size.height.toFloat()))
+                                                val dist = hypot(tap.x - o.x, tap.y - o.y)
+                                                if (dist < bestD) { bestD = dist; best = p; bestOffset = o }
+                                            }
+                                            if (best != null && bestD < 60f) {
+                                                tapped = best; tappedOffset = bestOffset
+                                            } else {
+                                                tapped = null
+                                            }
+                                        }
                                     },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.inverseOnSurface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            ) {
+                                val w = size.width
+                                val h = size.height
+                                // Light weeks first, behind everything.
+                                shade.forEach { mon ->
+                                    val a = px(mon, w) - 4f
+                                    val b = px(mon + 7, w) - 4f
+                                    if (b > 0f && a < w) {
+                                        drawRect(shadeColor, topLeft = Offset(a.coerceAtLeast(0f), 0f), size = androidx.compose.ui.geometry.Size((b.coerceAtMost(w) - a.coerceAtLeast(0f)).coerceAtLeast(6f), h))
+                                    }
+                                }
+                                val gridSolid = Color(0x33000000)
+                                val gridDash = Color(0x1F000000)
+                                val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+                                for (i in 0..4) {
+                                    val y = h * i / 4f
+                                    drawLine(gridSolid, Offset(0f, y), Offset(w, y), 1.5f)
+                                }
+                                for (i in 0 until 4) {
+                                    val y = h * (i + 0.5f) / 4f
+                                    drawLine(gridDash, Offset(0f, y), Offset(w, y), 1f, pathEffect = dash)
+                                }
+                                // Changed days: a short amber tick at the foot.
+                                shownMarks.forEach { m ->
+                                    val d = epochDay(m.date) ?: return@forEach
+                                    if (d in xMin..xMax) {
+                                        val x = px(d, w)
+                                        drawLine(markColor, Offset(x, h - 10f), Offset(x, h), strokeWidth = 4f)
+                                    }
+                                }
+                                points.forEach { p ->
+                                    val d = epochDay(p.date) ?: return@forEach
+                                    val o = Offset(px(d, w), py(p.value, h))
+                                    if (p.intent != null) {
+                                        drawCircle(tone, radius = 5f, center = o, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+                                    } else {
+                                        drawCircle(tone, radius = 5f, center = o)
+                                    }
+                                }
+                                s.best?.takeIf { band == "all" }?.let { b ->
+                                    epochDay(b.date)?.let { d ->
+                                        drawCircle(tone, radius = 14f, center = Offset(px(d, w), py(b.value, h)), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+                                    }
+                                }
+                                ahead?.let { n ->
+                                    epochDay(n.date)?.let { d ->
+                                        val o = Offset(px(d, w), py(n.weight, h))
+                                        drawCircle(surface, radius = 7f, center = o)
+                                        drawCircle(
+                                            tone,
+                                            radius = 7f,
+                                            center = o,
+                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(5f, 5f))),
+                                        )
+                                    }
+                                }
+                                tapped?.let { drawCircle(Color.White, radius = 4f, center = tappedOffset) }
+                            }
+                            tapped?.let { tp ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    shadowElevation = 4.dp,
+                                    color = MaterialTheme.colorScheme.inverseSurface,
+                                    modifier = Modifier.offset {
+                                        IntOffset(
+                                            (tappedOffset.x - 44.dp.toPx()).roundToInt().coerceAtLeast(0),
+                                            (tappedOffset.y - 40.dp.toPx()).roundToInt().coerceAtLeast(0),
+                                        )
+                                    },
+                                ) {
+                                    Text(
+                                        "${dateLabel(epochDay(tp.date) ?: 0L)} \u00b7 ${setText(tp.value, tp.reps)} ${s.unit}" +
+                                            when (tp.intent) {
+                                                "LIGHT" -> " \u00b7 light day"
+                                                "TEST" -> " \u00b7 test day"
+                                                else -> ""
+                                            } +
+                                            (shownMarks.firstOrNull { it.date == tp.date }?.let { " \u00b7 " + it.label.lowercase() } ?: ""),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (xs.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(dateLabel(xMin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (xMax != xMin) Text(dateLabel(xMax), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    // What the marks are, in words.
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (shade.isNotEmpty()) ChartKey(color = shadeColor, label = "Light week", square = true)
+                        if (shownMarks.isNotEmpty()) ChartKey(color = markColor, label = shownMarks.map { it.label }.distinct().joinToString(", "), square = true)
+                        if (ahead != null) {
+                            Text(
+                                "Next: " + dayShort(ahead.date) + " " + setText(ahead.weight, ahead.reps),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
                             )
                         }
                     }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val sorted = all
+                        val first = sorted.firstOrNull()
+                        val last = sorted.lastOrNull()
+                        val weeksSince = s.best?.let { b -> epochDay(b.date)?.let { ((LocalDate.now().toEpochDay() - it) / 7).toInt() } }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatTile("record", s.best?.let { setText(it.value, it.reps) } ?: "\u2014", "", s.best?.let { longDate(it.date) } ?: "none yet", Modifier.weight(1f))
+                            StatTile("est. max", est?.let { fmt(it) } ?: "\u2014", if (est != null) s.unit else "", if (est != null) "one rep, estimated" else "needs a set of 12 or fewer", Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatTile(
+                                "30 days",
+                                when (trend) { is LiftTrend.Up -> "+" + fmt(trend.delta); is LiftTrend.Flat -> "Flat"; null -> "\u2014" },
+                                if (trend is LiftTrend.Up) s.unit else "",
+                                when (trend) { is LiftTrend.Up -> "still climbing"; is LiftTrend.Flat -> "no gain"; null -> "no older session" },
+                                Modifier.weight(1f),
+                                up = trend is LiftTrend.Up,
+                            )
+                            StatTile(
+                                "since best",
+                                when { weeksSince == null -> "\u2014"; weeksSince < 1 -> "This week"; else -> "$weeksSince " + if (weeksSince == 1) "week" else "weeks" },
+                                "",
+                                s.best?.let { longDate(it.date) } ?: "",
+                                Modifier.weight(1f),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatTile("sessions", sorted.size.toString(), "", first?.let { "since " + longDate(it.date) } ?: "", Modifier.weight(1f))
+                            StatTile("last", last?.let { setText(it.value, it.reps) } ?: "\u2014", "", last?.let { longDate(it.date) } ?: "", Modifier.weight(1f))
+                        }
+                    }
+                    if (s.repMaxes.isNotEmpty()) LiftRepMaxCard(selected = s)
+                    if (all.isNotEmpty()) {
+                        CardTitle("Recent sessions", "")
+                        all.takeLast(5).reversed().forEach { p ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                                Text(longDate(p.date), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Text(
+                                    setText(p.value, p.reps) + " " + s.unit + when (p.intent) { "LIGHT" -> " \u00b7 light"; "TEST" -> " \u00b7 test"; else -> "" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
                 }
             }
-
-            if (xs.isNotEmpty()) {
-                Row(Modifier.fillMaxWidth().padding(start = 40.dp, top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(dateLabel(xMin), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (xMax != xMin) Text(dateLabel(xMax), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                Text(
-                    "No weight logged yet.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 40.dp, top = 4.dp),
-                )
-            }
-
-            // The rep-max pills that used to sit here said the same thing as
-            // the "Best reps per weight" card directly above, detached from any
-            // chart and from each other. One place is enough.
-
-            // The whole-plan cards begin immediately below this, so an opened
-            // disclosure needs a gap at its foot or the dot chart runs straight
-            // into "Lift progress".
-            Spacer(Modifier.height(22.dp))
         }
     }
+}
+
+@Composable
+private fun ChartKey(color: Color, label: String, square: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.size(10.dp).clip(if (square) RoundedCornerShape(2.dp) else CircleShape).background(color))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private fun dayShort(iso: String): String = try {
+    LocalDate.parse(iso).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.US)
+} catch (e: Exception) {
+    iso
 }
 
 private fun epochDay(iso: String): Long? = try {
@@ -819,65 +945,6 @@ private fun ProgressSummaryCards(
 
     Spacer(Modifier.height(6.dp))
 
-    // Which lifts are moving. Percent is the one honest shared axis; the real
-    // weights stay in the row so a small gain on a light lift cannot pass for
-    // a big one. The scale is fixed so a single lift does not fill the track.
-    val moving = series.mapNotNull { sr ->
-        val cutoff = LocalDate.now().minusDays(90).toString()
-        val window = sr.points.filter { it.date >= cutoff }
-        if (window.size < 2) return@mapNotNull null
-        val from = window.first().value
-        val to = window.maxOf { it.value }
-        if (from <= 0.0) return@mapNotNull null
-        Triple(sr, ((to - from) / from * 100).toInt(), from to to)
-    }.sortedByDescending { it.second }
-
-    if (moving.isNotEmpty()) {
-        CardTitle("Lift progress", "Change over 90 days")
-        val span = maxOf(30, moving.maxOf { kotlin.math.abs(it.second) })
-        moving.forEach { (sr, pct, range) ->
-            Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    sr.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(96.dp),
-                )
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(track),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth((kotlin.math.abs(pct).toFloat() / span))
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (pct < 10) Color(0xFFC4541F) else bar),
-                    )
-                }
-                Text(
-                    (if (pct > 0) " +" else " ") + pct + "%",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.width(52.dp),
-                )
-                Text(
-                    fmt(range.first) + "\u2192" + fmt(range.second),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-    }
 
     // Workout days. One square per day, coloured by MUSCLE GROUP \u2014 the
     // question is which days were trained, not which bar was held. Only
@@ -1069,35 +1136,4 @@ private fun ProgressSummaryCards(
     }
 }
 
-private data class LiftStats(
-    val delta: Double?,
-    val sincePR: String,
-    val sessions: Int,
-    val recent: List<GraphPointDto>,
-)
 
-private fun liftStats(s: ProgressSeriesDto): LiftStats {
-    val pts = s.points.sortedBy { it.date }
-    val recent = pts.takeLast(5)
-
-    // 30-day change: the latest top set against the best on or before the
-    // cutoff. Null when nothing is that old — a first session is not a gain.
-    val cutoff = LocalDate.now().minusDays(30).toString()
-    val before = pts.filter { it.date <= cutoff }
-    val latest = pts.lastOrNull()?.value
-    val base = before.maxOfOrNull { it.value }
-    val delta = if (latest != null && base != null) latest - base else null
-
-    val sincePR = s.best?.let { b ->
-        val days = epochDay(b.date)?.let { LocalDate.now().toEpochDay() - it } ?: 0L
-        when {
-            days <= 1L -> "best today"
-            days < 7L -> "best $days days ago"
-            else -> "best ${days / 7}w ago"
-        }
-    } ?: "no best yet"
-
-    // Named arguments: a field added to LiftStats must not silently reassign
-    // these (that exact mistake broke two builds).
-    return LiftStats(delta = delta, sincePR = sincePR, sessions = pts.size, recent = recent)
-}

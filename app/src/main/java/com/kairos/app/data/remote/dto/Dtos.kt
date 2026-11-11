@@ -1101,7 +1101,19 @@ data class HeatMapDto(
     val plank: List<PlankTestDto> = emptyList(),
     /** The training heat map (server 0.664+): warmth by consistency and progress. */
     val training: TrainingHeatDto? = null,
+    /** Days made lighter or changed (server 0.670+): "Sick", "Hurt"…, for a lift's chart. */
+    val marks: List<HeatMarkDto> = emptyList(),
 )
+
+@Serializable
+data class HeatMarkDto(val date: String = "", val label: String = "")
+
+/** A lift's next planned top set (server 0.670+). */
+@Serializable
+data class LiftNextDto(val date: String = "", val weight: Double = 0.0, val reps: Int = 0)
+
+@Serializable
+data class LiftNextResponse(val next: LiftNextDto? = null)
 
 /** A muscle group's (or endurance's) warmth, −3 cold to 5 hot, and why. */
 @Serializable

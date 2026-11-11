@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-11 — Lift rows and a page per lift (v0.480.0, server 0.670.0)
+
+WorkoutChart: each muscle group's lifts are an OutlinedCard of `LiftRow`s
+(best/last, a Canvas sparkline of the last 12 top sets, `liftTrend`), replacing
+`LiftBlock`'s six tiles and its "Additional charts". A row opens
+`LiftPageDialog`, a full-screen dialog: rep-range chips, the dot chart with
+light weeks shaded (points with intent LIGHT, by Monday), `heat.marks` as
+amber ticks at the foot (named in the key and the tapped point's label), the
+record ringed and `liftNext` (GET workouts/lift-next) drawn dashed ahead;
+then six tiles with est. max (`estimatedMax`, the server's formula), the
+rep-max card and the last five sessions. Lift progress left
+ProgressSummaryCards. Weekly training moved up under the Progress card.
+The Routines action card lost its subtitle: it wrapped to three lines in a
+fixed 88 dp card and the last was clipped.
+
 ## 2026-11 — Custom recurrence is a full screen (v0.479.0)
 
 Too much for a pop-up: `CustomRecurrenceDialog` is now a full-screen dialog

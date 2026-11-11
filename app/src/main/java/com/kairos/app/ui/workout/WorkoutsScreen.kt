@@ -183,6 +183,9 @@ fun WorkoutsScreen(
                         }
                     }
 
+                    // Next to Workout days (v0.480), which closes the Progress card.
+                    training?.takeIf { t -> t.weeks.any { it.days > 0 } }?.let { WeeklyTrainingCard(it) }
+
                     if (week.isNotEmpty()) {
                         OutlinedCard(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -226,7 +229,6 @@ fun WorkoutsScreen(
                         )
                     }
 
-                    training?.takeIf { t -> t.weeks.any { it.days > 0 } }?.let { WeeklyTrainingCard(it) }
 
                     // The TODAY card is gone: it listed the day's plan names
                     // ("Core \u00b7 Core \u00b7 Legs") and said nothing the Progress
@@ -276,9 +278,9 @@ fun WorkoutsScreen(
                             enabled = ui.date != null,
                         ) { ui.date?.let(onLogWorkout) }
                         // Rest / skip moved to the day itself (v0.432).
+                        // No subtitle (v0.480): three words wrapped past the card's height.
                         ActionCard(
                             KairosIcons.Flame, "Routines", Modifier.weight(1f),
-                            subtitle = "Warm-up \u00b7 Mobility \u00b7 Stretch",
                         ) { onOpenWarmups() }
                     }
 

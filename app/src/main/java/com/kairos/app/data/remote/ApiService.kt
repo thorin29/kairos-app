@@ -283,6 +283,9 @@ interface ApiService {
     @POST("workouts/plan/core")
     suspend fun setCoreDay(@Body body: com.kairos.app.data.remote.dto.SetCoreDayRequest): Response<com.kairos.app.data.remote.dto.SaveWarmupDto>
 
+    @GET("workouts/lift-next")
+    suspend fun liftNext(@Query("movement") movement: String): Response<com.kairos.app.data.remote.dto.LiftNextResponse>
+
     @GET("workouts/core-workouts")
     suspend fun coreWorkouts(@Query("kind") kind: String = "core"): Response<com.kairos.app.data.remote.dto.CoreWorkoutsDto>
 

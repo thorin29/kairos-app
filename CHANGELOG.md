@@ -1,4 +1,12 @@
 # Changelog
+## 0.480.0
+
+- Workouts: each lift is one row with a small trend line. Tap it for the lift's own page.
+- A lift's page shows every session, light weeks shaded, sick or changed days marked, your record circled and your next planned set.
+- New estimated max on each lift's page.
+- Weekly training now sits right under Workout days.
+- The Routines button no longer shows cut-off lines.
+
 ## 0.479.0
 
 - Custom repeats open on their own screen instead of a pop-up.
