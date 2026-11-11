@@ -1,4 +1,8 @@
 # Changelog
+## 0.483.1
+
+- The Core page shows its chart first, then the tiles, like a lift's page.
+
 ## 0.483.0
 
 - Core is one card: your core progress, its line, the plank test, core days this week and moves improving.

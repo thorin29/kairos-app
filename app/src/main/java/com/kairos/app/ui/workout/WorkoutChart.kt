@@ -1390,7 +1390,7 @@ private fun CoreMoveRow(text: String, sub: String, tag: String?, change: Int?, o
 }
 
 /**
- * The Core page (v0.483): tiles, the progress line with the plank tests,
+ * The Core page (v0.483): the progress line with the plank tests, tiles,
  * and the moves done in the last eight weeks grouped by what they work. Older
  * moves are behind "Not done lately". A move opens its page on top.
  */
@@ -1429,17 +1429,6 @@ private fun CoreOverviewDialog(
                     Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatTile(
-                            key = "Plank test",
-                            value = best?.let { coreText("time", it.seconds.toDouble(), null, unit) } ?: "—",
-                            unit = "",
-                            sub = best?.pft?.let { "$it pts" } ?: "best",
-                            modifier = Modifier.weight(1f).clickable { onOpenPlank() },
-                        )
-                        StatTile(key = "This month", value = summary.daysThisMonth.toString(), unit = "", sub = "core days", modifier = Modifier.weight(1f))
-                        StatTile(key = "New bests", value = summary.newBests30.toString(), unit = "", sub = "last 30 days", modifier = Modifier.weight(1f))
-                    }
                     androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1466,6 +1455,17 @@ private fun CoreOverviewDialog(
                                 if (summary.tests.isNotEmpty()) ChartKey(color = MaterialTheme.colorScheme.onSurface, label = "Plank test", square = false)
                             }
                         }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatTile(
+                            key = "Plank test",
+                            value = best?.let { coreText("time", it.seconds.toDouble(), null, unit) } ?: "—",
+                            unit = "",
+                            sub = best?.pft?.let { "$it pts" } ?: "best",
+                            modifier = Modifier.weight(1f).clickable { onOpenPlank() },
+                        )
+                        StatTile(key = "This month", value = summary.daysThisMonth.toString(), unit = "", sub = "core days", modifier = Modifier.weight(1f))
+                        StatTile(key = "New bests", value = summary.newBests30.toString(), unit = "", sub = "last 30 days", modifier = Modifier.weight(1f))
                     }
                     summary.groups.forEach { g ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {

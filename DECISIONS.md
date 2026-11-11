@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Core page order (v0.483.1, server 0.673.1)
+
+- `CoreOverviewDialog` puts the chart before the tiles, the same order as
+  `LiftPageDialog`.
+
 ## 2026-11 — Core card and page, this week in the map pop-ups (v0.483.0, server 0.673.0)
 
 - Core is one card (`CoreCard`) from `heat.coreSummary`, worked out on the
