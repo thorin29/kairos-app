@@ -131,7 +131,7 @@ fun MovementSetsScreen(
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     confirmLeave = false
-                    vm.leave()
+                    vm.leave(logTyped = true)
                 }) { Text("Finish for now") }
             },
         )
@@ -251,7 +251,7 @@ fun MovementSetsScreen(
                                 loading = ui.leaving,
                                 filled = true,
                                 fixedHeight = 64.dp,
-                            ) { if (vm.unfinishedCount() > 0) confirmLeave = true else vm.leave() }
+                            ) { if (vm.unfinishedCount() > 0) confirmLeave = true else vm.leave(logTyped = true) }
                         }
                     }
                 }
@@ -1233,13 +1233,14 @@ fun CoreWorkoutScreen(
     val allSkipped = states.isNotEmpty() && states.all { it.skipped }
     val timed = moves.any { it.metric == "DURATION" }
     LaunchedEffect(finishing, allDone) { if (finishing && allDone) onDone() }
-    val finish = {
+    // Log logs what's typed; Back keeps it as a draft (v0.475).
+    val finish = { logTyped: Boolean ->
         if (!finishing) {
             finishing = true
-            vms.forEach { it.leave() }
+            vms.forEach { it.leave(logTyped = logTyped) }
         }
     }
-    BackHandler { finish() }
+    BackHandler { finish(false) }
     // One answer for the workout, saved against each movement.
     var effort by remember { mutableStateOf<String?>(null) }
     var hurt by remember { mutableStateOf<String?>(null) }
@@ -1251,7 +1252,7 @@ fun CoreWorkoutScreen(
             TopAppBar(
                 title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    IconButton(onClick = { finish() }) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = { finish(false) }) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
                 },
             )
         },
@@ -1294,7 +1295,7 @@ fun CoreWorkoutScreen(
                             loading = finishing,
                             filled = true,
                             fixedHeight = 64.dp,
-                        ) { finish() }
+                        ) { finish(true) }
                     }
                 }
             }

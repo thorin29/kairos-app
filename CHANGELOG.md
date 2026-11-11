@@ -1,4 +1,10 @@
 # Changelog
+## 0.475.0
+
+- Back from a movement never logs what you typed; it's kept for when you come back. Log still logs it.
+- Warm-up ticks stay when you close and reopen the warm-up.
+- A late workout stays on today until every movement is logged or skipped.
+
 ## 0.474.0
 
 - A new heat map: muscles warm up as you train them steadily and improve, cool off when missed, and only turn blue after about a month away or a real loss of strength. Tap a muscle to see why.

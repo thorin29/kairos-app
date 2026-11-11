@@ -105,6 +105,8 @@ class MovementSetsViewModel(
     private val _ui = MutableStateFlow(MovementSetsUi())
     val ui: StateFlow<MovementSetsUi> = _ui.asStateFlow()
     private var nextKey = 100
+    /** Where Back keeps typed-but-unlogged values (v0.475). */
+    private val draftKey = "$date|$slotId"
 
     val step: Double = if (unit == "kg") 2.5 else 5.0
 
@@ -129,7 +131,7 @@ class MovementSetsViewModel(
             _ui.update {
                 it.copy(
                     loading = false,
-                    rows = rowsFrom(today, last, log.target?.sets ?: emptyList()),
+                    rows = withDraft(rowsFrom(today, last, log.target?.sets ?: emptyList())),
                     targetScheme = log.target?.scheme ?: "",
                     suggestion = log.suggestion?.takeIf { s -> s.key !in answeredKeys() },
                     recentTop = log.recentTop,
@@ -276,6 +278,16 @@ class MovementSetsViewModel(
             runCatching {
                 session.saveFeedback(FeedbackRequest(date = date, slot = slotId, effort = effort, hurt = hurt))
             }
+        }
+    }
+
+    /** What was typed but not logged before Back, put back into its rows. */
+    private fun withDraft(rows: List<SetRow>): List<SetRow> {
+        val d = SetDrafts.get(draftKey)
+        if (d.isEmpty()) return rows
+        return rows.mapIndexed { i, r ->
+            val t = d[i]
+            if (t == null || r.saved) r else r.copy(w = t.first, r = t.second, s = t.third)
         }
     }
 
@@ -537,19 +549,31 @@ class MovementSetsViewModel(
         }
     }
 
-    /** Log or Back: keep anything typed but not ticked, then leave. */
     /** Sets not logged and not ready to log: Log asks before leaving them (v0.439). */
     fun unfinishedCount(): Int = _ui.value.rows.count { !it.saved && !(typed(it) && complete(it)) }
 
-    fun leave() {
+    /**
+     * Leave the movement. Log (`logTyped`) also logs anything typed and ready
+     * but not ticked. Back never logs (v0.475): what's typed is kept as a draft
+     * for this movement and day, and is back, unticked, when it's opened again.
+     */
+    fun leave(logTyped: Boolean = false) {
         if (_ui.value.leaving) return
         val cur = _ui.value.rows
+        if (!logTyped) {
+            val draft = buildMap { cur.forEachIndexed { i, r -> if (!r.saved && typed(r)) put(i, Triple(r.w, r.r, r.s)) } }
+            SetDrafts.put(draftKey, draft)
+            _ui.update { it.copy(leaving = true, done = true) }
+            return
+        }
+        SetDrafts.put(draftKey, emptyMap())
         val next = cur.map { if (!it.saved && typed(it) && complete(it)) it.copy(saved = true) else it }
         val changed = next.zip(cur).any { (a, b) -> a.saved != b.saved }
         _ui.update { it.copy(rows = next, leaving = true) }
         if (changed) persist(next) { _ui.update { it.copy(done = true) } }
         else _ui.update { it.copy(done = true) }
     }
+
 
     fun toggleSkip() {
         val want = !_ui.value.skipped
@@ -605,4 +629,14 @@ class MovementSetsViewModel(
             else -> s.reps?.let { "$it reps" } ?: "\u2014"
         }
     }
+}
+
+/** Typed-but-unlogged set values, per day and movement, for as long as the app
+ *  runs (v0.475): Back keeps them here instead of logging them. */
+internal object SetDrafts {
+    private val map = java.util.concurrent.ConcurrentHashMap<String, Map<Int, Triple<String, String, String>>>()
+    fun put(key: String, rows: Map<Int, Triple<String, String, String>>) {
+        if (rows.isEmpty()) map.remove(key) else map[key] = rows
+    }
+    fun get(key: String): Map<Int, Triple<String, String, String>> = map[key].orEmpty()
 }

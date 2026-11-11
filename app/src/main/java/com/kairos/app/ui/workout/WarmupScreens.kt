@@ -122,8 +122,15 @@ private fun FullScreen(title: String, onClose: () -> Unit, content: @Composable 
 
 /** A routine's steps: name and amount, a timer on timed ones, and a tick each. */
 @Composable
-private fun WarmupSteps(steps: List<WarmupStepDto>) {
-    val ticked = remember(steps) { mutableStateListOf<Int>() }
+private fun WarmupSteps(steps: List<WarmupStepDto>, storeKey: String? = null) {
+    // Ticks are kept per routine and day while the app runs (v0.475), so
+    // closing the window and coming back doesn't lose them.
+    val ticked = remember(steps, storeKey) {
+        mutableStateListOf<Int>().apply { storeKey?.let { addAll(WarmupTicks.get(it)) } }
+    }
+    androidx.compose.runtime.LaunchedEffect(storeKey) {
+        androidx.compose.runtime.snapshotFlow { ticked.toList() }.collect { list -> storeKey?.let { WarmupTicks.put(it, list) } }
+    }
     var timing by remember(steps) { mutableStateOf<Int?>(null) }
     var cue by remember(steps) { mutableStateOf<WarmupStepDto?>(null) }
     cue?.let { st ->
@@ -218,7 +225,7 @@ internal fun WarmupWindow(
                 )
             }
             if (routine != null) {
-                WarmupSteps(steps = routine.steps)
+                WarmupSteps(steps = routine.steps, storeKey = "$plannedWorkoutId.${routine.id}")
             } else {
                 Text("No routine.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -937,8 +944,18 @@ internal fun SportWarmupCard(label: String, routine: WarmupRoutineDto) {
     if (open) {
         FullScreen(title = "$label warm-up", onClose = { open = false }) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-                WarmupSteps(steps = routine.steps)
+                WarmupSteps(steps = routine.steps, storeKey = "sport.${routine.id}")
             }
         }
+    }
+}
+
+/** Warm-up ticks per routine and day, for as long as the app runs (v0.475). */
+internal object WarmupTicks {
+    private val map = java.util.concurrent.ConcurrentHashMap<String, List<Int>>()
+    private fun k(key: String) = "$key.${java.time.LocalDate.now()}"
+    fun get(key: String): List<Int> = map[k(key)].orEmpty()
+    fun put(key: String, ticks: List<Int>) {
+        map[k(key)] = ticks
     }
 }

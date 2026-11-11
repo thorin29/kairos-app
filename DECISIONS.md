@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Back keeps drafts; warm-up ticks kept (v0.475.0, server 0.665.0)
+
+`MovementSetsViewModel.leave(logTyped)`: the Log tile and "Finish for now"
+pass true (logs typed, complete rows); Back (arrow, system back, the Core
+screen's back) passes false and stores typed-but-unticked values in
+`SetDrafts` (process memory, per date and slot), restored by `withDraft` on
+load. `WarmupSteps` keeps ticks in `WarmupTicks` per plan entry, routine and
+day.
+
 ## 2026-11 — Training heat map (v0.474.0, server 0.664.0)
 
 The heat view reads `heat.training` (TrainingHeatDto): `trainFills` colours
