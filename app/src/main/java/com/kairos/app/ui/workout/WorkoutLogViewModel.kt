@@ -90,6 +90,8 @@ data class WorkoutBlock(
     /** Every test movement (v0.471): the plank, or Isometric's three holds. */
     val coreTests: List<String> = emptyList(),
     val coreTestName: String? = null,
+    /** Added to this day only (v0.477): optional, never counted toward done. */
+    val extra: Boolean = false,
 )
 
 data class WorkoutLogUiState(
@@ -277,6 +279,7 @@ class WorkoutLogViewModel(
                 coreTest = b.coreTest,
                 coreTests = b.coreTests.ifEmpty { listOfNotNull(b.coreTest) },
                 coreTestName = b.coreTestName,
+                extra = b.extra,
                 inputs = b.exercises.map { e ->
                     // A slot already logged with a swapped movement comes back as
                     // that movement, still showing what it replaced — so a reload
@@ -584,6 +587,24 @@ class WorkoutLogViewModel(
     }
 
     /** A Warm-up done (or not). */
+    /** Add a routine or an isometric workout to this day only (v0.477). */
+    fun addExtra(kind: String, ref: String) {
+        val d = date ?: return
+        viewModelScope.launch {
+            runCatching { session.addDayExtra(date = d, kind = kind, ref = ref) }
+                .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't add that.") } }
+            load()
+        }
+    }
+
+    /** Take a day extra off the day; anything logged for it stays. */
+    fun removeExtra(id: String) {
+        viewModelScope.launch {
+            runCatching { session.removeDayExtra(id = id) }
+            load()
+        }
+    }
+
     fun setWarmup(plannedWorkoutId: String, done: Boolean) {
         val d = date ?: return
         val today = java.time.LocalDate.now().toString()

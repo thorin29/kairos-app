@@ -134,6 +134,9 @@ fun WorkoutLogScreen(
     // (this month's benchmark). Closed once something is logged.
     var conditioningSheet by remember { mutableStateOf<String?>(null) }
     var addingConditioning by remember { mutableStateOf(false) }
+    // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
+    var addingMenu by remember { mutableStateOf(false) }
+    var extraKind by remember { mutableStateOf<String?>(null) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(ui.conditioningTick) { conditioningSheet = null }
 
@@ -244,10 +247,12 @@ fun WorkoutLogScreen(
                             logged = ui.loggedAny,
                             planned = todayBlocks.isNotEmpty() || ui.simple.isNotEmpty() || ui.picks.isNotEmpty(),
                             // A day still to come has nothing done yet: no bar (v0.462).
-                            progress = if (future) 0 to 0 else dayProgress(todayBlocks).let { (d, t) ->
-                                // Warm-up and Cardio plans count like any block.
-                                (d + ui.simple.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
-                                    (t + ui.simple.size + ui.picks.size)
+                            progress = if (future) 0 to 0 else dayProgress(todayBlocks.filter { !it.extra }).let { (d, t) ->
+                                // Warm-up and Cardio plans count like any block; what was
+                                // added to the day only (v0.477) doesn't.
+                                val planned = ui.simple.filter { !it.extra }
+                                (d + planned.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
+                                    (t + planned.size + ui.picks.size)
                             },
                             strip = ui.strip,
                             programLine = ui.programLine,
@@ -446,9 +451,9 @@ fun WorkoutLogScreen(
                                             }
                                         }
                                     }
-                                    AccentOutlinedButton(onClick = { addingConditioning = true }) {
+                                    AccentOutlinedButton(onClick = { addingMenu = true }) {
                                         Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Text("Conditioning", modifier = Modifier.padding(start = 6.dp))
+                                        Text("Additional", modifier = Modifier.padding(start = 6.dp))
                                     }
                                 }
                                 // Mobility (v0.469) shows like a Warm-up: its routine, done with a tap.
@@ -465,6 +470,7 @@ fun WorkoutLogScreen(
                                         onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
                                         onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
                                         onChanged = { vm.load() },
+                                        onRemove = if (w.extra) ({ vm.removeExtra(id = w.plannedWorkoutId) }) else null,
                                     )
                                   }
                                   // The day's sport, optional, when the planned Warm-up isn't for it.
@@ -546,6 +552,34 @@ fun WorkoutLogScreen(
                 }
             }
         }
+    }
+
+    if (addingMenu) {
+        AdditionalMenu(
+            onConditioning = {
+                addingMenu = false
+                addingConditioning = true
+            },
+            onKind = {
+                addingMenu = false
+                extraKind = it
+            },
+            onDismiss = { addingMenu = false },
+        )
+    }
+    extraKind?.let { k ->
+        ExtraPickerDialog(
+            kind = k,
+            onPick = { ref ->
+                extraKind = null
+                vm.addExtra(kind = k, ref = ref)
+            },
+            onBack = {
+                extraKind = null
+                addingMenu = true
+            },
+            onDismiss = { extraKind = null },
+        )
     }
 
     if (addingConditioning) {
@@ -1124,7 +1158,12 @@ private fun DaySectionView(
                     }
                 }
                 val workout = if (tests.isNotEmpty()) block.copy(inputs = block.inputs - tests.toSet(), coreTest = null, coreTests = emptyList()) else block
-                CoreDayCard(block = workout, overdue = overdue, onOpen = { onOpenCore(workout) })
+                CoreDayCard(
+                    block = workout,
+                    overdue = overdue,
+                    onOpen = { onOpenCore(workout) },
+                    onRemove = if (block.extra) ({ vm.removeExtra(id = block.plannedWorkoutId) }) else null,
+                )
             } else if (opensSetLogger(block)) {
                 block.inputs.forEach { m ->
                     MovementCard(
@@ -1142,7 +1181,13 @@ private fun DaySectionView(
 
 /** A Core day on the day page: one card for the whole workout (v0.446). */
 @Composable
-private fun CoreDayCard(block: WorkoutBlock, overdue: Boolean, onOpen: () -> Unit) {
+private fun CoreDayCard(
+    block: WorkoutBlock,
+    overdue: Boolean,
+    onOpen: () -> Unit,
+    /** Added to this day only (v0.477): ✕ takes it off. */
+    onRemove: (() -> Unit)? = null,
+) {
     val tracked = block.inputs.filter { it.tracked }
     val done = tracked.count { it.setCount > 0 || (it.logged && !it.skipped) }
     val colors = if (overdue) CardDefaults.outlinedCardColors(containerColor = overdueTint())
@@ -1172,6 +1217,11 @@ private fun CoreDayCard(block: WorkoutBlock, overdue: Boolean, onOpen: () -> Uni
                 )
             }
             if (tracked.isNotEmpty() && done == tracked.size) StatusChip("Logged", positive = true)
+            if (onRemove != null) {
+                IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
+                    Icon(KairosIcons.Close, contentDescription = "Remove ${block.name}", modifier = Modifier.size(18.dp))
+                }
+            }
             Icon(
                 KairosIcons.ChevronRight,
                 contentDescription = null,

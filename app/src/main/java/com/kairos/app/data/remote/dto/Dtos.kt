@@ -351,6 +351,8 @@ data class WorkoutBlockDto(
     val coreTests: List<String> = emptyList(),
     /** "Plank test" or "Monthly test" (server 0.661+). */
     val coreTestName: String? = null,
+    /** Added to this day only from "+ Additional" (server 0.667+). */
+    val extra: Boolean = false,
 )
 
 @Serializable
@@ -587,7 +589,16 @@ data class SimplePlanDto(
     val skipped: Boolean = false,
     /** A Warm-up's routine; null: a plain check (server 0.622+). */
     val routine: WarmupRoutineDto? = null,
+    /** Added to this day only from "+ Additional" (server 0.667+). */
+    val extra: Boolean = false,
 )
+
+/** POST workouts/extras (server 0.667+): kind "mobility", "stretching" or "iso". */
+@Serializable
+data class AddDayExtraRequest(val date: String, val kind: String, val ref: String)
+
+@Serializable
+data class DayExtraIdRequest(val id: String)
 
 @Serializable
 data class CardioConcept2Dto(

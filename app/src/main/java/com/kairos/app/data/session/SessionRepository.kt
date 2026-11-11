@@ -721,6 +721,16 @@ class SessionRepository(
     suspend fun warmupRoutines(kind: String = "warmup"): List<com.kairos.app.data.remote.dto.WarmupRoutineDto> =
         runAuthed { requireService().warmupRoutines(kind = kind) }.routines
 
+    suspend fun coreWorkouts(kind: String = "core"): List<com.kairos.app.data.remote.dto.CoreWorkoutDto> =
+        runAuthed { requireService().coreWorkouts(kind = kind) }.workouts
+
+    /** Add to one day only from "+ Additional" (v0.477). */
+    suspend fun addDayExtra(date: String, kind: String, ref: String): WorkoutAckDto =
+        runAuthed { requireService().addDayExtra(com.kairos.app.data.remote.dto.AddDayExtraRequest(date = date, kind = kind, ref = ref)) }
+
+    suspend fun removeDayExtra(id: String): WorkoutAckDto =
+        runAuthed { requireService().removeDayExtra(com.kairos.app.data.remote.dto.DayExtraIdRequest(id = id)) }
+
     suspend fun saveWarmupRoutine(
         id: String?,
         name: String,
@@ -1326,6 +1336,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 543
+        const val CLIENT_BUILD = 544
     }
 }

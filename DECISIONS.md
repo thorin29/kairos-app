@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — "+ Additional" (v0.477.0, server 0.667.0)
+
+The Conditioning section's button is "+ Additional": `AdditionalMenu`
+(Conditioning opens the old Pick / Build / Write dialog; Mobility,
+Stretching, Isometrics open `ExtraPickerDialog`, which lists
+`warmupRoutines(kind)` or the new `coreWorkouts("iso")` and adds with
+`POST workouts/extras`). The server sends extras as ordinary day entries
+flagged `extra` (`WorkoutBlockDto.extra`, `SimplePlanDto.extra`), so their
+cards, the Core logger, sets, skips and Mark done work unchanged with the
+"extra_<id>" ids. Extras are left out of the progress bar; their cards show
+✕ (`removeExtra`) instead of Skip.
+
 ## 2026-11 — Your version of a program (v0.476.0, server 0.666.0)
 
 `ProgramsDto.versions` (by program key; empty from an older server). A

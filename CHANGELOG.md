@@ -1,4 +1,9 @@
 # Changelog
+## 0.477.0
+
+- + Conditioning is now + Additional: add conditioning, or a mobility or stretching routine or an isometric workout, to just that day.
+- What you add is optional: it never counts against finishing the day. ✕ takes it off.
+
 ## 0.476.0
 
 - Changed a program and then ended it? Next time you pick it, start from your version or the default.

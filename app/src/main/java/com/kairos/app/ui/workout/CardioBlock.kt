@@ -103,6 +103,8 @@ internal fun WarmupCard(
     onChanged: () -> Unit = {},
     /** A sport on the day (v0.472): warm up for it or for the planned workout. */
     sport: SportChoice? = null,
+    /** Added to this day only (v0.477): ✕ takes it off instead of Skip. */
+    onRemove: (() -> Unit)? = null,
 ) {
     val finished = plan.done && !plan.skipped
     // Tapping the card opens its routine (steps and timers); the check
@@ -140,7 +142,7 @@ internal fun WarmupCard(
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
-                plan.routine?.let {
+                plan.routine?.takeIf { it.name != plan.name }?.let {
                     Text(
                         it.name,
                         style = MaterialTheme.typography.bodySmall,
@@ -150,7 +152,11 @@ internal fun WarmupCard(
                     )
                 }
             }
-            if (!finished) {
+            if (onRemove != null) {
+                androidx.compose.material3.IconButton(onClick = onRemove) {
+                    Icon(KairosIcons.Close, contentDescription = "Remove ${plan.name}", modifier = Modifier.size(18.dp))
+                }
+            } else if (!finished) {
                 TextButton(onClick = { onSkip(!plan.skipped) }) { Text(if (plan.skipped) "Skipped" else "Skip") }
             }
             if (!plan.skipped) {
