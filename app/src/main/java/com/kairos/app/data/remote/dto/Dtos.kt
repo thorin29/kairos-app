@@ -1260,11 +1260,11 @@ data class CoreSummaryDto(
     val groups: List<CoreGroupDto> = emptyList(),
     val idle: List<String> = emptyList(),
     /** The last five core days with the moves done (server 0.674.1+). */
-    val recentDays: List<CoreDayDto> = emptyList(),
+    val recentDays: List<CoreRecentDayDto> = emptyList(),
 )
 
 @Serializable
-data class CoreDayDto(val date: String = "", val moves: List<String> = emptyList())
+data class CoreRecentDayDto(val date: String = "", val moves: List<String> = emptyList())
 
 @Serializable
 data class CorePctDto(val date: String = "", val value: Int = 0)

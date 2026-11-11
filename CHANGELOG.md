@@ -1,4 +1,8 @@
 # Changelog
+## 0.484.2
+
+- Fixes the 0.484.1 build.
+
 ## 0.484.1
 
 - Cardio's page adds Since best, Sessions and Last, like a lift's page.

@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Build fix (v0.484.2)
+
+- The recent-core-days DTO clashed with the existing `CoreDayDto` (core
+  days); it is `CoreRecentDayDto`. New DTO names are now checked against
+  every class in the app before packaging.
+
 ## 2026-11 — Chart pages line up (v0.484.1, server 0.674.1)
 
 - Cardio's page gains a second row of tiles (Since best, Sessions, Last);
