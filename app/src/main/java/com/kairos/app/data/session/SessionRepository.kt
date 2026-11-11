@@ -483,12 +483,16 @@ class SessionRepository(
         }
 
     /** Adjust today: the preview for Low energy ("low"), Sick or Hurt. */
-    suspend fun adjustPreview(mode: String, how: String?, area: String?): com.kairos.app.data.remote.dto.AdjustPreviewDto =
+    suspend fun adjustPreview(mode: String, how: String?, area: String?, replace: Boolean? = null): com.kairos.app.data.remote.dto.AdjustPreviewDto =
         runAuthed {
             requireService().adjustPreview(
-                com.kairos.app.data.remote.dto.AdjustRequest(action = "preview", mode = mode, how = how, area = area),
+                com.kairos.app.data.remote.dto.AdjustRequest(action = "preview", mode = mode, how = how, area = area, replace = replace),
             )
         }
+
+    /** Mark an area sore, or better (server 0.675+). Returns the spots now marked. */
+    suspend fun setSore(area: String, sore: Boolean): List<com.kairos.app.data.remote.dto.SoreSpotDto> =
+        runAuthed { requireService().setSore(com.kairos.app.data.remote.dto.SoreRequest(area = area, sore = sore)).sore }
 
     suspend fun editSportSession(sessionId: String, minutes: Int?, effort: String?, hurt: String?) {
         runAuthed {
@@ -1344,6 +1348,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 554
+        const val CLIENT_BUILD = 555
     }
 }

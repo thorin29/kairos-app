@@ -90,6 +90,8 @@ fun WorkoutChart(
     var openPlank by remember { mutableStateOf(false) }
     var openCoreAll by remember { mutableStateOf(false) }
     var openCardio by remember { mutableStateOf(false) }
+    var sore by remember(heat?.sore) { mutableStateOf(heat?.sore.orEmpty()) }
+    val soreAt = soreRegions(sore)
     var openConditioning by remember { mutableStateOf(false) }
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
@@ -201,6 +203,8 @@ fun WorkoutChart(
                                 available = trainAvailable(training),
                                 inert = figure.body,
                                 ring = figure.ring,
+                                soreFront = soreAt.first,
+                                soreBack = soreAt.second,
                             )
                             Box(Modifier.align(Alignment.TopCenter)) {
                                 EnduranceHeart(data = training?.endurance, neutral = figure.body, onOpen = { heatPicked = "ENDURANCE" })
@@ -217,6 +221,8 @@ fun WorkoutChart(
                         available = available,
                         inert = figure.body,
                         ring = figure.ring,
+                        soreFront = soreAt.first,
+                        soreBack = soreAt.second,
                     )
                 }
                 if (heat != null) {
@@ -245,6 +251,8 @@ fun WorkoutChart(
                     )
                 }
             }
+            // Sore spots (v0.485): marked here or by "Something hurt?", kept until Better.
+            if (heat != null) SoreSpots(spots = sore, onChange = { sore = it })
         }
         heatPicked?.let { nav ->
             val t = heat?.training

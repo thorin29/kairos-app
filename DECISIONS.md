@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Sore spots, hurt days rebuilt (v0.485.0, server 0.675.0)
+
+- `SoreSpots` under the body map (strips with Better, "+ Sore spot" pop-up),
+  `POST workouts/sore`; the map hatches each area (`BodyMap(soreFront,
+  soreBack)`, `SORE_PATHS` mirroring the web's indices).
+- Adjust today's Hurt uses the "Something hurt?" areas (Neck included),
+  opens on the first sore area (`WorkoutDayDto.sore`), and has "Add a
+  replacement for each move left out" (`AdjustRequest.replace`); stand-in
+  lines are tagged Added (`AdjustLineDto.standIn`).
+- A stand-in reaches the day as the slot's `loggedAs`, which the day and
+  the movement screen already treat as a swap. Answering a day suggestion
+  with `around:` reloads the day.
+
 ## 2026-11 — Build fix (v0.484.2)
 
 - The recent-core-days DTO clashed with the existing `CoreDayDto` (core

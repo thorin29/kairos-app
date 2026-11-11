@@ -38,13 +38,17 @@ import com.kairos.app.ui.common.AccentOutlinedButton
 private val TIME_CHOICES = listOf(15, 30, 45)
 private val CARDIO_CHOICES = listOf(10, 15, 20)
 private val PICKS = listOf("weights" to "Short weights", "cardio" to "Cardio", "conditioning" to "Conditioning")
-private val ADJUST_AREAS = listOf(
-    "shoulder" to "Shoulder",
-    "elbow" to "Elbow / wrist",
-    "back" to "Back",
-    "hip" to "Hip",
-    "knee" to "Knee / ankle",
-    "legs" to "Legs",
+/** The same areas as "Something hurt?" and sore spots (server 0.675+). */
+internal val ADJUST_AREAS = listOf(
+    "NECK" to "Neck",
+    "SHOULDER" to "Shoulder",
+    "ELBOW" to "Elbow",
+    "WRIST" to "Wrist",
+    "UPPER_BACK" to "Upper back",
+    "LOWER_BACK" to "Lower back",
+    "HIP" to "Hip",
+    "KNEE" to "Knee",
+    "ANKLE" to "Ankle",
 )
 
 /**
@@ -55,11 +59,14 @@ private val ADJUST_AREAS = listOf(
 internal fun AdjustTodayScreen(
     busy: Boolean,
     onShort: (minutes: Int, picks: List<String>, cardioMin: Int, onAnswer: (ShortAnswerDto) -> Unit) -> Unit,
-    onPreview: (mode: String, how: String?, area: String?, onPreview: (AdjustPreviewDto) -> Unit) -> Unit,
+    onPreview: (mode: String, how: String?, area: String?, replace: Boolean?, onPreview: (AdjustPreviewDto) -> Unit) -> Unit,
     onConfirm: (AdjustRequest) -> Unit,
     onRest: () -> Unit,
     onDismiss: () -> Unit,
+    /** Areas marked sore (v0.485): Hurt opens on the first. */
+    sore: List<String> = emptyList(),
 ) {
+    var replace by remember { mutableStateOf(true) }
     var step by remember { mutableStateOf("start") }
     var preview by remember { mutableStateOf<AdjustPreviewDto?>(null) }
     var minutes by remember { mutableStateOf(30) }
@@ -105,7 +112,7 @@ internal fun AdjustTodayScreen(
                 AccentOutlinedButton(onClick = onRest, modifier = pad) { Text("Rest / skip day") }
             } else {
                 Button(
-                    onClick = { onConfirm(AdjustRequest(action = "apply", mode = "hurt", area = area)) },
+                    onClick = { onConfirm(AdjustRequest(action = "apply", mode = "hurt", area = area, replace = replace)) },
                     enabled = !busy && area != null && p != null,
                     modifier = pad,
                 ) { Text("Confirm") }
@@ -130,11 +137,19 @@ internal fun AdjustTodayScreen(
             "start" -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AdjustOption(title = "Low energy", detail = "Same workout, lighter") {
                     step = "low"
-                    onPreview("low", null, null) { preview = it }
+                    onPreview("low", null, null, null) { preview = it }
                 }
                 AdjustOption(title = "Short on time", detail = "Fit a workout into the time you have") { step = "time" }
                 AdjustOption(title = "Sick", detail = "A lighter version or an easy day") { step = "sick" }
-                AdjustOption(title = "Hurt or injured", detail = "Work around it") { step = "hurt" }
+                AdjustOption(title = "Hurt or injured", detail = "Work around it") {
+                    step = "hurt"
+                    val first = ADJUST_AREAS.map { it.first }.firstOrNull { it in sore }
+                    if (first != null && area == null) {
+                        area = first
+                        preview = null
+                        onPreview("hurt", null, first, replace) { preview = it }
+                    }
+                }
             }
             "low" -> if (p != null) PreviewCard(p) else Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
             "sick" -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -145,7 +160,21 @@ internal fun AdjustTodayScreen(
                 Chips(label = "Where?", values = ADJUST_AREAS, chosen = area) { a ->
                     area = a
                     preview = null
-                    onPreview("hurt", null, a) { preview = it }
+                    onPreview("hurt", null, a, replace) { preview = it }
+                }
+                val chosen = area
+                if (chosen != null && p != null && (p.canReplace || !replace)) {
+                    Row(
+                        Modifier.fillMaxWidth().clickable {
+                            replace = !replace
+                            onPreview("hurt", null, chosen, replace) { preview = it }
+                        },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        androidx.compose.material3.Checkbox(checked = replace, onCheckedChange = null)
+                        Text("Add a replacement for each move left out", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
                 if (area != null && p != null) PreviewCard(p)
             }
@@ -281,13 +310,17 @@ private fun PreviewCard(p: AdjustPreviewDto) {
         p.lines.forEach { l ->
             HorizontalDivider(Modifier.padding(vertical = 6.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    l.label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textDecoration = if (l.dropped) TextDecoration.LineThrough else null,
-                    color = if (l.dropped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        l.label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (l.standIn) FontWeight.SemiBold else null,
+                        textDecoration = if (l.dropped) TextDecoration.LineThrough else null,
+                        color = if (l.dropped) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (l.standIn) Tag("Added")
+                }
                 Text(
                     if (l.dropped) "dropped" else l.detail.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,

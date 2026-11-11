@@ -307,9 +307,10 @@ fun WorkoutLogScreen(
                             onShort = { minutes, picks, cardioMin, onAnswer ->
                                 vm.adjustShort(minutes = minutes, picks = picks, cardioMin = cardioMin, onAnswer = onAnswer)
                             },
-                            onPreview = { mode, how, area, onPreview ->
-                                vm.adjustPreview(mode = mode, how = how, area = area, onPreview = onPreview)
+                            onPreview = { mode, how, area, replace, onPreview ->
+                                vm.adjustPreview(mode = mode, how = how, area = area, replace = replace, onPreview = onPreview)
                             },
+                            sore = ui.sore,
                             onConfirm = { req ->
                                 vm.adjust(req = req)
                                 showAdjust = false

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.input.pointer.pointerInput
@@ -147,6 +148,23 @@ private class FigureGeometry(
     }
 }
 
+private val SORE_FILL = Color(0x8CF6C9C6)
+private val SORE_LINE = Color(0xFFC0392B)
+
+/** Where each sore area is on the figures: indices into BODY_FRONT_PATHS /
+ *  BODY_BACK_PATHS, the same lists as the web's SORE_PATHS (sore.ts). */
+internal val SORE_PATHS: Map<String, Pair<List<Int>, List<Int>>> = mapOf(
+    "NECK" to (listOf(1) to listOf(5, 6)),
+    "SHOULDER" to (listOf(18, 19) to listOf(17, 18)),
+    "ELBOW" to (listOf(24, 25, 26, 27) to listOf(23, 24, 25, 26)),
+    "WRIST" to (listOf(2, 3) to listOf(1, 2)),
+    "UPPER_BACK" to (emptyList<Int>() to listOf(5, 6, 7, 8, 9, 10)),
+    "LOWER_BACK" to (emptyList<Int>() to listOf(11, 12, 13, 14)),
+    "HIP" to (listOf(28, 29) to listOf(15, 16)),
+    "KNEE" to (listOf(34, 35, 36) to listOf(31)),
+    "ANKLE" to (listOf(4, 5) to listOf(3, 4)),
+)
+
 @Composable
 private fun BodyFigure(
     geo: FigureGeometry,
@@ -157,6 +175,7 @@ private fun BodyFigure(
     ring: Color,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    sore: List<Int> = emptyList(),
 ) {
     Canvas(
         modifier
@@ -180,6 +199,20 @@ private fun BodyFigure(
                     (if (spec.nav == "POSTERIOR_HIP") fills["DEADLIFT"] else null) ?: fills[spec.group] ?: inert
                 }
                 drawPath(geo.paths[i], c)
+            }
+            // Sore spots (v0.485): red over the regions, outlined, with hatching.
+            sore.forEach { i ->
+                val p = geo.paths.getOrNull(i) ?: return@forEach
+                drawPath(p, SORE_FILL)
+                clipPath(p) {
+                    val b = p.getBounds()
+                    var x = b.left - b.height
+                    while (x < b.right) {
+                        drawLine(SORE_LINE, Offset(x, b.bottom), Offset(x + b.height, b.top), strokeWidth = 4f)
+                        x += 12f
+                    }
+                }
+                drawPath(p, SORE_LINE, style = Stroke(width = 3f))
             }
             // One ring per selected target, traced from the UNION of its
             // regions. Stroking each path rings every internal muscle seam.
@@ -210,6 +243,9 @@ fun BodyMap(
     available: List<String>? = null,
     inert: Color = Color(0xFFDCE3EA),
     ring: Color = Color(0xFF10202F),
+    /** Sore spots (v0.485): path indices per figure. */
+    soreFront: List<Int> = emptyList(),
+    soreBack: List<Int> = emptyList(),
 ) {
     val front = remember {
         FigureGeometry(BODY_FRONT_PATHS, BODY_FRONT_OUTLINES, BODY_FRONT_W, BODY_FRONT_H)
@@ -233,6 +269,7 @@ fun BodyMap(
             ring = ring,
             onSelect = onSelect,
             modifier = Modifier.weight(1f),
+            sore = soreFront,
         )
         BodyFigure(
             geo = back,
@@ -243,6 +280,7 @@ fun BodyMap(
             ring = ring,
             onSelect = onSelect,
             modifier = Modifier.weight(1f),
+            sore = soreBack,
         )
     }
 }

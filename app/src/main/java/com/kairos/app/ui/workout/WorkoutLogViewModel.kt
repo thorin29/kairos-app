@@ -125,6 +125,8 @@ data class WorkoutLogUiState(
     val programLine: String = "",
     /** The day's suggestion card, hidden once answered (server 0.612+). */
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
+    /** Areas marked sore (server 0.675+): Adjust today opens Hurt on the first. */
+    val sore: List<String> = emptyList(),
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
     /** A Go light day (v0.464): the option chosen. */
@@ -357,6 +359,7 @@ class WorkoutLogViewModel(
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
+                sore = plan.sore,
                 light = plan.light,
                 adjusted = plan.adjusted,
                 sportDay = plan.sportDay,
@@ -678,11 +681,13 @@ class WorkoutLogViewModel(
             )
         }
         viewModelScope.launch {
-            runCatching {
+            val ok = runCatching {
                 session.answerSuggestion(
                     com.kairos.app.data.remote.dto.SuggestionAnswerRequest(date = d, key = s.key, answer = answer),
                 )
-            }
+            }.isSuccess
+            // "Work around it" (server 0.675+) changed today's plan: reload it.
+            if (ok && answer.startsWith("around:")) load()
         }
     }
 
@@ -1125,10 +1130,16 @@ class WorkoutLogViewModel(
     }
 
     /** Adjust today: the preview for Low energy, Sick or Hurt. */
-    fun adjustPreview(mode: String, how: String?, area: String?, onPreview: (com.kairos.app.data.remote.dto.AdjustPreviewDto) -> Unit) {
+    fun adjustPreview(
+        mode: String,
+        how: String?,
+        area: String?,
+        replace: Boolean? = null,
+        onPreview: (com.kairos.app.data.remote.dto.AdjustPreviewDto) -> Unit,
+    ) {
         viewModelScope.launch {
             try {
-                onPreview(session.adjustPreview(mode = mode, how = how, area = area))
+                onPreview(session.adjustPreview(mode = mode, how = how, area = area, replace = replace))
             } catch (e: ApiException) {
                 _ui.update { it.copy(actionError = e.error.message) }
             }

@@ -377,6 +377,8 @@ data class WorkoutPlanDto(
     val suggestion: SuggestionDto? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
+    /** Areas marked sore (server 0.675+): Adjust today opens Hurt on the first. */
+    val sore: List<String> = emptyList(),
     /** Today's adjustment (server 0.658+): which, its header, what it drops. */
     val adjusted: AdjustedDto? = null,
     /** A sport on the calendar that day (server 0.662+): the warm-up switch. */
@@ -1135,7 +1137,20 @@ data class HeatMapDto(
     /** Cardio and conditioning charts (server 0.674+). */
     val cardioCharts: CardioChartsDto? = null,
     val conditioningCharts: ConditioningChartsDto? = null,
+    /** Sore spots (server 0.675+), until marked better. */
+    val sore: List<SoreSpotDto> = emptyList(),
 )
+
+/** An area marked sore (server 0.675+): NECK, SHOULDER, ELBOW, WRIST,
+ *  UPPER_BACK, LOWER_BACK, HIP, KNEE or ANKLE. */
+@Serializable
+data class SoreSpotDto(val area: String = "", val since: String = "", val from: String? = null)
+
+@Serializable
+data class SoreRequest(val area: String, val sore: Boolean)
+
+@Serializable
+data class SoreListDto(val sore: List<SoreSpotDto> = emptyList())
 
 /** Cardio by activity (server 0.674+). */
 @Serializable
@@ -3480,7 +3495,13 @@ data class ShortAnswerDto(
 )
 
 @Serializable
-data class AdjustLineDto(val label: String = "", val detail: String? = null, val dropped: Boolean = false)
+data class AdjustLineDto(
+    val label: String = "",
+    val detail: String? = null,
+    val dropped: Boolean = false,
+    /** A replacement for the movement on the line before (server 0.675+). */
+    val standIn: Boolean = false,
+)
 
 /** Low energy / Sick / Hurt preview; `empty` = nothing left to lift. */
 @Serializable
@@ -3490,6 +3511,8 @@ data class AdjustPreviewDto(
     val note: String? = null,
     val lines: List<AdjustLineDto> = emptyList(),
     val empty: Boolean = false,
+    /** Hurt: replacements could be offered for what comes out (server 0.675+). */
+    val canReplace: Boolean = false,
 )
 
 @Serializable
@@ -3501,4 +3524,6 @@ data class AdjustRequest(
     val minutes: Int? = null,
     val picks: List<String>? = null,
     val cardioMin: Int? = null,
+    /** Hurt: add a replacement for each move left out (server 0.675+; default yes). */
+    val replace: Boolean? = null,
 )

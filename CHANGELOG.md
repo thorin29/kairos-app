@@ -1,4 +1,11 @@
 # Changelog
+## 0.485.0
+
+- Mark a sore spot under the body map. It shows on the map until you tap Better.
+- Answering "Something hurt?" after a movement marks that spot too.
+- When today loads a sore spot, the day offers to work around it.
+- Hurt in Adjust today can add a replacement for each move left out. Neck is an area now.
+
 ## 0.484.2
 
 - Fixes the 0.484.1 build.
