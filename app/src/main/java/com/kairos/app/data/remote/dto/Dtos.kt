@@ -1169,6 +1169,11 @@ data class CardioActivityDto(
     val pace: CardioPaceDto? = null,
     val longest: CardioLongestDto? = null,
     val sessions30: Int = 0,
+    /** Every session, the first one's day, the last one, weeks since the best (server 0.674.1+). */
+    val count: Int = 0,
+    val firstDate: String = "",
+    val last: CardioRecentDto? = null,
+    val sinceBestWeeks: Int? = null,
     val recent: List<CardioRecentDto> = emptyList(),
 )
 
@@ -1208,7 +1213,12 @@ data class ConditioningChartsDto(
     val repeats: List<CondRepeatDto> = emptyList(),
     val once: List<CondOnceDto> = emptyList(),
     val thisWeek: CondTotalsDto = CondTotalsDto(),
+    /** The last five sessions (server 0.674.1+). */
+    val recent: List<CondRecentDto> = emptyList(),
 )
+
+@Serializable
+data class CondRecentDto(val date: String = "", val name: String = "", val text: String = "")
 
 @Serializable
 data class WeekCountDto(val start: String = "", val count: Int = 0)
@@ -1249,7 +1259,12 @@ data class CoreSummaryDto(
     val improving: Int = 0,
     val groups: List<CoreGroupDto> = emptyList(),
     val idle: List<String> = emptyList(),
+    /** The last five core days with the moves done (server 0.674.1+). */
+    val recentDays: List<CoreDayDto> = emptyList(),
 )
+
+@Serializable
+data class CoreDayDto(val date: String = "", val moves: List<String> = emptyList())
 
 @Serializable
 data class CorePctDto(val date: String = "", val value: Int = 0)

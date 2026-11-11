@@ -359,6 +359,21 @@ internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
                 ChartTile(key = "30 days", value = a.sessions30.toString(), sub = if (a.sessions30 == 1) "session" else "sessions", modifier = Modifier.weight(1f))
             }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val wk = a.sinceBestWeeks
+            ChartTile(
+                key = "Since best",
+                value = when {
+                    wk == null -> "\u2014"
+                    wk < 1 -> "This week"
+                    else -> "$wk " + if (wk == 1) "week" else "weeks"
+                },
+                sub = pace?.best?.let { md(it.date) } ?: a.longest?.let { md(it.date) } ?: "",
+                modifier = Modifier.weight(1f),
+            )
+            ChartTile(key = "Sessions", value = a.count.toString(), sub = if (a.firstDate.isNotBlank()) "since " + md(a.firstDate) else "", modifier = Modifier.weight(1f))
+            ChartTile(key = "Last", value = a.last?.text?.substringBefore(" /") ?: "\u2014", sub = a.last?.let { md(it.date) } ?: "", modifier = Modifier.weight(1f))
+        }
         if (pace != null) {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
@@ -488,6 +503,18 @@ internal fun ConditioningPageDialog(data: ConditioningChartsDto, onDismiss: () -
                     Text("Done once", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text("${data.once.size} " + if (data.once.size == 1) "workout" else "workouts", style = MaterialTheme.typography.bodyMedium, color = muted)
                     Chevron()
+                }
+            }
+        }
+        if (data.recent.isNotEmpty()) {
+            SmallCaps("Recent sessions")
+            data.recent.forEach { r ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(dayLong(r.date), style = MaterialTheme.typography.labelSmall, color = muted)
+                    }
+                    Text(r.text, style = MaterialTheme.typography.bodyMedium, color = muted)
                 }
             }
         }

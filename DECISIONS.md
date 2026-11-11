@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Chart pages line up (v0.484.1, server 0.674.1)
+
+- Cardio's page gains a second row of tiles (Since best, Sessions, Last);
+  Conditioning's page and the Core page end with recent sessions / core
+  days, from the new server fields. Same order as a lift's page.
+
 ## 2026-11 — Cardio and conditioning charts (v0.484.0, server 0.674.0)
 
 - `EnduranceCharts.kt`: `CardioChartCard` / `CardioPageDialog` and

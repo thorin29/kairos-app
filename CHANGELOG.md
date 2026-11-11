@@ -1,4 +1,9 @@
 # Changelog
+## 0.484.1
+
+- Cardio's page adds Since best, Sessions and Last, like a lift's page.
+- Conditioning's page ends with your recent sessions, and the Core page with your recent core days.
+
 ## 0.484.0
 
 - Cardio has its own card: this week's minutes and each activity. Tap it for pace, distance per week and your best.

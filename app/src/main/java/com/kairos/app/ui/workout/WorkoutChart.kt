@@ -1518,6 +1518,21 @@ private fun CoreOverviewDialog(
                             }
                         }
                     }
+                    if (summary.recentDays.isNotEmpty()) {
+                        Text("RECENT CORE DAYS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = muted)
+                        summary.recentDays.forEach { d ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(longDate(d.date), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    d.moves.joinToString(", "),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = muted,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                                )
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(16.dp))
                 }
             }
