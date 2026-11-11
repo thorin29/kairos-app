@@ -492,7 +492,7 @@ class SessionRepository(
 
     /** Mark an area sore, or better (server 0.675+). Returns the spots now marked. */
     suspend fun setSore(area: String, sore: Boolean): List<com.kairos.app.data.remote.dto.SoreSpotDto> =
-        runAuthed { requireService().setSore(com.kairos.app.data.remote.dto.SoreRequest(area = area, sore = sore)).sore }
+        runAuthed { requireService().setSore(com.kairos.app.data.remote.dto.SoreRequest(area = area, sore = sore)) }.sore
 
     suspend fun editSportSession(sessionId: String, minutes: Int?, effort: String?, hurt: String?) {
         runAuthed {
@@ -1348,6 +1348,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 555
+        const val CLIENT_BUILD = 556
     }
 }

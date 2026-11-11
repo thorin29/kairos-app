@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Build fix (v0.485.1)
+
+- `setSore` read `.sore` off the Retrofit `Response` inside `runAuthed`
+  instead of off the unwrapped body.
+
 ## 2026-11 — Sore spots, hurt days rebuilt (v0.485.0, server 0.675.0)
 
 - `SoreSpots` under the body map (strips with Better, "+ Sore spot" pop-up),

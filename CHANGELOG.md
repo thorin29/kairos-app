@@ -1,4 +1,8 @@
 # Changelog
+## 0.485.1
+
+- Fixes the 0.485.0 build.
+
 ## 0.485.0
 
 - Mark a sore spot under the body map. It shows on the map until you tap Better.
