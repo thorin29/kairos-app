@@ -201,6 +201,9 @@ interface ApiService {
     @POST("workouts/programs/start")
     suspend fun startProgram(@Body body: com.kairos.app.data.remote.dto.StartProgramRequest): Response<WorkoutAckDto>
 
+    @POST("workouts/programs/version/forget")
+    suspend fun forgetProgramVersion(@Body body: com.kairos.app.data.remote.dto.ForgetProgramVersionRequest): Response<WorkoutAckDto>
+
     @POST("workouts/programs/end")
     suspend fun endProgram(@Body body: com.kairos.app.data.remote.dto.EndProgramRequest): Response<WorkoutAckDto>
 

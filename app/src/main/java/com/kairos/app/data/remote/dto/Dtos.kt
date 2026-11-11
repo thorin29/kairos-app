@@ -804,7 +804,20 @@ data class ProgramsDto(
     /** The running program as its setup shows it, for "Next cycle, with
      *  changes" (server 0.626+). */
     val setup: CurrentSetupDto? = null,
+    /** The person's own version of each program they changed, by key (server 0.666+). */
+    val versions: Map<String, ProgramVersionDto> = emptyMap(),
 )
+
+/** A person's own version of a program: its setup and extras when they ended it. */
+@Serializable
+data class ProgramVersionDto(
+    val savedOn: String = "",
+    val setup: CurrentSetupDto = CurrentSetupDto(),
+    val extras: CurrentExtrasDto = CurrentExtrasDto(),
+)
+
+@Serializable
+data class ForgetProgramVersionRequest(val key: String)
 
 @Serializable
 data class CurrentSetupDto(

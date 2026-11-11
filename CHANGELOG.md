@@ -1,4 +1,8 @@
 # Changelog
+## 0.476.0
+
+- Changed a program and then ended it? Next time you pick it, start from your version or the default.
+
 ## 0.475.0
 
 - Back from a movement never logs what you typed; it's kept for when you come back. Log still logs it.

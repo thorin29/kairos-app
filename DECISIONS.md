@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Your version of a program (v0.476.0, server 0.666.0)
+
+`ProgramsDto.versions` (by program key; empty from an older server). A
+program with one shows an EDITED tag; picking it opens a dialog — Your
+version (date), Default, Forget my version. Your version opens
+`ProgramSetup` with `initial` = its setup, `current` = its extras,
+`nextMaxes` = its training maxes and `fromVersion = true` (button says
+"Start program"; a main lift without a saved max gets 90% of the best
+logged). The setup is wrapped in `key(programKey, fromVersion)` so its
+remembered state resets between Default and Your version. Forget calls
+`POST workouts/programs/version/forget` and opens the default setup.
+
 ## 2026-11 — Back keeps drafts; warm-up ticks kept (v0.475.0, server 0.665.0)
 
 `MovementSetsViewModel.leave(logTyped)`: the Log tile and "Finish for now"

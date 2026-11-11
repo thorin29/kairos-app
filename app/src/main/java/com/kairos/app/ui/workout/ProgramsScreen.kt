@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -118,6 +119,9 @@ fun ProgramsScreen(
     var picking by remember { mutableStateOf(startPicking) }
     var tab by remember { mutableStateOf("programs") }
     var setupKey by remember { mutableStateOf<String?>(null) }
+    // A program with the person's own version: Your version or Default first (v0.476).
+    var asking by remember { mutableStateOf<String?>(null) }
+    var useVersion by remember { mutableStateOf(false) }
     var ending by remember { mutableStateOf(false) }
     var cycleOpen by remember { mutableStateOf(false) }
     // "Next cycle, with changes": the next cycle's training maxes, with the
@@ -154,6 +158,11 @@ fun ProgramsScreen(
     }
 
     val setup = data?.choices?.firstOrNull { it.key == setupKey }
+    val version = setup?.let { s -> data?.versions?.get(s.key) }?.takeIf { useVersion }
+    fun pick(key: String) {
+        useVersion = false
+        if (data?.versions?.containsKey(key) == true) asking = key else setupKey = key
+    }
     val nextSetup = data?.setup?.takeIf { changing != null }
     val nextProgram = nextSetup?.let { ns -> data?.choices?.firstOrNull { it.key == ns.key } }
 
@@ -207,20 +216,25 @@ fun ProgramsScreen(
                         }
                     },
                 )
-                setup != null -> ProgramSetup(
-                    program = setup,
-                    current = d.current,
-                    warmups = d.warmups,
-                    busy = busy,
-                    error = error,
-                    onStart = { req ->
-                        act(block = { session.startProgram(req) }) {
-                            setupKey = null
-                            picking = false
-                            onEditPlan()
-                        }
-                    },
-                )
+                setup != null -> key(setup.key, version != null) {
+                    ProgramSetup(
+                        program = setup,
+                        current = version?.extras ?: d.current,
+                        warmups = d.warmups,
+                        busy = busy,
+                        error = error,
+                        initial = version?.setup,
+                        nextMaxes = version?.setup?.maxes,
+                        fromVersion = version != null,
+                        onStart = { req ->
+                            act(block = { session.startProgram(req) }) {
+                                setupKey = null
+                                picking = false
+                                onEditPlan()
+                            }
+                        },
+                    )
+                }
                 else -> Column(
                     Modifier
                         .fillMaxSize()
@@ -241,7 +255,9 @@ fun ProgramsScreen(
                         ChooserTabs(selected = tab, onSelect = { tab = it })
                         when (tab) {
                             "programs" -> {
-                                d.choices.forEach { c -> ProgramChoiceCard(c = c, onPick = { setupKey = c.key }) }
+                                d.choices.forEach { c ->
+                                    ProgramChoiceCard(c = c, edited = d.versions.containsKey(c.key), onPick = { pick(c.key) })
+                                }
                                 onOpenRotation?.let { open ->
                                     OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth()) {
                                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -264,6 +280,55 @@ fun ProgramsScreen(
                 }
             }
         }
+    }
+
+    val askingChoice = asking?.let { k -> data?.choices?.firstOrNull { it.key == k } }
+    val askingVersion = asking?.let { k -> data?.versions?.get(k) }
+    if (askingChoice != null && askingVersion != null) {
+        AlertDialog(
+            onDismissRequest = { asking = null },
+            title = { Text(askingChoice.name) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ProgramPill(
+                        label = "Your version · ${shortDate(askingVersion.savedOn)}",
+                        filled = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            useVersion = true
+                            setupKey = askingChoice.key
+                            asking = null
+                        },
+                    )
+                    ProgramPill(
+                        label = "Default",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            useVersion = false
+                            setupKey = askingChoice.key
+                            asking = null
+                        },
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        val k = askingChoice.key
+                        act(block = { session.forgetProgramVersion(k) }) {
+                            useVersion = false
+                            setupKey = k
+                            asking = null
+                            reload()
+                        }
+                    },
+                ) {
+                    Text("Forget my version")
+                }
+            },
+        )
     }
 
     if (ending) {
@@ -479,11 +544,29 @@ private fun CycleEndDialog(
 }
 
 @Composable
-private fun ProgramChoiceCard(c: ProgramChoiceDto, onPick: () -> Unit) {
+private fun ProgramChoiceCard(c: ProgramChoiceDto, edited: Boolean = false, onPick: () -> Unit) {
     OutlinedCard(onClick = onPick, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(c.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(c.name, style = MaterialTheme.typography.titleMedium)
+                    if (edited) {
+                        Text(
+                            "EDITED",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 Text(
                     "${c.days.size} days · ${c.weeks} wk",
                     style = MaterialTheme.typography.labelMedium,
@@ -574,6 +657,9 @@ private fun ProgramSetup(
     initial: com.kairos.app.data.remote.dto.CurrentSetupDto? = null,
     /** The next cycle's training maxes: the Maxes step edits these directly. */
     nextMaxes: Map<String, Double>? = null,
+    /** Started from the person's own version (v0.476): its training maxes, and
+     *  90% of the best logged for a lift it has none for. */
+    fromVersion: Boolean = false,
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
@@ -633,7 +719,11 @@ private fun ProgramSetup(
     // training max is 90% of it, shown under the field (v0.429).
     // The next cycle: the field is the training max itself, already raised.
     fun maxFor(id: String): String = maxText[id]
-        ?: if (nextMaxes != null) nextMaxes[id]?.let { MovementSetsViewModel.fmt(it) } ?: ""
+        ?: if (nextMaxes != null) {
+            nextMaxes[id]?.let { MovementSetsViewModel.fmt(it) }
+                ?: bestOf[id]?.takeIf { fromVersion }?.let { MovementSetsViewModel.fmt(((it * 0.9) / 5.0).roundToInt() * 5.0) }
+                ?: ""
+        }
         else bestOf[id]?.let { MovementSetsViewModel.fmt(it) } ?: ""
     fun tmOf(id: String): Double? = maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let {
         if (nextMaxes != null) it else ((it * 0.9) / 5.0).roundToInt() * 5.0
@@ -824,7 +914,7 @@ private fun ProgramSetup(
                 ProgramPill(label = "Next", filled = true, modifier = Modifier.weight(1f), onClick = { step += 1 })
             } else {
                 ProgramPill(
-                    label = if (busy) "Starting…" else if (nextMaxes != null) "Start next cycle" else "Start program",
+                    label = if (busy) "Starting…" else if (nextMaxes != null && !fromVersion) "Start next cycle" else "Start program",
                     filled = true,
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
@@ -1092,4 +1182,12 @@ private fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
         )
     }
+}
+
+/** "2026-11-01" → "Nov 1". */
+private fun shortDate(iso: String): String {
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val parts = iso.split("-").mapNotNull { it.toIntOrNull() }
+    if (parts.size != 3 || parts[1] !in 1..12) return iso
+    return "${months[parts[1] - 1]} ${parts[2]}"
 }
