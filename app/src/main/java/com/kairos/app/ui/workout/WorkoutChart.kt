@@ -89,6 +89,8 @@ fun WorkoutChart(
     var openCore by remember { mutableStateOf<com.kairos.app.data.remote.dto.CoreProgressMoveDto?>(null) }
     var openPlank by remember { mutableStateOf(false) }
     var openCoreAll by remember { mutableStateOf(false) }
+    var openCardio by remember { mutableStateOf(false) }
+    var openConditioning by remember { mutableStateOf(false) }
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
     // headed sections instead of a dropdown you have to discover.
@@ -246,11 +248,21 @@ fun WorkoutChart(
         }
         heatPicked?.let { nav ->
             val t = heat?.training
+            val openEnduranceRow: (String) -> Unit = { row ->
+                if (row == "Cardio" && heat?.cardioCharts != null) {
+                    heatPicked = null
+                    openCardio = true
+                } else if (row == "Conditioning" && heat?.conditioningCharts != null) {
+                    heatPicked = null
+                    openConditioning = true
+                }
+            }
             TrainDetailDialog(
                 title = trainTitle(nav),
                 data = if (nav == "ENDURANCE") t?.endurance else t?.groups?.firstOrNull { it.group == heatGroupOf(nav) },
                 neutral = figure.body,
                 onDismiss = { heatPicked = null },
+                onOpenRow = if (nav == "ENDURANCE") openEnduranceRow else null,
             )
         }
         summaries.sortedBy { rank(it) }.forEach { g ->
@@ -296,6 +308,16 @@ fun WorkoutChart(
             }
         }
 
+        // Cardio and conditioning (v0.484), after the muscle groups.
+        heat?.cardioCharts?.let { c ->
+            Text("Cardio", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = CARDIO_COLOR, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
+            CardioChartCard(data = c, onOpen = { openCardio = true })
+        }
+        heat?.conditioningCharts?.let { c ->
+            Text("Conditioning", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = CONDITIONING_COLOR, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
+            ConditioningChartCard(data = c, onOpen = { openConditioning = true })
+        }
+
         // Once, not once per movement. "Which lifts are moving" and "Workout
         // days" both describe the whole plan, so a reader with six tracked
         // lifts was getting six identical copies of each.
@@ -308,6 +330,10 @@ fun WorkoutChart(
             extraDays = heat?.days.orEmpty(),
         )
     }
+    val cardioCharts = heat?.cardioCharts
+    if (openCardio && cardioCharts != null) CardioPageDialog(data = cardioCharts, onDismiss = { openCardio = false })
+    val conditioningCharts = heat?.conditioningCharts
+    if (openConditioning && conditioningCharts != null) ConditioningPageDialog(data = conditioningCharts, onDismiss = { openConditioning = false })
     val overview = heat?.coreSummary
     if (openCoreAll && overview != null) {
         CoreOverviewDialog(

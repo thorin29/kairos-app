@@ -403,6 +403,8 @@ internal fun TrainDetailDialog(
     data: TrainGroupDto?,
     neutral: Color,
     onDismiss: () -> Unit,
+    /** The heart's Cardio and Conditioning rows open their pages (v0.484). */
+    onOpenRow: ((String) -> Unit)? = null,
 ) {
     // This week (v0.483): exact sets or minutes, and a row per movement or
     // kind. With nothing this week, why it's this colour instead.
@@ -431,13 +433,19 @@ internal fun TrainDetailDialog(
                 }
                 week?.rows?.forEach { r ->
                     androidx.compose.material3.HorizontalDivider()
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val opens = onOpenRow != null && (r.name == "Cardio" || r.name == "Conditioning")
+                    Row(
+                        Modifier.fillMaxWidth().then(if (opens) Modifier.clickable { onOpenRow?.invoke(r.name) } else Modifier),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
                         Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant))
                         Column(Modifier.weight(1f)) {
                             Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             Text(r.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(r.amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        if (opens) Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                 }
             }

@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Cardio and conditioning charts (v0.484.0, server 0.674.0)
+
+- `EnduranceCharts.kt`: `CardioChartCard` / `CardioPageDialog` and
+  `ConditioningChartCard` / `ConditioningPageDialog`, from
+  `heat.cardioCharts` / `heat.conditioningCharts` (worked out on the
+  server). Named `…ChartCard` because `ConditioningCard` is the day page's.
+- Shown after the muscle groups; `TrainDetailDialog(onOpenRow)` lets the
+  Endurance pop-up's Cardio and Conditioning rows open them.
+
 ## 2026-11 — Core page order (v0.483.1, server 0.673.1)
 
 - `CoreOverviewDialog` puts the chart before the tiles, the same order as

@@ -1,4 +1,10 @@
 # Changelog
+## 0.484.0
+
+- Cardio has its own card: this week's minutes and each activity. Tap it for pace, distance per week and your best.
+- Conditioning has its own card: this month's sessions and time. Tap it for repeated workouts and new bests.
+- In the Endurance pop-up, tap Cardio or Conditioning to open its charts.
+
 ## 0.483.1
 
 - The Core page shows its chart first, then the tiles, like a lift's page.

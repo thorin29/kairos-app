@@ -1132,7 +1132,107 @@ data class HeatMapDto(
     val coreMoves: List<CoreProgressMoveDto> = emptyList(),
     /** Core in one picture (server 0.673+): progress against each move's start. */
     val coreSummary: CoreSummaryDto? = null,
+    /** Cardio and conditioning charts (server 0.674+). */
+    val cardioCharts: CardioChartsDto? = null,
+    val conditioningCharts: ConditioningChartsDto? = null,
 )
+
+/** Cardio by activity (server 0.674+). */
+@Serializable
+data class CardioChartsDto(
+    val activities: List<CardioActivityDto> = emptyList(),
+    val weeks: List<WeekMinutesDto> = emptyList(),
+    val thisWeek: CardioThisWeekDto = CardioThisWeekDto(),
+    val last: CardioLastDto? = null,
+)
+
+@Serializable
+data class WeekMinutesDto(val start: String = "", val minutes: Int = 0)
+
+@Serializable
+data class CardioThisWeekDto(val minutes: Int = 0, val lines: List<CardioLineDto> = emptyList())
+
+@Serializable
+data class CardioLineDto(val label: String = "", val detail: String = "")
+
+@Serializable
+data class CardioLastDto(val date: String = "", val label: String = "")
+
+/** measure: "m", "mi", "km" or "min". */
+@Serializable
+data class CardioActivityDto(
+    val key: String = "",
+    val label: String = "",
+    val measure: String = "min",
+    val weeks: List<WeekValueDto> = emptyList(),
+    val thisWeek: CardioActivityWeekDto = CardioActivityWeekDto(),
+    val pace: CardioPaceDto? = null,
+    val longest: CardioLongestDto? = null,
+    val sessions30: Int = 0,
+    val recent: List<CardioRecentDto> = emptyList(),
+)
+
+@Serializable
+data class WeekValueDto(val start: String = "", val value: Double = 0.0)
+
+@Serializable
+data class CardioActivityWeekDto(val value: Double = 0.0, val count: Int = 0, val minutes: Int = 0)
+
+/** per: "500 m", "mi" or "km"; change in seconds, negative is faster. */
+@Serializable
+data class CardioPaceDto(
+    val per: String = "",
+    val points: List<CardioPacePointDto> = emptyList(),
+    val best: CardioPaceBestDto? = null,
+    val change: Int? = null,
+)
+
+@Serializable
+data class CardioPacePointDto(val date: String = "", val sec: Double = 0.0, val effort: String? = null)
+
+@Serializable
+data class CardioPaceBestDto(val date: String = "", val sec: Double = 0.0)
+
+@Serializable
+data class CardioLongestDto(val date: String = "", val minutes: Int = 0)
+
+@Serializable
+data class CardioRecentDto(val date: String = "", val text: String = "")
+
+/** Conditioning by workout (server 0.674+). */
+@Serializable
+data class ConditioningChartsDto(
+    val weeks: List<WeekCountDto> = emptyList(),
+    val month: CondTotalsDto = CondTotalsDto(),
+    val newBests30: Int = 0,
+    val repeats: List<CondRepeatDto> = emptyList(),
+    val once: List<CondOnceDto> = emptyList(),
+    val thisWeek: CondTotalsDto = CondTotalsDto(),
+)
+
+@Serializable
+data class WeekCountDto(val start: String = "", val count: Int = 0)
+
+@Serializable
+data class CondTotalsDto(val count: Int = 0, val minutes: Int = 0)
+
+@Serializable
+data class CondRepeatDto(
+    val key: String = "",
+    val name: String = "",
+    val kind: String = "",
+    val timed: Boolean = false,
+    val results: List<CondResultDto> = emptyList(),
+    val last: String = "",
+    val newBest: Boolean = false,
+    val best: String = "",
+)
+
+@Serializable
+data class CondResultDto(val date: String = "", val text: String = "", val value: Double = 0.0, val best: Boolean = false)
+
+@Serializable
+data class CondOnceDto(val name: String = "", val date: String = "", val text: String = "")
 
 /** Core's progress (server 0.673+): percent against each move's first session. */
 @Serializable
