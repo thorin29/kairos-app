@@ -1,4 +1,8 @@
 # Changelog
+## 0.479.0
+
+- Custom repeats open on their own screen instead of a pop-up.
+
 ## 0.478.0
 
 - Repeating tasks keep their due date: it's the first due date, and repeats count from it.

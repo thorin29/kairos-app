@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Custom recurrence is a full screen (v0.479.0)
+
+Too much for a pop-up: `CustomRecurrenceDialog` is now a full-screen dialog
+(the routine editor's pattern) with ← (drop) and Done (keep). Not a bottom
+sheet: its number boxes bring up the keyboard, which pushes a sheet around,
+and "On [date]" opens a date picker over it. Same settings as before.
+
 ## 2026-11 — Task repeats (v0.478.0, server 0.668.0)
 
 AssignTaskScreen: with Repeat on, "First due" (the due date) shows and is sent

@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.runtime.rememberCoroutineScope
@@ -502,8 +503,9 @@ internal fun taskRecurLabel(freq: String, interval: Int, byday: List<String>, st
     }
 }
 
-/** Custom recurrence (v0.478): repeats every N days, weeks, months or years,
- *  weekdays for weeks, and when it ends. OK keeps it; Cancel drops it. */
+/** Custom recurrence (v0.478; a full screen, v0.479): repeats every N days,
+ *  weeks, months or years, weekdays for weeks, and when it ends. Done keeps
+ *  it; back drops it. */
 @Composable
 private fun CustomRecurrenceDialog(
     freq: String,
@@ -523,11 +525,33 @@ private fun CustomRecurrenceDialog(
     var c by remember { mutableStateOf(count) }
     val plural = (n.toIntOrNull() ?: 1) != 1
     val units = listOf("DAILY" to "day", "WEEKLY" to "week", "MONTHLY" to "month", "YEARLY" to "year")
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Custom") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val done = {
+        val num = (n.toIntOrNull() ?: 1).coerceIn(1, 999).toString()
+        onDone(f, num, if (f == "WEEKLY") days else emptySet(), end, c)
+    }
+    Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(
+                Modifier.fillMaxSize()
+                    .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onDismiss) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
+                    Text(
+                        "Custom recurrence",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = done) { Text("Done") }
+                }
+            Column(
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 Text("Repeats every", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box(Modifier.width(80.dp)) {
                     Field(n, { n = it.filter { ch -> ch.isDigit() }.take(3) }, "1")
@@ -595,15 +619,9 @@ private fun CustomRecurrenceDialog(
                     Text(if ((c.toIntOrNull() ?: 1) == 1) "occurrence" else "occurrences")
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val num = (n.toIntOrNull() ?: 1).coerceIn(1, 999).toString()
-                onDone(f, num, if (f == "WEEKLY") days else emptySet(), end, c)
-            }) { Text("OK") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+            }
+        }
+    }
 }
 
 private fun endLabel(e: String) = when (e) { "COUNT" -> "After a number of times"; "UNTIL" -> "On a date"; else -> "Never" }
