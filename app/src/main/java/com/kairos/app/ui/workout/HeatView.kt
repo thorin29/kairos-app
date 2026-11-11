@@ -401,16 +401,17 @@ internal fun EnduranceHeart(data: TrainGroupDto?, neutral: Color, onOpen: () -> 
 internal fun TrainDetailDialog(
     title: String,
     data: TrainGroupDto?,
-    bests: List<com.kairos.app.data.remote.dto.HeatBestDto>,
-    unit: String,
     neutral: Color,
     onDismiss: () -> Unit,
 ) {
+    // This week (v0.483): exact sets or minutes, and a row per movement or
+    // kind. With nothing this week, why it's this colour instead.
+    val week = data?.week
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         Modifier
@@ -418,9 +419,27 @@ internal fun TrainDetailDialog(
                             .clip(RoundedCornerShape(3.dp))
                             .background(data?.let { trainColor(it.level) } ?: neutral),
                     )
-                    Text(data?.line ?: "Nothing logged yet.")
+                    Text(
+                        week?.headline ?: data?.line ?: "Nothing logged yet.",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
-                if (bests.isNotEmpty()) HeatBests(bests = bests, unit = unit)
+                val why = data?.line.orEmpty()
+                if (week != null && week.rows.isEmpty() && why.isNotBlank()) {
+                    Text(why, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                week?.rows?.forEach { r ->
+                    androidx.compose.material3.HorizontalDivider()
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant))
+                        Column(Modifier.weight(1f)) {
+                            Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(r.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(r.amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },

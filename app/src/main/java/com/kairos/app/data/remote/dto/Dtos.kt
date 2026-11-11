@@ -1130,7 +1130,44 @@ data class HeatMapDto(
     val marks: List<HeatMarkDto> = emptyList(),
     /** Core's movements by time or reps (server 0.671+), for Core's rows. */
     val coreMoves: List<CoreProgressMoveDto> = emptyList(),
+    /** Core in one picture (server 0.673+): progress against each move's start. */
+    val coreSummary: CoreSummaryDto? = null,
 )
+
+/** Core's progress (server 0.673+): percent against each move's first session. */
+@Serializable
+data class CoreSummaryDto(
+    val change: Int? = null,
+    val since: String? = null,
+    val series: List<CorePctDto> = emptyList(),
+    val tests: List<CorePctDto> = emptyList(),
+    val plankBest: CorePlankDto? = null,
+    val daysThisWeek: Int = 0,
+    val daysThisMonth: Int = 0,
+    val newBests30: Int = 0,
+    val recent: Int = 0,
+    val improving: Int = 0,
+    val groups: List<CoreGroupDto> = emptyList(),
+    val idle: List<String> = emptyList(),
+)
+
+@Serializable
+data class CorePctDto(val date: String = "", val value: Int = 0)
+
+@Serializable
+data class CorePlankDto(val seconds: Int = 0, val pft: Int? = null)
+
+@Serializable
+data class CoreGroupDto(
+    val key: String = "",
+    val label: String = "",
+    val change: Int? = null,
+    val moves: List<CoreGroupMoveDto> = emptyList(),
+)
+
+/** tag: "up", "flat", "down" or "new". */
+@Serializable
+data class CoreGroupMoveDto(val movement: String = "", val change: Int? = null, val tag: String = "new")
 
 @Serializable
 data class HeatMarkDto(val date: String = "", val label: String = "")
@@ -1158,7 +1195,19 @@ data class LiftNextResponse(val next: LiftNextDto? = null)
 
 /** A muscle group's (or endurance's) warmth, −3 cold to 5 hot, and why. */
 @Serializable
-data class TrainGroupDto(val group: String = "", val level: Int = 0, val line: String = "")
+data class TrainGroupDto(
+    val group: String = "",
+    val level: Int = 0,
+    val line: String = "",
+    /** This week (server 0.673+): "16 sets this week" and a row per movement or kind. */
+    val week: TrainWeekDto? = null,
+)
+
+@Serializable
+data class TrainWeekDto(val headline: String = "", val rows: List<TrainWeekRowDto> = emptyList())
+
+@Serializable
+data class TrainWeekRowDto(val name: String = "", val detail: String = "", val amount: String = "")
 
 @Serializable
 data class TrainingHeatDto(

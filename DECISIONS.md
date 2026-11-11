@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Core card and page, this week in the map pop-ups (v0.483.0, server 0.673.0)
+
+- Core is one card (`CoreCard`) from `heat.coreSummary`, worked out on the
+  server (`core-progress.ts`); it opens `CoreOverviewDialog` (tiles, the
+  progress line with plank tests, moves grouped Front / Sides and twist /
+  Leg raises and crunches, "Not done lately"). A move opens
+  `CorePageDialog` on top, now with Best, First and Change tiles;
+  `coreMoveChange` mirrors the server's `moveChange`.
+- `TrainDetailDialog` leads with `TrainGroupDto.week` (exact sets or
+  minutes this week, a row per movement or kind) and shows the warmth line
+  only when the week is empty. The bests list left it.
+- Older servers send no `coreSummary`: Core falls back to the plank bench.
+
 ## 2026-11 — Steady body map, Core card, week strip snap (v0.482.0, server 0.672.0)
 
 Heat view keeps the BodyMap full width with the EnduranceHeart in a Box at

@@ -1,4 +1,10 @@
 # Changelog
+## 0.483.0
+
+- Core is one card: your core progress, its line, the plank test, core days this week and moves improving.
+- Tap it for the Core page: the progress line with plank tests, and your moves grouped by what they work.
+- Tapping a muscle or the heart shows this week: exact sets or minutes, then a row per movement or kind.
+
 ## 0.482.0
 
 - Every ready-made warm-up move has an ⓘ with how to do it, the hockey warm-up included.

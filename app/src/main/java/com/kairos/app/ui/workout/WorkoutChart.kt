@@ -88,6 +88,7 @@ fun WorkoutChart(
     var openLift by remember { mutableStateOf<Pair<ProgressSeriesDto, String>?>(null) }
     var openCore by remember { mutableStateOf<com.kairos.app.data.remote.dto.CoreProgressMoveDto?>(null) }
     var openPlank by remember { mutableStateOf(false) }
+    var openCoreAll by remember { mutableStateOf(false) }
     // One block per muscle group, stacked and scrollable, rather than a picker
     // that showed one movement and hid the rest. A Core + Legs day reads as two
     // headed sections instead of a dropdown you have to discover.
@@ -248,8 +249,6 @@ fun WorkoutChart(
             TrainDetailDialog(
                 title = trainTitle(nav),
                 data = if (nav == "ENDURANCE") t?.endurance else t?.groups?.firstOrNull { it.group == heatGroupOf(nav) },
-                bests = if (nav == "ENDURANCE") emptyList() else heat12?.groups?.firstOrNull { it.group == heatGroupOf(nav) }?.bests.orEmpty(),
-                unit = heat?.unit.orEmpty(),
                 neutral = figure.body,
                 onDismiss = { heatPicked = null },
             )
@@ -262,9 +261,9 @@ fun WorkoutChart(
                 color = muscleColor(g) ?: MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
-            val coreMoves = heat?.coreMoves.orEmpty()
-            if (g == "CORE" && coreMoves.isNotEmpty()) {
-                CoreRows(moves = coreMoves, plank = heat?.plank.orEmpty(), unit = heat?.unit.orEmpty(), onOpen = { openCore = it }, onOpenPlank = { openPlank = true })
+            val coreSummary = heat?.coreSummary
+            if (g == "CORE" && coreSummary != null) {
+                CoreCard(summary = coreSummary, unit = heat?.unit.orEmpty(), onOpen = { openCoreAll = true })
             } else {
                 if (g == "CORE") PlankBench(tests = heat?.plank.orEmpty())
                 HeatGroupSummary(data = heat12?.groups?.firstOrNull { it.group == g }, unit = heat?.unit.orEmpty())
@@ -278,10 +277,11 @@ fun WorkoutChart(
                 color = muscleColor(key) ?: MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
             )
-            if (key == "CORE" && heat?.coreMoves.orEmpty().isEmpty()) PlankBench(tests = heat?.plank.orEmpty())
-            // Core by time or reps, not weight (v0.481); the plank test is its first row (v0.482).
-            if (key == "CORE" && heat?.coreMoves.orEmpty().isNotEmpty()) {
-                CoreRows(moves = heat?.coreMoves.orEmpty(), plank = heat?.plank.orEmpty(), unit = heat?.unit.orEmpty(), onOpen = { openCore = it }, onOpenPlank = { openPlank = true })
+            val coreSummary = heat?.coreSummary
+            if (key == "CORE" && coreSummary == null) PlankBench(tests = heat?.plank.orEmpty())
+            // Core in one card (v0.483), opening the Core page.
+            if (key == "CORE" && coreSummary != null) {
+                CoreCard(summary = coreSummary, unit = heat?.unit.orEmpty(), onOpen = { openCoreAll = true })
             } else
             // One row per lift (v0.480); a row opens its page.
             androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth().padding(top = 4.dp)) {
@@ -308,6 +308,17 @@ fun WorkoutChart(
             extraDays = heat?.days.orEmpty(),
         )
     }
+    val overview = heat?.coreSummary
+    if (openCoreAll && overview != null) {
+        CoreOverviewDialog(
+            summary = overview,
+            moves = heat?.coreMoves.orEmpty(),
+            unit = heat?.unit.orEmpty(),
+            onOpenMove = { openCore = it },
+            onOpenPlank = { openPlank = true },
+            onDismiss = { openCoreAll = false },
+        )
+    }
     if (openPlank) {
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { openPlank = false },
@@ -329,7 +340,8 @@ fun WorkoutChart(
         }
     }
     openCore?.let { m ->
-        CorePageDialog(m = m, unit = heat?.unit.orEmpty(), marks = heat?.marks.orEmpty(), onDismiss = { openCore = null })
+        val group = heat?.coreSummary?.groups?.firstOrNull { g -> g.moves.any { it.movement == m.movement } }?.label ?: "Core"
+        CorePageDialog(m = m, group = group, unit = heat?.unit.orEmpty(), marks = heat?.marks.orEmpty(), onDismiss = { openCore = null })
     }
     openLift?.let { (lift, label) ->
         LiftPageDialog(s = lift, groupLabel = label, marks = heat?.marks.orEmpty(), onDismiss = { openLift = null })
@@ -1185,118 +1197,336 @@ private fun coreText(kind: String, value: Double, weight: Double?, unit: String)
         fmt(value) + (weight?.takeIf { it > 0 }?.let { " \u00d7 " + fmt(it) + " " + unit } ?: " reps")
     }
 
-/** Core's trend: up over 30 days, else whole weeks since the best. */
-private fun coreTrend(m: com.kairos.app.data.remote.dto.CoreProgressMoveDto): LiftTrend? {
-    val pts = m.points
-    if (pts.isEmpty()) return null
-    val cutoff = LocalDate.now().minusDays(30).toString()
-    val before = pts.filter { it.date <= cutoff }
-    if (before.isNotEmpty()) {
-        val delta = (pts.last().value - before.maxOf { it.value }).roundToInt().toDouble()
-        if (delta > 0) return LiftTrend.Up(delta = delta)
-    }
-    val best = m.best ?: return null
-    val weeks = ((LocalDate.now().toEpochDay() - (epochDay(best.date) ?: LocalDate.now().toEpochDay())) / 7).toInt()
-    if (before.isEmpty() && weeks < 1) return null
-    return LiftTrend.Flat(weeks = weeks.coerceAtLeast(0))
+private val UP_GREEN = Color(0xFF047857)
+private val FLAT_AMBER = Color(0xFFB45309)
+private val DOWN_RED = Color(0xFFB91C1C)
+
+private fun pctText(n: Int): String = (if (n > 0) "+" else if (n < 0) "−" else "") + kotlin.math.abs(n) + "%"
+
+/** The web's tagOf: up is 3% or more, down 5% or more under. */
+private fun coreTag(change: Int?): String = when {
+    change == null -> "new"
+    change >= 3 -> "up"
+    change <= -5 -> "down"
+    else -> "flat"
 }
 
-/** One core row (v0.482): name, best and last, the trend in words — no line,
- *  since a core rotation has too many movements for a line each. */
+private fun tagColor(tag: String, muted: Color): Color = when (tag) {
+    "up" -> UP_GREEN
+    "flat" -> FLAT_AMBER
+    "down" -> DOWN_RED
+    else -> muted
+}
+
+private fun tagText(tag: String, change: Int?): String = when (tag) {
+    "up" -> "Up $change%"
+    "down" -> "Down ${kotlin.math.abs(change ?: 0)}%"
+    "flat" -> "Flat"
+    else -> "New"
+}
+
+/** The web's moveChange: the best in the four weeks up to the last session
+ *  against the first session, in percent; weighted reps by estimated max. */
+private fun coreMoveChange(m: com.kairos.app.data.remote.dto.CoreProgressMoveDto): Int? {
+    val pts = m.points
+    if (pts.size < 2) return null
+    fun score(p: com.kairos.app.data.remote.dto.CorePointDto): Double =
+        if (m.kind == "time") p.value else p.weight?.takeIf { it > 0 }?.let { it * (1 + minOf(p.value, 12.0) / 30) } ?: p.value
+    val base = score(pts.first())
+    if (base <= 0) return null
+    val lastDay = epochDay(pts.last().date) ?: return null
+    val recent = pts.filter { (epochDay(it.date) ?: 0L) >= lastDay - 27 }.maxOf { score(it) }
+    return ((recent / base - 1) * 100).roundToInt()
+}
+
+private fun monthShort(iso: String): String = try {
+    LocalDate.parse(iso).month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.US)
+} catch (_: Exception) {
+    ""
+}
+
+/** Core's progress line (v0.483): the middle change across moves each week,
+ *  with the plank tests as rings when given. */
 @Composable
-private fun CoreRow(m: com.kairos.app.data.remote.dto.CoreProgressMoveDto, unit: String, onOpen: () -> Unit) {
-    val last = m.points.lastOrNull()
-    val trend = coreTrend(m)
+private fun CoreLine(
+    series: List<com.kairos.app.data.remote.dto.CorePctDto>,
+    tests: List<com.kairos.app.data.remote.dto.CorePctDto>?,
+    color: Color,
+    modifier: Modifier,
+    grid: Boolean,
+) {
+    if (series.isEmpty()) return
+    val ring = MaterialTheme.colorScheme.onSurface
+    val fillRing = MaterialTheme.colorScheme.surface
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val vals = listOf(0) + series.map { it.value } + tests.orEmpty().map { it.value }
+    val lo = vals.min().toFloat()
+    val hi = maxOf(10, vals.max()).toFloat()
+    val d0 = epochDay(series.first().date) ?: 0L
+    val d1 = maxOf(d0 + 1, (epochDay(series.last().date) ?: d0) + 6)
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        fun x(iso: String) = ((epochDay(iso) ?: d0) - d0).toFloat() / (d1 - d0).toFloat() * w
+        fun y(v: Int) = h - 4f - ((v - lo) / (hi - lo).coerceAtLeast(1f)) * (h - 10f)
+        if (grid) {
+            val step = if (hi - lo > 40) 20 else 10
+            var v = (ceil(lo / step) * step).toInt()
+            while (v <= hi) {
+                drawLine(gridColor, Offset(0f, y(v)), Offset(w, y(v)), 1.5f)
+                v += step
+            }
+        } else {
+            drawLine(gridColor, Offset(0f, y(0)), Offset(w, y(0)), 1.5f)
+        }
+        val base = y(maxOf(lo.toInt(), 0))
+        val path = androidx.compose.ui.graphics.Path()
+        val area = androidx.compose.ui.graphics.Path()
+        series.forEachIndexed { i, p ->
+            if (i == 0) {
+                path.moveTo(x(p.date), y(p.value))
+                area.moveTo(x(p.date), base)
+            } else {
+                path.lineTo(x(p.date), y(p.value))
+            }
+            area.lineTo(x(p.date), y(p.value))
+        }
+        area.lineTo(x(series.last().date), base)
+        area.close()
+        drawPath(area, color.copy(alpha = 0.14f))
+        drawPath(
+            path,
+            color,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = 5f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round,
+            ),
+        )
+        if (tests == null) {
+            drawCircle(color, radius = 8f, center = Offset(x(series.last().date), y(series.last().value)))
+        } else {
+            tests.forEach { t ->
+                val c = Offset(x(t.date), y(t.value))
+                drawCircle(fillRing, radius = 8f, center = c)
+                drawCircle(ring, radius = 8f, center = c, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniStat(key: String, value: String, sub: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(key.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Core on the Workouts screen (v0.483; was a row per movement, v0.481): one
+ * card that stays the same size however many core moves there are. Opens
+ * the Core page.
+ */
+@Composable
+private fun CoreCard(summary: com.kairos.app.data.remote.dto.CoreSummaryDto, unit: String, onOpen: () -> Unit) {
+    val tone = muscleColor("CORE") ?: LINE
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val best = summary.plankBest
+    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth().padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).clickable { onOpen() }) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("CORE PROGRESS", style = MaterialTheme.typography.labelSmall, color = muted)
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            summary.change?.let { pctText(it) } ?: "—",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = summary.change?.let { tagColor(coreTag(it), muted) } ?: MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            (summary.since?.let { "since " + monthShort(it) + " · " } ?: "") + summary.recent + if (summary.recent == 1) " move" else " moves",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = muted,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                }
+                Icon(KairosIcons.ChevronRight, contentDescription = "Open Core", tint = muted, modifier = Modifier.size(18.dp))
+            }
+            CoreLine(series = summary.series, tests = null, color = tone, modifier = Modifier.fillMaxWidth().height(60.dp), grid = false)
+            androidx.compose.material3.HorizontalDivider()
+            Row {
+                MiniStat(
+                    key = "Plank test",
+                    value = best?.let { coreText("time", it.seconds.toDouble(), null, unit) } ?: "—",
+                    sub = best?.pft?.let { "$it pts" } ?: if (best != null) "under 1:10" else "none yet",
+                    modifier = Modifier.weight(1f),
+                )
+                MiniStat(key = "This week", value = summary.daysThisWeek.toString(), sub = if (summary.daysThisWeek == 1) "core day" else "core days", modifier = Modifier.weight(1f))
+                MiniStat(key = "Improving", value = "${summary.improving} of ${summary.recent}", sub = "moves", modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoreMoveRow(text: String, sub: String, tag: String?, change: Int?, onOpen: () -> Unit) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable { onOpen() }.padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(m.name.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(
-                (m.best?.let { "Best " + coreText(m.kind, it.value, it.weight, unit) } ?: "") +
-                    (last?.let { " \u00b7 last " + coreText(m.kind, it.value, it.weight, unit) } ?: ""),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(sub, style = MaterialTheme.typography.labelSmall, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (trend != null) Column(horizontalAlignment = Alignment.End) {
-            when (trend) {
-                is LiftTrend.Up -> {
-                    Text("+" + fmt(trend.delta) + if (m.kind == "time") " s" else " reps", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFF047857))
-                    Text("30 days", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                is LiftTrend.Flat -> {
-                    Text("Flat", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFFB45309))
-                    Text("${trend.weeks} " + if (trend.weeks == 1) "week" else "weeks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        if (tag != null) Text(tagText(tag, change), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tagColor(tag, muted))
+        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = muted, modifier = Modifier.size(16.dp))
     }
 }
 
 /**
- * Core (v0.481; v0.482): one card — the plank test first, then the six core
- * movements done most recently, by a hold's time or reps. The rest are behind
- * "All core movements". Every row opens its page.
+ * The Core page (v0.483): tiles, the progress line with the plank tests,
+ * and the moves done in the last eight weeks grouped by what they work. Older
+ * moves are behind "Not done lately". A move opens its page on top.
  */
 @Composable
-private fun CoreRows(
+private fun CoreOverviewDialog(
+    summary: com.kairos.app.data.remote.dto.CoreSummaryDto,
     moves: List<com.kairos.app.data.remote.dto.CoreProgressMoveDto>,
-    plank: List<com.kairos.app.data.remote.dto.PlankTestDto>,
     unit: String,
-    onOpen: (com.kairos.app.data.remote.dto.CoreProgressMoveDto) -> Unit,
+    onOpenMove: (com.kairos.app.data.remote.dto.CoreProgressMoveDto) -> Unit,
     onOpenPlank: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    var all by remember { mutableStateOf(false) }
-    val recent = moves.sortedByDescending { it.points.lastOrNull()?.date ?: "" }
-    val best = plank.maxByOrNull { it.seconds }
-    val lastPlank = plank.lastOrNull()
-    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable { onOpenPlank() }.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Plank test", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Text(
-                    best?.let { b ->
-                        "Best " + coreText("time", b.seconds.toDouble(), null, unit) + (b.pft?.let { " \u00b7 $it pts" } ?: "") +
-                            (lastPlank?.takeIf { it.date != b.date }?.let { " \u00b7 last " + coreText("time", it.seconds.toDouble(), null, unit) } ?: "")
-                    } ?: "No plank logged yet",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    val tone = muscleColor("CORE") ?: LINE
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val byId = moves.associateBy { it.movement }
+    var idleOpen by remember { mutableStateOf(false) }
+    var info by remember { mutableStateOf(false) }
+    val best = summary.plankBest
+    fun last(m: com.kairos.app.data.remote.dto.CoreProgressMoveDto): String =
+        m.points.lastOrNull()?.let { "Last " + coreText(m.kind, it.value, it.weight, unit) } ?: ""
+    val months = summary.series.map { monthShort(it.date) }.fold(emptyList<String>()) { acc, mo -> if (acc.lastOrNull() == mo) acc else acc + mo }
+    val axisVals = listOf(0) + summary.series.map { it.value } + summary.tests.map { it.value }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.IconButton(onClick = onDismiss) {
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Text("Core", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                }
+                Column(
+                    Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatTile(
+                            key = "Plank test",
+                            value = best?.let { coreText("time", it.seconds.toDouble(), null, unit) } ?: "—",
+                            unit = "",
+                            sub = best?.pft?.let { "$it pts" } ?: "best",
+                            modifier = Modifier.weight(1f).clickable { onOpenPlank() },
+                        )
+                        StatTile(key = "This month", value = summary.daysThisMonth.toString(), unit = "", sub = "core days", modifier = Modifier.weight(1f))
+                        StatTile(key = "New bests", value = summary.newBests30.toString(), unit = "", sub = "last 30 days", modifier = Modifier.weight(1f))
+                    }
+                    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("CORE PROGRESS", style = MaterialTheme.typography.labelSmall, color = muted, modifier = Modifier.weight(1f))
+                                androidx.compose.material3.IconButton(onClick = { info = true }, modifier = Modifier.size(32.dp)) {
+                                    Text("ⓘ", color = muted)
+                                }
+                            }
+                            Row(Modifier.fillMaxWidth().height(150.dp)) {
+                                Column(
+                                    Modifier.fillMaxHeight().width(40.dp).padding(end = 4.dp),
+                                    verticalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(pctText(maxOf(10, axisVals.max())), style = MaterialTheme.typography.labelSmall, color = muted)
+                                    Text(if (axisVals.min() < 0) pctText(axisVals.min()) else "Start", style = MaterialTheme.typography.labelSmall, color = muted)
+                                }
+                                CoreLine(series = summary.series, tests = summary.tests, color = tone, modifier = Modifier.weight(1f).fillMaxHeight(), grid = true)
+                            }
+                            Row(Modifier.fillMaxWidth().padding(start = 40.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                months.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = muted) }
+                            }
+                            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                ChartKey(color = tone, label = "All moves", square = false)
+                                if (summary.tests.isNotEmpty()) ChartKey(color = MaterialTheme.colorScheme.onSurface, label = "Plank test", square = false)
+                            }
+                        }
+                    }
+                    summary.groups.forEach { g ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(g.label.uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = muted, modifier = Modifier.weight(1f))
+                            g.change?.let { c ->
+                                val t = coreTag(c)
+                                Text(if (t == "flat") "Flat" else pctText(c), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = tagColor(t, muted))
+                            }
+                        }
+                        androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+                            g.moves.forEachIndexed { i, x ->
+                                val m = byId[x.movement] ?: return@forEachIndexed
+                                if (i > 0) androidx.compose.material3.HorizontalDivider()
+                                CoreMoveRow(text = m.name.replaceFirstChar { it.uppercase() }, sub = last(m), tag = x.tag, change = x.change, onOpen = { onOpenMove(m) })
+                            }
+                        }
+                    }
+                    if (summary.idle.isNotEmpty()) {
+                        androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { idleOpen = true }) {
+                            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Not done lately", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Text("${summary.idle.size} " + if (summary.idle.size == 1) "move" else "moves", style = MaterialTheme.typography.bodyMedium, color = muted)
+                                Icon(KairosIcons.ChevronRight, contentDescription = null, tint = muted, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
-            Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-        }
-        recent.take(6).forEach { m ->
-            androidx.compose.material3.HorizontalDivider()
-            CoreRow(m = m, unit = unit, onOpen = { onOpen(m) })
         }
     }
-    if (recent.size > 6) {
-        androidx.compose.material3.TextButton(onClick = { all = true }) { Text("All core movements (${recent.size})") }
-    }
-    if (all) {
+    if (idleOpen) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { all = false },
-            title = { Text("Core movements") },
+            onDismissRequest = { idleOpen = false },
+            title = { Text("Not done lately") },
             text = {
                 Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-                    moves.forEachIndexed { i, m ->
+                    summary.idle.forEachIndexed { i, id ->
+                        val m = byId[id] ?: return@forEachIndexed
                         if (i > 0) androidx.compose.material3.HorizontalDivider()
-                        CoreRow(m = m, unit = unit, onOpen = { all = false; onOpen(m) })
+                        CoreMoveRow(
+                            text = m.name.replaceFirstChar { it.uppercase() },
+                            sub = last(m) + (m.points.lastOrNull()?.let { " · " + longDate(it.date) } ?: ""),
+                            tag = null,
+                            change = null,
+                            onOpen = { onOpenMove(m) },
+                        )
                     }
                 }
             },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { all = false }) { Text("Close") } },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { idleOpen = false }) { Text("Close") } },
+        )
+    }
+    if (info) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { info = false },
+            title = { Text("Core progress") },
+            text = {
+                Text("Each move is compared with its first session: a hold by its time, reps by reps, a weighted set by its estimated max. The line is the middle of those changes, so no one move counts more than another.")
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { info = false }) { Text("Close") } },
         )
     }
 }
@@ -1306,6 +1536,7 @@ private fun CoreRows(
 @Composable
 private fun CorePageDialog(
     m: com.kairos.app.data.remote.dto.CoreProgressMoveDto,
+    group: String,
     unit: String,
     marks: List<com.kairos.app.data.remote.dto.HeatMarkDto>,
     onDismiss: () -> Unit,
@@ -1326,8 +1557,7 @@ private fun CorePageDialog(
     val today = LocalDate.now().toString()
     val firstISO = pts.firstOrNull()?.date ?: ""
     val shownMarks = marks.filter { it.date >= firstISO && it.date <= today }
-    val trend = coreTrend(m)
-    val word = if (m.kind == "time") "s" else "reps"
+    val change = coreMoveChange(m)
     androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
@@ -1341,7 +1571,8 @@ private fun CorePageDialog(
                     Column {
                         Text(m.name.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            "Core \u00b7 " + if (m.kind == "time") "longest hold" else "most reps",
+                            group + " \u00b7 " + pts.size + (if (pts.size == 1) " time" else " times") +
+                                (pts.firstOrNull()?.let { " since " + longDate(it.date) } ?: ""),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = tone,
@@ -1383,18 +1614,15 @@ private fun CorePageDialog(
                     if (shownMarks.isNotEmpty()) ChartKey(color = markColor, label = shownMarks.map { it.label }.distinct().joinToString(", "), square = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatTile("best", m.best?.let { coreText(m.kind, it.value, it.weight, unit) } ?: "\u2014", "", m.best?.let { longDate(it.date) } ?: "", Modifier.weight(1f))
+                        StatTile("first", pts.firstOrNull()?.let { coreText(m.kind, it.value, it.weight, unit) } ?: "\u2014", "", pts.firstOrNull()?.let { longDate(it.date) } ?: "", Modifier.weight(1f))
                         StatTile(
-                            "30 days",
-                            when (trend) { is LiftTrend.Up -> "+" + fmt(trend.delta); is LiftTrend.Flat -> "Flat"; null -> "\u2014" },
-                            if (trend is LiftTrend.Up) word else "",
-                            when (trend) { is LiftTrend.Up -> "still climbing"; is LiftTrend.Flat -> "no gain"; null -> "no older session" },
+                            "change",
+                            change?.let { pctText(it) } ?: "\u2014",
+                            "",
+                            pts.lastOrNull()?.let { "last " + coreText(m.kind, it.value, it.weight, unit) } ?: "",
                             Modifier.weight(1f),
-                            up = trend is LiftTrend.Up,
+                            up = coreTag(change) == "up",
                         )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatTile("sessions", pts.size.toString(), "", pts.firstOrNull()?.let { "since " + longDate(it.date) } ?: "", Modifier.weight(1f))
-                        StatTile("last", pts.lastOrNull()?.let { coreText(m.kind, it.value, it.weight, unit) } ?: "\u2014", "", pts.lastOrNull()?.let { longDate(it.date) } ?: "", Modifier.weight(1f))
                     }
                     CardTitle("Recent sessions", "")
                     pts.takeLast(5).reversed().forEach { p ->
