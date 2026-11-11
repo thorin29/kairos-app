@@ -136,6 +136,7 @@ fun WorkoutLogScreen(
     var addingConditioning by remember { mutableStateOf(false) }
     // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
     var addingMenu by remember { mutableStateOf(false) }
+    var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     var extraKind by remember { mutableStateOf<String?>(null) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(ui.conditioningTick) { conditioningSheet = null }
@@ -517,25 +518,31 @@ fun WorkoutLogScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
                         )
+                        // Name only (v0.482); tap for what was done.
                         ui.loggedOther.forEach { g ->
                             OutlinedCard(
                                 Modifier
                                     .fillMaxWidth()
-                                    .then(if (g.sport != null) Modifier.clickable { editSport = g } else Modifier),
+                                    .clickable { if (g.sport != null) editSport = g else otherOpen = g },
                             ) {
-                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                                        Text(g.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                                    }
-                                    g.lines.forEach { l ->
+                                Row(
+                                    Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(g.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         Text(
-                                            (if (l.name != g.name) "${l.name} \u00b7 " else "") + l.summary,
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            if (g.lines.size == 1 && g.lines[0].name == g.name) g.lines[0].summary
+                                            else "${g.lines.size} " + if (g.lines.size == 1) "movement" else "movements",
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(start = 22.dp),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                     }
+                                    Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -557,6 +564,24 @@ fun WorkoutLogScreen(
                 }
             }
         }
+    }
+
+    otherOpen?.let { g ->
+        AlertDialog(
+            onDismissRequest = { otherOpen = null },
+            title = { Text(g.name) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    g.lines.forEach { l ->
+                        Row(Modifier.fillMaxWidth()) {
+                            Text(l.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(l.summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { otherOpen = null }) { Text("Close") } },
+        )
     }
 
     if (addingMenu) {
@@ -1386,11 +1411,19 @@ private fun ScrollingWeekStrip(
         ) { Icon(KairosIcons.ChevronLeft, contentDescription = "Earlier days") }
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f)) {
             val cell = maxWidth / STRIP_VISIBLE
-            // Snaps to whole days (v0.466): a swipe never leaves a day half shown.
+            // Snaps to whole days (v0.466), lined up from the left edge (v0.482):
+            // the default snaps a day to the centre, and with an even number of
+            // days in view that left half a day at each end.
+            val snapInfo = androidx.compose.runtime.remember(list) {
+                androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider(
+                    lazyListState = list,
+                    snapPosition = androidx.compose.foundation.gestures.snapping.SnapPosition.Start,
+                )
+            }
             androidx.compose.foundation.lazy.LazyRow(
                 state = list,
                 modifier = Modifier.fillMaxWidth(),
-                flingBehavior = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(lazyListState = list),
+                flingBehavior = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(snapLayoutInfoProvider = snapInfo),
             ) {
                 items(count = days.size, key = { days[it] }) { i ->
                     val iso = days[i]

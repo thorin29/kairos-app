@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Steady body map, Core card, week strip snap (v0.482.0, server 0.672.0)
+
+Heat view keeps the BodyMap full width with the EnduranceHeart in a Box at
+TopCenter. Core: `CoreRows` is one card — a Plank test row (opens PlankBench
+full screen), then the six most recent `CoreRow`s without sparklines, the rest
+behind "All core movements (N)". `fillsFor` paints a LOWER_BACK series in its
+own colour on the deadlift's region, a deadlift winning. Additional cards show
+name and count; tap opens the lines in a dialog. The week strip's snap uses
+`SnapLayoutInfoProvider(snapPosition = SnapPosition.Start)` — the default
+centre snap left half days at both ends. Weekly training: dates row, category
+names, fixed colours. Lift rows only draw the sparkline and trend when there
+is one, so names get the room.
+
 ## 2026-11 — Weekly training chart, Core rows, sport warm-up card (v0.481.0, server 0.671.0)
 
 `WeeklyTrainingCard` draws the server's `kinds` as stacked Canvas bars (lifting

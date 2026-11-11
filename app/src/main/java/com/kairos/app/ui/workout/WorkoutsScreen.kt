@@ -361,13 +361,14 @@ private fun ActionCard(
     }
 }
 
-/** The kinds a week's bar is split by (v0.481), lifting in the accent. */
+/** The kinds a week's bar is split by (v0.481), named like the workout
+ *  categories in fixed colours, never the theme's (v0.482). */
 private data class WeekKind(val key: String, val label: String, val color: Color?)
 
 private val WEEK_KINDS = listOf(
-    WeekKind(key = "lift", label = "Lifting", color = null),
-    WeekKind(key = "conditioning", label = "Conditioning", color = Color(0xFFEB6834)),
-    WeekKind(key = "cardio", label = "Cardio", color = Color(0xFF2A78D6)),
+    WeekKind(key = "lift", label = "Strength", color = Color(0xFF4F46E5)),
+    WeekKind(key = "conditioning", label = "Conditioning", color = Color(0xFFEDA100)),
+    WeekKind(key = "cardio", label = "Cardio", color = Color(0xFFE34948)),
     WeekKind(key = "sport", label = "Sport", color = Color(0xFF139C86)),
     WeekKind(key = "other", label = "Mobility", color = Color(0xFF9AA3AD)),
 )
@@ -431,7 +432,7 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
                         var y = h
                         val segs = WEEK_KINDS.filter { kindCount(w.kinds, it.key) > 0 }
                         if (segs.isEmpty() && w.days > 0) {
-                            drawRect(accent, topLeft = Offset(0f, h - w.days * unit), size = Size(size.width, w.days * unit))
+                            drawRect(colorOf("lift"), topLeft = Offset(0f, h - w.days * unit), size = Size(size.width, w.days * unit))
                         }
                         segs.forEach { k ->
                             val hh = kindCount(w.kinds, k.key) * unit
@@ -451,6 +452,13 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
                         if (i == picked) drawRect(ink, topLeft = Offset(0f, size.height - 3.dp.toPx()), size = Size(size.width, 3.dp.toPx()))
                     }
                 }
+            }
+            // Dates under the bars (v0.482).
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf(0, 4, 8).forEach { i ->
+                    t.weeks.getOrNull(i)?.let { Text(weekLabel(it.start), style = MaterialTheme.typography.labelSmall, color = muted) }
+                }
+                Text("This week", style = MaterialTheme.typography.labelSmall, color = muted)
             }
             androidx.compose.foundation.layout.FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

@@ -50,6 +50,8 @@ private val MUSCLE_COLOR: Map<String, Color> = mapOf(
     "UPPER_BACK" to Color(0xFF139C86),
     "FULL_BODY" to Color(0xFFE87BA4),
     "DEADLIFT" to Color(0xFF9C6B3C),
+    // Lower-back moves (v0.482): beside the deadlifts, a lighter brown.
+    "LOWER_BACK" to Color(0xFFC99A5B),
 )
 
 fun muscleColor(group: String?): Color? = group?.let { MUSCLE_COLOR[it] }

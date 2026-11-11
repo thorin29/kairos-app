@@ -1,4 +1,16 @@
 # Changelog
+## 0.482.0
+
+- Every ready-made warm-up move has an ⓘ with how to do it, the hockey warm-up included.
+- The body map stays put when you switch to the heat map.
+- Core is one card: the plank test first, then your most recent core movements.
+- Good mornings and back extensions are listed as Lower back, beside the deadlifts.
+- A past core rotation day shows the workout you did that day.
+- Workouts done outside the plan show just their name; tap for what was in them.
+- The day strip stops on whole days.
+- Weekly training: dates under the bars, and Strength, Conditioning, Cardio and Sport in their own colours.
+- Lift rows give long names more room.
+
 ## 0.481.0
 
 - New Weekly training chart: each week split into lifting, conditioning, cardio and sport, with your planned days marked. Tap a week to see its days.
