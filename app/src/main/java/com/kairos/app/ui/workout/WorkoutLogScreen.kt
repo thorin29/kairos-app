@@ -476,7 +476,12 @@ fun WorkoutLogScreen(
                                   // The day's sport, optional, when the planned Warm-up isn't for it.
                                   val sr = sd?.routine
                                   if (section.kind == "WARMUP" && sd != null && !sd.forSport && sr != null) {
-                                      SportWarmupCard(label = sd.label, routine = sr)
+                                      SportWarmupCard(
+                                          label = sd.label,
+                                          routine = sr,
+                                          state = sd.state,
+                                          onState = { vm.setSportWarmupState(state = it) },
+                                      )
                                   }
                                 }
                                 "CARDIO" -> CardioBlock(
@@ -1206,7 +1211,7 @@ private fun CoreDayCard(
                     block.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -1260,11 +1265,12 @@ private fun MovementCard(m: MovementInput, overdue: Boolean, onOpen: (() -> Unit
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(Modifier.weight(1f)) {
+                // Two lines before an ellipsis (v0.481): long names fit.
                 Text(
                     planned,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(

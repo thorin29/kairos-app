@@ -45,6 +45,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -357,15 +361,43 @@ private fun ActionCard(
     }
 }
 
+/** The kinds a week's bar is split by (v0.481), lifting in the accent. */
+private data class WeekKind(val key: String, val label: String, val color: Color?)
+
+private val WEEK_KINDS = listOf(
+    WeekKind(key = "lift", label = "Lifting", color = null),
+    WeekKind(key = "conditioning", label = "Conditioning", color = Color(0xFFEB6834)),
+    WeekKind(key = "cardio", label = "Cardio", color = Color(0xFF2A78D6)),
+    WeekKind(key = "sport", label = "Sport", color = Color(0xFF139C86)),
+    WeekKind(key = "other", label = "Mobility", color = Color(0xFF9AA3AD)),
+)
+
+private fun kindCount(k: com.kairos.app.data.remote.dto.TrainingKindsDto?, key: String): Int = when (key) {
+    "lift" -> k?.lift ?: 0
+    "conditioning" -> k?.conditioning ?: 0
+    "cardio" -> k?.cardio ?: 0
+    "sport" -> k?.sport ?: 0
+    else -> k?.other ?: 0
+}
+
 /**
- * Weekly training: a bar per week for the last 12 (days trained; tap one for
- * its sets and minutes) and weeks trained in a row. Turning up, not weight: a
- * light week or a week of skips for an injury still counts. Same as the web.
+ * Weekly training (v0.481; the web's): a bar per week for the last 12, split
+ * by what the days held (lifting, conditioning, cardio, sport), a dashed mark
+ * at the days the plan had, and weeks trained in a row. Tap a week for its
+ * seven days. Turning up, not weight.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingDto) {
     var picked by remember(t) { mutableStateOf(t.weeks.lastIndex) }
-    val max = maxOf(7, t.weeks.maxOfOrNull { it.days } ?: 0)
+    val accent = MaterialTheme.colorScheme.primary
+    fun colorOf(key: String): Color = WEEK_KINDS.firstOrNull { it.key == key }?.color ?: accent
+    fun total(w: com.kairos.app.data.remote.dto.TrainingWeekDto): Int =
+        WEEK_KINDS.sumOf { kindCount(w.kinds, it.key) }.takeIf { it > 0 } ?: w.days
+    val max = maxOf(7, t.weeks.maxOfOrNull { maxOf(total(it), it.planned) } ?: 0)
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val ink = MaterialTheme.colorScheme.onSurface
+    val used = WEEK_KINDS.filter { k -> t.weeks.any { kindCount(it.kinds, k.key) > 0 } }
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -375,62 +407,136 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    "${t.inARow}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Text("${t.inARow}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     if (t.inARow == 1) " week in a row" else " weeks in a row",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = muted,
                 )
             }
             Row(
-                Modifier.fillMaxWidth().height(88.dp),
+                Modifier.fillMaxWidth().height(110.dp),
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 t.weeks.forEachIndexed { i, w ->
-                    val frac = if (w.days == 0) 0.03f else maxOf(0.1f, w.days / max.toFloat())
-                    Box(
+                    androidx.compose.foundation.Canvas(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clickable { picked = i },
-                        contentAlignment = Alignment.BottomCenter,
                     ) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(frac)
-                                .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = if (w.trained) 1f else 0.35f),
-                                )
-                                .then(
-                                    if (i == picked) {
-                                        Modifier.border(
-                                            2.dp,
-                                            MaterialTheme.colorScheme.onSurface,
-                                            RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp),
-                                        )
-                                    } else {
-                                        Modifier
-                                    },
-                                ),
-                        )
+                        val h = size.height - 4.dp.toPx()
+                        val unit = h / max
+                        var y = h
+                        val segs = WEEK_KINDS.filter { kindCount(w.kinds, it.key) > 0 }
+                        if (segs.isEmpty() && w.days > 0) {
+                            drawRect(accent, topLeft = Offset(0f, h - w.days * unit), size = Size(size.width, w.days * unit))
+                        }
+                        segs.forEach { k ->
+                            val hh = kindCount(w.kinds, k.key) * unit
+                            drawRect(colorOf(k.key), topLeft = Offset(0f, y - hh), size = Size(size.width, (hh - 1.dp.toPx()).coerceAtLeast(1f)))
+                            y -= hh
+                        }
+                        if (w.planned > 0) {
+                            val py = h - w.planned * unit
+                            drawLine(
+                                muted.copy(alpha = 0.7f),
+                                Offset(0f, py),
+                                Offset(size.width, py),
+                                strokeWidth = 2.dp.toPx(),
+                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f, 5f)),
+                            )
+                        }
+                        if (i == picked) drawRect(ink, topLeft = Offset(0f, size.height - 3.dp.toPx()), size = Size(size.width, 3.dp.toPx()))
                     }
                 }
             }
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                used.forEach { k ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(colorOf(k.key)))
+                        Text(" " + k.label, style = MaterialTheme.typography.labelSmall, color = muted)
+                    }
+                }
+                Text("- - Planned days", style = MaterialTheme.typography.labelSmall, color = muted)
+            }
             t.weeks.getOrNull(picked)?.let { w ->
+                androidx.compose.material3.HorizontalDivider()
                 Text(
-                    "Week of ${weekLabel(w.start)}: ${w.days} ${if (w.days == 1) "day" else "days"} \u00b7 " +
-                        "${w.sets} ${if (w.sets == 1) "set" else "sets"}" +
+                    if (picked == t.weeks.lastIndex) "This week" else "Week of ${weekLabel(w.start)}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                val done = w.dayList.count { it.status == "done" }.takeIf { w.dayList.isNotEmpty() } ?: w.days
+                Text(
+                    (if (w.planned > 0) "${minOf(done, w.planned)} of ${w.planned} planned days" else "${w.days} ${if (w.days == 1) "day" else "days"}") +
+                        " \u00b7 ${w.sets} ${if (w.sets == 1) "set" else "sets"}" +
                         if (w.minutes > 0) " \u00b7 ${w.minutes} min" else "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = muted,
                 )
+                if (w.dayList.isNotEmpty()) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val dows = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                        w.dayList.forEachIndexed { i, d ->
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(dows.getOrElse(i) { "" }, style = MaterialTheme.typography.labelSmall, color = muted)
+                                val k1 = d.kinds.firstOrNull()
+                                val k2 = d.kinds.getOrNull(1)
+                                val dayShape = RoundedCornerShape(6.dp)
+                                androidx.compose.foundation.Canvas(
+                                    Modifier
+                                        .padding(vertical = 3.dp)
+                                        .size(width = 34.dp, height = 28.dp)
+                                        .clip(dayShape)
+                                        .then(
+                                            if (k1 == null) {
+                                                Modifier.border(
+                                                    1.dp,
+                                                    when (d.status) {
+                                                        "missed" -> Color(0xFFD97706)
+                                                        "planned" -> muted.copy(alpha = 0.6f)
+                                                        else -> MaterialTheme.colorScheme.outlineVariant
+                                                    },
+                                                    dayShape,
+                                                )
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
+                                ) {
+                                    if (k1 != null) {
+                                        if (k2 == null) {
+                                            drawRect(colorOf(k1))
+                                        } else {
+                                            drawRect(colorOf(k2))
+                                            val path = androidx.compose.ui.graphics.Path().apply {
+                                                moveTo(0f, 0f)
+                                                lineTo(size.width, 0f)
+                                                lineTo(0f, size.height)
+                                                close()
+                                            }
+                                            drawPath(path, colorOf(k1))
+                                        }
+                                    }
+                                }
+                                Text(
+                                    d.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = muted,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    fontSize = 9.sp,
+                                    lineHeight = 11.sp,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

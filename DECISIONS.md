@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Weekly training chart, Core rows, sport warm-up card (v0.481.0, server 0.671.0)
+
+`WeeklyTrainingCard` draws the server's `kinds` as stacked Canvas bars (lifting
+in the accent; conditioning, cardio, sport, mobility in fixed colours), a
+dashed line at `planned`, and the picked week's `dayList` as seven squares
+(two kinds split diagonally; dashed outline for planned, amber for missed).
+Core uses `heat.coreMoves` (`CoreRows`, `CorePageDialog`) instead of lift rows
+or the hard-sets summary. The hinge family now arrives grouped as Deadlift
+from the server. Day-card, lift-row, core-row and warm-up names allow two
+lines. `SportWarmupCard` is an OutlinedCard with Skip and a check (POST
+warmup-for `{ date, state }`, state always sent, "" clears).
+
 ## 2026-11 — Lift rows and a page per lift (v0.480.0, server 0.670.0)
 
 WorkoutChart: each muscle group's lifts are an OutlinedCard of `LiftRow`s

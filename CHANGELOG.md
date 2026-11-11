@@ -1,4 +1,12 @@
 # Changelog
+## 0.481.0
+
+- New Weekly training chart: each week split into lifting, conditioning, cardio and sport, with your planned days marked. Tap a week to see its days.
+- Core shows each movement by hold time or reps, not weight. Tap one for its page.
+- Deadlifts, RDLs, good mornings and back extensions all sit under Deadlift on the body map.
+- Long exercise names wrap to a second line instead of being cut off.
+- The sport warm-up says Hockey warm-up, is a white card, and can be skipped or ticked done.
+
 ## 0.480.0
 
 - Workouts: each lift is one row with a small trend line. Tap it for the lift's own page.

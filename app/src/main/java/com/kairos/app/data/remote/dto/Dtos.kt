@@ -970,6 +970,31 @@ data class TrainingWeekDto(
     val sets: Int = 0,
     val minutes: Int = 0,
     val trained: Boolean = false,
+    /** Days of each kind (server 0.671+); null from an older server. */
+    val kinds: TrainingKindsDto? = null,
+    /** Workout days the plan had that week (server 0.671+). */
+    val planned: Int = 0,
+    /** Sunday to Saturday (server 0.671+). */
+    val dayList: List<TrainingDayDto> = emptyList(),
+)
+
+@Serializable
+data class TrainingKindsDto(
+    val lift: Int = 0,
+    val cardio: Int = 0,
+    val conditioning: Int = 0,
+    val sport: Int = 0,
+    val other: Int = 0,
+)
+
+/** One day of a week: its kinds (lift, cardio, conditioning, sport, other),
+ *  a few words, and done / planned / missed / rest or null. */
+@Serializable
+data class TrainingDayDto(
+    val date: String = "",
+    val kinds: List<String> = emptyList(),
+    val label: String = "",
+    val status: String? = null,
 )
 
 /** POST workouts/sets: every saved set of one planned movement, in order.
@@ -1103,10 +1128,26 @@ data class HeatMapDto(
     val training: TrainingHeatDto? = null,
     /** Days made lighter or changed (server 0.670+): "Sick", "Hurt"…, for a lift's chart. */
     val marks: List<HeatMarkDto> = emptyList(),
+    /** Core's movements by time or reps (server 0.671+), for Core's rows. */
+    val coreMoves: List<CoreProgressMoveDto> = emptyList(),
 )
 
 @Serializable
 data class HeatMarkDto(val date: String = "", val label: String = "")
+
+/** A core movement by time or reps (server 0.671+). */
+@Serializable
+data class CoreProgressMoveDto(
+    val movement: String = "",
+    val name: String = "",
+    /** "time" (seconds) or "reps". */
+    val kind: String = "reps",
+    val points: List<CorePointDto> = emptyList(),
+    val best: CorePointDto? = null,
+)
+
+@Serializable
+data class CorePointDto(val date: String = "", val value: Double = 0.0, val weight: Double? = null)
 
 /** A lift's next planned top set (server 0.670+). */
 @Serializable
@@ -3236,7 +3277,17 @@ data class LoggedLineDto(val name: String = "", val summary: String = "")
 /** A sport on the day (server 0.662+): what it's called, whether the day's
  *  Warm-up is for it, and its warm-up routine. */
 @Serializable
-data class SportDayDto(val label: String = "Hockey", val forSport: Boolean = false, val routine: WarmupRoutineDto? = null)
+data class SportDayDto(
+    val label: String = "Hockey",
+    val forSport: Boolean = false,
+    val routine: WarmupRoutineDto? = null,
+    /** "done", "skip" or null (server 0.671+): the sport warm-up's card. */
+    val state: String? = null,
+)
+
+/** POST workouts/warmup-for with `state` (server 0.671+): "done", "skip" or "" to clear. */
+@Serializable
+data class SportWarmupStateRequest(val date: String, val state: String)
 
 @Serializable
 data class WarmupForRequest(val date: String, val forSport: Boolean)

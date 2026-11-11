@@ -313,6 +313,9 @@ interface ApiService {
     @POST("workouts/warmup-for")
     suspend fun setWarmupFor(@Body body: com.kairos.app.data.remote.dto.WarmupForRequest): Response<WorkoutAckDto>
 
+    @POST("workouts/warmup-for")
+    suspend fun setSportWarmupState(@Body body: com.kairos.app.data.remote.dto.SportWarmupStateRequest): Response<WorkoutAckDto>
+
     @GET("workouts/order")
     suspend fun dayOrders(): Response<com.kairos.app.data.remote.dto.DayOrdersDto>
 

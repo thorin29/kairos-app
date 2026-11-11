@@ -139,7 +139,7 @@ internal fun WarmupCard(
                     plan.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
                 plan.routine?.takeIf { it.name != plan.name }?.let {

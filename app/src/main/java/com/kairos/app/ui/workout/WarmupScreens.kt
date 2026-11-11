@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -922,27 +924,62 @@ internal data class SportChoice(val label: String, val forSport: Boolean, val on
 /** The day's sport warm-up (v0.472): optional, never part of the plan;
  *  opens its routine with timers. */
 @Composable
-internal fun SportWarmupCard(label: String, routine: WarmupRoutineDto) {
+internal fun SportWarmupCard(
+    label: String,
+    routine: WarmupRoutineDto,
+    /** "done", "skip" or null (v0.481). */
+    state: String? = null,
+    onState: (String?) -> Unit = {},
+) {
     var open by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(12.dp)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .clip(shape)
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = shape)
-            .clickable { open = true }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("$label warm-up", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text(routine.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val done = state == "done"
+    val skipped = state == "skip"
+    val title = "$label warm-up"
+    // A white card like the planned Warm-up's (v0.481), with Skip and a check.
+    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 14.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f).clickable { open = true }.padding(vertical = 4.dp)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    routine.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (!done) {
+                androidx.compose.material3.TextButton(onClick = { onState(if (skipped) null else "skip") }) {
+                    Text(if (skipped) "Skipped" else "Skip")
+                }
+            }
+            if (!skipped) {
+                val primary = MaterialTheme.colorScheme.primary
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(if (done) primary else MaterialTheme.colorScheme.surface)
+                        .border(1.5.dp, primary, androidx.compose.foundation.shape.CircleShape)
+                        .clickable { onState(if (done) null else "done") }
+                        .semantics { contentDescription = if (done) "$title done" else "Mark $title done" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        KairosIcons.Check,
+                        contentDescription = null,
+                        tint = if (done) MaterialTheme.colorScheme.onPrimary else primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
         }
-        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (open) {
-        FullScreen(title = "$label warm-up", onClose = { open = false }) {
+        FullScreen(title = title, onClose = { open = false }) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 WarmupSteps(steps = routine.steps, storeKey = "sport.${routine.id}")
             }

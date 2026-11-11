@@ -586,7 +586,16 @@ class WorkoutLogViewModel(
         }
     }
 
-    /** A Warm-up done (or not). */
+    /** The sport warm-up done, skipped, or neither (null) (v0.481). */
+    fun setSportWarmupState(state: String?) {
+        val d = date ?: return
+        _ui.update { u -> u.copy(sportDay = u.sportDay?.copy(state = state)) }
+        viewModelScope.launch {
+            runCatching { session.setSportWarmupState(date = d, state = state ?: "") }
+            load()
+        }
+    }
+
     /** Add a routine or an isometric workout to this day only (v0.477). */
     fun addExtra(kind: String, ref: String) {
         val d = date ?: return
