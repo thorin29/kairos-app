@@ -1,4 +1,9 @@
 # Changelog
+## 0.487.0
+
+- Game coming with a leg day: the card can swap today with a later day this week. The day shows the swap with Undo.
+- Sore spots come only from a workout's band-aid; the map shows them with Better, and nothing when nothing hurts.
+
 ## 0.486.0
 
 - New day suggestions: a game today or tomorrow with leg work, a tournament week, adding a pull when pressing outweighs pulling, and "Is the plan too big?".

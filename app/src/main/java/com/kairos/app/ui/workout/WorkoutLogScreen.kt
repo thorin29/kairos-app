@@ -270,6 +270,19 @@ fun WorkoutLogScreen(
                             onToday = { ui.strip?.today?.let { vm.setDate(it) } },
                         )
                     }
+                    // A day traded with another weekday this week (v0.487).
+                    ui.swappedWith?.let { other ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Swapped with $other this week",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            TextButton(onClick = { vm.undoDaySwap() }, enabled = !ui.saving) { Text("Undo") }
+                        }
+                    }
                     // Resting or skipping the whole day lives here, with the
                     // day (v0.432; it was on the Workouts page).
                     val canRest = ui.date != null && !future && !ui.loggedAny && !ui.rested && !ui.restPlanned && !ui.loading

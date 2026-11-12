@@ -127,6 +127,8 @@ data class WorkoutLogUiState(
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
     /** Areas marked sore (server 0.675+): Adjust today opens Hurt on the first. */
     val sore: List<String> = emptyList(),
+    /** The weekday this day traded plans with this week (server 0.677+). */
+    val swappedWith: String? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
     /** A Go light day (v0.464): the option chosen. */
@@ -360,6 +362,7 @@ class WorkoutLogViewModel(
                 programLine = plan.program?.label ?: "",
                 suggestion = plan.suggestion,
                 sore = plan.sore,
+                swappedWith = plan.swappedWith,
                 light = plan.light,
                 adjusted = plan.adjusted,
                 sportDay = plan.sportDay,
@@ -1156,6 +1159,19 @@ class WorkoutLogViewModel(
             } catch (e: ApiException) {
                 _ui.update { it.copy(actionError = e.error.message) }
             }
+        }
+    }
+
+    /** Undo this week's swap of this day with another weekday (server 0.677+). */
+    fun undoDaySwap() {
+        val d = _ui.value.date ?: return
+        viewModelScope.launch {
+            val ok = runCatching {
+                session.answerSuggestion(
+                    com.kairos.app.data.remote.dto.SuggestionAnswerRequest(date = d, key = "swap", answer = "undo"),
+                )
+            }.isSuccess
+            if (ok) load()
         }
     }
 

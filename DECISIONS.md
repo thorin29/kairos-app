@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Swapped days, band-aid sore spots (v0.487.0, server 0.677.0)
+
+- `WorkoutDayDto.swappedWith` → "Swapped with Friday this week · Undo"
+  (`undoDaySwap`: suggestion answer `swap`/`undo`, then reload). The swap
+  itself is a game-card answer (`swap:<dow>`), which reloads like the other
+  `:` answers. Everything else follows the server's plan reads.
+- `SoreSpots` lost "+ Sore spot" and its dialog; a band-aid icon leads each
+  strip, and it draws nothing with no spots.
+
 ## 2026-11 — Smarter suggestions (v0.486.0, server 0.676.0)
 
 - The new cards come through the same `SuggestionCard`; answers with a `:`

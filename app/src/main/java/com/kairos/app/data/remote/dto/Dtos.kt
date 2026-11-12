@@ -379,6 +379,8 @@ data class WorkoutPlanDto(
     val light: Double? = null,
     /** Areas marked sore (server 0.675+): Adjust today opens Hurt on the first. */
     val sore: List<String> = emptyList(),
+    /** The weekday this day traded plans with this week (server 0.677+). */
+    val swappedWith: String? = null,
     /** Today's adjustment (server 0.658+): which, its header, what it drops. */
     val adjusted: AdjustedDto? = null,
     /** A sport on the calendar that day (server 0.662+): the warm-up switch. */
