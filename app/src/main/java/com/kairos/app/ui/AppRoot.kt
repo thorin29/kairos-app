@@ -293,6 +293,21 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     // the visible screens: they reload and re-derive from the durable queue, so an
     // offline change always shows even if an optimistic in-VM update was missed.
     var dataRevision by remember { mutableStateOf(0) }
+    // The day turns over (v0.497): an app left open past midnight — the wall
+    // tablet — reloads every screen, so "today" is today. Checked each minute
+    // while the app runs.
+    LaunchedEffect(Unit) {
+        var day = java.time.LocalDate.now()
+        while (true) {
+            kotlinx.coroutines.delay(60_000)
+            val now = java.time.LocalDate.now()
+            if (now != day) {
+                day = now
+                dataRevision++
+                homeRefresh++
+            }
+        }
+    }
     LaunchedEffect(syncRevision, pendingWrites) {
         if (syncRevision > 0 || pendingWrites > 0) {
             dataRevision++

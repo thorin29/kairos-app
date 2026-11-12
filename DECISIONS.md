@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Reason line; midnight rollover (v0.497.0, server 0.687.0)
+
+- The map pop-up shows `TrainGroup.line` whenever there is one, rows or not.
+- AppRoot checks `LocalDate.now()` each minute; a new day bumps
+  `dataRevision` and `homeRefresh`, so Home and the section screens reload.
+
 ## 2026-11 — Training-kind colours; plan end date (v0.496.0, server 0.686.0)
 
 - `WEEK_KINDS` and the endurance chart colours: Cardio 0xFF0EA5E9,

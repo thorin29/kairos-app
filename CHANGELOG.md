@@ -1,4 +1,9 @@
 # Changelog
+## 0.497.0
+
+- The body map pop-ups say why a group is its colour, under the week's sets.
+- The app left open past midnight reloads, so today is today.
+
 ## 0.496.0
 
 - Weekly training: Cardio is sky blue, Conditioning magenta and Sport green, so none matches a muscle group.

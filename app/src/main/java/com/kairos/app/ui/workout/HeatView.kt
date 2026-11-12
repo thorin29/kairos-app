@@ -428,7 +428,8 @@ internal fun TrainDetailDialog(
                     )
                 }
                 val why = data?.line.orEmpty()
-                if (week != null && week.rows.isEmpty() && why.isNotBlank()) {
+                // Why it's this colour (v0.497: shown with the week's rows too).
+                if (week != null && why.isNotBlank()) {
                     Text(why, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 week?.rows?.forEach { r ->
