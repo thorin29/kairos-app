@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — Pages, not sheets; one Add flow (v0.492.0, server 0.682.0)
+
+- `ui/common/FullPage` (a full-screen Dialog holding a Scaffold + TopAppBar,
+  so it matches a navigated page) and `PageCard` (the white top card). Flows
+  opened from a screen use it instead of bottom sheets or list pop-ups:
+  `ConditioningPage` (Pick · Generator, replacing PickOneSheet/BuildOneSheet),
+  `AddCardioPage` (from the Cardio card and from + Additional),
+  `ExtraPickerPage`, `LogWorkoutPage` (was CustomWorkoutForm's window, now
+  narrowed by kind via `logCategoriesFor`), the plan file pages and both
+  swap-a-movement lists. WarmupScreens, CoreDays and EnduranceCharts' own
+  full-screen helpers delegate to it.
+- The day has one "+ Additional" button at the bottom; the Conditioning
+  section shows only when there's a pick to make or a one-off result.
+- Workout days cells with 3+ groups draw a tile grid (Column of weighted
+  Rows) instead of sweep or band gradients.
+
 ## 2026-11 — Tap a day; Family WOD cards (v0.491.0, server 0.681.0)
 
 - A Workout days cell with work is clickable: an AlertDialog lists each

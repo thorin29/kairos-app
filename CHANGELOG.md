@@ -1,4 +1,11 @@
 # Changelog
+## 0.492.0
+
+- One "+ Additional" button on the day: Conditioning, Family WOD, Strength, Cardio, Sport, Mobility, Stretching, Isometrics, or something else. Each opens its own page.
+- Pull-up sheets are gone: picking a workout, the Generator, adding cardio, routines, swapping a movement and plan files all open as full pages.
+- Conditioning: Build one is now Generator; Create new opens the HIIT/CrossFit create page.
+- Workout days: a day with three or more groups shows a small tile for each one.
+
 ## 0.491.0
 
 - Tap a day on Workout days to see what each colour was, with the movements.

@@ -1,6 +1,8 @@
 package com.kairos.app.ui.workout
 
 import com.kairos.app.ui.common.AccentOutlinedButton
+import com.kairos.app.ui.common.FullPage
+import com.kairos.app.ui.common.PageCard
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,13 +20,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -131,9 +131,9 @@ internal fun PickConditioningCard(
                     } else {
                         Button(onClick = onPick, modifier = Modifier.weight(1f)) { Text("Pick one") }
                     }
-                    AccentOutlinedButton(onClick = onBuild, modifier = Modifier.weight(1f)) { Text("Build one") }
+                    AccentOutlinedButton(onClick = onBuild, modifier = Modifier.weight(1f)) { Text("Generator") }
                 }
-                TextButton(onClick = onWriteOwn) { Text("Write your own") }
+                TextButton(onClick = onWriteOwn) { Text("Create new") }
             }
         }
     }
@@ -285,103 +285,144 @@ private fun RunWorkout(
     }
 }
 
-/** A sheet's title row, with a way back when there is one. */
-@Composable
-private fun SheetTitle(title: String, onBack: (() -> Unit)?) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (onBack != null) {
-            TextButton(onClick = onBack) { Text("‹ Back") }
-        }
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
 /**
- * Pick one: every workout the person can do, filtered by length, format and
- * the equipment on hand; tap one to do it. Opens straight on [openId] when
- * given (this month's benchmark).
+ * Conditioning, a full page (v0.491; was the Pick one and Build one sheets):
+ * a Pick · Generator switch on the top card. Pick lists every workout the
+ * person can do, filtered by length, format and the equipment on hand.
+ * Generator has the app make one for the length, format and focus from the
+ * household's equipment (Another idea re-rolls). Tapping a workout, or Use
+ * this, opens it to run and log; Back returns to the list. "Create new" goes to
+ * the HIIT/CrossFit create page: this page is for picking, not writing. Opens
+ * straight on [openId] when given (this month's benchmark).
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PickOneSheet(
+internal fun ConditioningPage(
+    startMode: String,
     choices: ConditioningChoicesDto?,
     error: String?,
     openId: String?,
     onLoad: () -> Unit,
     onLog: (ConditioningChoiceDto, Int, String?) -> Unit,
+    built: BuildResponseDto?,
+    building: Boolean,
+    saved: Boolean,
+    onBuild: (Int, String, String, Int) -> Unit,
+    onLogBuilt: (Int, String?) -> Unit,
+    onSave: () -> Unit,
+    onCreateNew: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     LaunchedEffect(Unit) { onLoad() }
+    var mode by remember { mutableStateOf(if (startMode == "build") "build" else "pick") }
+    // Pick
     var time by remember { mutableStateOf("any") }
     var format by remember { mutableStateOf("any") }
     var haveOnly by remember { mutableStateOf(true) }
     var picked by remember { mutableStateOf(openId) }
-    val have = choices?.equipment?.map { it.key }?.toSet().orEmpty()
-    val fits = TIME_FILTERS.first { it.first == time }.third
-    val types = FORMAT_FILTERS.first { it.first == format }.third
-    val list = choices?.choices.orEmpty().filter { c ->
-        fits(c.minutes) && (types.isEmpty() || c.type in types) && (!haveOnly || c.equipment.all { it in have })
+    // Generator
+    var minutes by remember { mutableIntStateOf(12) }
+    var buildFormat by remember { mutableStateOf("AMRAP") }
+    var focus by remember { mutableStateOf("ANY") }
+    var seed by remember { mutableIntStateOf((0..99_999).random()) }
+    var ready by remember { mutableStateOf(false) }
+    LaunchedEffect(mode, minutes, buildFormat, focus, seed) {
+        if (mode == "build") onBuild(minutes, buildFormat, focus, seed)
     }
+    val w = built?.built
     val current = picked?.let { id -> choices?.choices?.firstOrNull { it.hiitWorkoutId == id } }
+    val running = (mode == "pick" && current != null) || (mode == "build" && ready && w != null)
+    val back: () -> Unit = {
+        when {
+            mode == "pick" && current != null && openId == null -> picked = null
+            mode == "build" && ready -> ready = false
+            else -> onDismiss()
+        }
+    }
+    val title = when {
+        mode == "pick" && current != null -> current.name
+        mode == "build" && ready && w != null -> w.name
+        else -> "Conditioning"
+    }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    FullPage(title = title, onBack = back) {
+        if (running) {
+            if (mode == "pick" && current != null && choices != null) {
+                RunWorkout(
+                    name = current.name,
+                    type = current.type,
+                    capSec = current.capSec,
+                    about = current.about,
+                    rx = current.movements,
+                    scaled = current.scaled,
+                    startVersion = choices.version,
+                    resultLabel = current.resultLabel.ifBlank { resultLabelFor(current.type) },
+                    durationResult = current.resultMetric == "DURATION",
+                    meta = choiceMeta(current),
+                    onLog = { v, version -> onLog(current, v, version) },
+                )
+            } else if (w != null && built != null) {
+                RunWorkout(
+                    name = w.name,
+                    type = w.type,
+                    capSec = w.capSec,
+                    about = w.about.ifBlank { null },
+                    rx = built.movements,
+                    scaled = built.scaled.takeIf { s -> s.isNotEmpty() && s.map { it.line } != built.movements.map { it.line } },
+                    startVersion = choices?.version ?: "RX",
+                    resultLabel = resultLabelFor(w.type),
+                    durationResult = w.type == "FOR_TIME" || w.type == "PYRAMID",
+                    meta = emptyList(),
+                    onLog = onLogBuilt,
+                    extra = {
+                        AccentOutlinedButton(onClick = onSave, enabled = !saved) {
+                            Text(if (saved) "Saved" else "Save to our workouts")
+                        }
+                    },
+                )
+            }
+            return@FullPage
+        }
+
+        PageCard {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChoicePill(label = "Pick", selected = mode == "pick") { mode = "pick" }
+                ChoicePill(label = "Generator", selected = mode == "build") { mode = "build" }
+            }
+            if (mode == "pick") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TIME_FILTERS.forEach { (key, label, _) -> ChoicePill(label = label, selected = time == key) { time = key } }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FORMAT_FILTERS.forEach { (key, label, _) -> ChoicePill(label = label, selected = format == key) { format = key } }
+                }
+                ChoicePill(label = "Equipment we have", selected = haveOnly) { haveOnly = !haveOnly }
+            } else {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BUILD_LENGTHS.forEach { m -> ChoicePill(label = "$m min", selected = minutes == m) { minutes = m } }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BUILD_FORMATS.forEach { (key, label) -> ChoicePill(label = label, selected = buildFormat == key) { buildFormat = key } }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BUILD_FOCUSES.forEach { (key, label) -> ChoicePill(label = label, selected = focus == key) { focus = key } }
+                }
+            }
+        }
+
+        if (mode == "pick") {
             when {
-                current != null && choices != null -> {
-                    SheetTitle(title = current.name, onBack = if (openId == null) ({ picked = null }) else null)
-                    RunWorkout(
-                        name = current.name,
-                        type = current.type,
-                        capSec = current.capSec,
-                        about = current.about,
-                        rx = current.movements,
-                        scaled = current.scaled,
-                        startVersion = choices.version,
-                        resultLabel = current.resultLabel.ifBlank { resultLabelFor(current.type) },
-                        durationResult = current.resultMetric == "DURATION",
-                        meta = choiceMeta(current),
-                        onLog = { v, version -> onLog(current, v, version) },
-                    )
-                }
-                error != null -> {
-                    SheetTitle(title = "Pick one", onBack = null)
-                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                }
-                choices == null -> {
-                    SheetTitle(title = "Pick one", onBack = null)
-                    CircularProgressIndicator(Modifier.padding(8.dp))
-                }
+                error != null -> Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                choices == null -> CircularProgressIndicator(Modifier.padding(8.dp))
                 else -> {
-                    SheetTitle(title = "Pick one", onBack = null)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TIME_FILTERS.forEach { (key, label, _) -> ChoicePill(label = label, selected = time == key) { time = key } }
+                    val have = choices.equipment.map { it.key }.toSet()
+                    val fits = TIME_FILTERS.first { it.first == time }.third
+                    val types = FORMAT_FILTERS.first { it.first == format }.third
+                    val list = choices.choices.filter { c ->
+                        fits(c.minutes) && (types.isEmpty() || c.type in types) && (!haveOnly || c.equipment.all { it in have })
                     }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FORMAT_FILTERS.forEach { (key, label, _) -> ChoicePill(label = label, selected = format == key) { format = key } }
-                    }
-                    ChoicePill(label = "Equipment we have", selected = haveOnly) { haveOnly = !haveOnly }
                     if (list.isEmpty()) {
-                        Text(
-                            "Nothing matches.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Text("Nothing matches.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     list.filter { it.kind != "HERO" }.forEach { c -> ChoiceRow(choice = c) { picked = c.hiitWorkoutId } }
                     val heroes = list.filter { it.kind == "HERO" }
@@ -395,6 +436,28 @@ internal fun PickOneSheet(
                         heroes.forEach { c -> ChoiceRow(choice = c) { picked = c.hiitWorkoutId } }
                     }
                 }
+            }
+            TextButton(onClick = onCreateNew) { Text("Create new") }
+        } else {
+            when {
+                building && w == null -> CircularProgressIndicator(Modifier.padding(8.dp))
+                w == null -> Text(
+                    "Not enough equipment for that.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> OutlinedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(w.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        built?.movements?.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { ready = true }, enabled = w != null && !building, modifier = Modifier.weight(1f)) {
+                    Text("Use this")
+                }
+                AccentOutlinedButton(onClick = { seed += 1 }, enabled = !building) { Text("Another idea") }
             }
         }
     }
@@ -416,8 +479,6 @@ private fun ChoiceRow(choice: ConditioningChoiceDto, onClick: () -> Unit) {
                 choice.name,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Text(
@@ -440,99 +501,6 @@ private fun ChoiceRow(choice: ConditioningChoiceDto, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-    }
-}
-
-/**
- * Build one: a workout for the length, format and focus from the household's
- * equipment; Another idea, Use this, and Save to our workouts.
- */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
-@Composable
-internal fun BuildOneSheet(
-    built: BuildResponseDto?,
-    building: Boolean,
-    saved: Boolean,
-    startVersion: String,
-    onBuild: (Int, String, String, Int) -> Unit,
-    onLog: (Int, String?) -> Unit,
-    onSave: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var minutes by remember { mutableIntStateOf(12) }
-    var format by remember { mutableStateOf("AMRAP") }
-    var focus by remember { mutableStateOf("ANY") }
-    var seed by remember { mutableIntStateOf((0..99_999).random()) }
-    var ready by remember { mutableStateOf(false) }
-    LaunchedEffect(minutes, format, focus, seed) {
-        onBuild(minutes, format, focus, seed)
-    }
-    val w = built?.built
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (ready && w != null && built != null) {
-                SheetTitle(title = w.name, onBack = { ready = false })
-                RunWorkout(
-                    name = w.name,
-                    type = w.type,
-                    capSec = w.capSec,
-                    about = w.about.ifBlank { null },
-                    rx = built.movements,
-                    scaled = built.scaled.takeIf { s -> s.isNotEmpty() && s.map { it.line } != built.movements.map { it.line } },
-                    startVersion = startVersion,
-                    resultLabel = resultLabelFor(w.type),
-                    durationResult = w.type == "FOR_TIME" || w.type == "PYRAMID",
-                    meta = emptyList(),
-                    onLog = onLog,
-                    extra = {
-                        AccentOutlinedButton(onClick = onSave, enabled = !saved) {
-                            Text(if (saved) "Saved" else "Save to our workouts")
-                        }
-                    },
-                )
-            } else {
-                SheetTitle(title = "Build one", onBack = null)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BUILD_LENGTHS.forEach { m -> ChoicePill(label = "$m min", selected = minutes == m) { minutes = m } }
-                }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BUILD_FORMATS.forEach { (key, label) -> ChoicePill(label = label, selected = format == key) { format = key } }
-                }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BUILD_FOCUSES.forEach { (key, label) -> ChoicePill(label = label, selected = focus == key) { focus = key } }
-                }
-                when {
-                    building && w == null -> CircularProgressIndicator(Modifier.padding(8.dp))
-                    w == null -> Text(
-                        "Not enough equipment for that.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    else -> OutlinedCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(w.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                            built?.movements?.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
-                        }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { ready = true }, enabled = w != null && !building, modifier = Modifier.weight(1f)) {
-                        Text("Use this")
-                    }
-                    AccentOutlinedButton(onClick = { seed += 1 }, enabled = !building) { Text("Another idea") }
-                }
-            }
         }
     }
 }

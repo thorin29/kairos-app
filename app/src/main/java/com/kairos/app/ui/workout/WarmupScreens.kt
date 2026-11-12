@@ -98,28 +98,8 @@ internal fun stepAmount(s: WarmupStepDto): String {
  *  window you scroll, not a bottom sheet). */
 @Composable
 private fun FullScreen(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = onClose) {
-                        Icon(KairosIcons.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                content()
-            }
-        }
-    }
+    // The app's one full page (v0.491); the content scrolls itself.
+    com.kairos.app.ui.common.FullPage(title = title, onBack = onClose, scroll = false, content = content)
 }
 
 /** A routine's steps: name and amount, a timer on timed ones, and a tick each. */

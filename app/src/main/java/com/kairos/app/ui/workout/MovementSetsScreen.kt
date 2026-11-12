@@ -1129,19 +1129,18 @@ private fun SetsSwapDialog(
             }
             .sortedWith(compareBy<Triple<Boolean, String, List<PoolExerciseDto>>> { it.first }.thenBy { it.second.lowercase() })
     }
-    AnimatedDialog(
-        onDismissRequest = onDismiss,
-        title = title,
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
+    // A full page (v0.491; was a pop-up): search on the top card.
+    com.kairos.app.ui.common.FullPage(title = title, onBack = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("Search movements") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            com.kairos.app.ui.common.PageCard {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Search movements") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             if (groups.isEmpty()) {
                 Text(
                     if (pool.isEmpty()) "Loading movements…" else "No movements match.",
@@ -1149,7 +1148,7 @@ private fun SetsSwapDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
+                Column {
                     groups.forEach { (_, label, items) ->
                         Text(
                             label.uppercase(),

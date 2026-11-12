@@ -22,8 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedButton
@@ -209,14 +207,7 @@ internal fun CardioBlock(
     onSkip: ((Boolean) -> Unit)?,
 ) {
     var adding by remember { mutableStateOf(false) }
-    var kind by remember { mutableStateOf("row") }
-    var meters by remember { mutableStateOf("") }
-    var distance by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf("") }
-    var load by remember { mutableStateOf("") }
-    var formError by remember { mutableStateOf<String?>(null) }
     var removing by remember { mutableStateOf<CardioEntryDto?>(null) }
-    val k = CARDIO_KINDS.first { it.key == kind }
 
     // One card for the day's cardio: the title with Concept2 (sync) and Add
     // on it, then each entry with how it felt.
@@ -325,97 +316,9 @@ internal fun CardioBlock(
         }
     }
 
-    // Adding cardio opens a sheet, like Add workout, rather than growing the page.
+    // Adding cardio opens its page (v0.491; was a sheet).
     if (adding) {
-        ModalBottomSheet(
-            onDismissRequest = { adding = false; formError = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text("Add cardio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CARDIO_KINDS.forEach { c ->
-                        ChoicePill(label = c.label, selected = kind == c.key) { kind = c.key }
-                    }
-                }
-                if (k.meters) {
-                    OutlinedTextField(
-                        value = meters,
-                        onValueChange = { meters = it.filter(Char::isDigit) },
-                        label = { Text("Meters") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                if (k.distance) {
-                    OutlinedTextField(
-                        value = distance,
-                        onValueChange = { distance = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                        label = { Text("Distance (mi)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                OutlinedTextField(
-                    value = time,
-                    onValueChange = { time = it.filter { ch -> ch.isDigit() || ch == ':' } },
-                    label = { Text("Time (mm:ss)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (k.load) {
-                    OutlinedTextField(
-                        value = load,
-                        onValueChange = { load = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                        label = { Text("Load (lb)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                (formError ?: error)?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        enabled = !saving,
-                        onClick = {
-                            val secs = if (time.isBlank()) null else parseClock(time)
-                            val m = if (k.meters) meters.toDoubleOrNull()?.takeIf { it > 0 } else null
-                            val d = if (k.distance) distance.toDoubleOrNull()?.takeIf { it > 0 } else null
-                            val l = if (k.load) load.toDoubleOrNull()?.takeIf { it > 0 } else null
-                            formError = when {
-                                time.isNotBlank() && secs == null -> "Time as mm:ss, like 7:45."
-                                m == null && d == null && secs == null -> "Enter a time or a distance."
-                                else -> null
-                            }
-                            if (formError == null) {
-                                onLog(kind, m, d, secs, l) {
-                                    meters = ""
-                                    distance = ""
-                                    time = ""
-                                    load = ""
-                                    adding = false
-                                }
-                            }
-                        },
-                    ) { Text(if (saving) "Saving…" else "Save") }
-                    TextButton(onClick = { adding = false; formError = null }) { Text("Cancel") }
-                }
-            }
-        }
+        AddCardioPage(saving = saving, error = error, onLog = onLog, onBack = { adding = false })
     }
 
     removing?.let { e ->
@@ -426,5 +329,101 @@ internal fun CardioBlock(
             confirmButton = { TextButton(onClick = { onRemove(e.sessionId); removing = null }) { Text("Remove") } },
             dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel") } },
         )
+    }
+}
+
+/**
+ * Add cardio, a full page (v0.491; was a sheet): the kind, then meters or
+ * distance, time and load as the kind takes. From the Cardio card's Add and
+ * from the day's "+ Additional → Cardio", so cardio is added one way.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun AddCardioPage(
+    saving: Boolean,
+    error: String?,
+    onLog: (String, Double?, Double?, Int?, Double?, () -> Unit) -> Unit,
+    onBack: () -> Unit,
+) {
+    var kind by remember { mutableStateOf("row") }
+    var meters by remember { mutableStateOf("") }
+    var distance by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf("") }
+    var load by remember { mutableStateOf("") }
+    var formError by remember { mutableStateOf<String?>(null) }
+    val k = CARDIO_KINDS.first { it.key == kind }
+    com.kairos.app.ui.common.FullPage(title = "Add cardio", onBack = onBack) {
+        com.kairos.app.ui.common.PageCard {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CARDIO_KINDS.forEach { c ->
+                    ChoicePill(label = c.label, selected = kind == c.key) { kind = c.key }
+                }
+            }
+            if (k.meters) {
+                OutlinedTextField(
+                    value = meters,
+                    onValueChange = { meters = it.filter(Char::isDigit) },
+                    label = { Text("Meters") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (k.distance) {
+                OutlinedTextField(
+                    value = distance,
+                    onValueChange = { distance = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                    label = { Text("Distance (mi)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            OutlinedTextField(
+                value = time,
+                onValueChange = { time = it.filter { ch -> ch.isDigit() || ch == ':' } },
+                label = { Text("Time (mm:ss)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (k.load) {
+                OutlinedTextField(
+                    value = load,
+                    onValueChange = { load = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                    label = { Text("Load (lb)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            (formError ?: error)?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                enabled = !saving,
+                onClick = {
+                    val secs = if (time.isBlank()) null else parseClock(time)
+                    val m = if (k.meters) meters.toDoubleOrNull()?.takeIf { it > 0 } else null
+                    val d = if (k.distance) distance.toDoubleOrNull()?.takeIf { it > 0 } else null
+                    val l = if (k.load) load.toDoubleOrNull()?.takeIf { it > 0 } else null
+                    formError = when {
+                        time.isNotBlank() && secs == null -> "Time as mm:ss, like 7:45."
+                        m == null && d == null && secs == null -> "Enter a time or a distance."
+                        else -> null
+                    }
+                    if (formError == null) {
+                        onLog(kind, m, d, secs, l) {
+                            onBack()
+                        }
+                    }
+                },
+            ) { Text(if (saving) "Saving…" else "Save") }
+        }
     }
 }

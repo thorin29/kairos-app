@@ -140,12 +140,13 @@ fun WorkoutLogScreen(
     // Pick one / Build one sheets, and the workout Pick one opens straight on
     // (this month's benchmark). Closed once something is logged.
     var conditioningSheet by remember { mutableStateOf<String?>(null) }
-    var addingConditioning by remember { mutableStateOf(false) }
     // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
     var addingMenu by remember { mutableStateOf(false) }
     LaunchedEffect(familyChanged) { if (familyChanged != 0) vm.load() }
     var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     var extraKind by remember { mutableStateOf<String?>(null) }
+    var logKind by remember { mutableStateOf<String?>(null) }
+    var addingCardio by remember { mutableStateOf(false) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(ui.conditioningTick) { conditioningSheet = null }
 
@@ -404,9 +405,10 @@ fun WorkoutLogScreen(
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
                         // A sport on the day (v0.472): a Warm-up section for its warm-up.
                         if (ui.sportDay != null) add("WARMUP")
-                        // Always: + Conditioning sits where the person's order
-                        // puts conditioning, planned or not (v0.433).
-                        add("CONDITIONING")
+                        // Conditioning to pick, or one-off results to show (v0.491:
+                        // adding moved to the day's one "+ Additional" button).
+                        val plannedNames = ui.conditioning.map { it.name.take(40) }.toSet() + listOfNotNull(ui.familyWod?.name?.take(40))
+                        if (ui.picks.isNotEmpty() || ui.conditioningDone.any { it.name.take(40) !in plannedNames }) add("CONDITIONING")
                     }
                     // A rest day in the plan has no sections, + Conditioning
                     // included: just what was logged, below (v0.456).
@@ -493,10 +495,6 @@ fun WorkoutLogScreen(
                                                 }
                                             }
                                         }
-                                    }
-                                    AccentOutlinedButton(onClick = { addingMenu = true }) {
-                                        Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Text("Additional", modifier = Modifier.padding(start = 6.dp))
                                     }
                                 }
                                 // Mobility (v0.469) shows like a Warm-up: its routine, done with a tap.
@@ -600,8 +598,11 @@ fun WorkoutLogScreen(
 
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-                    ui.date?.let { d ->
-                        CustomWorkoutForm(date = d, onLogged = onDone)
+                    // The day's one Add button (v0.491): a short pop-up of kinds,
+                    // each opening a full page.
+                    AccentOutlinedButton(onClick = { addingMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text("Additional", modifier = Modifier.padding(start = 6.dp))
                     }
                 }
             }
@@ -630,13 +631,18 @@ fun WorkoutLogScreen(
         AdditionalMenu(
             onConditioning = {
                 addingMenu = false
-                addingConditioning = true
+                openWorkoutId = null
+                conditioningSheet = "pick"
             },
             onKind = {
                 addingMenu = false
                 extraKind = it
             },
             onDismiss = { addingMenu = false },
+            onLog = { k ->
+                addingMenu = false
+                if (k == "cardio") addingCardio = true else logKind = k
+            },
             onFamilyWod = if (ui.familyWod == null && (ui.date ?: LocalDate.now().toString()) >= LocalDate.now().toString()) {
                 {
                     addingMenu = false
@@ -649,7 +655,7 @@ fun WorkoutLogScreen(
     }
 
     extraKind?.let { k ->
-        ExtraPickerDialog(
+        ExtraPickerPage(
             kind = k,
             onPick = { ref ->
                 extraKind = null
@@ -659,63 +665,55 @@ fun WorkoutLogScreen(
                 extraKind = null
                 addingMenu = true
             },
-            onDismiss = { extraKind = null },
         )
     }
-
-    if (addingConditioning) {
-        AlertDialog(
-            onDismissRequest = { addingConditioning = false },
-            title = { Text("Conditioning") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            addingConditioning = false
-                            openWorkoutId = null
-                            conditioningSheet = "pick"
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Pick one") }
-                    AccentOutlinedButton(
-                        onClick = {
-                            addingConditioning = false
-                            if (ui.choices == null) vm.loadChoices()
-                            conditioningSheet = "build"
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Build one") }
-                    AccentOutlinedButton(
-                        onClick = {
-                            addingConditioning = false
-                            onWriteOwn()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Write your own") }
-                }
+    // Cardio is added one way (v0.491): the same page as the Cardio card's Add.
+    if (addingCardio) {
+        AddCardioPage(
+            saving = ui.cardioSaving,
+            error = ui.cardioError,
+            onLog = { a, m, dist, sec, load, done ->
+                vm.logCardio(activity = a, meters = m, distance = dist, seconds = sec, carried = load, onDone = done)
             },
-            confirmButton = {},
-            dismissButton = { TextButton(onClick = { addingConditioning = false }) { Text("Cancel") } },
+            onBack = { addingCardio = false },
+        )
+    }
+    // Strength, Sport or Something else: the log flow, a full page (v0.491).
+    val logDate = ui.date
+    if (logKind != null && logDate != null) {
+        LogWorkoutPage(
+            date = logDate,
+            kind = logKind!!,
+            onLogged = {
+                logKind = null
+                vm.load()
+            },
+            onDismiss = {
+                logKind = null
+                addingMenu = true
+            },
         )
     }
 
-    when (conditioningSheet) {
-        "pick" -> PickOneSheet(
+    // Conditioning, a full page (v0.491): Pick · Generator, Create new.
+    conditioningSheet?.let { start ->
+        ConditioningPage(
+            startMode = start,
             choices = ui.choices,
             error = ui.choicesError,
             openId = openWorkoutId,
-            onLoad = { vm.loadChoices() },
+            onLoad = { if (ui.choices == null) vm.loadChoices() },
             onLog = { c, v, version -> vm.logConditioning(hiitWorkoutId = c.hiitWorkoutId, built = null, value = v, version = version) },
-            onDismiss = { conditioningSheet = null },
-        )
-        "build" -> BuildOneSheet(
             built = ui.built,
             building = ui.building,
             saved = ui.builtSaved,
-            startVersion = ui.choices?.version ?: "RX",
             onBuild = { m, f, fo, seed -> vm.build(minutes = m, format = f, focus = fo, seed = seed) },
-            onLog = { v, version -> vm.logConditioning(hiitWorkoutId = null, built = ui.built?.built, value = v, version = version) },
+            onLogBuilt = { v, version -> vm.logConditioning(hiitWorkoutId = null, built = ui.built?.built, value = v, version = version) },
             onSave = { vm.saveBuilt() },
+            onCreateNew = {
+                conditioningSheet = null
+                onWriteOwn()
+            },
             onDismiss = { conditioningSheet = null },
         )
     }
@@ -1956,24 +1954,23 @@ private fun SwapMovementDialog(
     }
     val total = groups.sumOf { it.items.size }
 
-    AnimatedDialog(
-        onDismissRequest = onDismiss,
-        title = "Swap ${m.name}",
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
+    // A full page (v0.491; was a pop-up): search on the top card.
+    com.kairos.app.ui.common.FullPage(title = "Swap ${m.name}", onBack = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "Today only \u2014 your plan keeps ${m.swappedFromName ?: m.name}.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("Search movements") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            com.kairos.app.ui.common.PageCard {
+                Text(
+                    "Today only \u2014 your plan keeps ${m.swappedFromName ?: m.name}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Search movements") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             when {
                 ui.poolLoading -> Text(
                     "Loading movements\u2026",
@@ -1985,9 +1982,7 @@ private fun SwapMovementDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                else -> Column(
-                    Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
-                ) {
+                else -> Column {
                     groups.forEach { g ->
                         Text(
                             g.label.uppercase(),

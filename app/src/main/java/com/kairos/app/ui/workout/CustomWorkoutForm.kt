@@ -49,87 +49,73 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.common.SentenceCaps
 import com.kairos.app.ui.common.AccentOutlinedButton
+import com.kairos.app.ui.common.FullPage
 
-/** The "Log an additional workout" entry point: a button that opens a step-by-step
- *  wizard (type -> details -> log), so the options aren't all crowded at once. */
+/**
+ * Log something done (v0.491: a full page from "+ Additional"; was the
+ * "Log an additional workout" button's own window). [kind] narrows the first
+ * step: "strength" goes straight to muscle groups, "cardio" lists the cardio
+ * kinds, "sport" goes straight to it, "other" lists every category. Back at the
+ * first step closes the page.
+ */
 @Composable
-fun CustomWorkoutForm(date: String, onLogged: () -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    AccentOutlinedButton(
-        onClick = { open = true },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text("Log an additional workout")
-    }
-    if (open) {
-        LogSomethingWizard(
-            date = date,
-            onLogged = { open = false; onLogged() },
-            onDismiss = { open = false },
-        )
-    }
-}
-
-@Composable
-private fun LogSomethingWizard(date: String, onLogged: () -> Unit, onDismiss: () -> Unit) {
+fun LogWorkoutPage(date: String, kind: String, onLogged: () -> Unit, onDismiss: () -> Unit) {
     val container = rememberContainer()
     val vm: CustomWorkoutViewModel = viewModel(
-        key = "logwizard-$date",
+        key = "logwizard-$date-$kind",
         factory = viewModelFactory {
             initializer { CustomWorkoutViewModel(container.sessionRepository, date) }
         },
     )
     val ui by vm.ui.collectAsState()
     LaunchedEffect(ui.done) { if (ui.done) onLogged() }
+    val only = logCategoriesFor(kind)
+    val cats = if (only == null) ui.categories else ui.categories.filter { it.key in only }
+    val single = cats.size == 1
+    LaunchedEffect(ui.loading, cats.size) {
+        if (!ui.loading && single && ui.step == WizardStep.TYPE && ui.categoryKey.isEmpty()) vm.pickType(cats[0].key)
+    }
+    // The step Back would take back to the category list.
+    val backToType = when (ui.step) {
+        WizardStep.MUSCLE, WizardStep.WORKOUT -> true
+        WizardStep.EXERCISE -> !ui.isWeights
+        WizardStep.VALUE -> !ui.isHiit && !ui.isWeights && ui.category?.isPool != true
+        WizardStep.TYPE -> true
+    }
+    val back: () -> Unit = { if (ui.step == WizardStep.TYPE || (single && backToType)) onDismiss() else vm.back() }
+    val title = if (ui.step == WizardStep.TYPE) {
+        LOG_KINDS.firstOrNull { it.first == kind }?.second ?: stepTitle(ui)
+    } else {
+        stepTitle(ui)
+    }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = { if (ui.step == WizardStep.TYPE) onDismiss() else vm.back() }) {
-                        Icon(
-                            if (ui.step == WizardStep.TYPE) KairosIcons.Close else KairosIcons.ArrowBack,
-                            contentDescription = if (ui.step == WizardStep.TYPE) "Close" else "Back",
-                        )
-                    }
-                    Text(stepTitle(ui), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+    FullPage(title = title, onBack = back) {
+        if (ui.loading) {
+            CircularProgressIndicator(Modifier.padding(32.dp).align(Alignment.CenterHorizontally))
+        } else if (ui.step == WizardStep.VALUE) {
+            ValueStep(ui, vm)
+        } else androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+          Column(Modifier.padding(horizontal = 12.dp)) {
+            when (ui.step) {
+                WizardStep.TYPE ->
+                    cats.forEach { c -> PickRow(c.label) { vm.pickType(c.key) } }
+                WizardStep.MUSCLE -> {
+                    val muscles = ui.musclesWithExercises
+                    if (muscles.isEmpty()) EmptyNote("No weights exercises in the pool yet.")
+                    else muscles.forEach { m -> PickRow(m.label) { vm.pickMuscle(m.key) } }
                 }
-
-                if (ui.loading) {
-                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(Modifier.padding(32.dp))
-                    }
-                } else {
-                    Column(
-                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        when (ui.step) {
-                            WizardStep.TYPE ->
-                                ui.categories.forEach { c -> PickRow(c.label) { vm.pickType(c.key) } }
-                            WizardStep.MUSCLE -> {
-                                val muscles = ui.musclesWithExercises
-                                if (muscles.isEmpty()) EmptyNote("No weights exercises in the pool yet.")
-                                else muscles.forEach { m -> PickRow(m.label) { vm.pickMuscle(m.key) } }
-                            }
-                            WizardStep.EXERCISE -> {
-                                val exs = ui.exercisesForStep
-                                if (exs.isEmpty()) EmptyNote("No exercises here yet.")
-                                else exs.forEach { e -> PickRow(e.name, about = e.about, info = true) { vm.pickExercise(e.id) } }
-                            }
-                            WizardStep.WORKOUT -> {
-                                if (ui.hiitWorkouts.isEmpty()) EmptyNote("No HIIT/CrossFit workouts yet — create one first.")
-                                else ui.hiitWorkouts.forEach { w -> PickRow(w.name) { vm.pickWorkout(w.id) } }
-                            }
-                            WizardStep.VALUE -> ValueStep(ui, vm)
-                        }
-                        Spacer(Modifier.width(1.dp))
-                    }
+                WizardStep.EXERCISE -> {
+                    val exs = ui.exercisesForStep
+                    if (exs.isEmpty()) EmptyNote("No exercises here yet.")
+                    else exs.forEach { e -> PickRow(e.name, about = e.about, info = true) { vm.pickExercise(e.id) } }
                 }
+                WizardStep.WORKOUT -> {
+                    if (ui.hiitWorkouts.isEmpty()) EmptyNote("No HIIT/CrossFit workouts yet — create one first.")
+                    else ui.hiitWorkouts.forEach { w -> PickRow(w.name) { vm.pickWorkout(w.id) } }
+                }
+                WizardStep.VALUE -> Unit
             }
+          }
         }
     }
 
