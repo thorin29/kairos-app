@@ -1,4 +1,8 @@
 # Changelog
+## 0.487.1
+
+- Farmer, overhead kettlebell and plate pinch holds take the weight you held beside each time.
+
 ## 0.487.0
 
 - Game coming with a leg day: the card can swap today with a later day this week. The day shows the swap with Undo.

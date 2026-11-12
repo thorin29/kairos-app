@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Weighted holds (v0.487.1, server 0.677.1)
+
+- A timed set row shows a weight box before the time when the movement log
+  has `holdUnit`; the weight goes out with the set.
+
 ## 2026-11 — Swapped days, band-aid sore spots (v0.487.0, server 0.677.0)
 
 - `WorkoutDayDto.swappedWith` → "Swapped with Friday this week · Undo"

@@ -725,6 +725,8 @@ data class MovementLogDto(
     val about: String? = null,
     /** What the reps field counts when not reps: "yd" / "m" for a carry (server 0.640+). */
     val repsUnit: String? = null,
+    /** A timed hold with a weight in hand (server 0.677.1+): the weight's unit. */
+    val holdUnit: String? = null,
     /** Done a side at a time, a set per side (server 0.642+): its timer switches sides. */
     val sides: Boolean = false,
 )

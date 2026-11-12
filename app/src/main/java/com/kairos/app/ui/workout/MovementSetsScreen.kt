@@ -369,6 +369,7 @@ fun MovementSetsScreen(
                                 onOpenCalculator("Use for set ${i + 1}", w)
                             },
                             repsUnit = ui.repsUnit,
+                            holdUnit = ui.holdUnit,
                         )
                     }
 
@@ -497,6 +498,8 @@ private fun SetCard(
     onPlates: (Double) -> Unit = {},
     /** A carry's reps are a distance (v0.447): "yd" / "m". */
     repsUnit: String? = null,
+    /** A timed hold with a weight in hand (v0.487.1): a weight beside the time. */
+    holdUnit: String? = null,
 ) {
     OutlinedCard(
         Modifier.fillMaxWidth(),
@@ -550,6 +553,17 @@ private fun SetCard(
                         Spacer(Modifier.weight(1f))
                     }
                     "DURATION" -> {
+                        if (holdUnit != null) {
+                            SetField(
+                                value = row.w,
+                                hint = vm.hintW(row, shift)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
+                                label = "Weight, set $index",
+                                decimal = true,
+                                enabled = enabled,
+                                modifier = Modifier.width(76.dp),
+                            ) { vm.onWeight(row.key, it) }
+                            UnitText(holdUnit)
+                        }
                         // Minutes and seconds, typed like a microwave (v0.449).
                         ClockField(
                             seconds = row.s,
@@ -1421,6 +1435,7 @@ private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: Str
                     enabled = true,
                     strict = vm.strict(),
                     repsUnit = ui.repsUnit,
+                    holdUnit = ui.holdUnit,
                 )
             }
             PillButton(label = "Add set", icon = true) { vm.addSet() }

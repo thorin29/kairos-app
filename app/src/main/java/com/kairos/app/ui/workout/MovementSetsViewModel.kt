@@ -80,6 +80,8 @@ data class MovementSetsUi(
     val about: String? = null,
     /** A carry's reps are a distance: "yd" / "m" (server 0.640+). */
     val repsUnit: String? = null,
+    /** A timed hold with a weight in hand (server 0.677.1+): the weight's unit. */
+    val holdUnit: String? = null,
     /** Done a side at a time (server 0.642+): its timer switches sides. */
     val sides: Boolean = false,
 )
@@ -137,6 +139,7 @@ class MovementSetsViewModel(
                     recentTop = log.recentTop,
                     about = log.about,
                     repsUnit = log.repsUnit,
+                    holdUnit = log.holdUnit,
                     sides = log.sides,
                     targetTitle = log.target?.title ?: "",
                     lastSets = last,
@@ -367,7 +370,7 @@ class MovementSetsViewModel(
     private fun num(v: String): Double? = v.trim().toDoubleOrNull()?.takeIf { it > 0 }
 
     fun valueOf(r: SetRow, shift: Double = _ui.value.shift): MovementSetDto = MovementSetDto(
-        weight = if (metric == "WEIGHT") num(r.w) ?: hintW(r, shift) else null,
+        weight = if (metric == "WEIGHT" || (metric == "DURATION" && _ui.value.holdUnit != null)) num(r.w) ?: hintW(r, shift) else null,
         reps = if (metric == "WEIGHT" || metric == "REPS") num(r.r)?.toInt() ?: r.hintR else null,
         seconds = if (metric == "DURATION") num(r.s)?.toInt() ?: r.hintS else null,
     )
