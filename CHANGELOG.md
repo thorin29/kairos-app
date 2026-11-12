@@ -1,4 +1,8 @@
 # Changelog
+## 0.498.0
+
+- Pause workouts shows a pause a parent set for you in Admin as "set by a parent".
+
 ## 0.497.0
 
 - The body map pop-ups say why a group is its colour, under the week's sets.

@@ -156,7 +156,7 @@ fun WorkoutPauseScreen(onBack: () -> Unit) {
                         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    p.label + if (p.kind == "household") " · household" else "",
+                                    p.label + when (p.kind) { "household" -> " · household"; "admin" -> " · set by a parent"; else -> "" },
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )

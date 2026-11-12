@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Admin pauses for one person (v0.498.0, server 0.688.0)
+
+- `WorkoutPauseDto.kind` can be "admin" (a parent's pause for this person,
+  from Admin → Calendar): listed as "set by a parent", no End or Remove.
+  The heat map's program and top-set fixes are server-side only.
+
 ## 2026-11 — Reason line; midnight rollover (v0.497.0, server 0.687.0)
 
 - The map pop-up shows `TrainGroup.line` whenever there is one, rows or not.
