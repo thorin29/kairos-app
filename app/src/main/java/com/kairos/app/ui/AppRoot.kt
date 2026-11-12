@@ -698,12 +698,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenAppearance = { navController.navigate(Route.SettingsAppearance) },
                         onOpenProfile = { navController.navigate(Route.SettingsProfile) },
                         onOpenNotifications = { navController.navigate(Route.SettingsNotifications) },
+                        person = person,
                         onOpenUpdate = { navController.navigate(Route.SettingsUpdate) },
-                        onOpenReminders = { navController.navigate(Route.SettingsReminders) },
                         onOpenDiagnostics = { navController.navigate(Route.SettingsDiagnostics) },
                         onOpenScoring = { navController.navigate(Route.SettingsScoring) },
                         onOpenPassword = { navController.navigate(Route.SettingsPassword) },
                         onOpenConcept2 = { navController.navigate(Route.SettingsConcept2) },
+                        // Devices had a screen but no way in (v0.501); Sign out
+                        // asks the same "Sign out?" as the side rail.
+                        onOpenDevices = { navController.navigate(Route.Devices) },
+                        onSignOut = { confirmSignOut = true },
                         onOpenApprovals = if (isAdmin) {
                             { navController.navigate(Route.SchoolApprovals) }
                         } else null,

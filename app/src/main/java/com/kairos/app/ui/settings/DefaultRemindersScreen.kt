@@ -37,27 +37,12 @@ import com.kairos.app.ui.common.rememberContainer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+/** The old route (v0.501): the same card on a page of its own. Settings now
+ *  opens Notifications & reminders, which holds [DefaultRemindersCard]. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DefaultRemindersScreen(onBack: () -> Unit) {
-    val container = rememberContainer()
-    val defaults by container.settingsStore.reminderDefaults.collectAsState(initial = emptyMap())
-    val scope = rememberCoroutineScope()
-    var editingKind by remember { mutableStateOf<String?>(null) }
-    var readingLead by remember { mutableStateOf(0) }
-    var editingReading by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        // Show the last-known value even offline, instead of defaulting to "Off".
-        container.settingsStore.readingReminderLead.first().let { if (it >= 0) readingLead = it }
-        try {
-            val v = container.sessionRepository.loadReadingReminder().leadDays
-            readingLead = v
-            container.settingsStore.setReadingReminderLead(v)
-        } catch (_: Exception) {}
-    }
-
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("Default reminders") },
@@ -74,16 +59,37 @@ fun DefaultRemindersScreen(onBack: () -> Unit) {
                 .padding(inner)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-        ) {
-            Text(
-                "New events start with these reminders based on their type. Existing events aren't changed.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 16.dp),
-            )
-            ReminderDefaults.KINDS.forEach { (kind, label) ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                .padding(16.dp),
+        ) { DefaultRemindersCard() }
+    }
+}
+
+/**
+ * The default reminder for each event type and the reading-goal lead, as one
+ * card of rows (v0.501), each opening a small picker.
+ */
+@Composable
+fun DefaultRemindersCard() {
+    val container = rememberContainer()
+    val defaults by container.settingsStore.reminderDefaults.collectAsState(initial = emptyMap())
+    val scope = rememberCoroutineScope()
+    var editingKind by remember { mutableStateOf<String?>(null) }
+    var readingLead by remember { mutableStateOf(0) }
+    var editingReading by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        // Show the last-known value even offline, instead of defaulting to "Off".
+        container.settingsStore.readingReminderLead.first().let { if (it >= 0) readingLead = it }
+        try {
+            val v = container.sessionRepository.loadReadingReminder().leadDays
+            readingLead = v
+            container.settingsStore.setReadingReminderLead(v)
+        } catch (_: Exception) {}
+    }
+
+    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            ReminderDefaults.KINDS.forEachIndexed { i, (kind, label) ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 val value = ReminderDefaults.effective(defaults, kind)
                 Row(
                     Modifier

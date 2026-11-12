@@ -4,18 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,21 +26,34 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kairos.app.BuildConfig
+import com.kairos.app.data.remote.dto.PersonDto
+import com.kairos.app.ui.common.PersonAvatar
 import com.kairos.app.ui.nav.KairosIcons
 import com.kairos.app.ui.theme.KairosThemeState
 
-private data class Section(
+/** One row in a Settings group. */
+private data class SettingRow(
     val icon: ImageVector,
     val title: String,
-    val blurb: String,
-    val ready: Boolean,
-    val onOpen: (() -> Unit)? = null,
-    val badge: Boolean = false,
+    val sub: String? = null,
+    val value: String? = null,
+    val badge: String? = null,
+    val onOpen: () -> Unit,
 )
 
+private data class SettingGroup(val label: String, val rows: List<SettingRow>)
+
+/**
+ * Settings (v0.501): your profile on top, then grouped rows — Account, Look &
+ * feel, Notifications, Connected apps, Parents (parents only), Help & about —
+ * instead of ten separate cards. Devices and Sign out are reachable here too.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -48,91 +61,79 @@ fun SettingsScreen(
     onOpenAppearance: () -> Unit,
     onOpenProfile: () -> Unit,
     onOpenNotifications: () -> Unit,
+    person: PersonDto? = null,
     onOpenUpdate: () -> Unit = {},
-    onOpenReminders: () -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
     onOpenScoring: () -> Unit = {},
     onOpenPassword: () -> Unit = {},
     onOpenConcept2: () -> Unit = {},
+    onOpenDevices: () -> Unit = {},
+    onSignOut: () -> Unit = {},
     onOpenApprovals: (() -> Unit)? = null,
     approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
 ) {
-    val sections = listOfNotNull(
-        Section(
-            KairosIcons.Palette,
-            "Appearance",
-            "Dark/light mode, color themes",
-            ready = true,
-            onOpen = onOpenAppearance,
+    val groups = listOfNotNull(
+        SettingGroup(
+            "Account",
+            listOf(
+                SettingRow(icon = KairosIcons.Lock, title = "Password", onOpen = onOpenPassword),
+                SettingRow(icon = KairosIcons.Phone, title = "Devices", sub = "Phones signed in", onOpen = onOpenDevices),
+                SettingRow(icon = KairosIcons.Switch, title = "Sign out or switch person", onOpen = onSignOut),
+            ),
         ),
-        Section(
-            KairosIcons.PersonCircle,
-            "Profile",
-            "Edit profile color and image",
-            ready = true,
-            onOpen = onOpenProfile,
+        SettingGroup(
+            "Look & feel",
+            listOf(
+                SettingRow(
+                    icon = KairosIcons.Palette,
+                    title = "Appearance",
+                    sub = "Theme, colours, widget, workout timer",
+                    onOpen = onOpenAppearance,
+                ),
+            ),
         ),
-        Section(
-            KairosIcons.Lock,
-            "Password",
-            "Change the password you sign in with",
-            ready = true,
-            onOpen = onOpenPassword,
-        ),
-        Section(
-            icon = KairosIcons.Dumbbell,
-            title = "Concept2",
-            blurb = "Connect your rower's logbook",
-            ready = true,
-            onOpen = onOpenConcept2,
-        ),
-        Section(
-            KairosIcons.Bell,
+        SettingGroup(
             "Notifications",
-            "Reminders, sounds, and vibration settings",
-            ready = true,
-            onOpen = onOpenNotifications,
+            listOf(
+                SettingRow(
+                    icon = KairosIcons.Bell,
+                    title = "Notifications & reminders",
+                    sub = "Alerts, default reminders, sound",
+                    onOpen = onOpenNotifications,
+                ),
+            ),
         ),
-        Section(
-            KairosIcons.Calendar,
-            "Default reminders",
-            "Default reminder for each event type",
-            ready = true,
-            onOpen = onOpenReminders,
-        ),
-        Section(
-            KairosIcons.Trophy,
-            "How scoring works",
-            "Levels, characters, eggs and the family goal",
-            ready = true,
-            onOpen = onOpenScoring,
+        SettingGroup(
+            "Connected apps",
+            listOf(SettingRow(icon = KairosIcons.Link, title = "Concept2", sub = "Rower logbook", onOpen = onOpenConcept2)),
         ),
         onOpenApprovals?.let {
-            Section(
-                KairosIcons.Book,
-                "Class approvals",
-                if (approvalsCount > 0) "$approvalsCount waiting for review"
-                else "Review family-added subjects & semesters",
-                ready = true,
-                onOpen = it,
-                badge = approvalsCount > 0,
+            SettingGroup(
+                "Parents",
+                listOf(
+                    SettingRow(
+                        icon = KairosIcons.Book,
+                        title = "Class approvals",
+                        badge = if (approvalsCount > 0) "$approvalsCount" else null,
+                        onOpen = it,
+                    ),
+                ),
             )
         },
-        Section(
-            KairosIcons.Download,
-            "Software update",
-            if (updateAvailable) "An update is ready to install" else "Check for app updates",
-            ready = true,
-            onOpen = onOpenUpdate,
-            badge = updateAvailable,
-        ),
-        Section(
-            KairosIcons.Search,
-            "Diagnostics",
-            "Recent activity log, for troubleshooting",
-            ready = true,
-            onOpen = onOpenDiagnostics,
+        SettingGroup(
+            "Help & about",
+            listOf(
+                SettingRow(icon = KairosIcons.Trophy, title = "How scoring works", onOpen = onOpenScoring),
+                SettingRow(
+                    icon = KairosIcons.Download,
+                    title = "Software update",
+                    value = if (updateAvailable) null else "v${BuildConfig.VERSION_NAME}",
+                    badge = if (updateAvailable) "New" else null,
+                    onOpen = onOpenUpdate,
+                ),
+                SettingRow(icon = KairosIcons.Search, title = "Diagnostics", onOpen = onOpenDiagnostics),
+            ),
         ),
     )
 
@@ -157,68 +158,102 @@ fun SettingsScreen(
             LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                sections.forEach { s ->
-                    item(key = s.title) { SectionCard(s) }
+                item(key = "profile") { ProfileCard(person = person, onOpen = onOpenProfile) }
+                groups.forEach { g ->
+                    item(key = "label-${g.label}") {
+                        SettingsLabel(g.label, modifier = Modifier.padding(top = 12.dp))
+                    }
+                    item(key = "group-${g.label}") { GroupCard(g) }
                 }
             }
         }
     }
 }
 
+/** A section's small uppercase label (v0.501), shared by the settings pages. */
 @Composable
-private fun SectionCard(section: Section) {
-    val clickMod =
-        if (section.onOpen != null) Modifier.clickable { section.onOpen.invoke() } else Modifier
+internal fun SettingsLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(start = 4.dp),
+    )
+}
+
+@Composable
+private fun ProfileCard(person: PersonDto?, onOpen: () -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .then(clickMod)
+                .clickable { onOpen() }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Icon(
-                section.icon,
-                contentDescription = null,
-                tint = KairosThemeState.accent,
-                modifier = Modifier.size(26.dp),
-            )
+            if (person != null) {
+                PersonAvatar(person = person, size = 52.dp)
+            } else {
+                Icon(KairosIcons.PersonCircle, contentDescription = null, tint = KairosThemeState.accent, modifier = Modifier.size(52.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
-                    section.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    person?.name ?: "Profile",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    section.blurb,
+                    "Photo, colour, birthday",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
-            if (section.badge) {
-                Box(
+            Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun GroupCard(group: SettingGroup) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
+            group.rows.forEachIndexed { i, row ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
                     Modifier
-                        .size(9.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4FC3F7)),
-                )
-            }
-            if (section.ready) {
-                Icon(
-                    KairosIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Text(
-                    "Soon",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 56.dp)
+                        .clickable { row.onOpen() }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Icon(row.icon, contentDescription = null, tint = KairosThemeState.accent, modifier = Modifier.size(24.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(row.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        row.sub?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    row.value?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    row.badge?.let {
+                        Box(
+                            Modifier
+                                .clip(CircleShape)
+                                .background(Color(0xFF0B6FA4))
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        ) {
+                            Text(it, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                    Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }

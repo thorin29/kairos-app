@@ -202,6 +202,20 @@ object KairosIcons {
         "M8 11V8a4 4 0 0 1 8 0v3",
     )
 
+    /** Devices in Settings (v0.501): a phone. */
+    val Phone = stroked(
+        "Phone",
+        "M8 2.5h8a1.5 1.5 0 0 1 1.5 1.5v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5Z",
+        "M11 18h2",
+    )
+
+    /** Connected apps in Settings (v0.501): two chain links. */
+    val Link = stroked(
+        "Link",
+        "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1",
+        "M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+    )
+
     /** Ice time (v0.457): an ice skate. */
     val Hockey = stroked(
         "Hockey",

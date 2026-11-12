@@ -1,4 +1,11 @@
 # Changelog
+## 0.501.0
+
+- Settings is reorganized: your profile on top, then Account, Look & feel, Notifications, Connected apps, Parents and Help & about.
+- Devices (the phones signed in, with Revoke) and Sign out are now in Settings.
+- Notifications and Default reminders are one page.
+- Appearance is grouped into App, Home screen widget and Workout timer.
+
 ## 0.500.0
 
 - The heat map ⓘ explains the heart's new colours (needs server 0.690).

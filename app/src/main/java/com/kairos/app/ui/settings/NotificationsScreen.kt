@@ -40,6 +40,10 @@ import com.kairos.app.data.notifications.Notifications
 import com.kairos.app.ui.common.rememberContainer
 import kotlinx.coroutines.launch
 
+/**
+ * Notifications & reminders (v0.501): this phone's alerts, the default
+ * reminders (once their own screen) and sound, under section labels.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(onBack: () -> Unit) {
@@ -58,7 +62,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notifications") },
+                title = { Text("Notifications & reminders") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
@@ -78,6 +82,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                item { SettingsLabel("Alerts on this phone") }
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Row(
@@ -154,7 +159,11 @@ fun NotificationsScreen(onBack: () -> Unit) {
                     }
                 }
 
+                item { SettingsLabel("Default reminders") }
+                item { DefaultRemindersCard() }
+
                 if (prefs.enabled) {
+                    item { SettingsLabel("Sound") }
                     item {
                         OutlinedCard(
                             onClick = { Notifications.openChannelSettings(context) },

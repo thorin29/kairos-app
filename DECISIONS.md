@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-11 — Settings reorganized (v0.501.0, no server change)
+
+- Settings: a profile card (PersonAvatar, name) on top, then grouped rows
+  under uppercase labels (`SettingsLabel`, shared by the settings pages):
+  Account (Password, Devices, Sign out or switch), Look & feel (Appearance),
+  Notifications (Notifications & reminders), Connected apps (Concept2),
+  Parents (Class approvals, admins only, count badge), Help & about (How
+  scoring works, Software update with the version or a "New" badge,
+  Diagnostics).
+- Devices had a route and screen but nothing navigated to it; Settings now
+  does. Sign out from Settings raises the rail's own "Sign out?" dialog.
+- Notifications & reminders: the old Default reminders screen is
+  `DefaultRemindersCard`, shown between the alert switches and Sound. Its
+  route stays and shows the same card on its own page.
+- Appearance keeps every control, regrouped: App (light or dark, colour
+  theme, time format), Home screen widget, Workout timer (look, numbers,
+  number colour, when you leave the app). The user chose to keep widget and
+  timer here rather than a separate "On this phone" group.
+- New icons: `KairosIcons.Phone`, `KairosIcons.Link`.
+
 ## 2026-11 — Endurance ⓘ text (v0.500.0, server 0.690.0)
 
 - Only the ⓘ copy changes; carries and endurance scoring are server-side.

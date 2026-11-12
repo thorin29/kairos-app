@@ -92,11 +92,14 @@ fun AppearanceScreen(onBack: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Three sections (v0.501): the app's look, then the widget
+                // and the workout timer, so this phone's extras sit together.
+                item { SettingsLabel("App") }
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             Text(
-                                "Theme",
+                                "Light or dark",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -109,107 +112,25 @@ fun AppearanceScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Column(Modifier.padding(8.dp)) {
                             Text(
-                                "Home screen widget",
+                                "Color theme",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
                             )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                "Events",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Segmented(
-                                options = listOf("SOLID" to "Solid", "BAR" to "Accent"),
-                                selected = widgetStyle,
-                                onPick = { v -> save { settings.setWidgetStyle(v) } },
-                            )
-                            Spacer(Modifier.height(14.dp))
-                            Text(
-                                "Light or dark",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Segmented(
-                                options = listOf("APP" to "App", "SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
-                                selected = widgetTheme,
-                                onPick = { v -> save { settings.setWidgetTheme(v) } },
-                            )
-                            Spacer(Modifier.height(14.dp))
-                            Text(
-                                "Show",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Segmented(
-                                options = listOf("FAMILY" to "Whole family", "MINE" to "Only mine"),
-                                selected = widgetScope,
-                                onPick = { v -> save { settings.setWidgetScope(v) } },
-                            )
+                            ThemeScheme.entries.forEach { scheme ->
+                                SchemeRow(
+                                    scheme = scheme,
+                                    selected = scheme == current,
+                                    onPick = { save { settings.setThemeScheme(scheme.name) } },
+                                )
+                            }
                         }
                     }
                 }
-
-                item {
-                    OutlinedCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                            Text(
-                                "Workout timer",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Segmented(
-                                options = listOf("DARK" to "Dark", "LIGHT" to "Light", "APP" to "Match app"),
-                                selected = timerTheme,
-                                onPick = { v -> save { settings.setTimerTheme(v) } },
-                            )
-                            // Digits and what a running timer does when you leave
-                            // the app (v0.438).
-                            val timerFont by settings.timerFont.collectAsState(initial = "STANDARD")
-                            val timerColor by settings.timerColor.collectAsState(initial = "PLAIN")
-                            val timerAway by settings.timerAway.collectAsState(initial = "BOTH")
-                            val primary = MaterialTheme.colorScheme.primary
-                            Spacer(Modifier.height(12.dp))
-                            // Each choice drawn as it looks (v0.440).
-                            Text("Numbers", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(6.dp))
-                            com.kairos.app.ui.workout.TimerLookPicker(
-                                options = com.kairos.app.ui.workout.TIMER_FONTS,
-                                selected = timerFont,
-                                font = { com.kairos.app.ui.workout.timerFontFor(it) },
-                                color = { com.kairos.app.ui.workout.timerColorFor(timerColor, primary) ?: Color.White },
-                                onPick = { v -> scope.launch { settings.setTimerFont(v) } },
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text("Number colour", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(6.dp))
-                            com.kairos.app.ui.workout.TimerLookPicker(
-                                options = com.kairos.app.ui.workout.TIMER_COLORS,
-                                selected = timerColor,
-                                font = { com.kairos.app.ui.workout.timerFontFor(timerFont) },
-                                color = { com.kairos.app.ui.workout.timerColorFor(it, primary) ?: Color.White },
-                                onPick = { v -> scope.launch { settings.setTimerColor(v) } },
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            com.kairos.app.ui.workout.Dropdown(
-                                label = "When you leave the app",
-                                selected = com.kairos.app.ui.workout.TIMER_AWAY.firstOrNull { it.first == timerAway }?.second ?: "Notification and floating window",
-                                options = com.kairos.app.ui.workout.TIMER_AWAY,
-                                onSelect = { v -> scope.launch { settings.setTimerAway(v) } },
-                            )
-                        }
-                    }
-                }
-
                 item {
                     val fmt by settings.timeFormat.collectAsState(initial = "SYSTEM")
                     var showFmt by remember { mutableStateOf(false) }
@@ -271,25 +192,97 @@ fun AppearanceScreen(onBack: () -> Unit) {
                         )
                     }
                 }
-                item {
-                    Text(
-                        "Color theme",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(start = 4.dp),
-                    )
-                }
-
+                item { SettingsLabel("Home screen widget") }
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(8.dp)) {
-                            ThemeScheme.entries.forEach { scheme ->
-                                SchemeRow(
-                                    scheme = scheme,
-                                    selected = scheme == current,
-                                    onPick = { save { settings.setThemeScheme(scheme.name) } },
-                                )
-                            }
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                "Events",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("SOLID" to "Solid", "BAR" to "Accent"),
+                                selected = widgetStyle,
+                                onPick = { v -> save { settings.setWidgetStyle(v) } },
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                "Light or dark",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("APP" to "App", "SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark"),
+                                selected = widgetTheme,
+                                onPick = { v -> save { settings.setWidgetTheme(v) } },
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                "Show",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("FAMILY" to "Whole family", "MINE" to "Only mine"),
+                                selected = widgetScope,
+                                onPick = { v -> save { settings.setWidgetScope(v) } },
+                            )
+                        }
+                    }
+                }
+                item { SettingsLabel("Workout timer") }
+                item {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                "Look",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Segmented(
+                                options = listOf("DARK" to "Dark", "LIGHT" to "Light", "APP" to "Match app"),
+                                selected = timerTheme,
+                                onPick = { v -> save { settings.setTimerTheme(v) } },
+                            )
+                            // Digits and what a running timer does when you leave
+                            // the app (v0.438).
+                            val timerFont by settings.timerFont.collectAsState(initial = "STANDARD")
+                            val timerColor by settings.timerColor.collectAsState(initial = "PLAIN")
+                            val timerAway by settings.timerAway.collectAsState(initial = "BOTH")
+                            val primary = MaterialTheme.colorScheme.primary
+                            Spacer(Modifier.height(12.dp))
+                            // Each choice drawn as it looks (v0.440).
+                            Text("Numbers", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+                            com.kairos.app.ui.workout.TimerLookPicker(
+                                options = com.kairos.app.ui.workout.TIMER_FONTS,
+                                selected = timerFont,
+                                font = { com.kairos.app.ui.workout.timerFontFor(it) },
+                                color = { com.kairos.app.ui.workout.timerColorFor(timerColor, primary) ?: Color.White },
+                                onPick = { v -> scope.launch { settings.setTimerFont(v) } },
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text("Number colour", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+                            com.kairos.app.ui.workout.TimerLookPicker(
+                                options = com.kairos.app.ui.workout.TIMER_COLORS,
+                                selected = timerColor,
+                                font = { com.kairos.app.ui.workout.timerFontFor(timerFont) },
+                                color = { com.kairos.app.ui.workout.timerColorFor(it, primary) ?: Color.White },
+                                onPick = { v -> scope.launch { settings.setTimerColor(v) } },
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            com.kairos.app.ui.workout.Dropdown(
+                                label = "When you leave the app",
+                                selected = com.kairos.app.ui.workout.TIMER_AWAY.firstOrNull { it.first == timerAway }?.second ?: "Notification and floating window",
+                                options = com.kairos.app.ui.workout.TIMER_AWAY,
+                                onSelect = { v -> scope.launch { settings.setTimerAway(v) } },
+                            )
                         }
                     }
                 }
