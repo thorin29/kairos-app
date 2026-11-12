@@ -1,4 +1,8 @@
 # Changelog
+## 0.493.0
+
+- Workout days: three or more groups show as pie slices, however many. Tap a day for the list.
+
 ## 0.492.0
 
 - One "+ Additional" button on the day: Conditioning, Family WOD, Strength, Cardio, Sport, Mobility, Stretching, Isometrics, or something else. Each opens its own page.

@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Pie slices for any count (v0.493.0, server 0.683.0)
+
+- Workout days cells with 3+ groups are a sweep gradient with one hard-
+  stopped slice per group, no gaps and no cap (supersedes 0.492's tiles).
+  The tap-a-day pop-up is how a crowded day is read.
+
 ## 2026-11 — Pages, not sheets; one Add flow (v0.492.0, server 0.682.0)
 
 - `ui/common/FullPage` (a full-screen Dialog holding a Scaffold + TopAppBar,

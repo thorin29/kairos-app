@@ -1153,28 +1153,24 @@ private fun ProgressSummaryCards(
                                                 end = Offset.Infinite,
                                             ),
                                         )
-                                        cs.size >= 3 -> Modifier
+                                        // Three or more (v0.492): pie slices from the
+                                        // centre, one per group, however many. At
+                                        // seven and up the colours blur; tapping the
+                                        // day lists them.
+                                        cs.size >= 3 -> Modifier.background(
+                                            Brush.sweepGradient(
+                                                *cs.flatMapIndexed { i, c ->
+                                                    listOf(
+                                                        (i.toFloat() / cs.size) to c,
+                                                        ((i + 1).toFloat() / cs.size) to c,
+                                                    )
+                                                }.toTypedArray(),
+                                            ),
+                                        )
                                         else -> Modifier.background(cs.firstOrNull() ?: track)
                                     },
                                 ),
-                        ) {
-                            // Three or more (v0.491): a small grid, one tile per
-                            // group — two across up to four, three across up to
-                            // nine — so every group keeps a tile of its own. Tap
-                            // the day for the names.
-                            if (cs.size >= 3) {
-                                val cols = if (cs.size <= 4) 2 else 3
-                                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                    cs.take(9).chunked(cols).forEach { rowCs ->
-                                        Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                                            // A short last row shares its width (three: two
-                                            // on top, one wide under them).
-                                            rowCs.forEach { c -> Box(Modifier.weight(1f).fillMaxSize().background(c)) }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        )
                     }
                 }
             }
