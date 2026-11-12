@@ -164,6 +164,8 @@ data class WorkoutLogUiState(
     val rested: Boolean = false,
     /** A rest day in the plan (v0.456). */
     val restPlanned: Boolean = false,
+    /** The day's family WOD (server 0.679+). */
+    val familyWod: com.kairos.app.data.remote.dto.FamilyWodDto? = null,
     /** Pick one's list, loaded when it opens. */
     val choices: com.kairos.app.data.remote.dto.ConditioningChoicesDto? = null,
     val choicesError: String? = null,
@@ -380,6 +382,7 @@ class WorkoutLogViewModel(
                 loggedAny = plan.loggedAny,
                 rested = plan.rested,
                 restPlanned = plan.restPlanned,
+                familyWod = plan.familyWod,
             )
         }
     }
@@ -472,6 +475,18 @@ class WorkoutLogViewModel(
             } catch (e: ApiException) {
                 _ui.update { it.copy(actionError = e.error.message) }
             }
+        }
+    }
+
+    /** Join the day's family WOD, or leave one you joined (v0.489). */
+    fun joinFamilyWod(id: String, on: Boolean) {
+        viewModelScope.launch {
+            try {
+                session.familyWodAction(com.kairos.app.data.remote.dto.FamilyWodRequest(join = id, on = on))
+            } catch (e: ApiException) {
+                _ui.update { it.copy(actionError = e.error.message) }
+            }
+            load()
         }
     }
 

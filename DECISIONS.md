@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Family WOD (v0.489.0, server 0.679.0)
+
+- `WorkoutDayDto.familyWod` drives `FamilyWodDayCard` at the top of the
+  day: a member gets `ConditioningCard` with `badge` and `noSkip`, logged
+  and rated like any conditioning; anyone else gets Join. The board follows.
+- `FamilyWodPanel` on the Workouts screen loads `GET workouts/family-wod`
+  itself (next, Board, Suggest one; parents: Coming up and Suggestions).
+  "+ Additional → Family WOD" sets one for the day (a parent) or suggests it.
+- Parents come from the server's `parent` flag; days step one at a time,
+  today to 60 days on.
+
 ## 2026-11 — Workout pauses (v0.488.0, server 0.678.0)
 
 - `WorkoutPausePanel` on the Workouts screen (it loads `GET workouts/pause`

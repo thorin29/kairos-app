@@ -1,4 +1,9 @@
 # Changelog
+## 0.489.0
+
+- Family WOD: a day's shared workout shows at the top of the day. Join if you weren't put in; it never counts as missed.
+- The Workouts screen shows the next family WOD, its board and past ones. Suggest one; parents set and approve them.
+
 ## 0.488.0
 
 - Pause workouts from the Workouts screen when you're sick or injured, through a day you pick. End it early anytime.

@@ -379,6 +379,13 @@ interface ApiService {
     @POST("workouts/adjust")
     suspend fun adjustShort(@Body body: com.kairos.app.data.remote.dto.AdjustRequest): Response<com.kairos.app.data.remote.dto.ShortAnswerDto>
 
+    /** Family WOD (server 0.679+). */
+    @GET("workouts/family-wod")
+    suspend fun familyWod(@Query("choices") choices: String? = null): Response<com.kairos.app.data.remote.dto.FamilyWodOverviewDto>
+
+    @POST("workouts/family-wod")
+    suspend fun familyWodAction(@Body body: com.kairos.app.data.remote.dto.FamilyWodRequest): Response<com.kairos.app.data.remote.dto.FamilyWodOverviewDto>
+
     @GET("workouts/pause")
     suspend fun workoutPauses(): Response<com.kairos.app.data.remote.dto.WorkoutPauseListDto>
 

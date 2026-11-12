@@ -301,6 +301,9 @@ fun WorkoutsScreen(
                         ) { onOpenCalculator() }
                     }
 
+                    // One shared conditioning workout now and then (v0.489).
+                    FamilyWodPanel()
+
                     // A pause for being sick or hurt (v0.488).
                     WorkoutPausePanel()
 

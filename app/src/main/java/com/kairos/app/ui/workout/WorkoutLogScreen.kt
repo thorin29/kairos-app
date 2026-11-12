@@ -139,6 +139,8 @@ fun WorkoutLogScreen(
     var addingConditioning by remember { mutableStateOf(false) }
     // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
     var addingMenu by remember { mutableStateOf(false) }
+    // + Additional → Family WOD (v0.489): set one (a parent) or suggest one.
+    var familyForDay by remember { mutableStateOf(false) }
     var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     var extraKind by remember { mutableStateOf<String?>(null) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
@@ -365,6 +367,19 @@ fun WorkoutLogScreen(
                         )
                     }
 
+                    // The day's family WOD (v0.489): on rest and paused days too.
+                    ui.familyWod?.let { fw ->
+                        FamilyWodDayCard(
+                            wod = fw,
+                            date = ui.date ?: today,
+                            onLog = { c, v, version ->
+                                vm.logConditioning(hiitWorkoutId = c.hiitWorkoutId, built = null, value = v, version = version)
+                            },
+                            onFeedback = { c, e, h -> vm.conditioningFeedback(plannedWorkoutId = c.plannedWorkoutId, effort = e, hurt = h) },
+                            onJoin = { on -> vm.joinFamilyWod(id = fw.id, on = on) },
+                        )
+                    }
+
                     // Past days still open: the same sections, tinted, each
                     // labelled with its day.
                     overdueBlocks.groupBy { it.date ?: "" }.forEach { (d, blocks) ->
@@ -461,7 +476,7 @@ fun WorkoutLogScreen(
                                     // A one-off conditioning session on any day (v0.427): what's
                                     // been done that no card above shows, then + Conditioning.
                                     if (ui.picks.isEmpty()) {
-                                        val planned = ui.conditioning.map { it.name.take(40) }.toSet()
+                                        val planned = ui.conditioning.map { it.name.take(40) }.toSet() + listOfNotNull(ui.familyWod?.name?.take(40))
                                         val extra = ui.conditioningDone.filter { it.name.take(40) !in planned }
                                         if (extra.isNotEmpty()) {
                                             OutlinedCard(Modifier.fillMaxWidth()) {
@@ -619,6 +634,24 @@ fun WorkoutLogScreen(
                 extraKind = it
             },
             onDismiss = { addingMenu = false },
+            onFamilyWod = if (ui.familyWod == null && (ui.date ?: LocalDate.now().toString()) >= LocalDate.now().toString()) {
+                {
+                    addingMenu = false
+                    familyForDay = true
+                }
+            } else {
+                null
+            },
+        )
+    }
+    if (familyForDay) {
+        FamilyWodForDay(
+            date = ui.date ?: LocalDate.now().toString(),
+            onDone = {
+                familyForDay = false
+                vm.load()
+            },
+            onDismiss = { familyForDay = false },
         )
     }
     extraKind?.let { k ->

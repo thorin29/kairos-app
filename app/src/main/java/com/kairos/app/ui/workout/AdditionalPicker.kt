@@ -33,13 +33,22 @@ internal val EXTRA_KINDS = listOf("mobility" to "Mobility", "stretching" to "Str
  * stretching routine or an isometric workout added to this day only.
  */
 @Composable
-internal fun AdditionalMenu(onConditioning: () -> Unit, onKind: (String) -> Unit, onDismiss: () -> Unit) {
+internal fun AdditionalMenu(
+    onConditioning: () -> Unit,
+    onKind: (String) -> Unit,
+    onDismiss: () -> Unit,
+    /** "Family WOD" (v0.489): set one for the day, or suggest one. */
+    onFamilyWod: (() -> Unit)? = null,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Additional") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AccentOutlinedButton(onClick = onConditioning, modifier = Modifier.fillMaxWidth()) { Text("Conditioning") }
+                if (onFamilyWod != null) {
+                    AccentOutlinedButton(onClick = onFamilyWod, modifier = Modifier.fillMaxWidth()) { Text("Family WOD") }
+                }
                 EXTRA_KINDS.forEach { (k, label) ->
                     AccentOutlinedButton(onClick = { onKind(k) }, modifier = Modifier.fillMaxWidth()) { Text(label) }
                 }

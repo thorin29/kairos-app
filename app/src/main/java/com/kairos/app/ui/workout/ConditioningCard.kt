@@ -51,6 +51,10 @@ internal fun ConditioningCard(
     onLog: (Int, String?) -> Unit,
     onSkip: (Boolean) -> Unit,
     onFeedback: (String?, String?) -> Unit,
+    /** Above the name: "Family WOD · Alex and Sam" (v0.489). */
+    badge: String? = null,
+    /** An extra that can't be missed has no Skip (a family WOD). */
+    noSkip: Boolean = false,
 ) {
     var timing by remember { mutableStateOf(false) }
     var confirmRestart by remember { mutableStateOf(false) }
@@ -63,8 +67,14 @@ internal fun ConditioningCard(
     val plan = remember(workout, version) { timerPlanFor(workout.type, workout.capSec, movements.map { it.name }) }
     val isTime = workout.resultMetric == "DURATION"
 
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    OutlinedCard(
+        Modifier.fillMaxWidth(),
+        border = if (badge != null) androidx.compose.foundation.BorderStroke(1.dp, FAMILY_WOD_AMBER) else androidx.compose.material3.CardDefaults.outlinedCardBorder(),
+    ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (badge != null) {
+                Text(badge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = FAMILY_WOD_AMBER)
+            }
             Text(workout.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
                 (TYPE_LABEL[workout.type] ?: workout.type) + (plan.totalSec?.let { " · ${clockText(it)}" } ?: ""),
@@ -142,7 +152,7 @@ internal fun ConditioningCard(
                             Text(if (workout.today != null) "Edit result" else "Log a result")
                         }
                     }
-                    if (workout.today == null) {
+                    if (workout.today == null && !noSkip) {
                         TextButton(onClick = { onSkip(!skipped) }) { Text(if (skipped) "Skipped" else "Skip") }
                     }
                 }

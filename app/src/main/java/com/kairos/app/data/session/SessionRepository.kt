@@ -494,6 +494,14 @@ class SessionRepository(
     suspend fun setSore(area: String, sore: Boolean): List<com.kairos.app.data.remote.dto.SoreSpotDto> =
         runAuthed { requireService().setSore(com.kairos.app.data.remote.dto.SoreRequest(area = area, sore = sore)) }.sore
 
+    /** The Family WOD section (server 0.679+); with the workouts one can be. */
+    suspend fun familyWod(choices: Boolean = false): com.kairos.app.data.remote.dto.FamilyWodOverviewDto =
+        runAuthed { requireService().familyWod(choices = if (choices) "1" else null) }
+
+    /** Join or leave, suggest, withdraw; a parent's set, remove or decline. */
+    suspend fun familyWodAction(req: com.kairos.app.data.remote.dto.FamilyWodRequest): com.kairos.app.data.remote.dto.FamilyWodOverviewDto =
+        runAuthed { requireService().familyWodAction(req) }
+
     /** Workout pauses now and ahead (server 0.678+). */
     suspend fun workoutPauses(): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
         runAuthed { requireService().workoutPauses() }.pauses
@@ -1358,6 +1366,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 560
+        const val CLIENT_BUILD = 561
     }
 }

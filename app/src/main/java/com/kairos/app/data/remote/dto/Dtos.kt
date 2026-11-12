@@ -412,6 +412,8 @@ data class WorkoutPlanDto(
     /** The plan makes this weekday a rest day (server 0.646+): no Rest / skip
      *  and no sections; `loggedOther` lists rows and conditioning too. */
     val restPlanned: Boolean = false,
+    /** The day's family WOD (server 0.679+), or null. */
+    val familyWod: FamilyWodDto? = null,
 )
 
 @Serializable
@@ -1169,6 +1171,96 @@ data class WorkoutPauseDto(
 
 @Serializable
 data class WorkoutPauseListDto(val pauses: List<WorkoutPauseDto> = emptyList())
+
+/** Who's in a family WOD: how is ASSIGNED (a parent) or JOINED. */
+@Serializable
+data class FamilyWodMemberDto(val userId: String = "", val name: String = "", val how: String = "ASSIGNED")
+
+/** A board row: Rx ranks above Scaled; version null when there's one version. */
+@Serializable
+data class FamilyBoardRowDto(
+    val userId: String = "",
+    val name: String = "",
+    val result: String = "",
+    val version: String? = null,
+    val rank: Int = 0,
+    val bestYet: Boolean = false,
+)
+
+/** A family WOD (server 0.679+). On the day, `plan` is its conditioning card
+ *  (id "fwod_<id>") when the person is in it; `inPlan` when their own plan
+ *  already has the workout. */
+@Serializable
+data class FamilyWodDto(
+    val id: String = "",
+    val date: String = "",
+    val hiitWorkoutId: String = "",
+    val name: String = "",
+    val type: String = "",
+    val typeLabel: String = "",
+    val movements: List<String> = emptyList(),
+    val members: List<FamilyWodMemberDto> = emptyList(),
+    val who: String = "",
+    val mine: String? = null,
+    val board: List<FamilyBoardRowDto> = emptyList(),
+    val waiting: String? = null,
+    val logged: Int = 0,
+    val plan: ConditioningPlanDto? = null,
+    val inPlan: Boolean = false,
+)
+
+@Serializable
+data class FamilyWodSuggestionDto(
+    val id: String = "",
+    val date: String = "",
+    val hiitWorkoutId: String = "",
+    val name: String = "",
+    val byId: String = "",
+    val by: String = "",
+    val note: String? = null,
+)
+
+@Serializable
+data class FamilyWodPersonDto(val userId: String = "", val name: String = "")
+
+@Serializable
+data class FamilyWodChoiceDto(
+    val hiitWorkoutId: String = "",
+    val name: String = "",
+    val typeLabel: String = "",
+    val minutes: Int? = null,
+    val kind: String? = null,
+)
+
+/** The Family WOD section: what's ahead, past boards, suggestions waiting. */
+@Serializable
+data class FamilyWodOverviewDto(
+    val parent: Boolean = false,
+    val next: FamilyWodDto? = null,
+    val ahead: List<FamilyWodDto> = emptyList(),
+    val past: List<FamilyWodDto> = emptyList(),
+    val suggestions: List<FamilyWodSuggestionDto> = emptyList(),
+    val people: List<FamilyWodPersonDto> = emptyList(),
+    val choices: List<FamilyWodChoiceDto>? = null,
+)
+
+@Serializable
+data class FamilyWodSuggestBody(val date: String, val hiitWorkoutId: String, val note: String? = null)
+
+@Serializable
+data class FamilyWodSetBody(val date: String, val hiitWorkoutId: String, val users: List<String>, val suggestionId: String? = null)
+
+/** One of: join (+ on), suggest, withdraw; a parent's set, remove, decline. */
+@Serializable
+data class FamilyWodRequest(
+    val join: String? = null,
+    val on: Boolean? = null,
+    val suggest: FamilyWodSuggestBody? = null,
+    val withdraw: String? = null,
+    val set: FamilyWodSetBody? = null,
+    val remove: String? = null,
+    val decline: String? = null,
+)
 
 /** Start a pause from today (reason, until), or end one (end = its id). */
 @Serializable
