@@ -442,8 +442,13 @@ private fun WodPickList(choices: List<FamilyWodChoiceDto>?, picked: String?, onP
     OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Search workouts") }, singleLine = true, modifier = Modifier.fillMaxWidth())
     val t = q.trim().lowercase()
     val list = choices.filter { t.isEmpty() || it.name.lowercase().contains(t) }
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
+    ) {
+        run {
             list.forEachIndexed { i, c ->
                 if (i > 0) HorizontalDivider()
                 Row(
@@ -563,44 +568,52 @@ fun FamilyWodEditScreen(args: com.kairos.app.ui.nav.Route.FamilyWodEdit, onBack:
                 Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 return@Column
             }
-            Text("Day", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            if (wod != null || args.date != null) {
-                Text(wodDay(date), style = MaterialTheme.typography.bodyLarge)
-            } else {
-                TextButton(onClick = { pickingDay = true }) { Text(wodDay(date)) }
+            // The day and the workout on one card (v0.490), who’s in on the next.
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Day", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    if (wod != null || args.date != null) {
+                        Text(wodDay(date), style = MaterialTheme.typography.bodyLarge)
+                    } else {
+                        TextButton(onClick = { pickingDay = true }) { Text(wodDay(date)) }
+                    }
+                    Text(
+                        "Workout" + (pickName?.let { ": $it" } ?: ""),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    WodPickList(
+                        choices = d.choices,
+                        picked = pickId,
+                        onPick = {
+                            pickId = it.hiitWorkoutId
+                            pickName = it.name
+                        },
+                    )
+                }
             }
 
-            Text(
-                "Workout" + (pickName?.let { ": $it" } ?: ""),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            WodPickList(
-                choices = d.choices,
-                picked = pickId,
-                onPick = {
-                    pickId = it.hiitWorkoutId
-                    pickName = it.name
-                },
-            )
-
-            if (!suggest) {
-                Text("Who’s doing it", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                val everyone = d.people.isNotEmpty() && d.people.all { it.userId in who }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    d.people.forEach { p ->
-                        PersonChip(label = p.name, on = p.userId in who) { who = if (p.userId in who) who - p.userId else who + p.userId }
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!suggest) {
+                        Text("Who’s doing it", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        val everyone = d.people.isNotEmpty() && d.people.all { it.userId in who }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            d.people.forEach { p ->
+                                PersonChip(label = p.name, on = p.userId in who) { who = if (p.userId in who) who - p.userId else who + p.userId }
+                            }
+                            PersonChip(label = "Everyone", on = everyone) { who = if (everyone) emptySet() else d.people.map { it.userId }.toSet() }
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = note,
+                            onValueChange = { note = it.take(140) },
+                            label = { Text("Note (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
-                    PersonChip(label = "Everyone", on = everyone) { who = if (everyone) emptySet() else d.people.map { it.userId }.toSet() }
                 }
-            } else {
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it.take(140) },
-                    label = { Text("Note (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

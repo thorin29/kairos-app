@@ -1,4 +1,9 @@
 # Changelog
+## 0.491.0
+
+- Tap a day on Workout days to see what each colour was, with the movements.
+- Family WOD: you're first in the list of people, and the day and workout sit on their own card.
+
 ## 0.490.0
 
 - Family WOD and Pause workouts open as full pages.

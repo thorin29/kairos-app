@@ -1060,12 +1060,16 @@ private fun ProgressSummaryCards(
         g to (muscleColor(g) ?: palette[i % palette.size])
     }.toMap()
     val byDate = mutableMapOf<String, MutableList<String>>()
+    // What was done in each group on a day, for the tap-a-day pop-up (v0.490).
+    val movesByDate = mutableMapOf<String, MutableMap<String, MutableList<String>>>()
     series.forEach { sr ->
         val g = keyOf(sr)
         sr.points.forEach { p ->
             byDate.getOrPut(p.date) { mutableListOf() }.let { if (!it.contains(g)) it.add(g) }
+            movesByDate.getOrPut(p.date) { mutableMapOf() }.getOrPut(g) { mutableListOf() }.let { if (!it.contains(sr.name)) it.add(sr.name) }
         }
     }
+    var dayOpen by remember { mutableStateOf<String?>(null) }
     extraDays.forEach { d ->
         val list = byDate.getOrPut(d.date) { mutableListOf() }
         d.groups.forEach { g -> if (!list.contains(g)) list.add(g) }
@@ -1134,6 +1138,7 @@ private fun ProgressSummaryCards(
                             Modifier
                                 .size(cell)
                                 .clip(RoundedCornerShape(4.dp))
+                                .clickable(enabled = hits.isNotEmpty()) { dayOpen = day }
                                 .then(
                                     when {
                                         // Two reads best as a diagonal split,
@@ -1186,6 +1191,47 @@ private fun ProgressSummaryCards(
                 }
             }
         }
+        }
+        // Tap a day (v0.490): what each colour was that day.
+        dayOpen?.let { day ->
+            val hits = byDate[day].orEmpty()
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { dayOpen = null },
+                title = {
+                    Text(
+                        runCatching {
+                            LocalDate.parse(day).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d", java.util.Locale.US))
+                        }.getOrDefault(day),
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        hits.forEach { g ->
+                            Row(verticalAlignment = Alignment.Top) {
+                                Box(
+                                    Modifier
+                                        .padding(top = 3.dp)
+                                        .size(14.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(colourOf[g] ?: track),
+                                )
+                                Column(Modifier.padding(start = 10.dp)) {
+                                    Text(labelOf(g), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    val moves = movesByDate[day]?.get(g).orEmpty()
+                                    if (moves.isNotEmpty()) {
+                                        Text(
+                                            moves.joinToString(" \u00b7 "),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = { androidx.compose.material3.TextButton(onClick = { dayOpen = null }) { Text("Close") } },
+            )
         }
         // Two tidy rows (v0.443): four to a row in even columns, so a
         // seventh group (Core) starts a second, lined-up row instead of

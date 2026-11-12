@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Tap a day; Family WOD cards (v0.491.0, server 0.681.0)
+
+- A Workout days cell with work is clickable: an AlertDialog lists each
+  group (colour square, name) and that day's movements in it, from the
+  series points (`movesByDate`). Days fed only by `extraDays` show the group
+  without movements.
+- The Family WOD edit page wraps day + workout in one `OutlinedCard` and
+  who's in (or the note) in another; the workout list inside is a bordered
+  column, not a nested card. People order comes from the server.
+
 ## 2026-11 — Full pages for Family WOD and pauses (v0.490.0, server 0.680.0)
 
 - Routes `FamilyWod`, `FamilyWodEdit(date, wodId, suggestionId, suggest)` and
