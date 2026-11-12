@@ -1,4 +1,9 @@
 # Changelog
+## 0.495.0
+
+- Family WOD: one button — parents see New family WOD, everyone else Suggest one.
+- Training maxes show on Programs but can't be changed there; they change at the end of a cycle.
+
 ## 0.494.0
 
 - Pause workouts: pick the first and last day on a calendar; the range highlights.

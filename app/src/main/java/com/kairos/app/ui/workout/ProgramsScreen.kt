@@ -247,7 +247,6 @@ fun ProgramsScreen(
                         ActiveProgramCard(
                             info = a,
                             onCycle = { cycleOpen = true },
-                            onSaveMax = { id, w -> act(block = { session.setTrainingMax(id, w) }) },
                             onChange = { picking = true },
                             onEnd = { ending = true },
                         )
@@ -407,7 +406,6 @@ private fun ChooserTabs(selected: String, onSelect: (String) -> Unit) {
 private fun ActiveProgramCard(
     info: ProgramInfoDto,
     onCycle: () -> Unit,
-    onSaveMax: (String, Double) -> Unit,
     onChange: () -> Unit,
     onEnd: () -> Unit,
 ) {
@@ -429,7 +427,7 @@ private fun ActiveProgramCard(
                 )
                 info.maxes.forEachIndexed { i, m ->
                     if (i > 0) HorizontalDivider()
-                    MaxRow(name = m.name, weight = m.weight, onSave = { onSaveMax(m.poolExerciseId, it) })
+                    MaxRow(name = m.name, weight = m.weight)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -451,21 +449,12 @@ private fun ActiveProgramCard(
 }
 
 @Composable
-private fun MaxRow(name: String, weight: Double, onSave: (Double) -> Unit) {
-    var v by remember(weight) { mutableStateOf(MovementSetsViewModel.fmt(weight)) }
-    val n = v.trim().toDoubleOrNull()
-    val changed = n != null && n > 0 && n != weight
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+/** A training max, shown only (v0.495): it holds for the program and changes
+ *  at the end of a cycle (Next cycle, or with changes) or by restarting. */
+private fun MaxRow(name: String, weight: Double) {
+    Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        NumberField(value = v, label = "$name training max", onChange = { v = it })
-        if (changed) {
-            Text(
-                "Save",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { n?.let(onSave) }.padding(6.dp),
-            )
-        }
+        Text(MovementSetsViewModel.fmt(weight), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 

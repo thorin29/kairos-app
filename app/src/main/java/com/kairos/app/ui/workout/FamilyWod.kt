@@ -328,11 +328,13 @@ fun FamilyWodScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // One button (v0.495): a parent sets one; anyone else suggests one.
                 if (d.parent) {
                     Button(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit()) }, modifier = Modifier.weight(1f)) { Text("New family WOD") }
-                }
-                AccentOutlinedButton(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit(suggest = true)) }, modifier = Modifier.weight(1f)) {
-                    Text("Suggest one")
+                } else {
+                    Button(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit(suggest = true)) }, modifier = Modifier.weight(1f)) {
+                        Text("Suggest one")
+                    }
                 }
             }
 

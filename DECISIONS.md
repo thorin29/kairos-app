@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — One Family WOD button; training maxes shown only (v0.495.0, server 0.685.0)
+
+- `FamilyWodScreen` shows New family WOD to a parent and Suggest one to
+  anyone else, never both.
+- `ActiveProgramCard`'s `MaxRow` is text only; `onSaveMax` is gone. Maxes
+  change through the cycle-end dialog or the program setup.
+
 ## 2026-11 — Range calendar; nine buttons (v0.494.0, server 0.684.0)
 
 - `PauseRangeCalendar` on the pause page replaces the date dialogs and length
