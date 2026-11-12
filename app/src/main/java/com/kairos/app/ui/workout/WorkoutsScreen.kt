@@ -377,9 +377,11 @@ private data class WeekKind(val key: String, val label: String, val color: Color
 
 private val WEEK_KINDS = listOf(
     WeekKind(key = "lift", label = "Strength", color = Color(0xFF4F46E5)),
-    WeekKind(key = "conditioning", label = "Conditioning", color = Color(0xFFEDA100)),
-    WeekKind(key = "cardio", label = "Cardio", color = Color(0xFFE34948)),
-    WeekKind(key = "sport", label = "Sport", color = Color(0xFF139C86)),
+    // v0.496: colours no muscle group uses, so Cardio never reads as Chest,
+    // Conditioning as Core or Sport as Upper back.
+    WeekKind(key = "conditioning", label = "Conditioning", color = Color(0xFFC026D3)),
+    WeekKind(key = "cardio", label = "Cardio", color = Color(0xFF0EA5E9)),
+    WeekKind(key = "sport", label = "Sport", color = Color(0xFF65A30D)),
     WeekKind(key = "other", label = "Mobility", color = Color(0xFF9AA3AD)),
 )
 

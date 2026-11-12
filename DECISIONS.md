@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Training-kind colours; plan end date (v0.496.0, server 0.686.0)
+
+- `WEEK_KINDS` and the endurance chart colours: Cardio 0xFF0EA5E9,
+  Conditioning 0xFFC026D3, Sport 0xFF65A30D; cardio effort shades follow.
+- Edit plan has Ends on under Starts on (`PlanResponse.weeklyEnd`,
+  `setWeeklyEnd` → `POST workouts/plan/start {end}`).
+- The heat map's sore holds need nothing new here: the server's lines and
+  levels already carry them.
+
 ## 2026-11 — One Family WOD button; training maxes shown only (v0.495.0, server 0.685.0)
 
 - `FamilyWodScreen` shows New family WOD to a parent and Suggest one to

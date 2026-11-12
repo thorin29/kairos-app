@@ -82,6 +82,7 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
         }
     }
     var showStart by remember { mutableStateOf(false) }
+    var showEnd by remember { mutableStateOf(false) }
 
     // Every change saves as it's made (v0.454): "Saved" confirms each one,
     // and Done at the bottom leaves.
@@ -121,6 +122,13 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                     iso = ui.weeklyStart,
                     onPick = { vm.setStartDate(it); showStart = false },
                     onDismiss = { showStart = false },
+                )
+            }
+            if (showEnd) {
+                PlanDatePick(
+                    iso = ui.weeklyEnd,
+                    onPick = { vm.setEndDate(it); showEnd = false },
+                    onDismiss = { showEnd = false },
                 )
             }
             when {
@@ -164,6 +172,29 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            // An optional last day (v0.496): after it, no prompts.
+                            Text(
+                                "Ends on",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                com.kairos.app.ui.common.AccentOutlinedButton(
+                                    onClick = { showEnd = true },
+                                    enabled = !ui.busy,
+                                ) {
+                                    Text(if (ui.weeklyEnd.isNotEmpty()) ui.weeklyEnd else "No end")
+                                }
+                                if (ui.weeklyEnd.isNotEmpty()) {
+                                    TextButton(onClick = { vm.setEndDate("") }, enabled = !ui.busy) {
+                                        Text("Clear")
+                                    }
+                                }
+                            }
                             TextButton(
                                 onClick = { vm.setWeeklyActive(!ui.weeklyActive) },
                                 enabled = !ui.busy,

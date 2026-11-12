@@ -17,6 +17,8 @@ data class EditPlanUiState(
     val loading: Boolean = true,
     val days: List<PlanDayDto> = emptyList(),
     val weeklyStart: String = "",
+    /** The plan's last day (v0.496), or "". */
+    val weeklyEnd: String = "",
     val weeklyActive: Boolean = true,
     val options: com.kairos.app.data.remote.dto.PlanOptionsDto? = null,
     /** Section orders: every day's and weekdays' own (server 0.615+; null on an older one). */
@@ -63,7 +65,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
                 val plan = session.loadPlan()
                 val opts = if (_ui.value.options == null) runCatching { session.loadPlanOptions() }.getOrNull() else _ui.value.options
                 val orders = runCatching { session.dayOrders() }.getOrNull()?.takeIf { it.everyDay.isNotEmpty() } ?: _ui.value.orders
-                _ui.update { it.copy(loading = false, busy = false, days = plan.days, weeklyStart = plan.weeklyStart, weeklyActive = plan.weeklyActive, options = opts, orders = orders, error = null) }
+                _ui.update { it.copy(loading = false, busy = false, days = plan.days, weeklyStart = plan.weeklyStart, weeklyEnd = plan.weeklyEnd, weeklyActive = plan.weeklyActive, options = opts, orders = orders, error = null) }
             } catch (e: ApiException) {
                 _ui.update { it.copy(loading = false, busy = false, error = e.error.message) }
             }
@@ -85,6 +87,7 @@ class EditPlanViewModel(private val session: SessionRepository) : ViewModel() {
     }
 
     fun setStartDate(iso: String) = act { session.setWeeklyStart(iso) }
+    fun setEndDate(iso: String) = act { session.setWeeklyEnd(iso) }
     fun setWeeklyActive(active: Boolean) = act { session.setWeeklyActive(active) }
     fun markRest(day: Int) = act { session.planMarkRest(day) }
     fun copyDay(from: Int, to: Int) = act { session.planCopyDay(from, to) }

@@ -580,6 +580,10 @@ class SessionRepository(
     suspend fun setWeeklyStart(dateISO: String) {
         runAuthed { requireService().setWeeklyStart(com.kairos.app.data.remote.dto.AnchorRequest(dateISO)) }
     }
+    /** The weekly plan's last day, or "" for none (server 0.686+). */
+    suspend fun setWeeklyEnd(dateISO: String) {
+        runAuthed { requireService().setWeeklyEnd(com.kairos.app.data.remote.dto.PlanEndRequest(end = dateISO)) }
+    }
     suspend fun setWeeklyActive(active: Boolean) {
         runAuthed { requireService().setWeeklyActive(com.kairos.app.data.remote.dto.WeeklyActiveRequest(active)) }
     }
@@ -1367,6 +1371,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 567
+        const val CLIENT_BUILD = 568
     }
 }

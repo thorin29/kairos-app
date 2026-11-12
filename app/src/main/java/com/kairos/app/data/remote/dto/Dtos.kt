@@ -1819,7 +1819,13 @@ data class PlanResponse(
     val days: List<PlanDayDto> = emptyList(),
     val weeklyStart: String = "",
     val weeklyActive: Boolean = true,
+    /** The plan's last day (server 0.686+), or "". */
+    val weeklyEnd: String = "",
 )
+
+/** Set (or clear, "") the weekly plan's last day (server 0.686+). */
+@Serializable
+data class PlanEndRequest(val end: String)
 
 @Serializable
 data class WeeklyActiveRequest(val active: Boolean)

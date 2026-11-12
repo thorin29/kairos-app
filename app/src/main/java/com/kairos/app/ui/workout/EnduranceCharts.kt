@@ -63,10 +63,11 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** The weekly-training colours (v0.481), so a kind reads the same everywhere. */
-internal val CARDIO_COLOR = Color(0xFFE34948)
-internal val CONDITIONING_COLOR = Color(0xFFEDA100)
-private val EASY_SHADE = Color(0xFFF3A5A4)
-private val HARD_SHADE = Color(0xFF8F1F1E)
+// v0.496: Weekly training's Cardio and Conditioning colours.
+internal val CARDIO_COLOR = Color(0xFF0EA5E9)
+internal val CONDITIONING_COLOR = Color(0xFFC026D3)
+private val EASY_SHADE = Color(0xFF9FD9F6)
+private val HARD_SHADE = Color(0xFF075985)
 private val NO_EFFORT = Color(0xFFC9CED6)
 private val BEST_DOT = Color(0xFF7A4A00)
 private val DOT = Color(0xFFF3C76A)

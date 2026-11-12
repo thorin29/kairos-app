@@ -1,4 +1,9 @@
 # Changelog
+## 0.496.0
+
+- Weekly training: Cardio is sky blue, Conditioning magenta and Sport green, so none matches a muscle group.
+- The workout plan can have an end date; after it, no more prompts.
+
 ## 0.495.0
 
 - Family WOD: one button — parents see New family WOD, everyone else Suggest one.

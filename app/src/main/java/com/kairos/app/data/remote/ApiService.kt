@@ -435,6 +435,9 @@ interface ApiService {
     @POST("workouts/plan/start")
     suspend fun setWeeklyStart(@Body body: com.kairos.app.data.remote.dto.AnchorRequest): Response<TaskStatusDto>
 
+    @POST("workouts/plan/start")
+    suspend fun setWeeklyEnd(@Body body: com.kairos.app.data.remote.dto.PlanEndRequest): Response<TaskStatusDto>
+
     @POST("workouts/plan/active")
     suspend fun setWeeklyActive(@Body body: com.kairos.app.data.remote.dto.WeeklyActiveRequest): Response<TaskStatusDto>
 
