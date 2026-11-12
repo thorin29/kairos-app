@@ -129,6 +129,8 @@ data class WorkoutLogUiState(
     val sore: List<String> = emptyList(),
     /** The weekday this day traded plans with this week (server 0.677+). */
     val swappedWith: String? = null,
+    /** "Workouts paused · Sick through Fri, Nov 14" (server 0.678+). */
+    val paused: String? = null,
     /** Today was made lighter: the share of the usual weights. */
     val light: Double? = null,
     /** A Go light day (v0.464): the option chosen. */
@@ -363,6 +365,7 @@ class WorkoutLogViewModel(
                 suggestion = plan.suggestion,
                 sore = plan.sore,
                 swappedWith = plan.swappedWith,
+                paused = plan.paused,
                 light = plan.light,
                 adjusted = plan.adjusted,
                 sportDay = plan.sportDay,

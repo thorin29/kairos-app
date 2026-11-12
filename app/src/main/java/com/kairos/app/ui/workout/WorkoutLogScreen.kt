@@ -270,6 +270,10 @@ fun WorkoutLogScreen(
                             onToday = { ui.strip?.today?.let { vm.setDate(it) } },
                         )
                     }
+                    // A paused day (v0.488): household or the person's own.
+                    ui.paused?.let { line ->
+                        Text(line, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    }
                     // A day traded with another weekday this week (v0.487).
                     ui.swappedWith?.let { other ->
                         Row(verticalAlignment = Alignment.CenterVertically) {

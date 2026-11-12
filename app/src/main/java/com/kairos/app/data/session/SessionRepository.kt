@@ -494,6 +494,16 @@ class SessionRepository(
     suspend fun setSore(area: String, sore: Boolean): List<com.kairos.app.data.remote.dto.SoreSpotDto> =
         runAuthed { requireService().setSore(com.kairos.app.data.remote.dto.SoreRequest(area = area, sore = sore)) }.sore
 
+    /** Workout pauses now and ahead (server 0.678+). */
+    suspend fun workoutPauses(): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
+        runAuthed { requireService().workoutPauses() }.pauses
+
+    suspend fun startWorkoutPause(reason: String, until: String): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
+        runAuthed { requireService().setWorkoutPause(com.kairos.app.data.remote.dto.WorkoutPauseRequest(reason = reason, until = until)) }.pauses
+
+    suspend fun endWorkoutPause(id: String): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
+        runAuthed { requireService().setWorkoutPause(com.kairos.app.data.remote.dto.WorkoutPauseRequest(end = id)) }.pauses
+
     suspend fun editSportSession(sessionId: String, minutes: Int?, effort: String?, hurt: String?) {
         runAuthed {
             requireService().editSportSession(
@@ -1348,6 +1358,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 559
+        const val CLIENT_BUILD = 560
     }
 }

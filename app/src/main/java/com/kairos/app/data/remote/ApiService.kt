@@ -379,6 +379,12 @@ interface ApiService {
     @POST("workouts/adjust")
     suspend fun adjustShort(@Body body: com.kairos.app.data.remote.dto.AdjustRequest): Response<com.kairos.app.data.remote.dto.ShortAnswerDto>
 
+    @GET("workouts/pause")
+    suspend fun workoutPauses(): Response<com.kairos.app.data.remote.dto.WorkoutPauseListDto>
+
+    @POST("workouts/pause")
+    suspend fun setWorkoutPause(@Body body: com.kairos.app.data.remote.dto.WorkoutPauseRequest): Response<com.kairos.app.data.remote.dto.WorkoutPauseListDto>
+
     @POST("workouts/sore")
     suspend fun setSore(@Body body: com.kairos.app.data.remote.dto.SoreRequest): Response<com.kairos.app.data.remote.dto.SoreListDto>
 

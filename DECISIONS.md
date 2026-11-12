@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Workout pauses (v0.488.0, server 0.678.0)
+
+- `WorkoutPausePanel` on the Workouts screen (it loads `GET workouts/pause`
+  itself): household pauses read-only, the person's own with End, or "Pause
+  workouts" (reason; 3 days, 1 week or 2 weeks from today). The day shows
+  `WorkoutDayDto.paused`. The strip needs nothing new: paused days come as
+  `restPlanned`.
+
 ## 2026-11 — Weighted holds (v0.487.1, server 0.677.1)
 
 - A timed set row shows a weight box before the time when the movement log

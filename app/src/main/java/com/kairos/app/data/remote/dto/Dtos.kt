@@ -381,6 +381,8 @@ data class WorkoutPlanDto(
     val sore: List<String> = emptyList(),
     /** The weekday this day traded plans with this week (server 0.677+). */
     val swappedWith: String? = null,
+    /** "Workouts paused · Sick through Fri, Nov 14" (server 0.678+), or null. */
+    val paused: String? = null,
     /** Today's adjustment (server 0.658+): which, its header, what it drops. */
     val adjusted: AdjustedDto? = null,
     /** A sport on the calendar that day (server 0.662+): the warm-up switch. */
@@ -1152,6 +1154,25 @@ data class SoreSpotDto(val area: String = "", val since: String = "", val from: 
 
 @Serializable
 data class SoreRequest(val area: String, val sore: Boolean)
+
+/** A workout pause (server 0.678+): kind "household" (Admin) or "personal";
+ *  reason SICK, HURT or OTHER for a personal one. */
+@Serializable
+data class WorkoutPauseDto(
+    val kind: String = "",
+    val id: String = "",
+    val label: String = "",
+    val reason: String? = null,
+    val from: String = "",
+    val to: String = "",
+)
+
+@Serializable
+data class WorkoutPauseListDto(val pauses: List<WorkoutPauseDto> = emptyList())
+
+/** Start a pause from today (reason, until), or end one (end = its id). */
+@Serializable
+data class WorkoutPauseRequest(val reason: String? = null, val until: String? = null, val end: String? = null)
 
 @Serializable
 data class SoreListDto(val sore: List<SoreSpotDto> = emptyList())

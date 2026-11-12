@@ -301,6 +301,9 @@ fun WorkoutsScreen(
                         ) { onOpenCalculator() }
                     }
 
+                    // A pause for being sick or hurt (v0.488).
+                    WorkoutPausePanel()
+
                     OutlinedCard(
                         Modifier.fillMaxWidth().clickable { onOpenRecent() },
                     ) {

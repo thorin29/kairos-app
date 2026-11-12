@@ -1,4 +1,9 @@
 # Changelog
+## 0.488.0
+
+- Pause workouts from the Workouts screen when you're sick or injured, through a day you pick. End it early anytime.
+- A paused day says so at the top, and shows as rest on the strip.
+
 ## 0.487.1
 
 - Farmer, overhead kettlebell and plate pinch holds take the weight you held beside each time.
