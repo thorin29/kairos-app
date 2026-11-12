@@ -1230,6 +1230,9 @@ data class FamilyWodChoiceDto(
     val typeLabel: String = "",
     val minutes: Int? = null,
     val kind: String? = null,
+    /** What it is, for its ⓘ (server 0.680+). */
+    val movements: List<String> = emptyList(),
+    val about: String? = null,
 )
 
 /** The Family WOD section: what's ahead, past boards, suggestions waiting. */
@@ -1264,7 +1267,7 @@ data class FamilyWodRequest(
 
 /** Start a pause from today (reason, until), or end one (end = its id). */
 @Serializable
-data class WorkoutPauseRequest(val reason: String? = null, val until: String? = null, val end: String? = null)
+data class WorkoutPauseRequest(val reason: String? = null, val until: String? = null, val end: String? = null, val from: String? = null)
 
 @Serializable
 data class SoreListDto(val sore: List<SoreSpotDto> = emptyList())

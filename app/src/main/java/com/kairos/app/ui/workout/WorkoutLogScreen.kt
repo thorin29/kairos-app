@@ -109,6 +109,10 @@ fun WorkoutLogScreen(
     /** "Is the plan too big?" (v0.486): the plan editor, or a smaller program. */
     onEditPlan: () -> Unit = {},
     onOpenPrograms: () -> Unit = {},
+    /** + Additional → Family WOD (v0.490): its page for this day. */
+    onOpenFamilyWod: (String) -> Unit = {},
+    /** Bumped when that page saved: reload the day. */
+    familyChanged: Int = 0,
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -139,8 +143,7 @@ fun WorkoutLogScreen(
     var addingConditioning by remember { mutableStateOf(false) }
     // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
     var addingMenu by remember { mutableStateOf(false) }
-    // + Additional → Family WOD (v0.489): set one (a parent) or suggest one.
-    var familyForDay by remember { mutableStateOf(false) }
+    LaunchedEffect(familyChanged) { if (familyChanged != 0) vm.load() }
     var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     var extraKind by remember { mutableStateOf<String?>(null) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
@@ -637,23 +640,14 @@ fun WorkoutLogScreen(
             onFamilyWod = if (ui.familyWod == null && (ui.date ?: LocalDate.now().toString()) >= LocalDate.now().toString()) {
                 {
                     addingMenu = false
-                    familyForDay = true
+                    onOpenFamilyWod(ui.date ?: LocalDate.now().toString())
                 }
             } else {
                 null
             },
         )
     }
-    if (familyForDay) {
-        FamilyWodForDay(
-            date = ui.date ?: LocalDate.now().toString(),
-            onDone = {
-                familyForDay = false
-                vm.load()
-            },
-            onDismiss = { familyForDay = false },
-        )
-    }
+
     extraKind?.let { k ->
         ExtraPickerDialog(
             kind = k,

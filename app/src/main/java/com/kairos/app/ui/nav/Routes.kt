@@ -88,6 +88,24 @@ sealed interface Route {
     @Serializable
     data object RecentWorkouts : Route
 
+    /** Family WOD, a full page (v0.490). */
+    @Serializable
+    data object FamilyWod : Route
+
+    /** Set (a parent) or suggest a family WOD: a new one, one to edit
+     *  ([wodId]), a suggestion to approve, or a day's from + Additional. */
+    @Serializable
+    data class FamilyWodEdit(
+        val date: String? = null,
+        val wodId: String? = null,
+        val suggestionId: String? = null,
+        val suggest: Boolean = false,
+    ) : Route
+
+    /** Pause workouts, a full page (v0.490). */
+    @Serializable
+    data object WorkoutPause : Route
+
     /** Workout programs: the running one, or the list to start one. */
     @Serializable
     data object Programs : Route

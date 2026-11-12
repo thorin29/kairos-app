@@ -503,6 +503,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenPrograms = { navController.navigate(Route.Programs) },
                             onChangeProgram = { navController.navigate(Route.ProgramsChange) },
                             refreshKey = dataRevision + programsChanged,
+                            onOpenFamilyWod = { navController.navigate(Route.FamilyWod) },
+                            onOpenPause = { navController.navigate(Route.WorkoutPause) },
                         )
                     } else if (key == "bible") {
                         BibleScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
@@ -607,6 +609,26 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.RecentWorkouts> {
                     RecentWorkoutsScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.FamilyWod> {
+                    com.kairos.app.ui.workout.FamilyWodScreen(
+                        onBack = { navController.popBackStack() },
+                        onEdit = { navController.navigate(it) },
+                    )
+                }
+                composable<Route.FamilyWodEdit> { entry ->
+                    com.kairos.app.ui.workout.FamilyWodEditScreen(
+                        args = entry.toRoute<Route.FamilyWodEdit>(),
+                        onBack = { navController.popBackStack() },
+                        onSaved = {
+                            // The day it came from reloads (v0.490).
+                            navController.previousBackStackEntry?.savedStateHandle?.set("familyChanged", (System.currentTimeMillis() % 1_000_000L).toInt())
+                            navController.popBackStack()
+                        },
+                    )
+                }
+                composable<Route.WorkoutPause> {
+                    com.kairos.app.ui.workout.WorkoutPauseScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.WeightCalculator> { entry ->
                     val calc = entry.toRoute<Route.WeightCalculator>()
@@ -747,6 +769,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     val setsSaved by entry.savedStateHandle
                         .getStateFlow("setsSaved", false)
                         .collectAsState()
+                    val familyChanged by entry.savedStateHandle
+                        .getStateFlow("familyChanged", 0)
+                        .collectAsState()
                     WorkoutLogScreen(
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
@@ -760,6 +785,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onWriteOwn = { navController.navigate(Route.CreatePersonalWorkout) },
                         onEditPlan = { navController.navigate(Route.EditPlan) },
                         onOpenPrograms = { navController.navigate(Route.ProgramsChange) },
+                        onOpenFamilyWod = { d -> navController.navigate(Route.FamilyWodEdit(date = d)) },
+                        familyChanged = familyChanged,
                     )
                 }
                 composable<Route.CoreWorkout> { entry ->

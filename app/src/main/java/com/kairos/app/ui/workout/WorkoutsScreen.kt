@@ -85,6 +85,9 @@ fun WorkoutsScreen(
     /** Programs, straight to the list to change program (v0.427). */
     onChangeProgram: () -> Unit = onOpenPrograms,
     refreshKey: Int = 0,
+    /** Family WOD and Pause workouts, full pages (v0.490). */
+    onOpenFamilyWod: () -> Unit = {},
+    onOpenPause: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -301,11 +304,12 @@ fun WorkoutsScreen(
                         ) { onOpenCalculator() }
                     }
 
-                    // One shared conditioning workout now and then (v0.489).
-                    FamilyWodPanel()
+                    // One shared conditioning workout now and then (v0.489;
+                    // its own page, v0.490).
+                    FamilyWodCard(refreshKey = refreshKey, onOpen = onOpenFamilyWod)
 
-                    // A pause for being sick or hurt (v0.488).
-                    WorkoutPausePanel()
+                    // A pause: sick, injured, vacation (v0.488; its own page, v0.490).
+                    WorkoutPauseCard(refreshKey = refreshKey, onOpen = onOpenPause)
 
                     OutlinedCard(
                         Modifier.fillMaxWidth().clickable { onOpenRecent() },

@@ -506,8 +506,9 @@ class SessionRepository(
     suspend fun workoutPauses(): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
         runAuthed { requireService().workoutPauses() }.pauses
 
-    suspend fun startWorkoutPause(reason: String, until: String): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
-        runAuthed { requireService().setWorkoutPause(com.kairos.app.data.remote.dto.WorkoutPauseRequest(reason = reason, until = until)) }.pauses
+    /** A pause from [from] (today or later, server 0.680+) through [until]. */
+    suspend fun startWorkoutPause(reason: String, from: String, until: String): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
+        runAuthed { requireService().setWorkoutPause(com.kairos.app.data.remote.dto.WorkoutPauseRequest(reason = reason, until = until, from = from)) }.pauses
 
     suspend fun endWorkoutPause(id: String): List<com.kairos.app.data.remote.dto.WorkoutPauseDto> =
         runAuthed { requireService().setWorkoutPause(com.kairos.app.data.remote.dto.WorkoutPauseRequest(end = id)) }.pauses
@@ -1366,6 +1367,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 561
+        const val CLIENT_BUILD = 562
     }
 }

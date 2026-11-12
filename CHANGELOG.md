@@ -1,4 +1,10 @@
 # Changelog
+## 0.490.0
+
+- Family WOD and Pause workouts open as full pages.
+- A new family WOD starts with nobody in: tap who's doing it. Workout names show in full, with ⓘ for what each one is.
+- Pause workouts takes an exact first and last day, so you can plan one ahead. Vacation is a reason now.
+
 ## 0.489.0
 
 - Family WOD: a day's shared workout shows at the top of the day. Join if you weren't put in; it never counts as missed.

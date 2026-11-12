@@ -1,5 +1,14 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.QuickDatePickerDialog
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,11 +53,9 @@ import com.kairos.app.data.remote.dto.FamilyBoardRowDto
 import com.kairos.app.data.remote.dto.FamilyWodChoiceDto
 import com.kairos.app.data.remote.dto.FamilyWodDto
 import com.kairos.app.data.remote.dto.FamilyWodOverviewDto
-import com.kairos.app.data.remote.dto.FamilyWodPersonDto
 import com.kairos.app.data.remote.dto.FamilyWodRequest
 import com.kairos.app.data.remote.dto.FamilyWodSetBody
 import com.kairos.app.data.remote.dto.FamilyWodSuggestBody
-import com.kairos.app.data.remote.dto.FamilyWodSuggestionDto
 import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.common.rememberContainer
 import java.time.LocalDate
@@ -211,24 +218,66 @@ internal fun FamilyWodDayCard(
     }
 }
 
-// --- the Workouts menu --------------------------------------------------------
+// --- the Workouts screen and its pages -----------------------------------------
 
 /**
- * Family WOD in the Workouts menu (v0.489): today's or the next one, Join,
- * the board and past ones, Suggest one, and for parents what's ahead and the
- * suggestions to look at.
+ * Family WOD on the Workouts screen (v0.489; v0.490 a summary that opens its
+ * page): today's or the next one, or "None set".
  */
 @Composable
-internal fun FamilyWodPanel() {
+internal fun FamilyWodCard(refreshKey: Int, onOpen: () -> Unit) {
+    val session = rememberContainer().sessionRepository
+    var data by remember { mutableStateOf<FamilyWodOverviewDto?>(null) }
+    LaunchedEffect(refreshKey) { data = runCatching { session.familyWod() }.getOrNull() ?: data }
+    val d = data ?: return
+    val next = d.next
+    val n = if (d.parent) d.suggestions.size else 0
+    OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                WodLabel("Family WOD")
+                if (next != null) {
+                    Text(next.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        wodWhen(next.date) + " · " + next.who + if (next.mine == null) " · Join" else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text("None set", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (n > 0) {
+                    Text(
+                        "$n ${if (n == 1) "suggestion" else "suggestions"} to look at",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * The Family WOD page (v0.490): the next one with Join, Suggest one, boards;
+ * for parents New family WOD, Coming up and the suggestions to approve. A
+ * board opens in place, Back returning.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FamilyWodScreen(
+    onBack: () -> Unit,
+    onEdit: (com.kairos.app.ui.nav.Route.FamilyWodEdit) -> Unit,
+    refreshKey: Int = 0,
+) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
     var data by remember { mutableStateOf<FamilyWodOverviewDto?>(null) }
     var busy by remember { mutableStateOf(false) }
     var boardId by remember { mutableStateOf<String?>(null) }
-    var suggesting by remember { mutableStateOf(false) }
-    var parents by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { data = runCatching { session.familyWod() }.getOrNull() }
-    val d = data ?: return
+    LaunchedEffect(refreshKey) { data = runCatching { session.familyWod() }.getOrNull() ?: data }
     fun act(req: FamilyWodRequest) {
         busy = true
         scope.launch {
@@ -236,152 +285,156 @@ internal fun FamilyWodPanel() {
             busy = false
         }
     }
+    BackHandler(enabled = boardId != null) { boardId = null }
     val today = LocalDate.now().toString()
-    val next = d.next
-    val last = d.past.firstOrNull()
+    val d = data
+    val shown = if (d == null) emptyList() else d.ahead.filter { it.date <= today } + d.past
+    val board = boardId?.let { id -> shown.firstOrNull { it.id == id } ?: d?.ahead?.firstOrNull { it.id == id } }
 
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            WodLabel("Family WOD")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(board?.name ?: "Family WOD") },
+                navigationIcon = {
+                    IconButton(onClick = { if (boardId != null) boardId = null else onBack() }) {
+                        Icon(KairosIcons.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { inner ->
+        Column(
+            Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            if (d == null) {
+                Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                return@Column
+            }
+            if (board != null) {
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(wodDay(board.date) + " · " + board.typeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (board.board.isNotEmpty()) FamilyBoardRows(rows = board.board) else Text("No results yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        board.waiting?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+                return@Column
+            }
+
+            val next = d.next
             if (next != null) {
-                Text(wodWhen(next.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(next.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(next.typeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(next.who, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                next.movements.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                if (next.mine == null) {
-                    Button(onClick = { act(FamilyWodRequest(join = next.id, on = true)) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Join") }
-                } else if (next.mine == "JOINED" && next.logged == 0) {
-                    TextButton(onClick = { act(FamilyWodRequest(join = next.id, on = false)) }, enabled = !busy) { Text("Leave") }
-                }
-            } else if (last == null) {
-                Text("None set.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (next != null || last != null) {
-                    AccentOutlinedButton(
-                        onClick = { boardId = (if (next != null && next.date <= today) next else last ?: next)?.id },
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Board") }
-                }
-                AccentOutlinedButton(onClick = { suggesting = true }, modifier = Modifier.weight(1f)) { Text("Suggest one") }
-            }
-            if (last != null && last.board.isNotEmpty()) {
-                HorizontalDivider()
-                Text(wodDay(last.date) + " · " + last.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                FamilyBoardRows(rows = last.board, limit = 3)
-            }
-            if (d.parent) {
-                HorizontalDivider()
-                val n = d.suggestions.size
-                Row(
-                    Modifier.fillMaxWidth().clickable { parents = true }.padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (n > 0) "$n ${if (n == 1) "suggestion" else "suggestions"} to look at" else "Set a family WOD",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text("›", color = MaterialTheme.colorScheme.primary)
+                OutlinedCard(Modifier.fillMaxWidth(), border = BorderStroke(1.dp, FAMILY_WOD_AMBER)) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(wodWhen(next.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(next.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                        Text(next.typeLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(next.who, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        next.movements.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                        if (next.mine == null) {
+                            Button(onClick = { act(FamilyWodRequest(join = next.id, on = true)) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Join") }
+                        } else if (next.mine == "JOINED" && next.logged == 0) {
+                            TextButton(onClick = { act(FamilyWodRequest(join = next.id, on = false)) }, enabled = !busy) { Text("Leave") }
+                        }
+                        if (next.date <= today && (next.board.isNotEmpty() || next.waiting != null)) {
+                            HorizontalDivider()
+                            if (next.board.isNotEmpty()) FamilyBoardRows(rows = next.board)
+                            next.waiting?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        }
+                    }
                 }
             } else {
-                d.suggestions.forEach { s ->
+                Text("None set.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (d.parent) {
+                    Button(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit()) }, modifier = Modifier.weight(1f)) { Text("New family WOD") }
+                }
+                AccentOutlinedButton(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit(suggest = true)) }, modifier = Modifier.weight(1f)) {
+                    Text("Suggest one")
+                }
+            }
+
+            if (d.parent && d.ahead.isNotEmpty()) {
+                WodLabel("Coming up")
+                d.ahead.forEach { w ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(wodWhen(w.date) + " · " + w.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(w.who, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit(wodId = w.id)) }) { Text("Edit") }
+                    }
+                }
+            }
+
+            if (d.suggestions.isNotEmpty()) {
+                WodLabel(if (d.parent) "Suggestions" else "Your suggestions")
+                d.suggestions.forEach { s ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(s.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "You suggested " + s.name + " for " + wodDay(s.date) + " · waiting",
+                            (if (d.parent) s.by + " suggested it for " else "For ") + wodDay(s.date) +
+                                (s.note?.let { " · “$it”" } ?: "") + if (d.parent) "" else " · waiting",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
                         )
-                        TextButton(onClick = { act(FamilyWodRequest(withdraw = s.id)) }, enabled = !busy) { Text("Take back") }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (d.parent) {
+                                Button(onClick = { onEdit(com.kairos.app.ui.nav.Route.FamilyWodEdit(suggestionId = s.id)) }) { Text("Approve") }
+                                AccentOutlinedButton(onClick = { act(FamilyWodRequest(decline = s.id)) }, enabled = !busy) { Text("Decline") }
+                            } else {
+                                TextButton(onClick = { act(FamilyWodRequest(withdraw = s.id)) }, enabled = !busy) { Text("Take back") }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (shown.isNotEmpty()) {
+                WodLabel("Boards")
+                shown.forEach { w ->
+                    Row(Modifier.fillMaxWidth().clickable { boardId = w.id }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(w.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                wodDay(w.date) + " · " + w.logged + " of " + w.members.size + " logged" +
+                                    (w.board.firstOrNull()?.let { " · " + it.name + " " + it.result } ?: ""),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
     }
-
-    boardId?.let { id ->
-        FamilyBoardDialog(data = d, id = id, onPick = { boardId = it }, onDismiss = { boardId = null })
-    }
-    if (suggesting) {
-        FamilySuggestDialog(
-            fixedDate = null,
-            onDone = {
-                suggesting = false
-                scope.launch { data = runCatching { session.familyWod() }.getOrNull() ?: data }
-            },
-            onDismiss = { suggesting = false },
-        )
-    }
-    if (parents) {
-        FamilyParentsDialog(
-            data = d,
-            onData = { data = it },
-            onDismiss = { parents = false },
-        )
-    }
 }
 
+/** What a workout is: its type, movements and note, in a pop-up. */
 @Composable
-private fun FamilyBoardDialog(data: FamilyWodOverviewDto, id: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
-    val today = LocalDate.now().toString()
-    val all = data.ahead.filter { it.date <= today } + data.past
-    val wod = all.firstOrNull { it.id == id } ?: data.ahead.firstOrNull { it.id == id }
+private fun WodInfoDialog(c: FamilyWodChoiceDto, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Family WOD") },
+        title = { Text(c.name) },
         text = {
-            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (wod != null) {
-                    Text(wodDay(wod.date) + " · " + wod.name + " · " + wod.typeLabel, fontWeight = FontWeight.SemiBold)
-                    if (wod.board.isNotEmpty()) FamilyBoardRows(rows = wod.board) else Text("No results yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    wod.waiting?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                }
-                val others = all.filter { it.id != id }
-                if (others.isNotEmpty()) {
-                    WodLabel("Past WODs")
-                    others.forEach { w ->
-                        Row(Modifier.fillMaxWidth().clickable { onPick(w.id) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(w.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    wodDay(w.date) + " · " + w.logged + " of " + w.members.size + " logged",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            w.board.firstOrNull()?.let {
-                                Text(it.name + " " + it.result, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text(" ›", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(c.typeLabel + (c.minutes?.let { " · about $it min" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                c.movements.forEach { Text(it) }
+                c.about?.let { Text(it) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     )
 }
 
-/** A day from today to 60 days on, a day at a time. */
-@Composable
-private fun DayStepper(date: String, onChange: (String) -> Unit) {
-    val d = runCatching { LocalDate.parse(date) }.getOrElse { LocalDate.now() }
-    val today = LocalDate.now()
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = { onChange(d.minusDays(1).toString()) }, enabled = d.isAfter(today)) { Text("‹") }
-        Text(wodDay(d.toString()), fontWeight = FontWeight.SemiBold)
-        TextButton(onClick = { onChange(d.plusDays(1).toString()) }, enabled = d.isBefore(today.plusDays(60))) { Text("›") }
-    }
-}
-
-/** A searchable list of the shared workouts. */
+/** The shared workouts, searchable: full names, ⓘ for what each is. */
 @Composable
 private fun WodPickList(choices: List<FamilyWodChoiceDto>?, picked: String?, onPick: (FamilyWodChoiceDto) -> Unit) {
     var q by remember { mutableStateOf("") }
+    var info by remember { mutableStateOf<FamilyWodChoiceDto?>(null) }
     if (choices == null) {
         Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -389,71 +442,31 @@ private fun WodPickList(choices: List<FamilyWodChoiceDto>?, picked: String?, onP
     OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Search workouts") }, singleLine = true, modifier = Modifier.fillMaxWidth())
     val t = q.trim().lowercase()
     val list = choices.filter { t.isEmpty() || it.name.lowercase().contains(t) }
-    Column(Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
-        list.forEach { c ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (picked == c.hiitWorkoutId) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent)
-                    .clickable { onPick(c) }
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(c.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    c.typeLabel + (c.minutes?.let { " · $it min" } ?: ""),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (list.isEmpty()) Text("No match.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** Anyone suggests a workout for a day (fixed from a day's + Additional). */
-@Composable
-internal fun FamilySuggestDialog(fixedDate: String?, onDone: () -> Unit, onDismiss: () -> Unit) {
-    val session = rememberContainer().sessionRepository
-    val scope = rememberCoroutineScope()
-    var choices by remember { mutableStateOf<List<FamilyWodChoiceDto>?>(null) }
-    var date by remember { mutableStateOf(fixedDate ?: LocalDate.now().toString()) }
-    var pick by remember { mutableStateOf<FamilyWodChoiceDto?>(null) }
-    var note by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-    var busy by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { choices = runCatching { session.familyWod(choices = true).choices }.getOrNull() ?: emptyList() }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Suggest a family WOD") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (fixedDate != null) Text(wodDay(date), fontWeight = FontWeight.SemiBold) else DayStepper(date = date, onChange = { date = it })
-                WodPickList(choices = choices, picked = pick?.hiitWorkoutId, onPick = { pick = it })
-                OutlinedTextField(value = note, onValueChange = { note = it.take(140) }, label = { Text("Note (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = pick != null && !busy,
-                onClick = {
-                    val p = pick ?: return@TextButton
-                    busy = true
-                    scope.launch {
-                        runCatching {
-                            session.familyWodAction(
-                                FamilyWodRequest(suggest = FamilyWodSuggestBody(date = date, hiitWorkoutId = p.hiitWorkoutId, note = note.ifBlank { null })),
-                            )
-                        }.onSuccess { onDone() }.onFailure { error = it.message ?: "Couldn’t send it." }
-                        busy = false
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column {
+            list.forEachIndexed { i, c ->
+                if (i > 0) HorizontalDivider()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(if (picked == c.hiitWorkoutId) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f).clickable { onPick(c) }.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                        Text(c.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            c.typeLabel + (c.minutes?.takeIf { !c.typeLabel.contains("min") }?.let { " · $it min" } ?: ""),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                },
-            ) { Text("Suggest") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+                    TextButton(onClick = { info = c }) { Text("ⓘ", style = MaterialTheme.typography.titleMedium) }
+                }
+            }
+            if (list.isEmpty()) Text("No match.", modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    info?.let { WodInfoDialog(c = it, onDismiss = { info = null }) }
 }
 
 @Composable
@@ -461,12 +474,12 @@ private fun PersonChip(label: String, on: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(20.dp)
     Box(
         Modifier
-            .heightIn(min = 38.dp)
+            .heightIn(min = 40.dp)
             .clip(shape)
             .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
             .border(1.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, shape)
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         Text(
             label,
@@ -477,180 +490,162 @@ private fun PersonChip(label: String, on: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** A parent sets (or edits) a day's family WOD: the day, the workout, who's in. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Set (a parent) or suggest a family WOD, a full page (v0.490). It's for one
+ * day only. Nobody is in until picked: tap who's doing it. From a day's
+ * + Additional, [args] carries that day; someone who isn't a parent suggests.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-internal fun FamilySetDialog(
-    people: List<FamilyWodPersonDto>,
-    fixedDate: String?,
-    wod: FamilyWodDto?,
-    suggestion: FamilyWodSuggestionDto?,
-    onData: (FamilyWodOverviewDto) -> Unit,
-    onDismiss: () -> Unit,
-) {
+fun FamilyWodEditScreen(args: com.kairos.app.ui.nav.Route.FamilyWodEdit, onBack: () -> Unit, onSaved: () -> Unit) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
-    var choices by remember { mutableStateOf<List<FamilyWodChoiceDto>?>(null) }
-    var date by remember { mutableStateOf(wod?.date ?: suggestion?.date ?: fixedDate ?: LocalDate.now().toString()) }
-    var pickId by remember { mutableStateOf(wod?.hiitWorkoutId ?: suggestion?.hiitWorkoutId) }
-    var pickName by remember { mutableStateOf(wod?.name ?: suggestion?.name) }
-    var changing by remember { mutableStateOf(pickId == null) }
-    var who by remember {
-        mutableStateOf(wod?.members?.filter { it.how == "ASSIGNED" }?.map { it.userId }?.toSet() ?: people.map { it.userId }.toSet())
-    }
+    val today = remember { LocalDate.now() }
+    var data by remember { mutableStateOf<FamilyWodOverviewDto?>(null) }
+    var date by remember { mutableStateOf(args.date ?: today.toString()) }
+    var pickId by remember { mutableStateOf<String?>(null) }
+    var pickName by remember { mutableStateOf<String?>(null) }
+    var who by remember { mutableStateOf(emptySet<String>()) }
+    var note by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    LaunchedEffect(changing) {
-        if (changing && choices == null) choices = runCatching { session.familyWod(choices = true).choices }.getOrNull() ?: emptyList()
+    var pickingDay by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val d = runCatching { session.familyWod(choices = true) }.getOrNull() ?: FamilyWodOverviewDto(choices = emptyList())
+        data = d
+        (d.ahead + d.past).firstOrNull { it.id == args.wodId }?.let { w ->
+            date = w.date
+            pickId = w.hiitWorkoutId
+            pickName = w.name
+            who = w.members.filter { it.how == "ASSIGNED" }.map { it.userId }.toSet()
+        }
+        d.suggestions.firstOrNull { it.id == args.suggestionId }?.let { s ->
+            date = s.date
+            pickId = s.hiitWorkoutId
+            pickName = s.name
+        }
+    }
+    val d = data
+    val suggest = args.suggest || (d != null && !d.parent)
+    val wod = d?.let { (it.ahead + it.past).firstOrNull { w -> w.id == args.wodId } }
+    val title = when {
+        suggest -> "Suggest a family WOD"
+        wod != null -> "Edit family WOD"
+        args.suggestionId != null -> "Approve family WOD"
+        else -> "New family WOD"
     }
     fun send(req: FamilyWodRequest) {
         busy = true
+        error = null
         scope.launch {
             runCatching { session.familyWodAction(req) }
-                .onSuccess {
-                    onData(it)
-                    onDismiss()
-                }
+                .onSuccess { onSaved() }
                 .onFailure { error = it.message ?: "Couldn’t save it." }
             busy = false
         }
     }
-    val everyone = people.all { it.userId in who }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (wod != null) "Edit family WOD" else "New family WOD") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (wod != null || fixedDate != null) Text(wodDay(date), fontWeight = FontWeight.SemiBold) else DayStepper(date = date, onChange = { date = it })
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(pickName ?: "Pick a workout", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    if (pickId != null && !changing) TextButton(onClick = { changing = true }) { Text("Change") }
-                }
-                if (changing) {
-                    WodPickList(
-                        choices = choices,
-                        picked = pickId,
-                        onPick = {
-                            pickId = it.hiitWorkoutId
-                            pickName = it.name
-                            changing = false
-                        },
-                    )
-                }
-                Text("Who’s in", color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
+                },
+            )
+        },
+    ) { inner ->
+        Column(
+            Modifier.padding(inner).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (d == null) {
+                Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                return@Column
+            }
+            Text("Day", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            if (wod != null || args.date != null) {
+                Text(wodDay(date), style = MaterialTheme.typography.bodyLarge)
+            } else {
+                TextButton(onClick = { pickingDay = true }) { Text(wodDay(date)) }
+            }
+
+            Text(
+                "Workout" + (pickName?.let { ": $it" } ?: ""),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            WodPickList(
+                choices = d.choices,
+                picked = pickId,
+                onPick = {
+                    pickId = it.hiitWorkoutId
+                    pickName = it.name
+                },
+            )
+
+            if (!suggest) {
+                Text("Who’s doing it", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                val everyone = d.people.isNotEmpty() && d.people.all { it.userId in who }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PersonChip(label = "Everyone", on = everyone) { who = if (everyone) emptySet() else people.map { it.userId }.toSet() }
-                    people.forEach { p ->
+                    d.people.forEach { p ->
                         PersonChip(label = p.name, on = p.userId in who) { who = if (p.userId in who) who - p.userId else who + p.userId }
                     }
+                    PersonChip(label = "Everyone", on = everyone) { who = if (everyone) emptySet() else d.people.map { it.userId }.toSet() }
                 }
-                if (wod != null) {
-                    TextButton(onClick = { send(FamilyWodRequest(remove = wod.id)) }, enabled = !busy) {
-                        Text("Remove", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            } else {
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it.take(140) },
+                    label = { Text("Note (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = pickId != null && who.isNotEmpty() && !busy,
+
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Button(
+                enabled = pickId != null && (suggest || who.isNotEmpty()) && !busy,
+                modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    val id = pickId ?: return@TextButton
+                    val id = pickId ?: return@Button
                     send(
-                        FamilyWodRequest(
-                            set = FamilyWodSetBody(date = date, hiitWorkoutId = id, users = who.toList(), suggestionId = suggestion?.id),
-                        ),
+                        if (suggest) {
+                            FamilyWodRequest(suggest = FamilyWodSuggestBody(date = date, hiitWorkoutId = id, note = note.ifBlank { null }))
+                        } else {
+                            FamilyWodRequest(set = FamilyWodSetBody(date = date, hiitWorkoutId = id, users = who.toList(), suggestionId = args.suggestionId))
+                        },
                     )
                 },
-            ) { Text(if (suggestion != null) "Approve" else "Set family WOD") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-@Composable
-private fun FamilyParentsDialog(data: FamilyWodOverviewDto, onData: (FamilyWodOverviewDto) -> Unit, onDismiss: () -> Unit) {
-    val session = rememberContainer().sessionRepository
-    val scope = rememberCoroutineScope()
-    var editing by remember { mutableStateOf<FamilyWodDto?>(null) }
-    var approving by remember { mutableStateOf<FamilyWodSuggestionDto?>(null) }
-    var creating by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Family WOD") },
-        text = {
-            Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("New family WOD") }
-                if (data.ahead.isNotEmpty()) {
-                    WodLabel("Coming up")
-                    data.ahead.forEach { w ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(wodWhen(w.date), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text(w.name + " · " + w.who, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            TextButton(onClick = { editing = w }) { Text("Edit") }
-                        }
-                    }
-                }
-                if (data.suggestions.isNotEmpty()) {
-                    WodLabel("Suggestions")
-                    data.suggestions.forEach { s ->
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(s.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                s.by + " suggested it for " + wodDay(s.date) + (s.note?.let { " · “$it”" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { approving = s }) { Text("Approve") }
-                                AccentOutlinedButton(
-                                    onClick = {
-                                        busy = true
-                                        scope.launch {
-                                            runCatching { session.familyWodAction(FamilyWodRequest(decline = s.id)) }.onSuccess { onData(it) }
-                                            busy = false
-                                        }
-                                    },
-                                    enabled = !busy,
-                                ) { Text("Decline") }
-                            }
-                        }
-                    }
+            ) {
+                Text(
+                    when {
+                        suggest -> "Suggest"
+                        args.suggestionId != null -> "Approve"
+                        wod != null -> "Save"
+                        else -> "Set family WOD"
+                    },
+                )
+            }
+            if (wod != null && !suggest) {
+                TextButton(onClick = { send(FamilyWodRequest(remove = wod.id)) }, enabled = !busy) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
-    if (creating || editing != null || approving != null) {
-        FamilySetDialog(
-            people = data.people,
-            fixedDate = null,
-            wod = editing,
-            suggestion = approving,
-            onData = onData,
-            onDismiss = {
-                creating = false
-                editing = null
-                approving = null
-            },
-        )
+        }
     }
-}
 
-/** + Additional → Family WOD on a day: a parent sets one, anyone else suggests one. */
-@Composable
-internal fun FamilyWodForDay(date: String, onDone: () -> Unit, onDismiss: () -> Unit) {
-    val session = rememberContainer().sessionRepository
-    var data by remember { mutableStateOf<FamilyWodOverviewDto?>(null) }
-    LaunchedEffect(Unit) { data = runCatching { session.familyWod() }.getOrNull() }
-    val d = data ?: return
-    if (d.parent) {
-        FamilySetDialog(people = d.people, fixedDate = date, wod = null, suggestion = null, onData = { onDone() }, onDismiss = onDismiss)
-    } else {
-        FamilySuggestDialog(fixedDate = date, onDone = onDone, onDismiss = onDismiss)
+    if (pickingDay) {
+        QuickDatePickerDialog(
+            initial = runCatching { LocalDate.parse(date) }.getOrNull(),
+            minDate = today,
+            maxDate = today.plusDays(60),
+            title = "Day",
+            onPick = {
+                date = it.toString()
+                pickingDay = false
+            },
+            onDismiss = { pickingDay = false },
+        )
     }
 }

@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Full pages for Family WOD and pauses (v0.490.0, server 0.680.0)
+
+- Routes `FamilyWod`, `FamilyWodEdit(date, wodId, suggestionId, suggest)` and
+  `WorkoutPause`; the Workouts screen keeps `FamilyWodCard` and
+  `WorkoutPauseCard` as summaries that open them. A board opens in place on
+  the Family WOD page (Back returns). The edit page loads `?choices=1`, finds
+  the WOD or suggestion by id, and suggests instead of setting for someone
+  who isn't a parent. Saving sets `familyChanged` on the screen it came from,
+  so the day reloads.
+- Dates use `QuickDatePickerDialog`: a family WOD's day (today to 60 days),
+  a pause's first day (up to a year ahead) and last day (up to 180 days on).
+
 ## 2026-11 — Family WOD (v0.489.0, server 0.679.0)
 
 - `WorkoutDayDto.familyWod` drives `FamilyWodDayCard` at the top of the
