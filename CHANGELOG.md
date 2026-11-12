@@ -1,4 +1,9 @@
 # Changelog
+## 0.486.0
+
+- New day suggestions: a game today or tomorrow with leg work, a tournament week, adding a pull when pressing outweighs pulling, and "Is the plan too big?".
+- "Pick days to drop" opens the plan editor; "Smaller program" opens the programs.
+
 ## 0.485.1
 
 - Fixes the 0.485.0 build.

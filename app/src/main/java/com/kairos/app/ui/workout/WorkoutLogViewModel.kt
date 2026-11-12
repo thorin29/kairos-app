@@ -674,7 +674,7 @@ class WorkoutLogViewModel(
             it.copy(
                 suggestion = null,
                 light = when (answer) {
-                    "light" -> 0.8
+                    "light", "lightweek" -> 0.8
                     "ease" -> 0.9
                     else -> it.light
                 },
@@ -686,8 +686,9 @@ class WorkoutLogViewModel(
                     com.kairos.app.data.remote.dto.SuggestionAnswerRequest(date = d, key = s.key, answer = answer),
                 )
             }.isSuccess
-            // "Work around it" (server 0.675+) changed today's plan: reload it.
-            if (ok && answer.startsWith("around:")) load()
+            // "Work around it", lighter or swapped legs, or a movement added
+            // (server 0.675+/0.676+) changed today's plan: reload it.
+            if (ok && (answer.contains(":") || answer == "lightweek")) load()
         }
     }
 

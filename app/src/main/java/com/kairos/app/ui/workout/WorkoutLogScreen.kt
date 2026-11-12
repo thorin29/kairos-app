@@ -106,6 +106,9 @@ fun WorkoutLogScreen(
     onSetsConsumed: () -> Unit = {},
     /** "Write your own" conditioning: the personal workout builder. */
     onWriteOwn: () -> Unit = {},
+    /** "Is the plan too big?" (v0.486): the plan editor, or a smaller program. */
+    onEditPlan: () -> Unit = {},
+    onOpenPrograms: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -328,7 +331,10 @@ fun WorkoutLogScreen(
                             title = sg.title,
                             why = sg.why,
                             actions = sg.actions.map { it.answer to it.label },
-                        ) { vm.answerDaySuggestion(it) }
+                        ) { answer ->
+                            vm.answerDaySuggestion(answer)
+                            if (answer == "editplan") onEditPlan() else if (answer == "programs") onOpenPrograms()
+                        }
                     }
 
                     ui.benchmark?.takeIf { !ui.restPlanned && !future }?.let { b ->

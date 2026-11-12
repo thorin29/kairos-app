@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Smarter suggestions (v0.486.0, server 0.676.0)
+
+- The new cards come through the same `SuggestionCard`; answers with a `:`
+  and `lightweek` reload the day (the plan changed). `editplan` and
+  `programs` also navigate (`WorkoutLogScreen(onEditPlan, onOpenPrograms)` →
+  `Route.EditPlan`, `Route.ProgramsChange`). `lightweek` shows the day as
+  lighter at once, like `light`.
+
 ## 2026-11 — Build fix (v0.485.1)
 
 - `setSore` read `.sore` off the Retrofit `Response` inside `runAuthed`
