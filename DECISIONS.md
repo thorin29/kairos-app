@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-11 — Endurance ⓘ text (v0.500.0, server 0.690.0)
+
+- Only the ⓘ copy changes; carries and endurance scoring are server-side.
+
 ## 2026-11 — Heat map earned by progress (v0.499.0, server 0.689.0)
 
 - Scoring is server-side; the app only adds `TrainGroupDto.since` (shown

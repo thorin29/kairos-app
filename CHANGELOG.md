@@ -1,4 +1,8 @@
 # Changelog
+## 0.500.0
+
+- The heat map ⓘ explains the heart's new colours (needs server 0.690).
+
 ## 0.499.0
 
 - The body map pop-ups show how far a muscle has come since you started.
