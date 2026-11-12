@@ -304,23 +304,23 @@ fun WorkoutsScreen(
                         ) { onOpenCalculator() }
                     }
 
-                    // One shared conditioning workout now and then (v0.489;
-                    // its own page, v0.490).
-                    FamilyWodCard(refreshKey = refreshKey, onOpen = onOpenFamilyWod)
-
-                    // A pause: sick, injured, vacation (v0.488; its own page, v0.490).
-                    WorkoutPauseCard(refreshKey = refreshKey, onOpen = onOpenPause)
-
-                    OutlinedCard(
-                        Modifier.fillMaxWidth().clickable { onOpenRecent() },
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text("Recent workouts", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                            Text("\u2192", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    // Family WOD, Pause and Recent as buttons like the rows above
+                    // (v0.494; were full-width cards). The first two say what's
+                    // on under the label: the next WOD, a pause running or ahead.
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val fw = familyWodLine(refreshKey)
+                        ActionCard(
+                            KairosIcons.Users, "Family WOD", Modifier.weight(1f),
+                            highlighted = fw?.second == true,
+                            subtitle = fw?.first,
+                        ) { onOpenFamilyWod() }
+                        ActionCard(
+                            KairosIcons.Pause, "Pause", Modifier.weight(1f),
+                            subtitle = pauseLine(refreshKey),
+                        ) { onOpenPause() }
+                        ActionCard(
+                            KairosIcons.Clock, "Recent", Modifier.weight(1f),
+                        ) { onOpenRecent() }
                     }
                 }
             }

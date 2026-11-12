@@ -1,4 +1,9 @@
 # Changelog
+## 0.494.0
+
+- Pause workouts: pick the first and last day on a calendar; the range highlights.
+- Workouts screen: Family WOD, Pause and Recent are buttons like Edit plan, showing what's on under the label.
+
 ## 0.493.0
 
 - Workout days: three or more groups show as pie slices, however many. Tap a day for the list.

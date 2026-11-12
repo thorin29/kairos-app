@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Range calendar; nine buttons (v0.494.0, server 0.684.0)
+
+- `PauseRangeCalendar` on the pause page replaces the date dialogs and length
+  chips: tap the first day, then the last (180 days at most); a third tap
+  starts again.
+- Family WOD, Pause and Recent are a third row of `ActionCard`s (icons
+  Users, Pause, Clock); `familyWodLine` and `pauseLine` give their
+  subtitles. `FamilyWodCard` and `WorkoutPauseCard` are gone.
+
 ## 2026-11 — Pie slices for any count (v0.493.0, server 0.683.0)
 
 - Workout days cells with 3+ groups are a sweep gradient with one hard-

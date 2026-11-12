@@ -369,6 +369,18 @@ object KairosIcons {
         "M12 11v5",
         "M12 8h.01",
     )
+    /** People together: the Family WOD (v0.494). */
+    val Users = stroked(
+        "Users",
+        "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
+        "M2.5 20a6.5 6.5 0 0 1 13 0",
+        "M16 4.3a3.5 3.5 0 0 1 0 6.4",
+        "M18 14a6.5 6.5 0 0 1 3.5 6",
+    )
+
+    /** Two bars: Pause workouts (v0.494). */
+    val Pause = stroked("Pause", "M9 5v14", "M15 5v14")
+
     val Clock = stroked(
         "Clock",
         "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z",

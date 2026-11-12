@@ -221,42 +221,22 @@ internal fun FamilyWodDayCard(
 // --- the Workouts screen and its pages -----------------------------------------
 
 /**
- * Family WOD on the Workouts screen (v0.489; v0.490 a summary that opens its
- * page): today's or the next one, or "None set".
+ * What the Workouts screen's Family WOD button says under its label (v0.494):
+ * the next one's day ("Today", "Tomorrow", "Sat, Nov 14"), else suggestions
+ * waiting for a parent; the Boolean is true when it's today.
  */
 @Composable
-internal fun FamilyWodCard(refreshKey: Int, onOpen: () -> Unit) {
+internal fun familyWodLine(refreshKey: Int): Pair<String, Boolean>? {
     val session = rememberContainer().sessionRepository
     var data by remember { mutableStateOf<FamilyWodOverviewDto?>(null) }
     LaunchedEffect(refreshKey) { data = runCatching { session.familyWod() }.getOrNull() ?: data }
-    val d = data ?: return
+    val d = data ?: return null
     val next = d.next
     val n = if (d.parent) d.suggestions.size else 0
-    OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                WodLabel("Family WOD")
-                if (next != null) {
-                    Text(next.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        wodWhen(next.date) + " · " + next.who + if (next.mine == null) " · Join" else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Text("None set", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (n > 0) {
-                    Text(
-                        "$n ${if (n == 1) "suggestion" else "suggestions"} to look at",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+    return when {
+        next != null -> wodWhen(next.date) to (next.date == LocalDate.now().toString())
+        n > 0 -> "$n to look at" to false
+        else -> null
     }
 }
 
