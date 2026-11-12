@@ -1,4 +1,9 @@
 # Changelog
+## 0.499.0
+
+- The body map pop-ups show how far a muscle has come since you started.
+- The heat map ⓘ explains the new colours (needs server 0.689).
+
 ## 0.498.0
 
 - Pause workouts shows a pause a parent set for you in Admin as "set by a parent".

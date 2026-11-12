@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Heat map earned by progress (v0.499.0, server 0.689.0)
+
+- Scoring is server-side; the app only adds `TrainGroupDto.since` (shown
+  small under the reason line) and the new ⓘ text. No map toggle.
+
 ## 2026-11 — Admin pauses for one person (v0.498.0, server 0.688.0)
 
 - `WorkoutPauseDto.kind` can be "admin" (a parent's pause for this person,

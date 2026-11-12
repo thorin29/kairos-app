@@ -359,13 +359,10 @@ internal fun TrainKey(neutral: Color) {
             title = { Text("Heat map") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Each muscle warms a step for every week you give it real work, and fastest when you're coming back to where you were.")
-                    Text("The hottest step is for training it steadily and setting a new best in the last six weeks.")
-                    Text("A missed week cools it a step. It only turns blue after it's cooled to grey and you've missed it about a month.")
-                    Text(
-                        "Strength that keeps slipping for two weeks cools it too. Light, deload and test weeks, " +
-                            "adjusted days, and your first session back aren't judged.",
-                    )
+                    Text("Pale yellow: trained regularly, 4 of the last 6 weeks with the muscle's own exercises.")
+                    Text("It warms as you get stronger: up 3% over 12 weeks is yellow, 6% orange. Red is a strong run over about 6 months.")
+                    Text("When progress stalls it eases back, but not below pale yellow while you keep training.")
+                    Text("A missed week cools it a step. Blue after about a month off.")
                     Text("The heart is endurance: sport, rowing, running, rucking and conditioning, by minutes and how hard they felt.")
                 }
             },
@@ -431,6 +428,10 @@ internal fun TrainDetailDialog(
                 // Why it's this colour (v0.497: shown with the week's rows too).
                 if (week != null && why.isNotBlank()) {
                     Text(why, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // "+31% since you started" (v0.499).
+                data?.since?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 week?.rows?.forEach { r ->
                     androidx.compose.material3.HorizontalDivider()

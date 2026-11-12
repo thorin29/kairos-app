@@ -1451,6 +1451,8 @@ data class TrainGroupDto(
     val line: String = "",
     /** This week (server 0.673+): "16 sets this week" and a row per movement or kind. */
     val week: TrainWeekDto? = null,
+    /** "+31% since you started" (server 0.689+). */
+    val since: String? = null,
 )
 
 @Serializable
