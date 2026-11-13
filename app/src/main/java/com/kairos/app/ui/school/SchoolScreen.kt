@@ -307,12 +307,21 @@ private fun ProgressRow(pr: SchoolCardProgressDto) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
+                if (pr.paused) {
+                    Tag(text = "paused", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 when (pr.pace) {
                     "behind" -> Tag("falling behind", Amber)
                     "ahead" -> Tag("getting ahead!", Emerald)
                 }
             }
-            if (pr.finishISO != null) {
+            if (pr.paused) {
+                Text(
+                    "${pr.done}/${pr.total}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (pr.finishISO != null) {
                 Text(
                     "finishes ${shortDate(pr.finishISO)}",
                     style = MaterialTheme.typography.labelSmall,

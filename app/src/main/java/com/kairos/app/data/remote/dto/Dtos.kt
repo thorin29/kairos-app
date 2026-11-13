@@ -3041,6 +3041,11 @@ data class SchoolCardProgressDto(
     val pace: String? = null, // "ahead" | "behind" | null
     val catchUpRate: Int? = null,
     val catchUpDays: Int? = null,
+    // Server 0.703: a paused class has no schedule (pace/finish null); show
+    // done of total instead. Defaults keep older servers working.
+    val paused: Boolean = false,
+    val done: Int = 0,
+    val total: Int = 0,
 )
 
 @Serializable

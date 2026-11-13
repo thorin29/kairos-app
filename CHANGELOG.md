@@ -1,4 +1,8 @@
 # Changelog
+## 0.505.0
+
+- A paused class shows "paused" and how many lessons are done (needs server 0.703).
+
 ## 0.504.0
 
 - New passwords need at least 8 characters.

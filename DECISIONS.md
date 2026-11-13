@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Paused classes on the School card (v0.505.0, server 0.703.0)
+
+- Server 0.702 lets a parent pause a class for one student: no schedule, one
+  open lesson at a time. A paused class has no pace or finish date, so the
+  progress row would have shown nothing on the right.
+- `SchoolCardProgressDto` gains `paused`, `done` and `total` (server 0.703).
+  The home School card and the School screen show a grey "paused" tag and
+  done/total in place of "finishes …". Defaults (`false`, 0, 0) keep an older
+  server's rows exactly as before.
+
 ## 2026-11 — Passwords need 8 characters (v0.504.0, server 0.699.0)
 
 - The join/reset screen asked for 6 characters while the server's
