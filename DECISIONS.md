@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Remaining sets removed; dead heat code removed (v0.502.0, server 0.695.0)
+
+- The −5 / 0 / +5 "Remaining sets" row on the log-a-movement screen is gone:
+  the row, `RoundStep`, `shiftBy`, `step` and `MovementSetsUi.shift`. It only
+  moved the grey hints of sets not entered yet, so hints are now last time's
+  or the program's weights, unchanged. `hintW(r)` is just `r.hintW`.
+- HeatView.kt lost the pre-0.664 range view: `HEAT_RANGES`, `HeatRangeChips`,
+  `heatFills`, `heatAvailable`, `heatShade`, `HeatKey`, `HeatDetailDialog`,
+  `HeatStat`. The 0.501 docs entry called them unused "range code", but
+  `HeatMapDto.ranges` (the "12w" range) still feeds `HeatGroupSummary`, so
+  the DTO and `HeatBests` stay.
+
 ## 2026-11 — Docs brought current (docs only, no app release; server 0.695.0)
 
 - README and ARCHITECTURE caught up with 0.390–0.501. They now cover the

@@ -1,4 +1,8 @@
 # Changelog
+## 0.502.0
+
+- The Remaining sets −5 / +5 buttons are gone from logging a movement.
+
 ## 0.501.0
 
 - Settings is reorganized: your profile on top, then Account, Look & feel, Notifications, Connected apps, Parents and Help & about.

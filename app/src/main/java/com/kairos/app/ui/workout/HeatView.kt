@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,49 +27,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.HeatGroupDto
-import com.kairos.app.data.remote.dto.HeatRangeDto
 import com.kairos.app.data.remote.dto.TrainGroupDto
 import com.kairos.app.data.remote.dto.TrainingHeatDto
 import com.kairos.app.ui.nav.KairosIcons
 
 /**
- * The body map's heat view (v0.442): one hue, three strengths, by hard sets a
- * week over the chosen range. The server does the counting, so the phone and
- * the web show the same numbers.
+ * The body map's heat views. The training heat map (v0.664, rules in the
+ * server's training-heat.ts) is drawn from `training`; a muscle with no weight
+ * charts shows its 12-week summary (`HeatGroupSummary`) from the server's
+ * "12w" range. The old range view (chips, key, detail pop-up) was removed in
+ * 0.502.0. The server does the counting, so the phone and the web match.
  */
-
-internal val HEAT_RANGES = listOf(
-    "1w" to "1 wk",
-    "4w" to "4 wk",
-    "12w" to "12 wk",
-    "6m" to "6 mo",
-    "all" to "All",
-)
-
-internal fun heatShade(level: Int, accent: Color, fade: Color): Color? = when (level) {
-    1 -> lerp(start = fade, stop = accent, fraction = 0.40f)
-    2 -> lerp(start = fade, stop = accent, fraction = 0.70f)
-    3 -> accent
-    else -> null
-}
-
-internal fun heatFills(range: HeatRangeDto?, accent: Color, fade: Color): Map<String, Color> = buildMap {
-    range?.groups.orEmpty().forEach { g ->
-        heatShade(level = g.level, accent = accent, fade = fade)?.let { put(g.group, it) }
-    }
-}
-
-/** The tap targets with something behind them in this range. */
-internal fun heatAvailable(range: HeatRangeDto?): List<String> =
-    range?.groups.orEmpty()
-        .filter { it.level > 0 }
-        .map { if (it.group == "DEADLIFT") "POSTERIOR_HIP" else it.group }
 
 internal fun heatGroupOf(nav: String): String = if (nav == "POSTERIOR_HIP") "DEADLIFT" else nav
 
@@ -106,136 +77,6 @@ internal fun HeatToggle(on: Boolean, onClick: () -> Unit, modifier: Modifier = M
             tint = if (on) MaterialTheme.colorScheme.onPrimary else accent,
             modifier = Modifier.size(18.dp),
         )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun HeatRangeChips(value: String, onChange: (String) -> Unit) {
-    val accent = MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(50)
-    FlowRow(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(space = 6.dp, alignment = Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        HEAT_RANGES.forEach { (key, label) ->
-            val on = key == value
-            Box(
-                Modifier
-                    .height(32.dp)
-                    .clip(shape)
-                    .background(if (on) accent else Color.Transparent)
-                    .border(width = 1.dp, color = accent, shape = shape)
-                    .clickable { onChange(key) }
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (on) MaterialTheme.colorScheme.onPrimary else accent,
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun HeatKey(accent: Color, fade: Color) {
-    var about by remember { mutableStateOf(false) }
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    FlowRow(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(space = 10.dp, alignment = Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        listOf(1 to "Under 4", 2 to "4–9", 3 to "10+").forEach { (lvl, label) ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(heatShade(level = lvl, accent = accent, fade = fade) ?: fade),
-                )
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = muted,
-                    modifier = Modifier.padding(start = 5.dp),
-                )
-            }
-        }
-        Text("sets a week", style = MaterialTheme.typography.labelSmall, color = muted)
-        Icon(
-            KairosIcons.Info,
-            contentDescription = "About the heat map",
-            tint = muted,
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .clickable { about = true }
-                .padding(4.dp),
-        )
-    }
-    if (about) {
-        AlertDialog(
-            onDismissRequest = { about = false },
-            title = { Text("Heat map") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Hard sets per muscle, averaged per week over the range you pick.")
-                    Text(
-                        "A set counts in full when it ended within about 5 reps of what you could do, " +
-                            "and half when 6–9 short. Warm-ups and easy sets don't count. Marking a lift " +
-                            "Hard counts it in full; Easy counts it half.",
-                    )
-                    Text("Muscles a lift only helps with get half a set.")
-                    Text(
-                        "Holds count in full at two-thirds of your longest or more, half at 40%. A plank counts " +
-                            "in full at 1:10, the Marine Corps PFT minimum, and shows its PFT points (3:45 is 100).",
-                    )
-                    Text("Heavy sets are 6 reps or fewer near your best weight. They're what builds strength most.")
-                    Text("Around 10 or more hard sets a week is a strong week for a muscle.")
-                }
-            },
-            confirmButton = { TextButton(onClick = { about = false }) { Text("Close") } },
-        )
-    }
-}
-
-@Composable
-internal fun HeatDetailDialog(nav: String, data: HeatGroupDto?, unit: String, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(navLabel(nav)) },
-        text = {
-            if (data == null || data.perWeek <= 0.0) {
-                Text("No hard sets in this range.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HeatStat(value = fmt(data.perWeek), label = "sets a week", modifier = Modifier.weight(1f))
-                        HeatStat(value = fmt(data.heavyPerWeek), label = "heavy sets a week", modifier = Modifier.weight(1f))
-                    }
-                    HeatBests(bests = data.bests, unit = unit)
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
-}
-
-@Composable
-private fun HeatStat(value: String, label: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

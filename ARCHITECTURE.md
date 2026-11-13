@@ -258,8 +258,7 @@ is what that rule exists to prevent.
   (sections and order), `opensSetLogger` (the split rule), `dayProgress` and
   `stripState`; keep them in step.
 - `MovementSetsScreen.kt` / `MovementSetsViewModel.kt` — a 5/3/1 set (`pct`
-  on the target) shows its % and a plates button instead of ×, and `strict()`
-  hides Remaining sets; a DURATION movement's Timer tile opens the conditioning
+  on the target) shows its % and a plates button instead of ×; a DURATION movement's Timer tile opens the conditioning
   timer and `useSeconds` fills the set. `WorkoutLogScreen.kt` — + Conditioning
   (Pick one / Build one / Write your own) and the extras logged that day
   (`conditioningDone`). `BodyMap.kt` — the posterior-hip region shades Deadlift. `CoreDays.kt` — Core days: rotation picker, own core workout editor, the plan line and its Rotation dialog. `HeatView.kt` — the body map's heat view (flame toggle, range chips, key, muscle pop-up), drawn from the server's `heat`. `PlankBench.kt` — core's plank-test benchmark (tiles + chart) from `heat.plank`.
@@ -316,9 +315,9 @@ is what that rule exists to prevent.
 - `ui/workout/HeatView.kt` — the training heat map's key and
   `TrainDetailDialog` (this week, the reason line, "+N% since you started"),
   all from the server's `training`. The colours are earned on the server
-  (`training-heat.ts`); never recompute them here. `HEAT_RANGES` /
-  `HeatRangeChips` are left over from the pre-0.664 range view and nothing
-  calls them.
+  (`training-heat.ts`); never recompute them here. `HeatGroupSummary` (a
+  muscle with no weight charts) reads the server's "12w" range, which is why
+  `HeatMapDto.ranges` stays. The old range view was removed in 0.502.0.
 - `ui/workout/EnduranceCharts.kt` — Cardio and Conditioning cards and pages;
   `WorkoutChart.kt` — lift rows and a lift's page; `SoreSpots.kt`,
   `AdjustToday.kt` — sore spots and Adjust today.

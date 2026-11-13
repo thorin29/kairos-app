@@ -51,8 +51,6 @@ data class MovementSetsUi(
     val rows: List<SetRow> = emptyList(),
     val lastSets: List<MovementSetDto> = emptyList(),
     val lastDate: String? = null,
-    /** Shift applied to the hints of rows not entered yet. */
-    val shift: Double = 0.0,
     /** A swap chosen (or already logged) for the day. */
     val doingId: String? = null,
     val doingName: String? = null,
@@ -110,7 +108,6 @@ class MovementSetsViewModel(
     /** Where Back keeps typed-but-unlogged values (v0.475). */
     private val draftKey = "$date|$slotId"
 
-    val step: Double = if (unit == "kg") 2.5 else 5.0
 
     init {
         load()
@@ -201,7 +198,7 @@ class MovementSetsViewModel(
             if (answer == "use" && w != null) {
                 val open = rows.filter { !it.saved && it.w.isBlank() && it.hintW != null }
                 val max = open.maxOfOrNull { it.hintW ?: 0.0 }
-                rows = rows.map { r -> if (r in open && r.hintW == max) r.copy(hintW = w - u.shift) else r }
+                rows = rows.map { r -> if (r in open && r.hintW == max) r.copy(hintW = w) else r }
             }
             u.copy(suggestion = null, rows = rows)
         }
@@ -238,11 +235,11 @@ class MovementSetsViewModel(
     }
 
     /** Today's heaviest at each exact rep count, from what's saved or typed. */
-    fun todayAt(shift: Double = _ui.value.shift): Map<Int, Double> {
+    fun todayAt(): Map<Int, Double> {
         val out = mutableMapOf<Int, Double>()
         _ui.value.rows.forEach { r ->
             if (!r.saved && !typed(r)) return@forEach
-            val v = valueOf(r, shift)
+            val v = valueOf(r)
             val w = v.weight ?: return@forEach
             val reps = v.reps ?: return@forEach
             out[reps] = maxOf(out[reps] ?: 0.0, w)
@@ -364,13 +361,12 @@ class MovementSetsViewModel(
 
     // --- reading a row -------------------------------------------------------
 
-    fun hintW(r: SetRow, shift: Double = _ui.value.shift): Double? =
-        if (r.hintW != null && r.w.isBlank() && !r.saved) r.hintW + shift else r.hintW
+    fun hintW(r: SetRow): Double? = r.hintW
 
     private fun num(v: String): Double? = v.trim().toDoubleOrNull()?.takeIf { it > 0 }
 
-    fun valueOf(r: SetRow, shift: Double = _ui.value.shift): MovementSetDto = MovementSetDto(
-        weight = if (metric == "WEIGHT" || (metric == "DURATION" && _ui.value.holdUnit != null)) num(r.w) ?: hintW(r, shift) else null,
+    fun valueOf(r: SetRow): MovementSetDto = MovementSetDto(
+        weight = if (metric == "WEIGHT" || (metric == "DURATION" && _ui.value.holdUnit != null)) num(r.w) ?: r.hintW else null,
         reps = if (metric == "WEIGHT" || metric == "REPS") num(r.r)?.toInt() ?: r.hintR else null,
         seconds = if (metric == "DURATION") num(r.s)?.toInt() ?: r.hintS else null,
     )
@@ -464,7 +460,7 @@ class MovementSetsViewModel(
             it.copy(
                 rows = it.rows + SetRow(
                     key = nextKey++,
-                    hintW = v?.weight?.let { w -> w - u.shift },
+                    hintW = v?.weight,
                     hintR = v?.reps,
                     hintS = v?.seconds,
                     added = true,
@@ -489,8 +485,6 @@ class MovementSetsViewModel(
         _ui.update { it.copy(rows = next) }
         persist(next)
     }
-
-    fun shiftBy(d: Double) = _ui.update { it.copy(shift = it.shift + d) }
 
     /** The set the calculator or timer was opened for (null = the next one
      *  not ticked yet). */

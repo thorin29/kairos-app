@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -310,7 +309,7 @@ fun MovementSetsScreen(
 
                     val chips = if (isWeight && ui.repsUnit == null) vm.recordChips() else emptyList()
                     if (chips.isNotEmpty()) {
-                        val now = vm.todayAt(ui.shift)
+                        val now = vm.todayAt()
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -353,7 +352,6 @@ fun MovementSetsScreen(
                             vm = vm,
                             metric = metric,
                             unit = unit,
-                            shift = ui.shift,
                             sub = when {
                                 r.added -> "Added today"
                                 ui.lastSets.getOrNull(i) != null ->
@@ -381,36 +379,6 @@ fun MovementSetsScreen(
                             PillButton(label = "Add set", icon = true) { vm.addSet() }
                             if (!vm.anyEntered() && vm.hasHints()) {
                                 PillButton(label = "Same as last time", tinted = true) { vm.sameAsLast() }
-                            }
-                        }
-
-                        val anyUnentered = ui.rows.any { !it.saved && it.w.isBlank() && it.hintW != null }
-                        if (isWeight && anyUnentered && !vm.strict()) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Text(
-                                    "Remaining sets",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                RoundStep("−${MovementSetsViewModel.fmt(vm.step)}") { vm.shiftBy(-vm.step) }
-                                Text(
-                                    when {
-                                        ui.shift == 0.0 -> "0"
-                                        ui.shift > 0 -> "+${MovementSetsViewModel.fmt(ui.shift)} $unit"
-                                        else -> "−${MovementSetsViewModel.fmt(-ui.shift)} $unit"
-                                    },
-                                    style = MaterialTheme.typography.titleSmall,
-                                    textAlign = TextAlign.Center,
-                                    color = if (ui.shift == 0.0) MaterialTheme.colorScheme.onSurface
-                                    else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.widthIn(min = 36.dp),
-                                )
-                                RoundStep("+${MovementSetsViewModel.fmt(vm.step)}") { vm.shiftBy(vm.step) }
                             }
                         }
                     }
@@ -486,7 +454,6 @@ private fun SetCard(
     vm: MovementSetsViewModel,
     metric: String,
     unit: String,
-    shift: Double,
     sub: String,
     /** Reps of a set no earlier set matched, or null. */
     newBest: Int?,
@@ -533,7 +500,7 @@ private fun SetCard(
                     "WEIGHT" -> {
                         SetField(
                             value = row.w,
-                            hint = vm.hintW(row, shift)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
+                            hint = vm.hintW(row)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
                             label = "Weight, set $index",
                             decimal = true,
                             enabled = enabled,
@@ -556,7 +523,7 @@ private fun SetCard(
                         if (holdUnit != null) {
                             SetField(
                                 value = row.w,
-                                hint = vm.hintW(row, shift)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
+                                hint = vm.hintW(row)?.let { MovementSetsViewModel.fmt(it) } ?: "wt",
                                 label = "Weight, set $index",
                                 decimal = true,
                                 enabled = enabled,
@@ -722,22 +689,6 @@ private fun ClockField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = modifier.semantics { contentDescription = label },
     )
-}
-
-/** −5 / +5 for the remaining sets: white circles, as in the mockup. */
-@Composable
-private fun RoundStep(label: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
-    }
 }
 
 /** Add set / Same as last time: the Swap pill's shape, a size up. */
@@ -1422,7 +1373,6 @@ private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: Str
                     vm = vm,
                     metric = metric,
                     unit = unit,
-                    shift = ui.shift,
                     sub = when {
                         r.added -> "Added today"
                         ui.lastSets.getOrNull(i) != null ->
