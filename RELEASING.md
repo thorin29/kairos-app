@@ -31,8 +31,12 @@ is unchanged and is still just for your own testing.
    `docs/API.md` if the contract moved. Treat this as part of the release.
    If you touched `NoteField.kt` or `IcsImport.kt`, run the web repo's
    `scripts/ics-parity/check.sh` against this clone.
-4. **Commit.**
-5. **Publish**, either:
+4. **Check the Kotlin you changed.** Run `python3 scripts/check-positional-args.py
+   app/src/main/java | grep -c "positional of"`. The count (237 at 0.501.0)
+   must not rise, so use named arguments. CI's Gradle build is the real
+   compile.
+5. **Commit.**
+6. **Publish**, either:
    - `git tag v0.126.0 && git push origin v0.126.0`, or
    - Actions → **Release** → *Run workflow*.
 

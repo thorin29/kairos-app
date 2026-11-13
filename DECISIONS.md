@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Docs brought current (docs only, no app release; server 0.695.0)
+
+- README and ARCHITECTURE caught up with 0.390–0.501. They now cover the
+  Settings layout, the home-screen widget, the background timer, programs,
+  the heat map, Family WOD and pauses.
+- ARCHITECTURE gained two sections. "Pages, not sheets" records the
+  `FullPage` rule (no `ModalBottomSheet` anywhere; some file names still say
+  Sheet). "Settings" records where a new setting goes.
+- RELEASING gained the positional-args check (237; must not rise).
+- No code changed, so `versionName`, `versionCode` and `CLIENT_BUILD` stay
+  at 0.501.0 / 573 / 573 and there's nothing to tag. `HeatRangeChips` /
+  `HEAT_RANGES` in HeatView.kt look unused since the 0.664 redesign. They
+  are noted, not removed.
+
 ## 2026-11 — Settings reorganized (v0.501.0, no server change)
 
 - Settings: a profile card (PersonAvatar, name) on top, then grouped rows

@@ -80,6 +80,33 @@ so avatar requests carry the device token). Reach it in composables with
    `viewModelFactory`; render loading / error / content; pass navigation as
    lambdas from `AppRoot`.
 
+## Pages, not sheets (`ui/common/FullPage.kt`)
+
+Anything you search, fill in or step through is a **full page**: `FullPage`
+(a full-screen Dialog holding a Scaffold + TopAppBar, so it looks like a
+navigated page) with `PageCard` for the white top card. Small pop-ups
+(`AnimatedDialog`) are only for short choices, confirmations, ⓘ, date pickers
+and breakdowns (a tapped Workout days square, a muscle's week). There are **no
+pull-up sheets**: nothing uses `ModalBottomSheet`. Some file names still say
+"Sheet" (`AddWorkoutSheet.kt`, `PlanFileSheets.kt`), but they open pages. The
+web follows the same rule: `Modal` in `exercise/plan-file-panel.tsx` is a full
+page and `Modal small` a centred pop-up. Selects use `RollPicker` or
+`OptionPickerOverlay`.
+
+## Settings (`ui/settings/SettingsScreen.kt`)
+
+A profile card on top, then grouped rows under `SettingsLabel`:
+
+- **Account:** Password, Devices (`ui/devices/`, with Revoke), Sign out.
+- **Look & feel:** Appearance, holding App (theme, colour, clock), Home screen
+  widget, and Workout timer.
+- **Notifications & reminders:** with `DefaultRemindersCard` inside it.
+- **Connected apps:** Concept2.
+- **Parents:** class approvals, admins only.
+- **Help & about:** How scoring works, Software update, Diagnostics.
+
+A new setting goes into one of these groups, not a new top-level row.
+
 ## Images / avatars
 
 - Uploaded avatars are served by the device-authed `GET /api/v1/avatars/[file]`
@@ -271,11 +298,33 @@ is what that rule exists to prevent.
   web's blocks.ts (`blockKind`, `cleanOrder`, `daySections`, `withCardio`).
 - `ui/workout/Timer.kt` (rules, mirrors the web's timer.ts),
   `ConditioningTimer.kt` (the full-screen timer), `ConditioningPicker.kt`
-  (Pick one / Build one sheets, the "pick on the day" card and the monthly
-  benchmark card, v0.425) and `ConditioningCard.kt`
-  (the day's planned conditioning workout). `PlanFileSheets.kt` — export,
-  import and household plans on the plan screen (v0.426; web
+  (`ConditioningPage`: Pick · Generator, with Create new opening the
+  HIIT/CrossFit builder; the "pick on the day" card and the monthly benchmark
+  card) and `ConditioningCard.kt` (the day's planned conditioning workout).
+  `PlanFileSheets.kt` — export, import and household plans as full pages (web
   `plan-file-panel.tsx`).
+- `ui/workout/AdditionalPicker.kt` — the day's single **+ Additional**
+  (`AdditionalMenu`: Conditioning, Family WOD, Strength, Cardio, Sport,
+  Mobility, Stretching, Isometrics, something else), `ExtraPickerPage`, and
+  `logCategoriesFor` (which log categories each kind offers).
+- `ui/workout/FamilyWod.kt` — Family WOD: the day card, the board, the
+  screen (`FamilyWodScreen`; the person on the device first, nobody selected
+  by default) and the parent's edit page (web `family-wod.tsx`).
+- `ui/workout/WorkoutPause.kt` — a person's own pause (Sick / Injured /
+  Vacation / Other on a range calendar, up to 180 days, plannable ahead) and
+  the "set by a parent" line for an admin's pause (web `workout-pause.tsx`).
+- `ui/workout/HeatView.kt` — the training heat map's key and
+  `TrainDetailDialog` (this week, the reason line, "+N% since you started"),
+  all from the server's `training`. The colours are earned on the server
+  (`training-heat.ts`); never recompute them here. `HEAT_RANGES` /
+  `HeatRangeChips` are left over from the pre-0.664 range view and nothing
+  calls them.
+- `ui/workout/EnduranceCharts.kt` — Cardio and Conditioning cards and pages;
+  `WorkoutChart.kt` — lift rows and a lift's page; `SoreSpots.kt`,
+  `AdjustToday.kt` — sore spots and Adjust today.
+- Midnight rollover: `AppRoot` bumps `dataRevision` when `LocalDate.now()`
+  changes (checked each minute), so a screen left open reloads for the new
+  day.
 - `ui/calendar/NoteField.kt`, `ui/calendar/IcsImport.kt` — the two rules mirrored
   from the web (`event-notes.ts`, `ics-import.ts`); keep them in step.
 - `ui/common/` — `rememberContainer`, shared composables; `OptionPickerOverlay`

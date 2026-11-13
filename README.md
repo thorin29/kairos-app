@@ -41,23 +41,32 @@ phone (`/auth/login`) and re-confirming after a credential change
 ## What the app does
 
 Mirrors each person's personal view of the household: Home dashboard, Calendar,
-Chores, Bible reading, Reading, School, Workouts, Groceries, Money, and
-Characters. Beyond parity with the web personal view it adds:
+Chores, Bible reading, Reading, School, Workouts, Shopping, Money, Game time,
+Ice time (hockey) and Characters. Beyond parity with the web personal view it
+adds:
 
 - **Offline-first.** Screens render from an on-device cache and work without a
   signal; writes (completing chores/tasks, logging workouts, marking reading,
   adding groceries/events, etc.) queue and replay on reconnect.
-- **Settings** (gear by your name): **Appearance** (dark mode + eight color
-  themes + 24-hour clock, per device), **Profile** (photo + framing + your color,
-  which syncs to the web/calendar), and **Notifications**.
+- **Settings** (gear by your name): your profile card on top (photo, framing
+  and your colour, which syncs to the web and calendar), then **Account**
+  (password, the devices signed in with Revoke, sign out), **Look & feel**
+  (dark mode, eight colour themes, 24-hour clock, the home-screen widget and
+  the workout timer, all per device), **Notifications & reminders**,
+  **Connected apps** (Concept2), **Parents** and **Help & about** (how scoring
+  works, software update, diagnostics).
+- **Home-screen widget.** The next 7 days of events and tasks; tick tasks off
+  and add a task or event from it. It draws offline from the last feed.
 - **Reminders.** Set reminders per calendar event; they fire locally at the
   chosen lead time (no push service). Off by default.
 - **Calendar invites.** Tap an `.ics` attachment in your email (or Share it to
   Kairos) and New event opens filled in from it, on your own calendar. The file
   is read on the phone.
-- **Workouts** logged movement by movement — weight and reps, or a hold time —
-  with your best weight, best reps and latest session beside the fields, and a
-  body map to browse progress by muscle group.
+- **Workouts**: programs and plans, every set logged against last time's, and
+  warm-ups, core, cardio, conditioning, mobility, stretching and isometrics.
+  It also has family WODs, pauses for sick, injured or away, and a body map
+  with the training heat map. A running timer keeps going outside the app, as
+  a notification and a small floating window.
 - **Companions** to raise through growth stages, deepen, and swap back in from
   the gallery.
 
