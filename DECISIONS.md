@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Passwords need 8 characters (v0.504.0, server 0.699.0)
+
+- The join/reset screen asked for 6 characters while the server's
+  change-password asked for 8. Server 0.699 uses one `MIN_PASSWORD` (8)
+  everywhere, including `/auth/join`, so the app's check moves to 8 to match.
+  Without it, a 6–7 character password would pass the app and then be refused
+  by the server. Existing passwords are unaffected; this applies only when a
+  password is set.
+
 ## 2026-11 — Every pop-up on AnimatedDialog (v0.503.0, server 0.696.0)
 
 - All 43 stock `AlertDialog`s in 22 files (workouts, Appearance, Default

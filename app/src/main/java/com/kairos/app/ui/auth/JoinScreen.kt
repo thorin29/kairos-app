@@ -131,7 +131,7 @@ fun JoinScreen(token: String, onCancel: () -> Unit) {
                     onClick = {
                         error = when {
                             password.isBlank() -> "Enter your password."
-                            setup && password.length < 6 -> "Use at least 6 characters."
+                            setup && password.length < 8 -> "Use at least 8 characters."
                             setup && password != confirm -> "Those passwords don't match."
                             else -> null
                         }

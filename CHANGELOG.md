@@ -1,4 +1,8 @@
 # Changelog
+## 0.504.0
+
+- New passwords need at least 8 characters.
+
 ## 0.503.0
 
 - Pop-ups across workouts, settings and sign-in now ease in like the rest of the app.
