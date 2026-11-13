@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -65,6 +64,7 @@ import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.kairos.app.ui.common.AnimatedDialog
 
 private val WEEKDAYS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 private val SETUP_STEPS = listOf("Days", "Lifts", "Extras", "Maxes")
@@ -284,33 +284,9 @@ fun ProgramsScreen(
     val askingChoice = asking?.let { k -> data?.choices?.firstOrNull { it.key == k } }
     val askingVersion = asking?.let { k -> data?.versions?.get(k) }
     if (askingChoice != null && askingVersion != null) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { asking = null },
-            title = { Text(askingChoice.name) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ProgramPill(
-                        label = "Your version · ${shortDate(askingVersion.savedOn)}",
-                        filled = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            useVersion = true
-                            setupKey = askingChoice.key
-                            asking = null
-                        },
-                    )
-                    ProgramPill(
-                        label = "Default",
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            useVersion = false
-                            setupKey = askingChoice.key
-                            asking = null
-                        },
-                    )
-                }
-            },
-            confirmButton = {},
+            title = askingChoice.name,
             dismissButton = {
                 TextButton(
                     enabled = !busy,
@@ -327,13 +303,35 @@ fun ProgramsScreen(
                     Text("Forget my version")
                 }
             },
-        )
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ProgramPill(
+                    label = "Your version · ${shortDate(askingVersion.savedOn)}",
+                    filled = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        useVersion = true
+                        setupKey = askingChoice.key
+                        asking = null
+                    },
+                )
+                ProgramPill(
+                    label = "Default",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        useVersion = false
+                        setupKey = askingChoice.key
+                        asking = null
+                    },
+                )
+            }
+        }
     }
 
     if (ending) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { ending = false },
-            title = { Text("End ${data?.active?.name ?: "program"}?") },
+            title = "End ${data?.active?.name ?: "program"}?",
             confirmButton = {
                 TextButton(onClick = { ending = false; act(block = { session.endProgram(restore = true) }) { onDone() } }) {
                     Text("Go back to my old plan")
@@ -344,7 +342,7 @@ fun ProgramsScreen(
                     Text("Keep this plan")
                 }
             },
-        )
+        ) {}
     }
 
     val active = data?.active
@@ -486,37 +484,9 @@ private fun CycleEndDialog(
         mutableStateMapOf<String, String>().apply { info.maxes.forEach { put(it.poolExerciseId, MovementSetsViewModel.fmt(it.step)) } }
     }
     fun amount(id: String): Double = by[id]?.toDoubleOrNull()?.takeIf { it > 0 } ?: 0.0
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onClose,
-        title = { Text("Cycle done") },
-        text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                info.maxes.forEach { m ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text(m.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "${MovementSetsViewModel.fmt(m.weight)} → ${MovementSetsViewModel.fmt(m.weight + amount(m.poolExerciseId))}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text("+", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        NumberField(value = by[m.poolExerciseId] ?: "", label = "Raise ${m.name} by", onChange = { by[m.poolExerciseId] = it })
-                    }
-                }
-                if (canChange) {
-                    TextButton(
-                        enabled = !busy,
-                        onClick = { onChanges(info.maxes.associate { it.poolExerciseId to amount(it.poolExerciseId) }) },
-                    ) { Text("Next cycle, with changes") }
-                }
-                TextButton(onClick = onSwitch) { Text("Switch program") }
-            }
-        },
+        title = "Cycle done",
         confirmButton = {
             TextButton(
                 enabled = !busy,
@@ -529,7 +499,34 @@ private fun CycleEndDialog(
                 onClick = { onNext(info.maxes.associate { it.poolExerciseId to 0.0 }) },
             ) { Text("Repeat") }
         },
-    )
+    ) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            info.maxes.forEach { m ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(m.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${MovementSetsViewModel.fmt(m.weight)} → ${MovementSetsViewModel.fmt(m.weight + amount(m.poolExerciseId))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text("+", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    NumberField(value = by[m.poolExerciseId] ?: "", label = "Raise ${m.name} by", onChange = { by[m.poolExerciseId] = it })
+                }
+            }
+            if (canChange) {
+                TextButton(
+                    enabled = !busy,
+                    onClick = { onChanges(info.maxes.associate { it.poolExerciseId to amount(it.poolExerciseId) }) },
+                ) { Text("Next cycle, with changes") }
+            }
+            TextButton(onClick = onSwitch) { Text("Switch program") }
+        }
+    }
 }
 
 @Composable
@@ -679,17 +676,16 @@ private fun ProgramSetup(
     val maxText = remember(program.key) { mutableStateMapOf<String, String>() }
     var tmHelp by remember { mutableStateOf(false) }
     if (tmHelp) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { tmHelp = false },
-            title = { Text("Training max") },
-            text = {
-                Text(
-                    "The program works from 90% of your max, its training max. Every set is a share of it (65%, 75%, 85%\u2026), " +
-                        "which keeps the weights ones you can lift well and leaves room to keep going up. Enter your best; the app does the rest.",
-                )
-            },
+            title = "Training max",
             confirmButton = { TextButton(onClick = { tmHelp = false }) { Text("OK") } },
-        )
+        ) {
+            Text(
+                "The program works from 90% of your max, its training max. Every set is a share of it (65%, 75%, 85%\u2026), " +
+                    "which keeps the weights ones you can lift well and leaves room to keep going up. Enter your best; the app does the rest.",
+            )
+        }
     }
 
     val allOptions = remember(program.key) {
@@ -1114,16 +1110,9 @@ private fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
 
     picked?.let { p ->
         val pv = preview
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { picked = null },
-            title = { Text(p.second) },
-            text = {
-                if (pv == null) {
-                    CircularProgressIndicator(Modifier.padding(8.dp))
-                } else {
-                    Text(pv.summary.ifBlank { "No plan, workouts only." }, style = MaterialTheme.typography.bodyMedium)
-                }
-            },
+            title = p.second,
             confirmButton = {
                 if (pv != null && pv.entries > 0) {
                     TextButton(enabled = !busy, onClick = { act { session.useSharedPlan(p.first, "replace"); picked = null; onUsed() } }) {
@@ -1138,17 +1127,20 @@ private fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
                     }
                 }
             },
-        )
+        ) {
+            if (pv == null) {
+                CircularProgressIndicator(Modifier.padding(8.dp))
+            } else {
+                Text(pv.summary.ifBlank { "No plan, workouts only." }, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 
     renaming?.let { p ->
         var newName by remember(p.first) { mutableStateOf(p.second) }
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { renaming = null },
-            title = { Text("Rename") },
-            text = {
-                OutlinedTextField(value = newName, onValueChange = { newName = it.take(60) }, singleLine = true)
-            },
+            title = "Rename",
             confirmButton = {
                 TextButton(
                     enabled = !busy && newName.trim().length >= 2,
@@ -1156,20 +1148,22 @@ private fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
                 ) { Text("Save") }
             },
             dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
-        )
+        ) {
+            OutlinedTextField(value = newName, onValueChange = { newName = it.take(60) }, singleLine = true)
+        }
     }
 
     deleting?.let { p ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Delete ${p.second}?") },
+            title = "Delete ${p.second}?",
             confirmButton = {
                 TextButton(enabled = !busy, onClick = { act { session.deleteSavedPlan(p.first); deleting = null; load() } }) {
                     Text("Delete")
                 }
             },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
-        )
+        ) {}
     }
 }
 

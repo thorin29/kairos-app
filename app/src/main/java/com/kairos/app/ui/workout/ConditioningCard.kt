@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.ConditioningPlanDto
+import com.kairos.app.ui.common.AnimatedDialog
 
 internal val TYPE_LABEL = mapOf(
     "AMRAP" to "AMRAP",
@@ -161,15 +162,14 @@ internal fun ConditioningCard(
     }
 
     if (confirmRestart) {
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmRestart = false },
-            title = { Text("Already logged today") },
-            text = { Text("You logged ${workout.today} today. A new result from the timer will replace it.") },
+            title = "Already logged today",
             confirmButton = {
                 TextButton(onClick = { confirmRestart = false; timing = true }) { Text("Start timer") }
             },
             dismissButton = { TextButton(onClick = { confirmRestart = false }) { Text("Cancel") } },
-        )
+        ) { Text("You logged ${workout.today} today. A new result from the timer will replace it.") }
     }
 
     if (timing) {

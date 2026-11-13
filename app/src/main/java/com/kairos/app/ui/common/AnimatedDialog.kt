@@ -70,7 +70,9 @@ fun AnimatedDialog(
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
                 }
-                content()
+                // Long content shrinks first (as Material's AlertDialog does), so
+                // the buttons below stay on screen; scrollable content scrolls.
+                Column(Modifier.weight(weight = 1f, fill = false)) { content() }
                 if (confirmButton != null || dismissButton != null) {
                     Row(
                         Modifier.fillMaxWidth().padding(top = 20.dp),

@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +61,7 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.kairos.app.ui.common.AnimatedDialog
 
 /** The family WOD's colour: its badge and card edge (v0.489). */
 internal val FAMILY_WOD_AMBER = Color(0xFFD48E00)
@@ -398,18 +398,17 @@ fun FamilyWodScreen(
 /** What a workout is: its type, movements and note, in a pop-up. */
 @Composable
 private fun WodInfoDialog(c: FamilyWodChoiceDto, onDismiss: () -> Unit) {
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = { Text(c.name) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(c.typeLabel + (c.minutes?.let { " · about $it min" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                c.movements.forEach { Text(it) }
-                c.about?.let { Text(it) }
-            }
-        },
+        title = c.name,
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(c.typeLabel + (c.minutes?.let { " · about $it min" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            c.movements.forEach { Text(it) }
+            c.about?.let { Text(it) }
+        }
+    }
 }
 
 /** The shared workouts, searchable: full names, ⓘ for what each is. */

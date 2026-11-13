@@ -26,7 +26,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
@@ -50,6 +49,7 @@ import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.common.SentenceCaps
 import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.common.FullPage
+import com.kairos.app.ui.common.AnimatedDialog
 
 /**
  * Log something done (v0.491: a full page from "+ Additional"; was the
@@ -120,22 +120,21 @@ fun LogWorkoutPage(date: String, kind: String, onLogged: () -> Unit, onDismiss: 
     }
 
     ui.conflict?.let { c ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { vm.dismissConflict() },
-            title = { Text("Already logged") },
-            text = {
-                Text(
-                    "You already logged ${c.name} today: ${c.summary}. " +
-                        "Update it with the new value, or cancel?",
-                )
-            },
+            title = "Already logged",
             confirmButton = {
                 TextButton(onClick = { vm.confirmReplace() }) { Text("Update") }
             },
             dismissButton = {
                 TextButton(onClick = { vm.dismissConflict() }) { Text("Cancel") }
             },
-        )
+        ) {
+            Text(
+                "You already logged ${c.name} today: ${c.summary}. " +
+                    "Update it with the new value, or cancel?",
+            )
+        }
     }
 }
 

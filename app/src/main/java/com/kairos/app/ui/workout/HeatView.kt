@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +34,7 @@ import com.kairos.app.data.remote.dto.HeatGroupDto
 import com.kairos.app.data.remote.dto.TrainGroupDto
 import com.kairos.app.data.remote.dto.TrainingHeatDto
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.AnimatedDialog
 
 /**
  * The body map's heat views. The training heat map (v0.664, rules in the
@@ -195,20 +195,19 @@ internal fun TrainKey(neutral: Color) {
         )
     }
     if (about) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { about = false },
-            title = { Text("Heat map") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Pale yellow: trained regularly, 4 of the last 6 weeks with the muscle's own exercises.")
-                    Text("It warms as you get stronger: up 3% over 12 weeks is yellow, 6% orange. Red is a strong run over about 6 months.")
-                    Text("When progress stalls it eases back, but not below pale yellow while you keep training.")
-                    Text("A missed week cools it a step. Blue after about a month off.")
-                    Text("The heart is endurance: sport, rowing, running, rucking and conditioning, by minutes and how hard they felt. About 120 hard minutes a week is yellow; doing more than you used to warms it.")
-                }
-            },
+            title = "Heat map",
             confirmButton = { TextButton(onClick = { about = false }) { Text("Close") } },
-        )
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Pale yellow: trained regularly, 4 of the last 6 weeks with the muscle's own exercises.")
+                Text("It warms as you get stronger: up 3% over 12 weeks is yellow, 6% orange. Red is a strong run over about 6 months.")
+                Text("When progress stalls it eases back, but not below pale yellow while you keep training.")
+                Text("A missed week cools it a step. Blue after about a month off.")
+                Text("The heart is endurance: sport, rowing, running, rucking and conditioning, by minutes and how hard they felt. About 120 hard minutes a week is yellow; doing more than you used to warms it.")
+            }
+        }
     }
 }
 
@@ -247,54 +246,53 @@ internal fun TrainDetailDialog(
     // This week (v0.483): exact sets or minutes, and a row per movement or
     // kind. With nothing this week, why it's this colour instead.
     val week = data?.week
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(data?.let { trainColor(it.level) } ?: neutral),
-                    )
-                    Text(
-                        week?.headline ?: data?.line ?: "Nothing logged yet.",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                val why = data?.line.orEmpty()
-                // Why it's this colour (v0.497: shown with the week's rows too).
-                if (week != null && why.isNotBlank()) {
-                    Text(why, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                // "+31% since you started" (v0.499).
-                data?.since?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                week?.rows?.forEach { r ->
-                    androidx.compose.material3.HorizontalDivider()
-                    val opens = onOpenRow != null && (r.name == "Cardio" || r.name == "Conditioning")
-                    Row(
-                        Modifier.fillMaxWidth().then(if (opens) Modifier.clickable { onOpenRow?.invoke(r.name) } else Modifier),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant))
-                        Column(Modifier.weight(1f)) {
-                            Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            Text(r.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(r.amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        if (opens) Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        title = title,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    Modifier
+                        .size(12.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(data?.let { trainColor(it.level) } ?: neutral),
+                )
+                Text(
+                    week?.headline ?: data?.line ?: "Nothing logged yet.",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            val why = data?.line.orEmpty()
+            // Why it's this colour (v0.497: shown with the week's rows too).
+            if (week != null && why.isNotBlank()) {
+                Text(why, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // "+31% since you started" (v0.499).
+            data?.since?.takeIf { it.isNotBlank() }?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            week?.rows?.forEach { r ->
+                androidx.compose.material3.HorizontalDivider()
+                val opens = onOpenRow != null && (r.name == "Cardio" || r.name == "Conditioning")
+                Row(
+                    Modifier.fillMaxWidth().then(if (opens) Modifier.clickable { onOpenRow?.invoke(r.name) } else Modifier),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant))
+                    Column(Modifier.weight(1f)) {
+                        Text(r.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(r.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Text(r.amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (opens) Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+        }
+    }
 }
 
 internal fun trainTitle(nav: String): String = if (nav == "ENDURANCE") "Endurance" else navLabel(nav)

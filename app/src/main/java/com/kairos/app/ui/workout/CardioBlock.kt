@@ -45,6 +45,7 @@ import com.kairos.app.data.remote.dto.CardioEntryDto
 import com.kairos.app.data.remote.dto.Concept2DayDto
 import com.kairos.app.data.remote.dto.SimplePlanDto
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.AnimatedDialog
 
 /** What can be logged as cardio (the web's cardio.ts CARDIO_ACTIVITIES). */
 private data class CardioKind(
@@ -322,13 +323,12 @@ internal fun CardioBlock(
     }
 
     removing?.let { e ->
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { removing = null },
-            title = { Text("Remove ${e.name}?") },
-            text = { Text(e.summary) },
+            title = "Remove ${e.name}?",
             confirmButton = { TextButton(onClick = { onRemove(e.sessionId); removing = null }) { Text("Remove") } },
             dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel") } },
-        )
+        ) { Text(e.summary) }
     }
 }
 

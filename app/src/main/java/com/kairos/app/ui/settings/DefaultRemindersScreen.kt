@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +35,7 @@ import com.kairos.app.data.settings.ReminderDefaults
 import com.kairos.app.ui.common.rememberContainer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.kairos.app.ui.common.AnimatedDialog
 
 /** The old route (v0.501): the same card on a page of its own. Settings now
  *  opens Notifications & reminders, which holds [DefaultRemindersCard]. */
@@ -137,82 +137,80 @@ fun DefaultRemindersCard() {
     editingKind?.let { kind ->
         val current = ReminderDefaults.effective(defaults, kind)
         val kindLabel = ReminderDefaults.KINDS.firstOrNull { it.first == kind }?.second ?: "Reminder"
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { editingKind = null },
-            title = { Text(kindLabel) },
-            text = {
-                Column {
-                    ReminderDefaults.PRESETS.forEach { m ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch { container.settingsStore.setReminderDefault(kind, m) }
-                                    editingKind = null
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = current == m, onClick = null)
-                            Text(
-                                ReminderDefaults.label(m),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-                }
-            },
+            title = kindLabel,
             confirmButton = {
                 TextButton(onClick = { editingKind = null }) { Text("Close") }
             },
-        )
+        ) {
+            Column {
+                ReminderDefaults.PRESETS.forEach { m ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                scope.launch { container.settingsStore.setReminderDefault(kind, m) }
+                                editingKind = null
+                            }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = current == m, onClick = null)
+                        Text(
+                            ReminderDefaults.label(m),
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 
 
     if (editingReading) {
         val presets = listOf(0, 1, 3, 7, 14, 30, 60)
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { editingReading = false },
-            title = { Text("Reading goals") },
-            text = {
-                Column {
-                    Text(
-                        "How far ahead the next reading goal appears on the reading button. Off shows only the current goal.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    presets.forEach { d ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        try {
-                                            readingLead = container.sessionRepository.setReadingReminder(d).leadDays
-                                            container.settingsStore.setReadingReminderLead(readingLead)
-                                        } catch (_: Exception) {}
-                                    }
-                                    editingReading = false
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = readingLead == d, onClick = null)
-                            Text(
-                                readingLeadLabel(d),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-                }
-            },
+            title = "Reading goals",
             confirmButton = {
                 TextButton(onClick = { editingReading = false }) { Text("Close") }
             },
-        )
+        ) {
+            Column {
+                Text(
+                    "How far ahead the next reading goal appears on the reading button. Off shows only the current goal.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                presets.forEach { d ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                scope.launch {
+                                    try {
+                                        readingLead = container.sessionRepository.setReadingReminder(d).leadDays
+                                        container.settingsStore.setReadingReminderLead(readingLead)
+                                    } catch (_: Exception) {}
+                                }
+                                editingReading = false
+                            }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = readingLead == d, onClick = null)
+                        Text(
+                            readingLeadLabel(d),
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

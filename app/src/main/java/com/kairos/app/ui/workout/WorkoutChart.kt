@@ -60,6 +60,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.roundToInt
+import com.kairos.app.ui.common.AnimatedDialog
 
 private val LINE = Color(0xFF0F766E)
 
@@ -1179,43 +1180,38 @@ private fun ProgressSummaryCards(
         // Tap a day (v0.490): what each colour was that day.
         dayOpen?.let { day ->
             val hits = byDate[day].orEmpty()
-            androidx.compose.material3.AlertDialog(
+            AnimatedDialog(
                 onDismissRequest = { dayOpen = null },
-                title = {
-                    Text(
-                        runCatching {
+                title = runCatching {
                             LocalDate.parse(day).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d", java.util.Locale.US))
                         }.getOrDefault(day),
-                    )
-                },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        hits.forEach { g ->
-                            Row(verticalAlignment = Alignment.Top) {
-                                Box(
-                                    Modifier
-                                        .padding(top = 3.dp)
-                                        .size(14.dp)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(colourOf[g] ?: track),
-                                )
-                                Column(Modifier.padding(start = 10.dp)) {
-                                    Text(labelOf(g), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                    val moves = movesByDate[day]?.get(g).orEmpty()
-                                    if (moves.isNotEmpty()) {
-                                        Text(
-                                            moves.joinToString(" \u00b7 "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
+                confirmButton = { androidx.compose.material3.TextButton(onClick = { dayOpen = null }) { Text("Close") } },
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    hits.forEach { g ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Box(
+                                Modifier
+                                    .padding(top = 3.dp)
+                                    .size(14.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(colourOf[g] ?: track),
+                            )
+                            Column(Modifier.padding(start = 10.dp)) {
+                                Text(labelOf(g), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                val moves = movesByDate[day]?.get(g).orEmpty()
+                                if (moves.isNotEmpty()) {
+                                    Text(
+                                        moves.joinToString(" \u00b7 "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
                             }
                         }
                     }
-                },
-                confirmButton = { androidx.compose.material3.TextButton(onClick = { dayOpen = null }) { Text("Close") } },
-            )
+                }
+            }
         }
         // Two tidy rows (v0.443): four to a row in even columns, so a
         // seventh group (Core) starts a second, lined-up row instead of
@@ -1577,36 +1573,34 @@ private fun CoreOverviewDialog(
         }
     }
     if (idleOpen) {
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { idleOpen = false },
-            title = { Text("Not done lately") },
-            text = {
-                Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-                    summary.idle.forEachIndexed { i, id ->
-                        val m = byId[id] ?: return@forEachIndexed
-                        if (i > 0) androidx.compose.material3.HorizontalDivider()
-                        CoreMoveRow(
-                            text = m.name.replaceFirstChar { it.uppercase() },
-                            sub = last(m) + (m.points.lastOrNull()?.let { " · " + longDate(it.date) } ?: ""),
-                            tag = null,
-                            change = null,
-                            onOpen = { onOpenMove(m) },
-                        )
-                    }
-                }
-            },
+            title = "Not done lately",
             confirmButton = { androidx.compose.material3.TextButton(onClick = { idleOpen = false }) { Text("Close") } },
-        )
+        ) {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+                summary.idle.forEachIndexed { i, id ->
+                    val m = byId[id] ?: return@forEachIndexed
+                    if (i > 0) androidx.compose.material3.HorizontalDivider()
+                    CoreMoveRow(
+                        text = m.name.replaceFirstChar { it.uppercase() },
+                        sub = last(m) + (m.points.lastOrNull()?.let { " · " + longDate(it.date) } ?: ""),
+                        tag = null,
+                        change = null,
+                        onOpen = { onOpenMove(m) },
+                    )
+                }
+            }
+        }
     }
     if (info) {
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { info = false },
-            title = { Text("Core progress") },
-            text = {
-                Text("Each move is compared with its first session: a hold by its time, reps by reps, a weighted set by its estimated max. The line is the middle of those changes, so no one move counts more than another.")
-            },
+            title = "Core progress",
             confirmButton = { androidx.compose.material3.TextButton(onClick = { info = false }) { Text("Close") } },
-        )
+        ) {
+            Text("Each move is compared with its first session: a hold by its time, reps by reps, a weighted set by its estimated max. The line is the middle of those changes, so no one move counts more than another.")
+        }
     }
 }
 

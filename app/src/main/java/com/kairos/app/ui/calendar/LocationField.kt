@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -45,6 +44,7 @@ import com.kairos.app.data.session.SessionRepository
 import com.kairos.app.ui.common.SentenceCaps
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
+import com.kairos.app.ui.common.AnimatedDialog
 
 /**
  * The event "Where" field. Tapping it opens a full-screen address search (a
@@ -231,47 +231,9 @@ fun AddressSearchScreen(
     }
 
     if (showSave) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { if (!submitting) showSave = false },
-            title = { Text("Save address") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = saveName,
-                        onValueChange = { saveName = it },
-                        label = { Text("Friendly name") },
-                        placeholder = { Text("e.g. Iceplex") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = saveAddress,
-                        onValueChange = { saveAddress = it },
-                        label = { Text("Full address") },
-                        singleLine = false,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Switch(checked = saveNavByName, onCheckedChange = { saveNavByName = it })
-                        Text(
-                            "Open in maps by name (a business). Turn off for a home.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    dup?.let { d ->
-                        Text(
-                            "Already saved as \"${d.name}\" — ${d.address}.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            },
+            title = "Save address",
             confirmButton = {
                 if (dup != null) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -290,7 +252,44 @@ fun AddressSearchScreen(
             dismissButton = {
                 TextButton(enabled = !submitting, onClick = { showSave = false }) { Text("Cancel") }
             },
-        )
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = saveName,
+                    onValueChange = { saveName = it },
+                    label = { Text("Friendly name") },
+                    placeholder = { Text("e.g. Iceplex") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = saveAddress,
+                    onValueChange = { saveAddress = it },
+                    label = { Text("Full address") },
+                    singleLine = false,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Switch(checked = saveNavByName, onCheckedChange = { saveNavByName = it })
+                    Text(
+                        "Open in maps by name (a business). Turn off for a home.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                dup?.let { d ->
+                    Text(
+                        "Already saved as \"${d.name}\" — ${d.address}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
     }
 }
 

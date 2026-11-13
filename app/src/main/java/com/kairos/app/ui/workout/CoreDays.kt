@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +54,7 @@ import com.kairos.app.data.remote.dto.PlanExerciseDto
 import com.kairos.app.data.remote.dto.PlanWorkoutDto
 import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.nav.KairosIcons
+import com.kairos.app.ui.common.AnimatedDialog
 
 
 /** "Core" / "Arms" / "Isometric" (v0.471). */
@@ -205,29 +205,28 @@ internal fun CoreRotationPicker(
         }
     }
     peek?.let { w ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { peek = null },
-            title = { Text(w.name) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    w.moves.forEach { m ->
-                        Row(Modifier.fillMaxWidth()) {
-                            Text(
-                                m.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                m.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+            title = w.name,
+            confirmButton = { TextButton(onClick = { peek = null }) { Text("Close") } },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                w.moves.forEach { m ->
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(
+                            m.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            m.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { peek = null }) { Text("Close") } },
-        )
+            }
+        }
     }
 }
 
@@ -484,9 +483,9 @@ internal fun CoreWorkoutEditor(
     }
 
     if (confirmDelete && initial != null) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete \"${initial.name}\"?") },
+            title = "Delete \"${initial.name}\"?",
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
@@ -495,7 +494,7 @@ internal fun CoreWorkoutEditor(
                 }) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
-        )
+        ) {}
     }
 }
 

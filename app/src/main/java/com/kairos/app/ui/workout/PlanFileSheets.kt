@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.dto.ImportPreviewDto
 import java.time.LocalDate
+import com.kairos.app.ui.common.AnimatedDialog
 
 /**
  * Household plans, Share this plan, Export and Import (the web's
@@ -295,14 +295,13 @@ private fun ImportChoice(preview: ImportPreviewDto, busy: Boolean, onPick: (Stri
         }
     }
     if (confirmReplace) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmReplace = false },
-            title = { Text("Replace your plan?") },
-            text = { Text("Your whole weekly plan is replaced with this one. A running program ends.") },
+            title = "Replace your plan?",
             confirmButton = {
                 TextButton(onClick = { confirmReplace = false; onPick("replace") }) { Text("Replace") }
             },
             dismissButton = { TextButton(onClick = { confirmReplace = false }) { Text("Cancel") } },
-        )
+        ) { Text("Your whole weekly plan is replaced with this one. A running program ends.") }
     }
 }

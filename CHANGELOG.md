@@ -1,4 +1,9 @@
 # Changelog
+## 0.503.0
+
+- Pop-ups across workouts, settings and sign-in now ease in like the rest of the app.
+- Long pop-ups keep their buttons on screen.
+
 ## 0.502.0
 
 - The Remaining sets −5 / +5 buttons are gone from logging a movement.

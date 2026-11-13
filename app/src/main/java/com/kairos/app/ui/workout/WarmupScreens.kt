@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +60,7 @@ import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
+import com.kairos.app.ui.common.AnimatedDialog
 
 /** "warm-up" or "routine" (Mobility, v0.469). */
 private fun oneWord(kind: String) = if (kind == "warmup") "warm-up" else "routine"
@@ -116,12 +116,11 @@ private fun WarmupSteps(steps: List<WarmupStepDto>, storeKey: String? = null) {
     var timing by remember(steps) { mutableStateOf<Int?>(null) }
     var cue by remember(steps) { mutableStateOf<WarmupStepDto?>(null) }
     cue?.let { st ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { cue = null },
-            title = { Text(st.name) },
-            text = { Text(st.cue.orEmpty(), style = MaterialTheme.typography.bodyMedium) },
+            title = st.name,
             confirmButton = { TextButton(onClick = { cue = null }) { Text("Close") } },
-        )
+        ) { Text(st.cue.orEmpty(), style = MaterialTheme.typography.bodyMedium) }
     }
     timing?.let { from ->
         WarmupTimer(
@@ -414,25 +413,24 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit, kind: St
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     }
     peek?.let { r ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { peek = null },
-            title = { Text(r.name) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    r.steps.forEach { st ->
-                        Row(Modifier.fillMaxWidth()) {
-                            Text(st.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                            Text(
-                                stepAmount(st),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+            title = r.name,
+            confirmButton = { TextButton(onClick = { peek = null }) { Text("Close") } },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                r.steps.forEach { st ->
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(st.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        Text(
+                            stepAmount(st),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { peek = null }) { Text("Close") } },
-        )
+            }
+        }
     }
     if (editing != null || creating) {
         RoutineEditor(
@@ -680,9 +678,9 @@ private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSav
         }
     }
     if (confirmDelete && routine != null) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete ${routine.name}?") },
+            title = "Delete ${routine.name}?",
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
@@ -697,7 +695,7 @@ private fun RoutineEditor(routine: WarmupRoutineDto?, onClose: () -> Unit, onSav
                 }) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
-        )
+        ) {}
     }
 }
 

@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.animation.animateColorAsState
@@ -610,21 +609,20 @@ fun WorkoutLogScreen(
     }
 
     otherOpen?.let { g ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { otherOpen = null },
-            title = { Text(g.name) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    g.lines.forEach { l ->
-                        Row(Modifier.fillMaxWidth()) {
-                            Text(l.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                            Text(l.summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+            title = g.name,
+            confirmButton = { TextButton(onClick = { otherOpen = null }) { Text("Close") } },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                g.lines.forEach { l ->
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(l.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        Text(l.summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { otherOpen = null }) { Text("Close") } },
-        )
+            }
+        }
     }
 
     if (addingMenu) {
@@ -728,22 +726,21 @@ fun WorkoutLogScreen(
     }
 
     ui.conflict?.let { c ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { vm.dismissConflict() },
-            title = { Text("Already logged") },
-            text = {
-                Text(
-                    "You already logged ${c.name} today: ${c.summary}. " +
-                        "Update it with the new value, or cancel?",
-                )
-            },
+            title = "Already logged",
             confirmButton = {
                 TextButton(onClick = { vm.confirmReplace() }) { Text("Update") }
             },
             dismissButton = {
                 TextButton(onClick = { vm.dismissConflict() }) { Text("Cancel") }
             },
-        )
+        ) {
+            Text(
+                "You already logged ${c.name} today: ${c.summary}. " +
+                    "Update it with the new value, or cancel?",
+            )
+        }
     }
 }
 
@@ -2134,35 +2131,34 @@ private fun SportEditDialog(
     var effort by remember { mutableStateOf(sport.effort) }
     var hurt by remember { mutableStateOf(sport.hurt) }
     var minutes by remember { mutableStateOf(sport.minutes?.toString().orEmpty()) }
-    androidx.compose.material3.AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                EffortChooser(
-                    question = "How hard was $title?",
-                    effort = effort,
-                    hurt = hurt,
-                    onChange = { e, h -> effort = e; hurt = h },
-                )
-                if (sport.flexTime) {
-                    androidx.compose.material3.OutlinedTextField(
-                        value = minutes,
-                        onValueChange = { v -> minutes = v.filter { it.isDigit() }.take(3) },
-                        label = { Text("How long you stayed (min)") },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                        ),
-                    )
-                }
-            }
-        },
+        title = title,
         confirmButton = {
             androidx.compose.material3.TextButton(
                 onClick = { onSave(if (sport.flexTime) minutes.toIntOrNull() else null, effort, hurt) },
             ) { Text("Save") }
         },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            EffortChooser(
+                question = "How hard was $title?",
+                effort = effort,
+                hurt = hurt,
+                onChange = { e, h -> effort = e; hurt = h },
+            )
+            if (sport.flexTime) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = minutes,
+                    onValueChange = { v -> minutes = v.filter { it.isDigit() }.take(3) },
+                    label = { Text("How long you stayed (min)") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    ),
+                )
+            }
+        }
+    }
 }

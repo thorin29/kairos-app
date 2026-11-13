@@ -86,7 +86,9 @@ Anything you search, fill in or step through is a **full page**: `FullPage`
 (a full-screen Dialog holding a Scaffold + TopAppBar, so it looks like a
 navigated page) with `PageCard` for the white top card. Small pop-ups
 (`AnimatedDialog`) are only for short choices, confirmations, ⓘ, date pickers
-and breakdowns (a tapped Workout days square, a muscle's week). There are **no
+and breakdowns (a tapped Workout days square, a muscle's week). Every pop-up
+is `AnimatedDialog`, never Material's stock `AlertDialog` (none left since
+0.503.0); its content shrinks first so the buttons stay on screen. There are **no
 pull-up sheets**: nothing uses `ModalBottomSheet`. Some file names still say
 "Sheet" (`AddWorkoutSheet.kt`, `PlanFileSheets.kt`), but they open pages. The
 web follows the same rule: `Modal` in `exercise/plan-file-panel.tsx` is a full

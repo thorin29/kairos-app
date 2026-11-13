@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-11 — Every pop-up on AnimatedDialog (v0.503.0, server 0.696.0)
+
+- All 43 stock `AlertDialog`s in 22 files (workouts, Appearance, Default
+  reminders, Assign task, the calendar's discard / class prompts, Save address,
+  the sign-in Forgot / Recover dialogs) are now `AnimatedDialog`.
+  - It was a mechanical conversion: `title = { Text(x) }` became `title = x`,
+    the `text` slot became the content, and an empty `confirmButton = {}` was
+    dropped.
+  - No stock `AlertDialog` is left in the app; new pop-ups use
+    `AnimatedDialog`.
+- `AnimatedDialog` puts its content in `Column(Modifier.weight(1f, fill =
+  false))`. Long content (a Workout days breakdown, a program's choices) now
+  shrinks before the buttons leave the screen, as Material's dialog does.
+  Short dialogs look the same.
+- Server 0.696 needs no app change: full-body moves and the 12-week range
+  only change what the server sends inside the same shapes.
+
 ## 2026-11 — Remaining sets removed; dead heat code removed (v0.502.0, server 0.695.0)
 
 - The −5 / 0 / +5 "Remaining sets" row on the log-a-movement screen is gone:

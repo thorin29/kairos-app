@@ -4,7 +4,6 @@ import com.kairos.app.ui.nav.KairosIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -45,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.theme.ThemeScheme
 import kotlinx.coroutines.launch
+import com.kairos.app.ui.common.AnimatedDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,42 +154,41 @@ fun AppearanceScreen(onBack: () -> Unit) {
                         }
                     }
                     if (showFmt) {
-                        AlertDialog(
+                        AnimatedDialog(
                             onDismissRequest = { showFmt = false },
-                            title = { Text("Time format") },
-                            text = {
-                                Column {
-                                    listOf(
-                                        "SYSTEM" to "System time",
-                                        "H24" to "13:00",
-                                        "H12" to "1 PM",
-                                    ).forEach { (v, label) ->
-                                        Row(
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    scope.launch { settings.setTimeFormat(v) }
-                                                    showFmt = false
-                                                }
-                                                .padding(vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            RadioButton(
-                                                selected = fmt == v,
-                                                onClick = {
-                                                    scope.launch { settings.setTimeFormat(v) }
-                                                    showFmt = false
-                                                },
-                                            )
-                                            Text(label, style = MaterialTheme.typography.bodyLarge)
-                                        }
-                                    }
-                                }
-                            },
+                            title = "Time format",
                             confirmButton = {
                                 TextButton(onClick = { showFmt = false }) { Text("Done") }
                             },
-                        )
+                        ) {
+                            Column {
+                                listOf(
+                                    "SYSTEM" to "System time",
+                                    "H24" to "13:00",
+                                    "H12" to "1 PM",
+                                ).forEach { (v, label) ->
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                scope.launch { settings.setTimeFormat(v) }
+                                                showFmt = false
+                                            }
+                                            .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(
+                                            selected = fmt == v,
+                                            onClick = {
+                                                scope.launch { settings.setTimeFormat(v) }
+                                                showFmt = false
+                                            },
+                                        )
+                                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 item { SettingsLabel("Home screen widget") }

@@ -25,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +60,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import com.kairos.app.ui.common.AnimatedDialog
 
 /** The weekly-training colours (v0.481), so a kind reads the same everywhere. */
 // v0.496: Weekly training's Cardio and Conditioning colours.
@@ -504,44 +504,42 @@ internal fun ConditioningPageDialog(data: ConditioningChartsDto, onDismiss: () -
         }
     }
     open?.let { r ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { open = null },
-            title = { Text(r.name) },
-            text = {
-                Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text((if (r.kind.isNotBlank()) r.kind + " · " else "") + if (r.timed) "faster is better" else "more is better", color = muted)
-                    Dots(r = r, modifier = Modifier.fillMaxWidth().height(90.dp))
-                    r.results.reversed().forEach { x ->
-                        HorizontalDivider()
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(dayLong(x.date), modifier = Modifier.weight(1f))
-                            Text(x.text + if (x.best) " · best" else "", fontWeight = FontWeight.SemiBold)
-                        }
+            title = r.name,
+            confirmButton = { TextButton(onClick = { open = null }) { Text("Close") } },
+        ) {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text((if (r.kind.isNotBlank()) r.kind + " · " else "") + if (r.timed) "faster is better" else "more is better", color = muted)
+                Dots(r = r, modifier = Modifier.fillMaxWidth().height(90.dp))
+                r.results.reversed().forEach { x ->
+                    HorizontalDivider()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Text(dayLong(x.date), modifier = Modifier.weight(1f))
+                        Text(x.text + if (x.best) " · best" else "", fontWeight = FontWeight.SemiBold)
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { open = null }) { Text("Close") } },
-        )
+            }
+        }
     }
     if (onceOpen) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { onceOpen = false },
-            title = { Text("Done once") },
-            text = {
-                Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-                    data.once.forEachIndexed { i, x ->
-                        if (i > 0) HorizontalDivider()
-                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(x.name, fontWeight = FontWeight.SemiBold)
-                                Text(dayLong(x.date), style = MaterialTheme.typography.labelSmall, color = muted)
-                            }
-                            Text(x.text, color = muted)
+            title = "Done once",
+            confirmButton = { TextButton(onClick = { onceOpen = false }) { Text("Close") } },
+        ) {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+                data.once.forEachIndexed { i, x ->
+                    if (i > 0) HorizontalDivider()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(x.name, fontWeight = FontWeight.SemiBold)
+                            Text(dayLong(x.date), style = MaterialTheme.typography.labelSmall, color = muted)
                         }
+                        Text(x.text, color = muted)
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { onceOpen = false }) { Text("Close") } },
-        )
+            }
+        }
     }
 }

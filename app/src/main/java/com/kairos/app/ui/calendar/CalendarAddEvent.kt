@@ -36,7 +36,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -270,10 +269,9 @@ fun AddEventOverlay(
     BackHandler { attemptClose() }
 
     if (showDiscard) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { showDiscard = false },
-            title = { Text("Discard changes?") },
-            text = { Text("Your changes to this event will be lost.") },
+            title = "Discard changes?",
             confirmButton = {
                 TextButton(onClick = { showDiscard = false; onClose() }) {
                     Text("Discard", color = MaterialTheme.colorScheme.error)
@@ -282,7 +280,7 @@ fun AddEventOverlay(
             dismissButton = {
                 TextButton(onClick = { showDiscard = false }) { Text("Keep editing") }
             },
-        )
+        ) { Text("Your changes to this event will be lost.") }
     }
 
     fun submit(scope: String?) {
@@ -623,12 +621,9 @@ fun AddEventOverlay(
     }
 
     if (showClassPrompt) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { showClassPrompt = false },
-            title = { Text("Convert to a class event") },
-            text = {
-                Text("This calendar event is not a class, fill in the additional fields and it will be converted.")
-            },
+            title = "Convert to a class event",
             confirmButton = {
                 TextButton(onClick = {
                     showClassPrompt = false
@@ -646,7 +641,9 @@ fun AddEventOverlay(
             dismissButton = {
                 TextButton(onClick = { showClassPrompt = false }) { Text("Cancel") }
             },
-        )
+        ) {
+            Text("This calendar event is not a class, fill in the additional fields and it will be converted.")
+        }
     }
 
     if (showPeople) {

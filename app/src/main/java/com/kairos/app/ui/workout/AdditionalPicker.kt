@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -27,6 +26,7 @@ import com.kairos.app.ui.common.AccentOutlinedButton
 import com.kairos.app.ui.common.FullPage
 import com.kairos.app.ui.common.PageCard
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.common.AnimatedDialog
 
 /** The routine kinds "+ Additional" adds to the day (v0.477). */
 internal val EXTRA_KINDS = listOf("mobility" to "Mobility", "stretching" to "Stretching", "iso" to "Isometrics")
@@ -62,31 +62,29 @@ internal fun AdditionalMenu(
     /** Strength, Cardio, Sport or "other": the log flow (v0.491). */
     onLog: ((String) -> Unit)? = null,
 ) {
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Additional") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccentOutlinedButton(onClick = onConditioning, modifier = Modifier.fillMaxWidth()) { Text("Conditioning") }
-                if (onFamilyWod != null) {
-                    AccentOutlinedButton(onClick = onFamilyWod, modifier = Modifier.fillMaxWidth()) { Text("Family WOD") }
-                }
-                if (onLog != null) {
-                    LOG_KINDS.forEach { (k, label) ->
-                        AccentOutlinedButton(onClick = { onLog(k) }, modifier = Modifier.fillMaxWidth()) { Text(label) }
-                    }
-                }
-                EXTRA_KINDS.forEach { (k, label) ->
-                    AccentOutlinedButton(onClick = { onKind(k) }, modifier = Modifier.fillMaxWidth()) { Text(label) }
-                }
-                if (onLog != null) {
-                    TextButton(onClick = { onLog("other") }, modifier = Modifier.fillMaxWidth()) { Text("Something else") }
+        title = "Additional",
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AccentOutlinedButton(onClick = onConditioning, modifier = Modifier.fillMaxWidth()) { Text("Conditioning") }
+            if (onFamilyWod != null) {
+                AccentOutlinedButton(onClick = onFamilyWod, modifier = Modifier.fillMaxWidth()) { Text("Family WOD") }
+            }
+            if (onLog != null) {
+                LOG_KINDS.forEach { (k, label) ->
+                    AccentOutlinedButton(onClick = { onLog(k) }, modifier = Modifier.fillMaxWidth()) { Text(label) }
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+            EXTRA_KINDS.forEach { (k, label) ->
+                AccentOutlinedButton(onClick = { onKind(k) }, modifier = Modifier.fillMaxWidth()) { Text(label) }
+            }
+            if (onLog != null) {
+                TextButton(onClick = { onLog("other") }, modifier = Modifier.fillMaxWidth()) { Text("Something else") }
+            }
+        }
+    }
 }
 
 private data class ExtraChoice(val id: String, val name: String, val sub: String, val steps: List<String>)
@@ -161,11 +159,10 @@ internal fun ExtraPickerPage(kind: String, onPick: (String) -> Unit, onBack: () 
         }
     }
     info?.let { c ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { info = null },
-            title = { Text(c.name) },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { c.steps.forEach { Text(it) } } },
+            title = c.name,
             confirmButton = { TextButton(onClick = { info = null }) { Text("Close") } },
-        )
+        ) { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { c.steps.forEach { Text(it) } } }
     }
 }

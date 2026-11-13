@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,12 +117,9 @@ fun MovementSetsScreen(
     var confirmLeave by remember { mutableStateOf(false) }
     if (confirmLeave) {
         val left = vm.unfinishedCount()
-        androidx.compose.material3.AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { confirmLeave = false },
-            title = { Text("Finish early?") },
-            text = {
-                Text("$left ${if (left == 1) "set isn't" else "sets aren't"} logged yet. They'll still be here when you come back.")
-            },
+            title = "Finish early?",
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { confirmLeave = false }) { Text("Keep going") }
             },
@@ -133,7 +129,9 @@ fun MovementSetsScreen(
                     vm.leave(logTyped = true)
                 }) { Text("Finish for now") }
             },
-        )
+        ) {
+            Text("$left ${if (left == 1) "set isn't" else "sets aren't"} logged yet. They'll still be here when you come back.")
+        }
     }
     // A timed movement's timer (v0.427): its time fills the set.
     var timing by remember { mutableStateOf(false) }
@@ -399,17 +397,16 @@ fun MovementSetsScreen(
     ui.confirmKey?.let { key ->
         val i = ui.rows.indexOfFirst { it.key == key }
         val row = ui.rows.getOrNull(i)
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { vm.keep() },
-            title = { Text("Remove set ${i + 1}?") },
-            text = { if (row != null) Text(MovementSetsViewModel.fmtSet(vm.valueOf(row), metric)) },
+            title = "Remove set ${i + 1}?",
             confirmButton = {
                 TextButton(onClick = { vm.remove(key) }) {
                     Text("Remove", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = { TextButton(onClick = { vm.keep() }) { Text("Keep") } },
-        )
+        ) { if (row != null) Text(MovementSetsViewModel.fmtSet(vm.valueOf(row), metric)) }
     }
 
     if (swapping) {
@@ -915,22 +912,9 @@ internal fun EffortChooser(
     }
 
     if (open) {
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { open = false },
-            title = { Text("Something hurt?") },
-            text = {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    HURT_AREAS.forEach { (key, label) ->
-                        ChoicePill(label = label, selected = false, warn = hurt == key) {
-                            onChange(effort, key)
-                            open = false
-                        }
-                    }
-                }
-            },
+            title = "Something hurt?",
             confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
             dismissButton = if (hurt != null) {
                 {
@@ -942,7 +926,19 @@ internal fun EffortChooser(
             } else {
                 null
             },
-        )
+        ) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                HURT_AREAS.forEach { (key, label) ->
+                    ChoicePill(label = label, selected = false, warn = hurt == key) {
+                        onChange(effort, key)
+                        open = false
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1393,13 +1389,12 @@ private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: Str
     ui.confirmKey?.let { k ->
         val i = ui.rows.indexOfFirst { it.key == k }
         val row = ui.rows.getOrNull(i)
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { vm.keep() },
-            title = { Text("Remove set ${i + 1}?") },
-            text = { if (row != null) Text(MovementSetsViewModel.fmtSet(vm.valueOf(row), metric)) },
+            title = "Remove set ${i + 1}?",
             confirmButton = { TextButton(onClick = { vm.remove(k) }) { Text("Remove", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { vm.keep() }) { Text("Keep") } },
-        )
+        ) { if (row != null) Text(MovementSetsViewModel.fmtSet(vm.valueOf(row), metric)) }
     }
     if (showInfo) {
         MovementInfoDialog(name = shown, about = ui.about, onDismiss = { showInfo = false })

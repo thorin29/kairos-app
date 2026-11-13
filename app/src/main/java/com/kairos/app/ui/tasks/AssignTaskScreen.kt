@@ -52,7 +52,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.launch
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Surface
@@ -69,6 +68,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import com.kairos.app.ui.common.SentenceCaps
+import com.kairos.app.ui.common.AnimatedDialog
 
 private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
 private val NICE = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
@@ -381,15 +381,9 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
         }
 
         if (showDeleteConfirm && editTaskId != null) {
-            AlertDialog(
+            AnimatedDialog(
                 onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Delete this task?") },
-                text = {
-                    Text(
-                        if (repeats) "This removes the whole repeating series."
-                        else "This removes the task.",
-                    )
-                },
+                title = "Delete this task?",
                 confirmButton = {
                     TextButton(onClick = {
                         showDeleteConfirm = false
@@ -403,7 +397,12 @@ fun AssignTaskScreen(parentEntry: NavBackStackEntry?, editTaskId: String? = null
                 dismissButton = {
                     TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
                 },
-            )
+            ) {
+                Text(
+                    if (repeats) "This removes the whole repeating series."
+                    else "This removes the task.",
+                )
+            }
         }
 
         if (showCustom) {

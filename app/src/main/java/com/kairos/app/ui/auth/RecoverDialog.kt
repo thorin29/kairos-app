@@ -3,7 +3,6 @@ package com.kairos.app.ui.auth
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.kairos.app.data.remote.ApiException
 import com.kairos.app.ui.common.rememberContainer
 import kotlinx.coroutines.launch
+import com.kairos.app.ui.common.AnimatedDialog
 
 /**
  * "Recover this phone" — self-service re-enrollment when you're away from home.
@@ -37,53 +37,9 @@ fun RecoverDialog(onDismiss: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    AlertDialog(
+    AnimatedDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text(if (codeSent) "Enter your code" else "Recover this phone") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (!codeSent) {
-                    Text(
-                        "Enter your Kairos username and password. We\u2019ll email a " +
-                            "one-time code to set this phone back up \u2014 no code from " +
-                            "an admin needed.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    OutlinedTextField(
-                        value = identifier,
-                        onValueChange = { identifier = it; error = null },
-                        label = { Text("Username or email") },
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it; error = null },
-                        label = { Text("Password") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                    )
-                } else {
-                    Text(
-                        "If those details are correct, a one-time code is on its way " +
-                            "to your email. Enter it here to finish setting up this phone.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    OutlinedTextField(
-                        value = code,
-                        onValueChange = { code = it; error = null },
-                        label = { Text("Emailed code") },
-                        singleLine = true,
-                    )
-                }
-                error?.let {
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        },
+        title = if (codeSent) "Enter your code" else "Recover this phone",
         confirmButton = {
             if (!codeSent) {
                 TextButton(
@@ -126,5 +82,48 @@ fun RecoverDialog(onDismiss: () -> Unit) {
         dismissButton = {
             if (!busy) TextButton(onClick = onDismiss) { Text("Cancel") }
         },
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (!codeSent) {
+                Text(
+                    "Enter your Kairos username and password. We\u2019ll email a " +
+                        "one-time code to set this phone back up \u2014 no code from " +
+                        "an admin needed.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    value = identifier,
+                    onValueChange = { identifier = it; error = null },
+                    label = { Text("Username or email") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it; error = null },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+            } else {
+                Text(
+                    "If those details are correct, a one-time code is on its way " +
+                        "to your email. Enter it here to finish setting up this phone.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it; error = null },
+                    label = { Text("Emailed code") },
+                    singleLine = true,
+                )
+            }
+            error?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
 }

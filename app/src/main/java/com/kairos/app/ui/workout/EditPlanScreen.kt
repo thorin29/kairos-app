@@ -22,7 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
@@ -52,6 +51,7 @@ import com.kairos.app.data.remote.dto.PlanWorkoutDto
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
+import com.kairos.app.ui.common.AnimatedDialog
 
 private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
@@ -427,10 +427,9 @@ private fun DayCard(
     }
 
     pendingRemove?.let { (id, name) ->
-        AlertDialog(
+        AnimatedDialog(
             onDismissRequest = { pendingRemove = null },
-            title = { Text("Remove workout?") },
-            text = { Text("Remove \"$name\" from ${DAY_NAMES[day.day]}?") },
+            title = "Remove workout?",
             confirmButton = {
                 TextButton(onClick = {
                     onRemove(id)
@@ -440,7 +439,7 @@ private fun DayCard(
             dismissButton = {
                 TextButton(onClick = { pendingRemove = null }) { Text("Cancel") }
             },
-        )
+        ) { Text("Remove \"$name\" from ${DAY_NAMES[day.day]}?") }
     }
 }
 
