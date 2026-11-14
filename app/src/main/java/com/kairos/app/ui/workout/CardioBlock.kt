@@ -96,6 +96,8 @@ internal fun SectionLabel(title: String) {
 @Composable
 internal fun WarmupCard(
     plan: SimplePlanDto,
+    /** The day shown, for a one-day Switch (v0.510). */
+    date: String?,
     onDone: (Boolean) -> Unit,
     onSkip: (Boolean) -> Unit,
     /** The routine was switched (v0.430): reload the day. */
@@ -112,6 +114,7 @@ internal fun WarmupCard(
     if (open) {
         WarmupWindow(
             plannedWorkoutId = plan.plannedWorkoutId,
+            date = date,
             routine = plan.routine,
             kind = routineKindOf(plan.category),
             sport = sport,

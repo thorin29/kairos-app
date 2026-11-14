@@ -503,6 +503,7 @@ fun WorkoutLogScreen(
                                   ui.simple.filter { simpleSection(it.category) == section.kind }.forEach { w ->
                                     WarmupCard(
                                         plan = w,
+                                        date = ui.date,
                                         sport = if (w.category == "WARMUP" && sd != null) {
                                             SportChoice(label = sd.label, forSport = sd.forSport, onChange = { vm.setWarmupForSport(it) })
                                         } else {

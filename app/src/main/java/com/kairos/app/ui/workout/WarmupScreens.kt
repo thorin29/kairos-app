@@ -179,11 +179,13 @@ private fun WarmupSteps(steps: List<WarmupStepDto>, storeKey: String? = null) {
 
 /**
  * The day's warm-up (the web's WarmupWindow): its routine's steps with timers,
- * Switch (changes that day's plan) and Mark done.
+ * Switch (that day only, v0.510) and Mark done.
  */
 @Composable
 internal fun WarmupWindow(
     plannedWorkoutId: String,
+    /** The day shown: Switch changes the routine for it only (server 0.711+). */
+    date: String?,
     routine: WarmupRoutineDto?,
     done: Boolean,
     onDone: () -> Unit,
@@ -226,6 +228,7 @@ internal fun WarmupWindow(
     if (switching) {
         RoutinePicker(
             plannedWorkoutId = plannedWorkoutId,
+            date = date,
             current = routine?.id,
             kind = kind,
             onClose = { switching = false },
@@ -239,7 +242,8 @@ internal fun WarmupWindow(
 
 /**
  * Choosing a Warm-up entry's routine: just a check, the ready-made ones, or
- * your own (edit, and New). Saves it to the plan entry, then [onPicked].
+ * your own (edit, and New). Saves it to the plan entry, or with [date] to
+ * that day only (v0.510), then [onPicked].
  */
 @Composable
 internal fun RoutinePicker(
@@ -248,6 +252,7 @@ internal fun RoutinePicker(
     onClose: () -> Unit,
     onPicked: () -> Unit,
     kind: String = "warmup",
+    date: String? = null,
 ) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
@@ -255,7 +260,11 @@ internal fun RoutinePicker(
     fun pick(id: String?) {
         scope.launch {
             try {
-                session.setPlanWarmup(plannedWorkoutId = plannedWorkoutId, warmup = id)
+                if (date != null) {
+                    session.setDayWarmup(date = date, plannedWorkoutId = plannedWorkoutId, warmup = id)
+                } else {
+                    session.setPlanWarmup(plannedWorkoutId = plannedWorkoutId, warmup = id)
+                }
                 onPicked()
             } catch (e: ApiException) {
                 error = e.error.message

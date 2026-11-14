@@ -309,6 +309,9 @@ interface ApiService {
     @POST("workouts/plan/shared/withdraw")
     suspend fun withdrawSharedPlan(@Body body: com.kairos.app.data.remote.dto.SharedPlanIdRequest): Response<WorkoutAckDto>
 
+    @POST("workouts/day-warmup")
+    suspend fun setDayWarmup(@Body body: com.kairos.app.data.remote.dto.DayWarmupRequest): Response<WorkoutAckDto>
+
     @POST("workouts/warmup")
     suspend fun setWarmup(@Body body: com.kairos.app.data.remote.dto.WarmupRequest): Response<WorkoutAckDto>
 

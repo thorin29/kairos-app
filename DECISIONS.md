@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Switching a day's warm-up is for that day only (v0.510.0, server 0.711.0)
+
+- The warm-up window's Switch posts `workouts/day-warmup { date,
+  plannedWorkoutId, warmup }` with the Workout log's date instead of
+  `workouts/plan/warmup`, so it no longer rewrites that weekday's plan entry
+  or replaces a rotation. `RoutinePicker` takes an optional `date`; without
+  one (the plan builder's routine line) it still saves to the plan.
+- Needs server 0.711; on an older server the Switch call fails with the
+  usual error line.
+
 ## 2026-11 — Backgrounds, Graphite and a tidier Appearance screen (v0.509.0, server 0.710.0)
 
 - `BackgroundScheme` (CLASSIC, STONE, MIST, LINEN, SAGE, LAVENDER, BLUSH,

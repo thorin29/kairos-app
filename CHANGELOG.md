@@ -1,4 +1,8 @@
 # Changelog
+## 0.510.0
+
+- Switch on a day's warm-up changes it for that day only; your plan and rotation stay as they are.
+
 ## 0.509.0
 
 - Appearance: choose a background (Classic, Stone, Mist, Linen, Sage, Lavender, Blush or Two-tone) separately from the color, with a new Graphite color, and a live preview.

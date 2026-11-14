@@ -815,6 +815,12 @@ class SessionRepository(
             requireService().setPlanWarmup(com.kairos.app.data.remote.dto.PlanWarmupRequest(plannedWorkoutId = plannedWorkoutId, warmup = warmup))
         }
 
+    /** A Warm-up entry's routine for [date] only (server 0.711+). */
+    suspend fun setDayWarmup(date: String, plannedWorkoutId: String, warmup: String?): WorkoutAckDto =
+        runAuthed {
+            requireService().setDayWarmup(com.kairos.app.data.remote.dto.DayWarmupRequest(date = date, plannedWorkoutId = plannedWorkoutId, warmup = warmup))
+        }
+
     /** My plans (server 0.620+). */
     suspend fun savedPlans(): List<com.kairos.app.data.remote.dto.SavedPlanDto> =
         runAuthed { requireService().savedPlans() }.plans
@@ -1371,6 +1377,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 581
+        const val CLIENT_BUILD = 582
     }
 }

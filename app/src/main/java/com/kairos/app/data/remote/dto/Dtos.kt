@@ -3554,6 +3554,10 @@ data class SaveWarmupDto(val status: String = "", val id: String = "")
 @Serializable
 data class PlanWarmupRequest(val plannedWorkoutId: String, val warmup: String?)
 
+/** A Warm-up entry's routine for one day only (server 0.711+). */
+@Serializable
+data class DayWarmupRequest(val date: String, val plannedWorkoutId: String, val warmup: String?)
+
 /** A session logged outside the day's plans: its name and each movement's sets in a few words. */
 @Serializable
 data class LoggedOtherDto(
