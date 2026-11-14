@@ -297,6 +297,17 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[intPreferencesKey("tour_seen_$personId")] = version }
     }
 
+    /** A tour in progress (v0.518): "full:<stop id>" or "new:<stop id>", so a
+     *  closed app picks it up where it was. Null when none is running. */
+    suspend fun tourAt(personId: String): String? = dataStore.data.first()[stringPreferencesKey("tour_at_$personId")]
+
+    suspend fun setTourAt(personId: String, at: String?) {
+        dataStore.edit {
+            if (at == null) it.remove(stringPreferencesKey("tour_at_$personId"))
+            else it[stringPreferencesKey("tour_at_$personId")] = at
+        }
+    }
+
     fun tourTips(personId: String): Flow<Boolean> = dataStore.data.map { it[booleanPreferencesKey("tour_tips_$personId")] ?: true }
 
     suspend fun setTourTips(personId: String, on: Boolean) {

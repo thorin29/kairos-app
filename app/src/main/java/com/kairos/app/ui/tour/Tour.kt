@@ -233,8 +233,17 @@ private val WHATS_NEW_INTRO = TourStop(
 /** The stops to show this person now, or empty: the full tour on first use,
  *  otherwise what's new since [seen] (when tips are on). */
 fun tourFor(seen: Int, tips: Boolean, hidden: Set<String>): List<TourStop> {
+    if (seen == 0) return fullTour(hidden)
+    return newStops(seen = seen, tips = tips, hidden = hidden)
+}
+
+/** The whole tour, less pages hidden for the person. */
+fun fullTour(hidden: Set<String>): List<TourStop> =
+    TOUR_STOPS.filter { s -> s.section == null || s.section !in hidden }
+
+/** What's new since [seen], behind the intro, or empty. */
+fun newStops(seen: Int, tips: Boolean, hidden: Set<String>): List<TourStop> {
     val keep = { s: TourStop -> s.section == null || s.section !in hidden }
-    if (seen == 0) return TOUR_STOPS.filter(keep)
     if (!tips || seen >= TOUR_VERSION) return emptyList()
     val fresh = WHATS_NEW.filter { it.since > seen && keep(it) }
     return if (fresh.isEmpty()) emptyList() else listOf(WHATS_NEW_INTRO) + fresh
@@ -251,10 +260,15 @@ object Tour {
 
     val current: TourStop? get() = stops.getOrNull(index)
 
-    fun start(list: List<TourStop>, onFinish: () -> Unit) {
+    /** Which tour is running ("full" or "new"), for resuming after a restart. */
+    var kind by mutableStateOf("full")
+        private set
+
+    fun start(list: List<TourStop>, onFinish: () -> Unit, kind: String = "full", at: Int = 0) {
         if (list.isEmpty()) return
         onEnd = onFinish
-        index = 0
+        this.kind = kind
+        index = at.coerceIn(0, list.lastIndex)
         stops = list
     }
 

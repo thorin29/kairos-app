@@ -1,4 +1,8 @@
 # Changelog
+## 0.518.0
+
+- If the app closes during the tour, it picks up at the same step next time.
+
 ## 0.517.0
 
 - A movement with sets still to fill in no longer shows Logged, and its workout doesn't either.

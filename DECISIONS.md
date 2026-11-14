@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — The tour resumes where it was (v0.518.0)
+
+- Replaces 0.517's "seen as it starts". Each stop is saved as it comes up
+  (`tour_at_<person>`: "full:<stop id>" or "new:<stop id>"); Done or Skip marks
+  the tour seen and clears it. On the next open a saved stop restarts that tour
+  at that stop (the first stop if it no longer exists). Replaying from Settings
+  works the same way.
+
 ## 2026-11 — "Logged" means finished; the tour never replays itself (v0.517.0, server 0.717.0)
 
 - Exercises carry `open` (server 0.717). The day page's Logged chips, the

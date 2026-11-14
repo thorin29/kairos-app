@@ -242,23 +242,46 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     // The app tour (v0.513): the whole tour on first use, then only what's new
     // after an update (when tips are on). Remembered per person on this phone.
     val tourTips by container.settingsStore.tourTips(person.id).collectAsState(initial = true)
-    fun startTour(stops: List<com.kairos.app.ui.tour.TourStop>) {
-        // Marked seen as it starts (v0.517), so closing the app mid-tour never
-        // brings it back on the next open.
-        scope.launch { container.settingsStore.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION) }
-        com.kairos.app.ui.tour.Tour.start(stops) {}
+    // Seen when it ends (Done or Skip). A tour cut short by the app closing
+    // picks up at the same stop on the next open (v0.518).
+    fun startTour(stops: List<com.kairos.app.ui.tour.TourStop>, kind: String = "full", at: Int = 0) {
+        com.kairos.app.ui.tour.Tour.start(
+            list = stops,
+            onFinish = {
+                scope.launch {
+                    container.settingsStore.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION)
+                    container.settingsStore.setTourAt(person.id, null)
+                }
+            },
+            kind = kind,
+            at = at,
+        )
     }
     LaunchedEffect(person.id) {
         val store = container.settingsStore
         val seen = store.tourSeen(person.id)
-        val stops = com.kairos.app.ui.tour.tourFor(
-            seen = seen,
-            tips = store.tourTips(person.id).first(),
-            hidden = store.navHidden.first(),
-        )
+        val tips = store.tourTips(person.id).first()
+        val hidden = store.navHidden.first()
+        val resume = store.tourAt(person.id)
+        if (resume != null) {
+            val kind = resume.substringBefore(":")
+            val stopId = resume.substringAfter(":")
+            val stops = if (kind == "new") {
+                com.kairos.app.ui.tour.newStops(seen = seen, tips = true, hidden = hidden)
+            } else {
+                com.kairos.app.ui.tour.fullTour(hidden)
+            }
+            if (stops.isNotEmpty()) {
+                kotlinx.coroutines.delay(800)
+                startTour(stops, kind, stops.indexOfFirst { it.id == stopId }.coerceAtLeast(0))
+                return@LaunchedEffect
+            }
+            store.setTourAt(person.id, null)
+        }
+        val stops = com.kairos.app.ui.tour.tourFor(seen = seen, tips = tips, hidden = hidden)
         if (stops.isNotEmpty()) {
             kotlinx.coroutines.delay(800)
-            startTour(stops)
+            startTour(stops, if (seen == 0) "full" else "new")
         } else if (seen in 1 until com.kairos.app.ui.tour.TOUR_VERSION) {
             store.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION)
         }
@@ -389,6 +412,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     val tourStop = com.kairos.app.ui.tour.Tour.current
     LaunchedEffect(tourStop?.id) {
         val st = tourStop ?: return@LaunchedEffect
+        // Where the tour is, in case the app closes before it ends.
+        container.settingsStore.setTourAt(person.id, "${com.kairos.app.ui.tour.Tour.kind}:${st.id}")
         val section = st.section
         when {
             st.where == "rail" -> {
@@ -760,7 +785,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         updateAvailable = updateInfo != null,
                         onTakeTour = {
                             scope.launch {
-                                startTour(com.kairos.app.ui.tour.tourFor(seen = 0, tips = true, hidden = container.settingsStore.navHidden.first()))
+                                startTour(com.kairos.app.ui.tour.fullTour(container.settingsStore.navHidden.first()))
                             }
                         },
                         tourTips = tourTips,
