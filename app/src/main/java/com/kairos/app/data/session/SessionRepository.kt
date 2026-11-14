@@ -1242,6 +1242,25 @@ class SessionRepository(
         runAuthed { requireService().deleteReadingPlan() }
     }
 
+    suspend fun loadReadingEras(scope: String): com.kairos.app.data.remote.dto.ErasDto =
+        runAuthed { requireService().readingEras(scope = scope) }
+
+    suspend fun startReadingEra(scope: String): com.kairos.app.data.remote.dto.ErasDto =
+        runAuthed { requireService().startReadingEra(com.kairos.app.data.remote.dto.EraStartRequest(scope = scope)) }
+
+    suspend fun addReadings(
+        body: com.kairos.app.data.remote.dto.AddReadingsRequest,
+    ): com.kairos.app.data.remote.dto.AddReadingsDto =
+        runAuthed { requireService().addReadings(body) }
+
+    suspend fun importReadingPlan(
+        body: com.kairos.app.data.remote.dto.ImportPlanRequest,
+    ): com.kairos.app.data.remote.dto.ImportPlanDto =
+        runAuthed { requireService().importReadingPlan(body) }
+
+    suspend fun exportReadingPlan(scope: String): com.kairos.app.data.remote.dto.ExportPlanDto =
+        runAuthed { requireService().exportReadingPlan(scope = scope) }
+
     suspend fun markReading(passage: String, read: Boolean) {
         runAuthed {
             requireService().markReading(
@@ -1295,6 +1314,10 @@ class SessionRepository(
     /** The enrolled person's id, or null — so a screen can tell which queued
      *  writes belong to "me" (e.g. a task added for this device's person). */
     fun currentPersonId(): String? = (_state.value as? SessionState.Ready)?.person?.id
+
+    /** Whether this device's person is an admin (a parent) — the server's rule for
+     *  changing family-wide things like the family reading plan. */
+    fun currentPersonIsAdmin(): Boolean = (_state.value as? SessionState.Ready)?.person?.role == "ADMIN"
 
     private suspend fun <T> runAuthed(
         clearOnUnauth: Boolean = true,
@@ -1370,6 +1393,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 592
+        const val CLIENT_BUILD = 593
     }
 }

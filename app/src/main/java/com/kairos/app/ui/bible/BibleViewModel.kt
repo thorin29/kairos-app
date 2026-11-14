@@ -29,6 +29,10 @@ data class BibleUiState(
     val actionError: String? = null,
     /** Bumps after each successful write, so a snackbar can react. */
     val savedTick: Int = 0,
+    val familyEras: com.kairos.app.data.remote.dto.ErasDto? = null,
+    val myEras: com.kairos.app.data.remote.dto.ErasDto? = null,
+    /** A parent can change the family plan and start a family era. */
+    val isAdmin: Boolean = false,
 )
 
 /**
@@ -61,8 +65,9 @@ class BibleViewModel(
             }
             try {
                 val data = freshData()
-                _ui.update { it.copy(loading = false, data = data) }
+                _ui.update { it.copy(loading = false, data = data, isAdmin = session.currentPersonIsAdmin()) }
                 com.kairos.app.ui.common.ScreenSnapshots.bible = data
+                loadEras(data.personal != null)
             } catch (e: ApiException) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
@@ -84,6 +89,73 @@ class BibleViewModel(
     }
 
     fun setTab(tab: BibleTab) = _ui.update { it.copy(tab = tab) }
+
+    // ---- Eras, adding readings, import / export (v0.521). Online only. ----
+
+    private suspend fun loadEras(withMine: Boolean) {
+        runCatching { session.loadReadingEras("family") }.getOrNull()?.let { e -> _ui.update { it.copy(familyEras = e) } }
+        if (withMine) {
+            runCatching { session.loadReadingEras("mine") }.getOrNull()?.let { e -> _ui.update { it.copy(myEras = e) } }
+        }
+    }
+
+    fun startEra(mine: Boolean) {
+        if (_ui.value.busy) return
+        _ui.update { it.copy(busy = true, actionError = null) }
+        viewModelScope.launch {
+            try {
+                val e = session.startReadingEra(if (mine) "mine" else "family")
+                _ui.update {
+                    if (mine) it.copy(busy = false, myEras = e, savedTick = it.savedTick + 1)
+                    else it.copy(busy = false, familyEras = e, savedTick = it.savedTick + 1)
+                }
+                load()
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busy = false, actionError = e.error.message) }
+            }
+        }
+    }
+
+    /** Preview (nothing saved) or save readings added to a plan. Null on error. */
+    suspend fun addReadings(
+        body: com.kairos.app.data.remote.dto.AddReadingsRequest,
+    ): com.kairos.app.data.remote.dto.AddReadingsDto? =
+        try {
+            session.addReadings(body).also {
+                if (!body.preview) {
+                    _ui.update { u -> u.copy(savedTick = u.savedTick + 1) }
+                    load()
+                }
+            }
+        } catch (e: ApiException) {
+            _ui.update { it.copy(actionError = e.error.message) }
+            null
+        }
+
+    suspend fun importPlan(
+        body: com.kairos.app.data.remote.dto.ImportPlanRequest,
+    ): com.kairos.app.data.remote.dto.ImportPlanDto? =
+        try {
+            session.importReadingPlan(body).also {
+                if (!body.preview) {
+                    _ui.update { u -> u.copy(savedTick = u.savedTick + 1) }
+                    load()
+                }
+            }
+        } catch (e: ApiException) {
+            _ui.update { it.copy(actionError = e.error.message) }
+            null
+        }
+
+    suspend fun exportPlan(mine: Boolean): com.kairos.app.data.remote.dto.ExportPlanDto? =
+        try {
+            session.exportReadingPlan(if (mine) "mine" else "family")
+        } catch (e: ApiException) {
+            _ui.update { it.copy(actionError = e.error.message) }
+            null
+        }
+
+    fun showError(message: String) = _ui.update { it.copy(actionError = message) }
 
     fun clearActionError() = _ui.update { it.copy(actionError = null) }
 

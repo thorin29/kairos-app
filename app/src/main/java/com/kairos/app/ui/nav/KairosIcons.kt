@@ -411,6 +411,11 @@ object KairosIcons {
         "M19 12H5",
         "M12 19L5 12L12 5",
     )
+    /** Overflow menu: three vertical dots. */
+    val More = filled(
+        "More",
+        "M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+    )
     val Close = stroked(
         "Close",
         "M18 6L6 18",

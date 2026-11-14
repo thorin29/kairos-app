@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-11 — Bible eras, adding readings, import / export (v0.521.0, server 0.723.0)
+
+- `BibleEras.kt` `ErasCard` mirrors the web ReadingEras: this era's sections
+  (thick bar) against any earlier era (thin, faded, picked from a menu), OT
+  purple and NT blue, the passes badge and the list of eras. It replaces the
+  plain sections card once `GET reading/eras` loads (family, and mine when
+  there's a personal view); until then the old card shows.
+- A ⋮ plan menu: on "Family reading" for admins (role ADMIN, the server's rule)
+  and next to Edit plan / Log for everyone. Add readings, Import a plan, Export,
+  Start a new era (confirmed in an AnimatedDialog).
+- `PlanEdit.kt`: Add readings — pick chapters (tap = a day, long press = the
+  last reading's day) or type passages; push back / add to days / some of each.
+  Preview and save go to `reading/plan/add`, so the server's rule is the only
+  one. Import — paste or open a text file; start date and weekdays appear only
+  when no line is dated. Export saves through the system file picker
+  (CreateDocument). Parents get a Family plan / My plan switch on both.
+- All of it is online only (not queued).
+
+
 ## 2026-11 — Who voted on the family goal (v0.520.0, server 0.720.0)
 
 - `CoopProposalDto.voterNames` (parents only, from server 0.720); the Family

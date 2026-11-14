@@ -112,6 +112,34 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     androidx.compose.runtime.LaunchedEffect(refreshKey) { if (refreshKey > 0) vm.load() }
     val snackbar = remember { SnackbarHostState() }
     var personalSub by remember { mutableStateOf<PersonalSub?>(null) }
+    var confirmEra by remember { mutableStateOf<Boolean?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var exportText by remember { mutableStateOf<String?>(null) }
+    val saveExport = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri ->
+        val text = exportText
+        if (uri != null && text != null) {
+            runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) } }
+                .onFailure { vm.showError("Couldn't save the file.") }
+        }
+        exportText = null
+    }
+    fun export(mine: Boolean) {
+        scope.launch {
+            vm.exportPlan(mine)?.let { e ->
+                exportText = e.text
+                saveExport.launch(e.fileName)
+            }
+        }
+    }
+    val menu = PlanMenuActions(
+        add = { mine -> personalSub = if (mine) PersonalSub.ADD_MINE else PersonalSub.ADD_FAMILY },
+        importPlan = { mine -> personalSub = if (mine) PersonalSub.IMPORT_MINE else PersonalSub.IMPORT_FAMILY },
+        export = { mine -> export(mine) },
+        newEra = { mine -> confirmEra = mine },
+    )
 
     LaunchedEffect(ui.savedTick) {
         if (ui.savedTick > 0) snackbar.showSnackbar("Updated")
@@ -155,12 +183,13 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                             ProgressTabs(ui.tab, onSelect = vm::setTab)
                         }
                         if (personal == null || ui.tab == BibleTab.FAMILY) {
-                            FamilyContent(data)
+                            FamilyContent(data = data, eras = ui.familyEras, isAdmin = ui.isAdmin, menu = menu)
                         } else {
                             PersonalContent(
                                 vm, ui,
                                 onCreateEdit = { personalSub = PersonalSub.PLAN },
                                 onLog = { personalSub = PersonalSub.LOG },
+                                menu = menu,
                             )
                         }
                     }
@@ -169,22 +198,80 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
         }
     }
 
-    // Full-screen sub-pages opened from the personal view's buttons.
+    // Full-screen sub-pages opened from the views' buttons and menus.
     val personal = ui.data?.personal
-    if (personal != null) {
-        when (personalSub) {
-            PersonalSub.PLAN -> PersonalSubPage("Reading plan", onBack = { personalSub = null }) {
-                PlanWizard(vm, personal.plan, ui.data?.today ?: "", ui.busy, onDone = { personalSub = null })
-            }
-            PersonalSub.LOG -> PersonalSubPage("Log reading", onBack = { personalSub = null }) {
-                BookProgress(vm, personal.readKeys, parseHexColor(personal.color), ui.busy)
-            }
-            null -> {}
+    val today = ui.data?.today ?: ""
+    val hasMine = personal?.plan != null
+    when (personalSub) {
+        PersonalSub.PLAN -> if (personal != null) PersonalSubPage("Reading plan", onBack = { personalSub = null }) {
+            PlanWizard(vm, personal.plan, today, ui.busy, onDone = { personalSub = null })
         }
+        PersonalSub.LOG -> if (personal != null) PersonalSubPage("Log reading", onBack = { personalSub = null }) {
+            BookProgress(vm, personal.readKeys, parseHexColor(personal.color), ui.busy)
+        }
+        PersonalSub.ADD_FAMILY, PersonalSub.ADD_MINE -> PersonalSubPage("Add readings", onBack = { personalSub = null }) {
+            AddReadingsPage(
+                vm = vm,
+                isAdmin = ui.isAdmin,
+                hasMine = hasMine,
+                today = today,
+                startFamily = personalSub == PersonalSub.ADD_FAMILY,
+                onDone = { personalSub = null },
+            )
+        }
+        PersonalSub.IMPORT_FAMILY, PersonalSub.IMPORT_MINE -> PersonalSubPage("Import a plan", onBack = { personalSub = null }) {
+            ImportPlanPage(
+                vm = vm,
+                isAdmin = ui.isAdmin,
+                today = today,
+                startFamily = personalSub == PersonalSub.IMPORT_FAMILY,
+                onDone = { personalSub = null },
+            )
+        }
+        null -> {}
+    }
+
+    confirmEra?.let { mine ->
+        val label = (if (mine) ui.myEras else ui.familyEras)?.current?.label ?: "This era"
+        com.kairos.app.ui.common.AnimatedDialog(
+            onDismissRequest = { confirmEra = null },
+            title = "Start a new era?",
+            confirmButton = { TextButton(onClick = { vm.startEra(mine); confirmEra = null }) { Text("Start") } },
+            dismissButton = { TextButton(onClick = { confirmEra = null }) { Text("Cancel") } },
+        ) { Text("$label's numbers are kept and the new era starts at 0%.") }
     }
 }
 
-private enum class PersonalSub { PLAN, LOG }
+private enum class PersonalSub { PLAN, LOG, ADD_FAMILY, ADD_MINE, IMPORT_FAMILY, IMPORT_MINE }
+
+/** The plan ⋮ menu's actions; `mine` picks the personal plan over the family's. */
+private class PlanMenuActions constructor(
+    val add: (Boolean) -> Unit,
+    val importPlan: (Boolean) -> Unit,
+    val export: (Boolean) -> Unit,
+    val newEra: (Boolean) -> Unit,
+)
+
+@Composable
+private fun PlanMenu(mine: Boolean, hasPlan: Boolean, menu: PlanMenuActions) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) { Icon(KairosIcons.More, contentDescription = "Plan options") }
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (hasPlan) {
+                androidx.compose.material3.DropdownMenuItem(text = { Text("Add readings") }, onClick = { open = false; menu.add(mine) })
+            }
+            androidx.compose.material3.DropdownMenuItem(text = { Text("Import a plan") }, onClick = { open = false; menu.importPlan(mine) })
+            if (hasPlan) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(if (mine) "Export this plan" else "Export the plan") },
+                    onClick = { open = false; menu.export(mine) },
+                )
+            }
+            androidx.compose.material3.DropdownMenuItem(text = { Text("Start a new era") }, onClick = { open = false; menu.newEra(mine) })
+        }
+    }
+}
 
 /** A full-screen page (back bar + a white card holding the content) for the
  *  personal reading plan editor and the reading log. */
@@ -245,7 +332,12 @@ private fun TabPill(label: String, active: Boolean, onClick: () -> Unit) {
 // ---- Family ----
 
 @Composable
-private fun FamilyContent(data: com.kairos.app.data.remote.dto.ReadingDto) {
+private fun FamilyContent(
+    data: com.kairos.app.data.remote.dto.ReadingDto,
+    eras: com.kairos.app.data.remote.dto.ErasDto?,
+    isAdmin: Boolean,
+    menu: PlanMenuActions,
+) {
     val family = data.family
     if (family.havePlan && family.cards.isNotEmpty()) {
         ReadingDeck(family.cards, family.todayIndex, KairosThemeState.accent)
@@ -258,9 +350,14 @@ private fun FamilyContent(data: com.kairos.app.data.remote.dto.ReadingDto) {
         }
     }
 
-    SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, KairosThemeState.accent)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) {
+            SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, KairosThemeState.accent)
+        }
+        if (isAdmin) PlanMenu(mine = false, hasPlan = family.havePlan, menu = menu)
+    }
     CoverageCards(family.stats, KairosThemeState.accent)
-    GroupsCard(family.stats.groups, KairosThemeState.accent)
+    if (eras != null) ErasCard(eras) else GroupsCard(family.stats.groups, KairosThemeState.accent)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -352,6 +449,7 @@ private fun PersonalContent(
     ui: BibleUiState,
     onCreateEdit: () -> Unit,
     onLog: () -> Unit,
+    menu: PlanMenuActions,
 ) {
     val data = ui.data ?: return
     val personal = data.personal ?: return
@@ -368,18 +466,20 @@ private fun PersonalContent(
         }
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Button(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
             Text(if (personal.plan != null) "Edit plan" else "Create plan")
         }
         OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) {
             Text("Log")
         }
+        PlanMenu(mine = true, hasPlan = personal.plan != null, menu = menu)
     }
 
     SectionRow("Your reading", if (personal.stats.wholeBible) "Whole Bible read" else null, color)
     CoverageCards(personal.stats, color)
-    GroupsCard(personal.stats.groups, color)
+    val eras = ui.myEras
+    if (eras != null) ErasCard(eras) else GroupsCard(personal.stats.groups, color)
 }
 
 // ---- Shared pieces ----

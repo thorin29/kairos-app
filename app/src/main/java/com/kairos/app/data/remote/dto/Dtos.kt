@@ -2147,6 +2147,92 @@ data class PlanPreviewDayDto(
     val passage: String = "",
 )
 
+// ---- Reading eras, adding readings, import / export (v0.521) ----
+
+@Serializable
+data class SectionCountDto(
+    val label: String = "",
+    val testament: String = "OT",
+    val read: Int = 0,
+    val chapters: Int = 0,
+)
+
+@Serializable
+data class EraSummaryDto(
+    val id: String = "",
+    val label: String = "",
+    val startISO: String? = null,
+    val endISO: String? = null,
+    val read: Int = 0,
+    val percent: Int = 0,
+    val full: Boolean = false,
+    val sections: List<SectionCountDto> = emptyList(),
+)
+
+@Serializable
+data class ErasDto(
+    val current: EraSummaryDto = EraSummaryDto(),
+    val past: List<EraSummaryDto> = emptyList(),
+    val passes: Int = 0,
+)
+
+@Serializable
+data class EraStartRequest(val scope: String)
+
+@Serializable
+data class AddReadingsRequest(
+    val scope: String,
+    val readings: List<String>,
+    val startISO: String,
+    val mode: String,
+    val ownDays: Int = 0,
+    val preview: Boolean = false,
+)
+
+@Serializable
+data class EditedDayDto(
+    val iso: String = "",
+    val passage: String = "",
+    val tag: String = "",
+    val fromISO: String? = null,
+)
+
+@Serializable
+data class AddReadingsDto(
+    val planName: String = "",
+    val oldEndISO: String? = null,
+    val endISO: String? = null,
+    val rows: List<EditedDayDto> = emptyList(),
+)
+
+@Serializable
+data class ImportPlanRequest(
+    val scope: String,
+    val text: String,
+    val startISO: String? = null,
+    val weekdays: List<Int>? = null,
+    val preview: Boolean = false,
+)
+
+@Serializable
+data class ImportPlanDto(
+    val name: String? = null,
+    val dated: Boolean = false,
+    val count: Int = 0,
+    val firstISO: String? = null,
+    val lastISO: String? = null,
+    val days: List<PlanPreviewDayDto> = emptyList(),
+    val skipped: List<String> = emptyList(),
+    val saved: Boolean = false,
+)
+
+@Serializable
+data class ExportPlanDto(
+    val name: String = "",
+    val fileName: String = "",
+    val text: String = "",
+)
+
 @Serializable
 data class MarkReadingRequest(
     val passage: String,

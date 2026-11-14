@@ -1,4 +1,9 @@
 # Changelog
+## 0.521.0
+
+- Bible: reading eras with a section chart against an earlier era and a count of full passes, for the family and your own plan.
+- Plan ⋮ menu: Add readings (pick chapters or type passages; push back, add to days, or some of each), Import a plan, Export, Start a new era. Parents get it on the family plan too.
+
 ## 0.520.0
 
 - Family goal: parents see who voted for each idea.
