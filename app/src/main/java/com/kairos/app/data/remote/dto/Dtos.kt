@@ -149,6 +149,8 @@ data class DashboardDto(
     val workoutRest: String? = null,
     /** Something else was logged that day (a game, a row, another workout). */
     val workoutExtraLogged: Boolean = false,
+    /** Started, not finished (server 0.716): what's left. Null otherwise. */
+    val workoutRemaining: List<String>? = null,
     val reading: List<ReadingProgressDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
@@ -1019,6 +1021,8 @@ data class SaveSetsRequest(
     val unit: String,
     val sets: List<MovementSetDto>,
     val completedOn: String? = null,
+    /** Sets still to tick and Log not pressed (server 0.716). */
+    val open: Boolean = false,
 )
 
 @Serializable

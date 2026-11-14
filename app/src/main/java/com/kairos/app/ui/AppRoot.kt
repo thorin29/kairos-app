@@ -391,7 +391,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         val section = st.section
         when {
             st.where == "rail" -> {
-                if (currentEntry?.destination?.route != homeRouteName) go(Route.Home, "home")
+                // Not go(): it closes the drawer, which raced this open and won,
+                // so the Settings stop showed Home with the menu shut (v0.516).
+                if (currentEntry?.destination?.route != homeRouteName) {
+                    selectedKey = "home"
+                    navController.navigate(Route.Home) {
+                        popUpTo(Route.Home)
+                        launchSingleTop = true
+                    }
+                    kotlinx.coroutines.delay(150)
+                }
                 drawerState.open()
             }
             st.where == "home" -> go(Route.Home, "home")

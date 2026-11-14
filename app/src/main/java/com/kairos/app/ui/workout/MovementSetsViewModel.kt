@@ -546,7 +546,12 @@ class MovementSetsViewModel(
         unit = unit,
         sets = rows.filter { it.saved }.map { valueOf(it) },
         completedOn = if (late) LocalDate.now().toString() else null,
+        // Sets still to tick and Log not pressed (server 0.716): not done yet.
+        open = !finishing && rows.any { !it.saved },
     )
+
+    /** Log was pressed: the movement is finished whatever's left unticked. */
+    private var finishing = false
 
     private val sending = Mutex()
 
@@ -587,8 +592,10 @@ class MovementSetsViewModel(
         SetDrafts.put(draftKey, emptyMap())
         val next = cur.map { if (!it.saved && typed(it) && complete(it)) it.copy(saved = true) else it }
         val changed = next.zip(cur).any { (a, b) -> a.saved != b.saved }
+        finishing = true
         _ui.update { it.copy(rows = next, leaving = true) }
-        if (changed) persist(next) { _ui.update { it.copy(done = true) } }
+        // Saved again even when nothing changed, so the movement counts as finished.
+        if (changed || next.any { it.saved }) persist(next) { _ui.update { it.copy(done = true) } }
         else _ui.update { it.copy(done = true) }
     }
 

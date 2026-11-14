@@ -354,6 +354,7 @@ private fun DashboardContent(
                                 overdueCount = d.workoutOverdue,
                                 rest = d.workoutRest,
                                 extraLogged = d.workoutExtraLogged,
+                                remaining = d.workoutRemaining.orEmpty(),
                                 onOpen = { onLogWorkout(d.date) },
                             )
                         }
@@ -722,6 +723,8 @@ private fun WorkoutSummaryCard(
     overdueCount: Int,
     rest: String? = null,
     extraLogged: Boolean = false,
+    /** Started and not finished (v0.516): what's left, in place of the names. */
+    remaining: List<String> = emptyList(),
     onOpen: () -> Unit,
 ) {
     // A rest day reads "Rest day!" (v0.460): the plan's Rest, or Rest / skip
@@ -767,6 +770,28 @@ private fun WorkoutSummaryCard(
                             fontWeight = FontWeight.SemiBold,
                             color = ChoresGreen,
                         )
+                    } else if (remaining.isNotEmpty()) {
+                        // Started, not finished: what's left, two per line.
+                        Text(
+                            "Left",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        remaining.chunked(2).forEach { pair ->
+                            Text(
+                                pair.joinToString(" \u00b7 "),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        if (overdueCount > 0) {
+                            Text(
+                                "$overdueCount overdue",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     } else {
                         // Today's workout names, up to two per line, "·"-separated.
                         todayNames.chunked(2).forEach { pair ->

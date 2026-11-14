@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -40,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -106,7 +108,7 @@ val TOUR_STOPS: List<TourStop> = listOf(
     ),
     TourStop(
         id = "calendar", where = "section:calendar", target = "calendar.add", title = "Calendar",
-        lines = l("Everyone’s events in one place. Tap + to add an event.", "The gear lets you select event colors and set calendar defaults."),
+        lines = l("Everyone’s events in one place. Tap + to add an event.", "The sliders icon lets you select event colors and set calendar defaults."),
     ),
     TourStop(
         id = "chores", where = "section:chores", page = true, title = "Chores",
@@ -122,7 +124,7 @@ val TOUR_STOPS: List<TourStop> = listOf(
     ),
     TourStop(
         id = "reading", where = "section:reading", page = true, title = "Reading",
-        lines = l("Add books and log reading for any books.", "Log pages or chapters as you go, and add a reading goal to track progress if you would like."),
+        lines = l("Add books and log reading.", "Log pages or chapters as you go, and add a reading goal to track progress if you would like."),
     ),
     TourStop(
         id = "school", where = "section:school", page = true, title = "School",
@@ -299,14 +301,30 @@ fun TourOverlay(isParent: Boolean) {
     val stop = Tour.current ?: return
     val n = Tour.stops.size
     val i = Tour.index
-    // Give the page a moment to open and scroll before pointing.
+    // Hide the box while the page opens and scrolls, then show it once, in
+    // place (v0.516): it used to appear at the bottom and jump to its target.
     var settled by remember(stop.id) { mutableStateOf(false) }
     LaunchedEffect(stop.id) {
-        delay(550)
+        delay(200)
+        var last: Rect? = null
+        var waited = 200L
+        while (waited < 1600L) {
+            val now = stop.target?.let { Tour.targets[it] }?.takeIf { it.width > 1f && it.height > 1f }
+            if (stop.target == null && waited >= 350L) break
+            if (now != null && now == last) break
+            last = now
+            delay(100)
+            waited += 100
+        }
         settled = true
     }
     val raw = stop.target?.let { Tour.targets[it] }?.takeIf { it.width > 1f && it.height > 1f }
     val spot = if (settled) raw else null
+    val shown by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (settled) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = if (settled) 220 else 90),
+        label = "tourCard",
+    )
     BackHandler { if (i > 0) Tour.back() else Tour.finish() }
 
     val density = LocalDensity.current
@@ -325,9 +343,14 @@ fun TourOverlay(isParent: Boolean) {
         val h = constraints.maxHeight.toFloat()
         val pad = with(density) { 6.dp.toPx() }
         val hole = spot?.let { Rect(it.left - pad, it.top - pad, it.right + pad, it.bottom + pad) }
-        val light = stop.page || (stop.target != null && hole == null)
+        val light = stop.page || (settled && stop.target != null && hole == null)
+        val dimAlpha by androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (light) 0.3f else 0.62f,
+            animationSpec = androidx.compose.animation.core.tween(durationMillis = 250),
+            label = "tourDim",
+        )
         Canvas(Modifier.fillMaxSize()) {
-            val dim = Dim.copy(alpha = if (light) 0.3f else 0.62f)
+            val dim = Dim.copy(alpha = dimAlpha)
             if (hole != null) {
                 val corner = CornerRadius(14.dp.toPx())
                 val path = Path().apply {
@@ -370,11 +393,13 @@ fun TourOverlay(isParent: Boolean) {
         }
         val arrowX = hole?.let { (it.center.x - x).coerceIn(with(density) { 20.dp.toPx() }, cardW - with(density) { 36.dp.toPx() }) }
 
+        val edge = MaterialTheme.colorScheme.primary
         Box(
             Modifier
                 .offset { IntOffset(x.toInt(), y.toInt()) }
                 .width(with(density) { cardW.toDp() })
-                .onSizeChanged { cardH = it.height },
+                .onSizeChanged { cardH = it.height }
+                .graphicsLayer { alpha = if (cardH > 0) shown else 0f },
         ) {
             if (arrowX != null) {
                 Box(
@@ -383,13 +408,16 @@ fun TourOverlay(isParent: Boolean) {
                         .offset { IntOffset((arrowX - 8.dp.toPx()).toInt(), (if (below) -8.dp else 8.dp).roundToPx()) }
                         .size(16.dp)
                         .rotate(45f)
-                        .background(surface),
+                        .background(surface)
+                        .border(width = 1.5.dp, color = edge),
                 )
             }
+            // An accent edge so the box stands out from a white card under it (v0.516).
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = surface,
-                shadowElevation = 12.dp,
+                shadowElevation = 16.dp,
+                border = androidx.compose.foundation.BorderStroke(width = 1.5.dp, color = edge),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 TourCard(stop = stop, i = i, n = n, isParent = isParent)

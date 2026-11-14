@@ -1,4 +1,9 @@
 # Changelog
+## 0.516.0
+
+- Workouts: "Complete for today!" only when everything is done or skipped; once you've started, the home card shows what's left.
+- App tour: the box appears in place instead of jumping, has an accent edge, and the Settings step opens the menu. Calendar and Reading wording updated.
+
 ## 0.515.0
 
 - EZ bar lifts: each set has the weight calculator instead of ×, and the calculator starts on the EZ bar.

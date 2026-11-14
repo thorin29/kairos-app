@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Workout "Left" list and a smoother tour (v0.516.0, server 0.716.0)
+
+- Set saves send `open` (sets left, Log not pressed); Log saves once more
+  with `open` off even when nothing changed, so the movement counts as
+  finished. The home workout card shows "Left" and `workoutRemaining` once the
+  day is started and not finished.
+- Tour: the box stays hidden while a page opens and scrolls (until its target
+  holds still for 100 ms, at most 1.6 s), then fades in where it belongs;
+  the dim level eases between stops. The box and its pointer get a 1.5 dp
+  accent edge so it stands out against a white card. Rail stops navigate home
+  without `go()` (its drawer close raced the open and won, so the Settings stop
+  showed Home with the menu shut). Calendar line names the sliders icon;
+  Reading's first line is "Add books and log reading."
+
 ## 2026-11 — EZ bar sets get the plate calculator (v0.515.0)
 
 - A weighed movement whose name has "EZ bar" (`isEzBar`) shows the plates
