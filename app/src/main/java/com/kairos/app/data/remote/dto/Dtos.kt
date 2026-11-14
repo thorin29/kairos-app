@@ -1056,6 +1056,8 @@ data class PlannedMovementDto(
     val skipped: Boolean = false,
     /** Sets logged for the day (every-set logging, server 0.608+). */
     val setCount: Int = 0,
+    /** Sets logged but not finished (server 0.716): sets left, Log not pressed. */
+    val open: Boolean = false,
     /** The day's sets in a few words: "5 sets · top 185 × 1". */
     val summary: String = "",
     /** Last time's sets in a few words, for a movement not done yet. */

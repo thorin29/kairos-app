@@ -64,6 +64,8 @@ data class MovementInput(
     val setCount: Int = 0,
     val summary: String = "",
     val last: String = "",
+    /** Sets logged but not finished (server 0.716): not done yet. */
+    val open: Boolean = false,
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -332,6 +334,7 @@ class WorkoutLogViewModel(
                         setCount = e.setCount,
                         summary = e.summary,
                         last = e.last,
+                        open = e.open,
                     )
                 },
                 category = b.category,
@@ -343,7 +346,7 @@ class WorkoutLogViewModel(
                 // A skipped movement counts as done, the same rule the server
                 // uses to decide whether the day is complete.
                 logged = b.exercises.filter { it.tracked }.let { t ->
-                    t.isNotEmpty() && t.all { it.value != null || it.skipped }
+                    t.isNotEmpty() && t.all { (it.value != null && !it.open) || it.skipped }
                 },
             )
         val overdueBlocks = plan.overdue.flatMap { od ->
@@ -792,6 +795,7 @@ class WorkoutLogViewModel(
                     if (e.poolExerciseId != q.slotId) e
                     else e.copy(
                         setCount = q.sets.size,
+                        open = q.open && q.sets.isNotEmpty(),
                         summary = if (q.sets.isEmpty()) "" else if (q.sets.size == 1) "1 set" else "${q.sets.size} sets",
                     )
                 },

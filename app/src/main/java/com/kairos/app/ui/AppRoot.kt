@@ -243,9 +243,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     // after an update (when tips are on). Remembered per person on this phone.
     val tourTips by container.settingsStore.tourTips(person.id).collectAsState(initial = true)
     fun startTour(stops: List<com.kairos.app.ui.tour.TourStop>) {
-        com.kairos.app.ui.tour.Tour.start(stops) {
-            scope.launch { container.settingsStore.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION) }
-        }
+        // Marked seen as it starts (v0.517), so closing the app mid-tour never
+        // brings it back on the next open.
+        scope.launch { container.settingsStore.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION) }
+        com.kairos.app.ui.tour.Tour.start(stops) {}
     }
     LaunchedEffect(person.id) {
         val store = container.settingsStore

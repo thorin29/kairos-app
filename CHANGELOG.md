@@ -1,4 +1,9 @@
 # Changelog
+## 0.517.0
+
+- A movement with sets still to fill in no longer shows Logged, and its workout doesn't either.
+- The tour counts as seen as soon as it starts, so it never comes back on its own.
+
 ## 0.516.0
 
 - Workouts: "Complete for today!" only when everything is done or skipped; once you've started, the home card shows what's left.

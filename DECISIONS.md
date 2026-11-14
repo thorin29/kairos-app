@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — "Logged" means finished; the tour never replays itself (v0.517.0, server 0.717.0)
+
+- Exercises carry `open` (server 0.717). The day page's Logged chips, the
+  Core/Arms card's "Logged" and count, a block's tick and the day's progress
+  treat an open movement (sets left, Log not pressed) as not done. A save
+  updates `open` locally right away.
+- The tour is marked seen when it starts, not when it ends: an app closed
+  mid-tour no longer shows it again. Tours after updates (`WHATS_NEW`) are
+  added only for big updates, with the owner's approval.
+
 ## 2026-11 — Workout "Left" list and a smoother tour (v0.516.0, server 0.716.0)
 
 - Set saves send `open` (sets left, Log not pressed); Log saves once more

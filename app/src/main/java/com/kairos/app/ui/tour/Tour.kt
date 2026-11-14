@@ -217,7 +217,8 @@ val TOUR_STOPS: List<TourStop> = listOf(
 /**
  * Stops for features added after the first tour, each with the TOUR_VERSION
  * that brings it. Shown after an update to people who have seen the tour, when
- * tips are on, behind a "What's new" intro.
+ * tips are on, behind a "What's new" intro. Added only for big updates, and
+ * only once the owner has approved the stops: most releases add none.
  */
 val WHATS_NEW: List<TourStop> = emptyList()
 

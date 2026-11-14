@@ -1014,7 +1014,7 @@ internal fun opensSetLogger(b: WorkoutBlock): Boolean {
         tracked.all { it.metric == "WEIGHT" || it.metric == "REPS" || it.metric == "DURATION" }
 }
 
-private fun movementDone(m: MovementInput) = m.setCount > 0 || m.skipped || m.logged
+private fun movementDone(m: MovementInput) = ((m.setCount > 0 || m.logged) && !m.open) || m.skipped
 
 /** Items done of items to do — blocks.ts dayProgress. */
 private fun dayProgress(blocks: List<WorkoutBlock>): Pair<Int, Int> {
@@ -1267,7 +1267,7 @@ private fun CoreDayCard(
     onRemove: (() -> Unit)? = null,
 ) {
     val tracked = block.inputs.filter { it.tracked }
-    val done = tracked.count { it.setCount > 0 || (it.logged && !it.skipped) }
+    val done = tracked.count { (it.setCount > 0 || (it.logged && !it.skipped)) && !it.open }
     val colors = if (overdue) CardDefaults.outlinedCardColors(containerColor = overdueTint())
     else CardDefaults.outlinedCardColors()
     OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth(), colors = colors) {
@@ -1360,7 +1360,7 @@ private fun MovementCard(m: MovementInput, overdue: Boolean, onOpen: (() -> Unit
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (logged) StatusChip("Logged", positive = true)
+            if (logged && !m.open) StatusChip("Logged", positive = true)
             if (skipped) StatusChip("Skipped", positive = false)
             if (onOpen != null) {
                 Icon(
