@@ -233,6 +233,7 @@ fun WorkoutLogScreen(
                                             name = m.swappedFromName ?: m.name,
                                             metric = m.metric,
                                             unit = m.unit,
+                                            test = block.isTest,
                                         )
                                     },
                                 ),
@@ -1222,7 +1223,7 @@ private fun DaySectionView(
                 val tests = block.inputs.filter { it.poolExerciseId in block.coreTests }
                 val testName = block.coreTestName ?: "Plank test"
                 if (tests.isNotEmpty()) {
-                    val testBlock = block.copy(name = testName, inputs = tests, coreTest = null, coreTests = emptyList())
+                    val testBlock = block.copy(name = testName, inputs = tests, coreTest = null, coreTests = emptyList(), isTest = true)
                     if (tests.size == 1) {
                         MovementCard(
                             m = tests[0].copy(name = testName, swappedFromName = null),
@@ -1285,9 +1286,15 @@ private fun CoreDayCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // The month's test, nothing logged yet: last test's holds (v0.507).
+                val lastTest = if (block.isTest && done == 0 && tracked.isNotEmpty() && tracked.all { it.last.isNotBlank() }) {
+                    "Last time " + tracked.joinToString(" \u00b7 ") { it.last }
+                } else {
+                    null
+                }
                 Text(
-                    "${tracked.size} " + (if (tracked.size == 1) "movement" else "movements") +
-                        if (done > 0) " \u00b7 $done logged" else "",
+                    lastTest ?: ("${tracked.size} " + (if (tracked.size == 1) "movement" else "movements") +
+                        if (done > 0) " \u00b7 $done logged" else ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

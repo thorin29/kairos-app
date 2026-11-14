@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-11 — Monthly tests compare with the last test (v0.507.0, server 0.707.0)
+
+- The test card's "Last time" and the hints inside it came from the last day
+  the move was done. Isometric's holds are also in its regular workouts, so
+  that was usually a 3 × 30s day, not last month's max.
+- Server 0.707 sends the last test as `last` for test movements on the day
+  payload (the plank card needed no change), and `workouts/sets?test=1`
+  returns the last test as `last`.
+- The test card marks its block `isTest`; its moves carry `test` through the
+  Core screen route (a fifth field, so older routes still decode) to
+  `MovementSetsViewModel`, which asks with `test=1`. Its view-model key gets
+  `:test`, so a hold that's also in the day's workout keeps its own state.
+- The Isometric test card shows "Last time 1:35 · 1:02 · 0:48" before
+  anything is logged.
+
 ## 2026-11 — ROG Ally on Game time (v0.506.0, server 0.706.0)
 
 - The game-time collector (5.0.0) adds a third source, `"ally"` (a ROG Ally

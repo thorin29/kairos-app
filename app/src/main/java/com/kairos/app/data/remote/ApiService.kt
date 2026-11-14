@@ -187,6 +187,8 @@ interface ApiService {
         @Query("date") date: String,
         @Query("slot") slot: String,
         @Query("doing") doing: String? = null,
+        // "1" from the month's test card (server 0.707+): last time = last test.
+        @Query("test") test: String? = null,
     ): Response<com.kairos.app.data.remote.dto.MovementLogDto>
 
     @POST("workouts/sets")

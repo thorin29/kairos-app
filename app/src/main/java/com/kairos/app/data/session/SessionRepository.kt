@@ -636,8 +636,8 @@ class SessionRepository(
         runAuthed { requireService().logCustom(body) }
 
     /** One planned movement's sets for a day, and last time's (the hints). */
-    suspend fun loadMovementSets(date: String, slot: String, doing: String? = null): com.kairos.app.data.remote.dto.MovementLogDto =
-        runAuthed { requireService().movementSets(date = date, slot = slot, doing = doing) }
+    suspend fun loadMovementSets(date: String, slot: String, doing: String? = null, test: Boolean = false): com.kairos.app.data.remote.dto.MovementLogDto =
+        runAuthed { requireService().movementSets(date = date, slot = slot, doing = doing, test = if (test) "1" else null) }
 
     /** Save every saved set of a planned movement (replaces what it had). Queued
      *  offline like every other write; the whole-list body makes replay safe. */
@@ -1371,6 +1371,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 578
+        const val CLIENT_BUILD = 579
     }
 }

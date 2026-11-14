@@ -1134,16 +1134,17 @@ private fun SetsSwapDialog(
 }
 
 /** One movement of a Core day's screen: what [CoreWorkoutScreen] needs to open its logger. */
-data class CoreMoveRef(val slotId: String, val name: String, val metric: String, val unit: String)
+/** `test`: from the month's test card (v0.507), so hints are the last test's. */
+data class CoreMoveRef(val slotId: String, val name: String, val metric: String, val unit: String, val test: Boolean = false)
 
 /** Route-safe form of the moves: one per line, fields tab-separated. */
 fun encodeCoreMoves(moves: List<CoreMoveRef>): String =
-    moves.joinToString("\n") { listOf(it.slotId, it.name, it.metric, it.unit).joinToString("\t") { f -> f.replace('\t', ' ').replace('\n', ' ') } }
+    moves.joinToString("\n") { listOf(it.slotId, it.name, it.metric, it.unit, if (it.test) "1" else "").joinToString("\t") { f -> f.replace('\t', ' ').replace('\n', ' ') } }
 
 fun decodeCoreMoves(raw: String): List<CoreMoveRef> =
     raw.split('\n').mapNotNull { line ->
         val f = line.split('\t')
-        if (f.size < 4) null else CoreMoveRef(slotId = f[0], name = f[1], metric = f[2], unit = f[3])
+        if (f.size < 4) null else CoreMoveRef(slotId = f[0], name = f[1], metric = f[2], unit = f[3], test = f.getOrNull(4) == "1")
     }
 
 /**
@@ -1167,7 +1168,7 @@ fun CoreWorkoutScreen(
     val vms = moves.map { m ->
         key(m.slotId) {
             viewModel<MovementSetsViewModel>(
-                key = "sets:$date:$plannedWorkoutId:${m.slotId}",
+                key = "sets:$date:$plannedWorkoutId:${m.slotId}" + if (m.test) ":test" else "",
                 factory = viewModelFactory {
                     initializer {
                         MovementSetsViewModel(
@@ -1178,6 +1179,7 @@ fun CoreWorkoutScreen(
                             metric = m.metric,
                             unit = m.unit,
                             late = late,
+                            test = m.test,
                         )
                     }
                 },

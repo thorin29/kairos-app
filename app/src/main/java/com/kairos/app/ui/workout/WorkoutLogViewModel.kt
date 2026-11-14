@@ -92,6 +92,8 @@ data class WorkoutBlock(
     val coreTestName: String? = null,
     /** Added to this day only (v0.477): optional, never counted toward done. */
     val extra: Boolean = false,
+    /** The month's test card (v0.507): its hints are the last test's. */
+    val isTest: Boolean = false,
 )
 
 data class WorkoutLogUiState(

@@ -100,6 +100,8 @@ class MovementSetsViewModel(
     private val metric: String,
     private val unit: String,
     private val late: Boolean,
+    /** Opened from the month's test card (v0.507): hints are the last test's. */
+    private val test: Boolean = false,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(MovementSetsUi())
@@ -116,7 +118,7 @@ class MovementSetsViewModel(
     private fun load() {
         viewModelScope.launch {
             val log = try {
-                session.loadMovementSets(date = date, slot = slotId)
+                session.loadMovementSets(date = date, slot = slotId, test = test)
             } catch (e: ApiException) {
                 // Offline with nothing cached: start from an empty row; anything
                 // queued for this movement still shows below.
@@ -598,7 +600,7 @@ class MovementSetsViewModel(
         // Sets already saved move with the swap.
         if (_ui.value.rows.any { it.saved }) persist(_ui.value.rows)
         viewModelScope.launch {
-            val log = runCatching { session.loadMovementSets(date = date, slot = slotId, doing = p?.id ?: slotId) }.getOrNull()
+            val log = runCatching { session.loadMovementSets(date = date, slot = slotId, doing = p?.id ?: slotId, test = test) }.getOrNull()
                 ?: return@launch
             val last = log.last?.sets ?: emptyList()
             _ui.update { u ->

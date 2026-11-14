@@ -1,4 +1,8 @@
 # Changelog
+## 0.507.0
+
+- Monthly tests show your last test, not your last workout: the plank, and the wall sit, dead hang and push-up hold (needs server 0.707).
+
 ## 0.506.0
 
 - Game time shows the ROG logo for time played on the ROG Ally.
