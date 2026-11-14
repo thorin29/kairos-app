@@ -1,4 +1,8 @@
 # Changelog
+## 0.515.0
+
+- EZ bar lifts: each set has the weight calculator instead of ×, and the calculator starts on the EZ bar.
+
 ## 0.514.0
 
 - Class approvals are gone. Add class has "No semester" for summer or break classes, and new subjects and semesters are added by a parent in the web admin.

@@ -88,7 +88,8 @@ fun MovementSetsScreen(
     late: Boolean,
     onDone: () -> Unit,
     /** The use button's label and the weight to start on (0 = empty bar). */
-    onOpenCalculator: (String, Double) -> Unit,
+    /** Label, weight, bar ("ez" for an EZ bar movement, v0.515, or ""). */
+    onOpenCalculator: (String, Double, String) -> Unit,
     usedWeight: String?,
     onWeightConsumed: () -> Unit,
     onOpenPrograms: () -> Unit = {},
@@ -147,6 +148,8 @@ fun MovementSetsScreen(
     BackHandler { vm.leave() }
 
     val isWeight = metric == "WEIGHT"
+    // An EZ bar movement (v0.515): plates instead of remove, on the EZ bar.
+    val ez = isEzBar(name = ui.doingName ?: name, metric = metric)
     val swapped = ui.doingId != null && ui.doingId != slotId
 
     Scaffold(
@@ -236,7 +239,7 @@ fun MovementSetsScreen(
                                     timing = true
                                 } else {
                                     vm.openToolFor(null)
-                                    onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}", 0.0)
+                                    onOpenCalculator("Use for set ${vm.nextUnsavedIndex()}", 0.0, if (ez) "ez" else "")
                                 }
                             }
                             WorkoutActionTile(
@@ -359,10 +362,10 @@ fun MovementSetsScreen(
                             newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
                             jump = vm.jumpFor(r),
                             enabled = !ui.skipped,
-                            strict = vm.strict(),
+                            strict = vm.strict() || ez,
                             onPlates = { w ->
                                 vm.openToolFor(r.key)
-                                onOpenCalculator("Use for set ${i + 1}", w)
+                                onOpenCalculator("Use for set ${i + 1}", w, if (ez) "ez" else "")
                             },
                             repsUnit = ui.repsUnit,
                             holdUnit = ui.holdUnit,
@@ -1163,6 +1166,11 @@ fun CoreWorkoutScreen(
     moves: List<CoreMoveRef>,
     late: Boolean,
     onDone: () -> Unit,
+    /** The plate calculator for a set (v0.515): label, weight, bar ("ez" or ""). */
+    onOpenCalculator: (String, Double, String) -> Unit = { _, _, _ -> },
+    /** The calculator's weight on the way back, for the movement it was opened from. */
+    usedWeight: String? = null,
+    onWeightConsumed: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vms = moves.map { m ->
@@ -1187,6 +1195,14 @@ fun CoreWorkoutScreen(
         }
     }
     val states = vms.map { it.ui.collectAsState().value }
+    var calcFor by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(-1) }
+    LaunchedEffect(usedWeight) {
+        val w = usedWeight
+        if (w != null) {
+            vms.getOrNull(calcFor)?.useWeight(w)
+            onWeightConsumed()
+        }
+    }
     var finishing by remember { mutableStateOf(false) }
     // The movement the timer is timing: the next with open timed sets, and
     // only that one (v0.449). A side-at-a-time movement gets Switch.
@@ -1279,7 +1295,17 @@ fun CoreWorkoutScreen(
                 )
             }
             moves.forEachIndexed { i, m ->
-                CoreMoveSection(vm = vms[i], name = m.name, metric = m.metric, unit = m.unit, first = i == 0)
+                CoreMoveSection(
+                    vm = vms[i],
+                    name = m.name,
+                    metric = m.metric,
+                    unit = m.unit,
+                    first = i == 0,
+                    onPlates = { label, w, bar ->
+                        calcFor = i
+                        onOpenCalculator(label, w, bar)
+                    },
+                )
             }
             if (!allSkipped) {
                 Box(Modifier.padding(top = 12.dp)) {
@@ -1327,12 +1353,24 @@ fun CoreWorkoutScreen(
     }
 }
 
+/** An EZ bar lift by its name, weighed (v0.515). */
+internal fun isEzBar(name: String, metric: String): Boolean =
+    metric == "WEIGHT" && Regex("\\bEZ[ -]?bar\\b", RegexOption.IGNORE_CASE).containsMatchIn(name)
+
 /** One movement under its heading on the Core day screen: today's target and its set cards. */
 @Composable
-private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: String, unit: String, first: Boolean) {
+private fun CoreMoveSection(
+    vm: MovementSetsViewModel,
+    name: String,
+    metric: String,
+    unit: String,
+    first: Boolean,
+    onPlates: (String, Double, String) -> Unit = { _, _, _ -> },
+) {
     val ui by vm.ui.collectAsState()
     var showInfo by remember { mutableStateOf(false) }
     val shown = ui.doingName ?: name
+    val ez = isEzBar(name = shown, metric = metric)
     Row(
         Modifier.fillMaxWidth().padding(top = if (first) 0.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1380,7 +1418,11 @@ private fun CoreMoveSection(vm: MovementSetsViewModel, name: String, metric: Str
                     newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
                     jump = vm.jumpFor(r),
                     enabled = true,
-                    strict = vm.strict(),
+                    strict = vm.strict() || ez,
+                    onPlates = { w ->
+                        vm.openToolFor(r.key)
+                        onPlates("Use for set ${i + 1}", w, if (ez) "ez" else "")
+                    },
                     repsUnit = ui.repsUnit,
                     holdUnit = ui.holdUnit,
                 )

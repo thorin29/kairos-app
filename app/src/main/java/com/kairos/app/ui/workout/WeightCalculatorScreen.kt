@@ -81,10 +81,13 @@ fun WeightCalculatorScreen(
     useLabel: String = "",
     /** A set's weight to load (v0.427); switching the bar reloads it. 0 = empty bar. */
     startTotal: Double = 0.0,
+    /** The bar's type to start on (v0.515): "ez" for an EZ bar movement. */
+    startBar: String = "",
 ) {
-    var bar by remember { mutableStateOf(BARS[0]) }
+    val firstBar = BARS.firstOrNull { startBar.isNotBlank() && it.type == startBar } ?: BARS[0]
+    var bar by remember { mutableStateOf(firstBar) }
     var loaded by remember {
-        mutableStateOf(if (startTotal > 0) platesFor(startTotal, BARS[0].weight) else listOf<String>())
+        mutableStateOf(if (startTotal > 0) platesFor(startTotal, firstBar.weight) else listOf<String>())
     } // plate ids, one entry = one pair
 
     val total = bar.weight + loaded.sumOf { (PLATE_BY_ID[it]?.weight ?: 0.0) * 2 }

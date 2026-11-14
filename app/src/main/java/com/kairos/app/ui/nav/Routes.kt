@@ -118,6 +118,8 @@ sealed interface Route {
         val useLabel: String = "",
         /** A set's weight to load, 0 = an empty bar (v0.427). */
         val startTotal: Double = 0.0,
+        /** The bar to start on: "ez" for an EZ bar movement (v0.515), else the 45. */
+        val bar: String = "",
     ) : Route
 
     @Serializable

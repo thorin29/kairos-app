@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — EZ bar sets get the plate calculator (v0.515.0)
+
+- A weighed movement whose name has "EZ bar" (`isEzBar`) shows the plates
+  button on each set in place of × (the same button a program's fixed sets
+  have), and its calculator opens on the EZ bar (19 lb) with that set's weight
+  loaded; Use puts the weight back into the set. Works on a movement's own page
+  and on the one-screen Arms/Core day.
+- `Route.WeightCalculator` gains `bar` ("ez" or ""); `WeightCalculatorScreen`
+  takes `startBar`. The Core day screen now wires the calculator at all
+  (`onOpenCalculator`, `usedWeight`), so a program's fixed sets there open it
+  too instead of doing nothing.
+- Name-based on purpose: no server change. An EZ bar set can't be removed
+  from the set list (like a program's fixed sets); Add set still works.
+
 ## 2026-11 — No class approvals (v0.514.0, server 0.714.0)
 
 - Removed Settings › Parents › Class approvals (`SchoolApprovalsScreen`,
