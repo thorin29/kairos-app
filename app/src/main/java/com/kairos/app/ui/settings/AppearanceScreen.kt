@@ -42,7 +42,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kairos.app.ui.common.rememberContainer
+import com.kairos.app.ui.theme.BackgroundScheme
+import com.kairos.app.ui.theme.KairosThemeState
 import com.kairos.app.ui.theme.ThemeScheme
+import com.kairos.app.ui.theme.neutrals
 import kotlinx.coroutines.launch
 import com.kairos.app.ui.common.AnimatedDialog
 
@@ -60,6 +63,8 @@ fun AppearanceScreen(onBack: () -> Unit) {
     val widgetTheme by settings.widgetTheme.collectAsState(initial = "APP")
     val timerTheme by settings.timerTheme.collectAsState(initial = "DARK")
     val current = ThemeScheme.fromKey(schemeKey)
+    val backgroundKey by settings.backgroundScheme.collectAsState(initial = "CLASSIC")
+    val currentBackground = BackgroundScheme.fromKey(backgroundKey)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     // Every choice here shows on the home-screen widget too, so redraw it.
     fun save(block: suspend () -> Unit) {
@@ -95,6 +100,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                 // Three sections (v0.501): the app's look, then the widget
                 // and the workout timer, so this phone's extras sit together.
                 item { SettingsLabel("App") }
+                item { AppearancePreview() }
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -113,23 +119,16 @@ fun AppearanceScreen(onBack: () -> Unit) {
                     }
                 }
                 item {
-                    OutlinedCard(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(8.dp)) {
-                            Text(
-                                "Color theme",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
-                            )
-                            ThemeScheme.entries.forEach { scheme ->
-                                SchemeRow(
-                                    scheme = scheme,
-                                    selected = scheme == current,
-                                    onPick = { save { settings.setThemeScheme(scheme.name) } },
-                                )
-                            }
-                        }
-                    }
+                    ColorPicker(
+                        current = current,
+                        onPick = { scheme -> save { settings.setThemeScheme(scheme.name) } },
+                    )
+                }
+                item {
+                    BackgroundPicker(
+                        current = currentBackground,
+                        onPick = { b -> save { settings.setBackgroundScheme(b.name) } },
+                    )
                 }
                 item {
                     val fmt by settings.timeFormat.collectAsState(initial = "SYSTEM")
@@ -290,36 +289,152 @@ fun AppearanceScreen(onBack: () -> Unit) {
     }
 }
 
+/** A small live sample of the current look (v0.509): a person card and the
+ *  Skip / Log buttons, drawn with the theme's own colors. */
 @Composable
-private fun SchemeRow(scheme: ThemeScheme, selected: Boolean, onPick: () -> Unit) {
-    Row(
+private fun AppearancePreview() {
+    val cs = MaterialTheme.colorScheme
+    Column(
         Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable { onPick() }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, cs.outlineVariant, RoundedCornerShape(20.dp))
+            .background(cs.background)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
+        Row(
             Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(scheme.swatch)
-                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
-        )
-        Text(
-            scheme.label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.weight(1f),
-        )
-        if (selected) {
-            Icon(
-                KairosIcons.Check,
-                contentDescription = "Selected",
-                tint = scheme.swatch,
-            )
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .border(1.dp, cs.outlineVariant, RoundedCornerShape(14.dp))
+                .background(cs.surface)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(cs.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "S", color = cs.onPrimary, fontWeight = FontWeight.SemiBold)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "Sam", fontWeight = FontWeight.SemiBold, color = cs.onSurface)
+                    Text(text = "3 of 5 chores", style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
+                }
+                Box(Modifier.fillMaxWidth().height(7.dp).clip(CircleShape).background(cs.surfaceVariant)) {
+                    Box(Modifier.fillMaxWidth(0.6f).height(7.dp).clip(CircleShape).background(cs.primary))
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                    .background(cs.surface),
+                contentAlignment = Alignment.Center,
+            ) { Text(text = "Skip", color = cs.primary, fontWeight = FontWeight.SemiBold) }
+            Box(
+                Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(cs.primary),
+                contentAlignment = Alignment.Center,
+            ) { Text(text = "Log", color = cs.onPrimary, fontWeight = FontWeight.SemiBold) }
+        }
+    }
+}
+
+/** One row of color dots, the chosen one ringed, its name on the right (v0.509;
+ *  was a list of one row per color). */
+@Composable
+private fun ColorPicker(current: ThemeScheme, onPick: (ThemeScheme) -> Unit) {
+    val dark = KairosThemeState.dark
+    val cs = MaterialTheme.colorScheme
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = "Color", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(text = current.label, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                ThemeScheme.entries.forEach { scheme ->
+                    val selected = scheme == current
+                    Box(
+                        Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .then(if (selected) Modifier.border(2.dp, cs.onSurface, CircleShape) else Modifier)
+                            .clickable(onClickLabel = scheme.label) { onPick(scheme) }
+                            .padding(if (selected) 5.dp else 2.dp)
+                            .clip(CircleShape)
+                            .background(if (dark) scheme.swatchDark else scheme.swatch),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Background tiles (v0.509): each a small card on its page color, following
+ *  light / dark, with its name under it. */
+@Composable
+private fun BackgroundPicker(current: BackgroundScheme, onPick: (BackgroundScheme) -> Unit) {
+    val dark = KairosThemeState.dark
+    val cs = MaterialTheme.colorScheme
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = "Background", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(text = current.label, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+            }
+            BackgroundScheme.entries.chunked(4).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { b ->
+                        val n = neutrals(b = b, dark = dark)
+                        val selected = b == current
+                        Column(
+                            Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(onClickLabel = b.label) { onPick(b) },
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(n.page)
+                                    .border(
+                                        width = if (selected) 2.dp else 1.dp,
+                                        color = if (selected) cs.primary else cs.outlineVariant,
+                                        shape = RoundedCornerShape(12.dp),
+                                    )
+                                    .padding(start = 8.dp, end = 8.dp, bottom = 7.dp),
+                                contentAlignment = Alignment.BottomCenter,
+                            ) {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(18.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(n.card)
+                                        .border(1.dp, n.line, RoundedCornerShape(6.dp)),
+                                )
+                            }
+                            Text(
+                                text = b.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

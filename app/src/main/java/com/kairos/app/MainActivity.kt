@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
+            val backgroundKey by settings.backgroundScheme.collectAsState(initial = "CLASSIC")
             val mode by settings.themeMode.collectAsState(initial = "SYSTEM")
             val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
             val dark = when (mode) {
@@ -78,7 +79,11 @@ class MainActivity : ComponentActivity() {
             }
 
             val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-            KairosTheme(scheme = ThemeScheme.fromKey(schemeKey), darkTheme = dark) {
+            KairosTheme(
+                scheme = ThemeScheme.fromKey(schemeKey),
+                darkTheme = dark,
+                background = com.kairos.app.ui.theme.BackgroundScheme.fromKey(backgroundKey),
+            ) {
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()

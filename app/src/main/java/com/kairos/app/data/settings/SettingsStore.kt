@@ -76,6 +76,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_THEME] = v }
     }
 
+    /** Background, per device (a BackgroundScheme name; v0.509); defaults to
+     *  CLASSIC, the original look. */
+    val backgroundScheme: Flow<String> = dataStore.data.map { it[KEY_BACKGROUND] ?: "CLASSIC" }
+
+    suspend fun setBackgroundScheme(v: String) {
+        dataStore.edit { it[KEY_BACKGROUND] = v }
+    }
+
     /** Nav rail expanded (labels) or collapsed (icons only), per device. Was
      *  session-only and reset to collapsed on every relaunch. */
     val navExpanded: Flow<Boolean> = dataStore.data.map { it[KEY_NAV_EXPANDED] ?: false }
@@ -306,6 +314,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val KEY_CAL_DEFAULT_VIEW = stringPreferencesKey("cal_default_view")
         val KEY_CAL_LAST_VIEW = stringPreferencesKey("cal_last_view")
         val KEY_THEME = stringPreferencesKey("theme_scheme")
+        val KEY_BACKGROUND = stringPreferencesKey("background_scheme")
         val KEY_DARK = booleanPreferencesKey("dark_mode")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_WIDGET_STYLE = stringPreferencesKey("widget_style")

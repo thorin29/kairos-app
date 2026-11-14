@@ -55,6 +55,7 @@ class WidgetAddActivity : ComponentActivity() {
         val settings = (application as KairosApp).container.settingsStore
         setContent {
             val schemeKey by settings.themeScheme.collectAsState(initial = "TEAL")
+            val backgroundKey by settings.backgroundScheme.collectAsState(initial = "CLASSIC")
             val mode by settings.themeMode.collectAsState(initial = "SYSTEM")
             val systemDark = isSystemInDarkTheme()
             val dark = when (mode) {
@@ -62,7 +63,11 @@ class WidgetAddActivity : ComponentActivity() {
                 "LIGHT" -> false
                 else -> systemDark
             }
-            KairosTheme(scheme = ThemeScheme.fromKey(schemeKey), darkTheme = dark) {
+            KairosTheme(
+                scheme = ThemeScheme.fromKey(schemeKey),
+                darkTheme = dark,
+                background = com.kairos.app.ui.theme.BackgroundScheme.fromKey(backgroundKey),
+            ) {
                 Box(
                     Modifier
                         .fillMaxSize()

@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — Backgrounds, Graphite and a tidier Appearance screen (v0.509.0, server 0.710.0)
+
+- `BackgroundScheme` (CLASSIC, STONE, MIST, LINEN, SAGE, LAVENDER, BLUSH,
+  TWOTONE) picks the neutrals per phone (`background_scheme` in DataStore,
+  default CLASSIC), independent of `ThemeScheme`. `neutrals(b, dark)` returns
+  page, card, chip, muted, line, outline and ink; CLASSIC returns the app's
+  original constants exactly, so nothing changes until someone picks. The
+  outline of a new background sits 35% of the way from its line to its muted
+  text. Same names and colors as the web.
+- `ThemeScheme.GRAPHITE` (#4F4B46; dark #C9C4BC on #1C1A17).
+- `KairosTheme(background = …)`; MainActivity and WidgetAddActivity pass it.
+  The home-screen widget keeps the Classic neutrals.
+- Appearance: a live preview card, Light or dark (unchanged), Color as one row
+  of dots with the name on the right (replacing one row per color), and
+  Background as eight tiles in two rows of four, drawn in the current mode.
+
 ## 2026-11 — Bodyweight work-up hints start from last time (v0.508.0, server 0.708.0)
 
 - A program's target filled every set's hint, so 5 × 10 pull-ups showed 10

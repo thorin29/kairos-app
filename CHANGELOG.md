@@ -1,4 +1,8 @@
 # Changelog
+## 0.509.0
+
+- Appearance: choose a background (Classic, Stone, Mist, Linen, Sage, Lavender, Blush or Two-tone) separately from the color, with a new Graphite color, and a live preview.
+
 ## 0.508.0
 
 - Working up to a bodyweight target (like 5 × 10 pull-ups): each set starts from what you did last time, and the target stays at the top.
