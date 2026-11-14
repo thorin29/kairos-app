@@ -1,5 +1,6 @@
 package com.kairos.app.ui.settings
 
+import com.kairos.app.ui.tour.tourTarget
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -72,6 +73,10 @@ fun SettingsScreen(
     onOpenApprovals: (() -> Unit)? = null,
     approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
+    /** The app tour (v0.513): replay it, and tips for new features on or off. */
+    onTakeTour: () -> Unit = {},
+    tourTips: Boolean = true,
+    onToggleTourTips: () -> Unit = {},
 ) {
     val groups = listOfNotNull(
         SettingGroup(
@@ -124,6 +129,13 @@ fun SettingsScreen(
         SettingGroup(
             "Help & about",
             listOf(
+                SettingRow(icon = KairosIcons.Info, title = "Take the tour", onOpen = onTakeTour),
+                SettingRow(
+                    icon = KairosIcons.Bell,
+                    title = "Tips for new features",
+                    value = if (tourTips) "On" else "Off",
+                    onOpen = onToggleTourTips,
+                ),
                 SettingRow(icon = KairosIcons.Trophy, title = "How scoring works", onOpen = onOpenScoring),
                 SettingRow(
                     icon = KairosIcons.Download,
@@ -165,7 +177,7 @@ fun SettingsScreen(
                     item(key = "label-${g.label}") {
                         SettingsLabel(g.label, modifier = Modifier.padding(top = 12.dp))
                     }
-                    item(key = "group-${g.label}") { GroupCard(g) }
+                    item(key = "group-${g.label}") { GroupCard(g, Modifier.tourTarget("settings.${g.label}")) }
                 }
             }
         }
@@ -218,8 +230,8 @@ private fun ProfileCard(person: PersonDto?, onOpen: () -> Unit) {
 }
 
 @Composable
-private fun GroupCard(group: SettingGroup) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
+private fun GroupCard(group: SettingGroup, modifier: Modifier = Modifier) {
+    OutlinedCard(modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()) {
             group.rows.forEachIndexed { i, row ->
                 if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

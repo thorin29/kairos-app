@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.tour.tourTarget
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -64,6 +65,7 @@ internal fun HeatToggle(on: Boolean, onClick: () -> Unit, modifier: Modifier = M
     val accent = MaterialTheme.colorScheme.primary
     Box(
         modifier
+            .tourTarget("workouts.heat")
             .size(36.dp)
             .clip(CircleShape)
             .background(if (on) accent else Color.Transparent)

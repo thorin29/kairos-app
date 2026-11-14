@@ -1,5 +1,6 @@
 package com.kairos.app.ui.calendar
 
+import com.kairos.app.ui.tour.tourTarget
 import com.kairos.app.ui.common.TimeFmt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -230,7 +231,7 @@ fun CalendarScreen(
                             }
                             Spacer(Modifier.width(4.dp))
                             Box(
-                                Modifier.size(40.dp).clip(CircleShape).clickable { showAdd = true },
+                                Modifier.tourTarget("calendar.add").size(40.dp).clip(CircleShape).clickable { showAdd = true },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(KairosIcons.Plus, contentDescription = "New event")

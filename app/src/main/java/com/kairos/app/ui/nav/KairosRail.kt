@@ -1,5 +1,7 @@
 package com.kairos.app.ui.nav
 
+import com.kairos.app.ui.tour.tourTarget
+
 import androidx.compose.ui.graphics.graphicsLayer
 import com.kairos.app.ui.common.rememberContainer
 import com.kairos.app.data.remote.ApiClient
@@ -112,6 +114,7 @@ fun KairosRail(
             Column(
                 Modifier
                     .weight(1f)
+                    .tourTarget("rail.sections")
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
@@ -146,7 +149,9 @@ fun KairosRail(
                         )
                     }
                 }
-                FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable, approvalsBadge)
+                Box(Modifier.tourTarget("rail.profile")) {
+                    FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable, approvalsBadge)
+                }
                 if (expanded) {
                     // Collapse control on the left, version pinned far-right.
                     Row(

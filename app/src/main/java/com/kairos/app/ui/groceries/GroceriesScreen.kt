@@ -1,5 +1,6 @@
 package com.kairos.app.ui.groceries
 
+import com.kairos.app.ui.tour.tourTarget
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
@@ -146,7 +147,7 @@ private fun GroceriesContent(vm: GroceriesViewModel, ui: GroceriesUiState, data:
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.tourTarget("shopping.actions"), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PillButton("I'm going shopping", KairosIcons.Cart, filled = true, enabled = !ui.busy) {
                 vm.clearMessage()
                 showShopPicker = true

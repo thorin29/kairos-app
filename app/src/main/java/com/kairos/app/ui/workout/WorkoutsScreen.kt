@@ -1,5 +1,6 @@
 package com.kairos.app.ui.workout
 
+import com.kairos.app.ui.tour.tourTarget
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -177,7 +178,7 @@ fun WorkoutsScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     progress?.takeIf { it.series.isNotEmpty() }?.let { p ->
-                        OutlinedCard(Modifier.fillMaxWidth()) {
+                        OutlinedCard(Modifier.fillMaxWidth().tourTarget("workouts.progress")) {
                             Column(Modifier.padding(14.dp)) {
                                 Text(
                                     "Progress",
@@ -191,10 +192,12 @@ fun WorkoutsScreen(
                     }
 
                     // Next to Workout days (v0.480), which closes the Progress card.
-                    training?.takeIf { t -> t.weeks.any { it.days > 0 } }?.let { WeeklyTrainingCard(it) }
+                    training?.takeIf { t -> t.weeks.any { it.days > 0 } }?.let {
+                        Box(Modifier.tourTarget("workouts.weekly")) { WeeklyTrainingCard(it) }
+                    }
 
                     if (week.isNotEmpty()) {
-                        OutlinedCard(Modifier.fillMaxWidth()) {
+                        OutlinedCard(Modifier.fillMaxWidth().tourTarget("workouts.week")) {
                             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
                                     "This week",
@@ -223,6 +226,7 @@ fun WorkoutsScreen(
                     }
 
                     programs?.let { p ->
+                      Box(Modifier.tourTarget("workouts.programs")) {
                         ProgramSummaryCard(
                             data = p,
                             onOpen = onOpenPrograms,
@@ -234,6 +238,7 @@ fun WorkoutsScreen(
                                 }
                             },
                         )
+                      }
                     }
 
 
@@ -275,7 +280,7 @@ fun WorkoutsScreen(
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.tourTarget("workouts.plan"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
                             KairosIcons.Calendar, "Edit plan", Modifier.weight(1f),
                         ) { onOpenEditPlan() }
@@ -291,6 +296,7 @@ fun WorkoutsScreen(
                         ) { onOpenWarmups() }
                     }
 
+                  Column(Modifier.tourTarget("workouts.tools"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
                             KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
@@ -322,6 +328,7 @@ fun WorkoutsScreen(
                             KairosIcons.Clock, "Recent", Modifier.weight(1f),
                         ) { onOpenRecent() }
                     }
+                  }
                 }
             }
         }

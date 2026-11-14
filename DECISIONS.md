@@ -1,5 +1,35 @@
 # Decisions
 
+## 2026-11 — The app tour (v0.513.0)
+
+- Mocked up and worded with the user on the design canvas first. A tour box
+  with a pointed edge sits over a dimmed screen and walks through the menu,
+  every page, the Workouts screen in seven parts, and Settings (Appearance,
+  Notifications). The box has "n of N", a progress bar, Skip tour, Back and
+  Next. Back (system) steps back; on the first stop it ends the tour.
+- `ui/tour/Tour.kt`: the stops (`TOUR_STOPS`), `Tour` (the running tour and
+  target rects), `Modifier.tourTarget(key)` (records bounds in root and scrolls
+  the target into view when its stop comes up) and `TourOverlay` (drawn last in
+  AppRoot, over the menu, swallowing taps underneath). AppRoot opens each
+  stop's page: "rail" opens the menu, "section:<key>" navigates there,
+  "settings" opens Settings.
+- A stop with a target cuts a hole around it; a page stop (Tasks, Chores,
+  Bible reading, Reading, School, Money, Game time, Ice time, Characters)
+  dims lightly so the page shows through, with the box near the bottom. A
+  target that isn't on screen (no data yet) falls back to the same.
+- Lines marked for parents only show to parents (`kind == PARENT` or ADMIN).
+  Pages hidden for someone (`navHidden`) are left out of their tour.
+- Seen state is per person on the phone (`tour_seen_<id>`, `tour_tips_<id>`).
+  0 = never: the full tour shows once on first open (everyone, after this
+  update). `WHATS_NEW` holds stops for later features, each with the
+  `TOUR_VERSION` that added it. After an update they show behind a "What's
+  new" intro, if tips are on. It's empty for now: bump `TOUR_VERSION` and add
+  stops with a release.
+- Settings › Help & about gains **Take the tour** and **Tips for new
+  features** (On/Off).
+- Not covered yet: the Log workout screen (warm-ups, sets, Switch). That
+  could be its own short tour.
+
 ## 2026-11 — Overdue chores tinted (v0.512.0, server 0.713.0)
 
 - The server now keeps a superseded chore one extra day (overdue) so it can

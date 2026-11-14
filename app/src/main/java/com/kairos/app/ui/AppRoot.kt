@@ -89,6 +89,7 @@ import com.kairos.app.ui.workout.RotationScreen
 import com.kairos.app.ui.workout.RecentWorkoutsScreen
 import com.kairos.app.ui.workout.WeightCalculatorScreen
 import com.kairos.app.ui.workout.WorkoutsScreen
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -238,6 +239,30 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     fun closeDrawer() { drawerScope.launch { drawerState.close() } }
     LaunchedEffect(Unit) { container.updateChecker.check() }
 
+    // The app tour (v0.513): the whole tour on first use, then only what's new
+    // after an update (when tips are on). Remembered per person on this phone.
+    val tourTips by container.settingsStore.tourTips(person.id).collectAsState(initial = true)
+    fun startTour(stops: List<com.kairos.app.ui.tour.TourStop>) {
+        com.kairos.app.ui.tour.Tour.start(stops) {
+            scope.launch { container.settingsStore.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION) }
+        }
+    }
+    LaunchedEffect(person.id) {
+        val store = container.settingsStore
+        val seen = store.tourSeen(person.id)
+        val stops = com.kairos.app.ui.tour.tourFor(
+            seen = seen,
+            tips = store.tourTips(person.id).first(),
+            hidden = store.navHidden.first(),
+        )
+        if (stops.isNotEmpty()) {
+            kotlinx.coroutines.delay(800)
+            startTour(stops)
+        } else if (seen in 1 until com.kairos.app.ui.tour.TOUR_VERSION) {
+            store.setTourSeen(person.id, com.kairos.app.ui.tour.TOUR_VERSION)
+        }
+    }
+
     val isAdmin = person.role == "ADMIN"
     var approvalsCount by remember { mutableStateOf(0) }
     LaunchedEffect(isAdmin, selectedKey) {
@@ -366,6 +391,30 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             // or persistent ViewModel scopes first (tracked under offline-first).
             popUpTo(Route.Home)
             launchSingleTop = true
+        }
+    }
+
+    // Each tour stop opens its page (or the menu) before pointing at it.
+    val tourStop = com.kairos.app.ui.tour.Tour.current
+    LaunchedEffect(tourStop?.id) {
+        val st = tourStop ?: return@LaunchedEffect
+        val section = st.section
+        when {
+            st.where == "rail" -> {
+                if (currentEntry?.destination?.route != homeRouteName) go(Route.Home, "home")
+                drawerState.open()
+            }
+            st.where == "home" -> go(Route.Home, "home")
+            st.where == "settings" -> {
+                closeDrawer()
+                if (currentEntry?.destination?.route != Route.Settings::class.qualifiedName) {
+                    navController.navigate(Route.Settings) {
+                        popUpTo(Route.Home)
+                        launchSingleTop = true
+                    }
+                }
+            }
+            section != null -> go(Route.Section(section), section)
         }
     }
 
@@ -713,6 +762,13 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         } else null,
                         approvalsCount = approvalsCount,
                         updateAvailable = updateInfo != null,
+                        onTakeTour = {
+                            scope.launch {
+                                startTour(com.kairos.app.ui.tour.tourFor(seen = 0, tips = true, hidden = container.settingsStore.navHidden.first()))
+                            }
+                        },
+                        tourTips = tourTips,
+                        onToggleTourTips = { scope.launch { container.settingsStore.setTourTips(person.id, !tourTips) } },
                     )
                 }
                 composable<Route.SchoolApprovals> {
@@ -914,5 +970,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         }
 
         OfflineBanner(online = online, serverUnavailable = serverUnavailable && online, pending = pendingWrites, syncing = syncing, modifier = Modifier.align(Alignment.BottomCenter))
+
+        // Over everything, the menu included.
+        com.kairos.app.ui.tour.TourOverlay(isParent = person.kind == "PARENT" || person.role == "ADMIN")
     }
 }

@@ -289,6 +289,20 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /** The app tour (v0.513): the last tour version this person has seen on this
+     *  phone (0 = never), and whether they want tips for new features. */
+    suspend fun tourSeen(personId: String): Int = dataStore.data.first()[intPreferencesKey("tour_seen_$personId")] ?: 0
+
+    suspend fun setTourSeen(personId: String, version: Int) {
+        dataStore.edit { it[intPreferencesKey("tour_seen_$personId")] = version }
+    }
+
+    fun tourTips(personId: String): Flow<Boolean> = dataStore.data.map { it[booleanPreferencesKey("tour_tips_$personId")] ?: true }
+
+    suspend fun setTourTips(personId: String, on: Boolean) {
+        dataStore.edit { it[booleanPreferencesKey("tour_tips_$personId")] = on }
+    }
+
     suspend fun lastUpdateNotified(): Int = dataStore.data.first()[KEY_LAST_UPDATE_NOTIFIED] ?: 0
 
     suspend fun setLastUpdateNotified(code: Int) {

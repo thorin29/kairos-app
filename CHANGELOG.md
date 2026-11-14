@@ -1,4 +1,9 @@
 # Changelog
+## 0.513.0
+
+- A guided tour of the app: the menu, every page and Settings. It shows once, and you can replay it from Settings › Help & about.
+- Tips for new features after an update, which you can turn off in Settings › Help & about.
+
 ## 0.512.0
 
 - Overdue chores have a light red tint in the chore list, including a missed chore's extra day.
