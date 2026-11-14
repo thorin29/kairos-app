@@ -207,13 +207,6 @@ class SessionRepository(
         runAuthed { requireService().createClass(body) }
     }
 
-    suspend fun loadSchoolApprovals(): com.kairos.app.data.remote.dto.SchoolApprovalsDto =
-        runAuthed { requireService().schoolApprovals() }
-
-    suspend fun submitSchoolApproval(body: com.kairos.app.data.remote.dto.ApprovalActionRequest) {
-        runAuthed { requireService().schoolApproval(body) }
-    }
-
     /** Set my color (ring + calendar + everywhere it's used). Syncs to the web. */
     /** This person's birthday (YYYY-MM-DD), or null when not set. */
     suspend fun loadMyBirthday(): String? =
@@ -1377,6 +1370,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 585
+        const val CLIENT_BUILD = 586
     }
 }

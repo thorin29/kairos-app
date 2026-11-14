@@ -1,4 +1,8 @@
 # Changelog
+## 0.514.0
+
+- Class approvals are gone. Add class has "No semester" for summer or break classes, and new subjects and semesters are added by a parent in the web admin.
+
 ## 0.513.0
 
 - A guided tour of the app: the menu, every page and Settings. It shows once, and you can replay it from Settings › Help & about.

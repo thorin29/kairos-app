@@ -33,9 +33,6 @@ data class ClassFormUiState(
     val runsUntil: String = "",
     val classTypeId: String = "",
     val termId: String = "",
-    val newTermName: String = "",
-    val newTermStart: String = "",
-    val newTermEnd: String = "",
     val color: String = "",
     val sharedWith: Set<String> = emptySet(),
     val reminders: Set<Int> = emptySet(),
@@ -112,10 +109,7 @@ class CalendarAddClassViewModel(
     fun setRunsFrom(v: String) = _ui.update { it.copy(runsFrom = v) }
     fun setRunsUntil(v: String) = _ui.update { it.copy(runsUntil = v) }
     fun setClassType(id: String) = _ui.update { it.copy(classTypeId = id) }
-    fun setTerm(id: String) = _ui.update { it.copy(termId = id, newTermName = "", newTermStart = "", newTermEnd = "") }
-    fun setNewTerm(name: String, start: String, end: String) = _ui.update {
-        it.copy(newTermName = name, newTermStart = start, newTermEnd = end, termId = "")
-    }
+    fun setTerm(id: String) = _ui.update { it.copy(termId = id) }
     fun setColor(hex: String) = _ui.update { it.copy(color = hex) }
     fun setLocation(v: String) = _ui.update { it.copy(location = v) }
     fun setHomework(b: Boolean) = _ui.update { it.copy(promptHomework = b) }
@@ -153,9 +147,6 @@ class CalendarAddClassViewModel(
                         promptHomework = s.promptHomework,
                         reminders = s.reminders.toList(),
                         reminderBell = emptyList(),
-                        newTermName = s.newTermName.ifBlank { null },
-                        newTermStart = s.newTermStart.ifBlank { null },
-                        newTermEnd = s.newTermEnd.ifBlank { null },
                     ),
                 )
                 _ui.update { it.copy(saving = false, done = true) }

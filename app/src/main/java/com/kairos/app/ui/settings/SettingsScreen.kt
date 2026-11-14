@@ -70,8 +70,6 @@ fun SettingsScreen(
     onOpenConcept2: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
     onSignOut: () -> Unit = {},
-    onOpenApprovals: (() -> Unit)? = null,
-    approvalsCount: Int = 0,
     updateAvailable: Boolean = false,
     /** The app tour (v0.513): replay it, and tips for new features on or off. */
     onTakeTour: () -> Unit = {},
@@ -113,19 +111,6 @@ fun SettingsScreen(
             "Connected apps",
             listOf(SettingRow(icon = KairosIcons.Link, title = "Concept2", sub = "Rower logbook", onOpen = onOpenConcept2)),
         ),
-        onOpenApprovals?.let {
-            SettingGroup(
-                "Parents",
-                listOf(
-                    SettingRow(
-                        icon = KairosIcons.Book,
-                        title = "Class approvals",
-                        badge = if (approvalsCount > 0) "$approvalsCount" else null,
-                        onOpen = it,
-                    ),
-                ),
-            )
-        },
         SettingGroup(
             "Help & about",
             listOf(

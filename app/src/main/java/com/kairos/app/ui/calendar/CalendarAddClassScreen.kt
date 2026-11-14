@@ -92,7 +92,6 @@ fun CalendarAddClassScreen(
     var showUntil by remember { mutableStateOf(false) }
     var showAddSubject by remember { mutableStateOf(false) }
     var showCustomReminder by remember { mutableStateOf(false) }
-    var showAddSemester by remember { mutableStateOf(false) }
     var addressSearchOpen by remember { mutableStateOf(false) }
     var showMissing by remember { mutableStateOf<List<String>?>(null) }
     val attemptSave: () -> Unit = {
@@ -101,7 +100,6 @@ fun CalendarAddClassScreen(
             if (ui.isAdmin && ui.studentId.isBlank()) add("Student")
             if (ui.byday.isEmpty()) add("Meets on")
             if (ui.classTypeId.isBlank()) add("Class type")
-            if (ui.termId.isBlank() && ui.newTermName.isBlank()) add("Semester")
         }
         if (miss.isEmpty()) vm.save() else showMissing = miss
     }
@@ -161,7 +159,7 @@ fun CalendarAddClassScreen(
                     SectionLine()
                     SelectRow(KairosIcons.Category, optName(ui.classTypes, ui.classTypeId, "Class type"), muted = ui.classTypeId.isBlank()) { selector = "classType" }
                     SectionLine()
-                    SelectRow(KairosIcons.DateRange, semesterLabel(ui), muted = ui.termId.isBlank() && ui.newTermName.isBlank()) { selector = "term" }
+                    SelectRow(KairosIcons.DateRange, semesterLabel(ui), muted = ui.termId.isBlank()) { selector = "term" }
                     SectionLine()
                     Row(
                         Modifier.fillMaxWidth().clickable { selector = "color" }.padding(vertical = 12.dp),
@@ -225,11 +223,14 @@ fun CalendarAddClassScreen(
 
     when (selector) {
         "subject" -> SelectorOverlay("Subject", onClose = { selector = null }) {
-            Row(
-                Modifier.fillMaxWidth().clickable { selector = null; showAddSubject = true }.padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("+ Add a new subject", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            // Only an admin adds a subject (v0.514); everyone else picks one.
+            if (ui.isAdmin) {
+                Row(
+                    Modifier.fillMaxWidth().clickable { selector = null; showAddSubject = true }.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("+ Add a new subject", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                }
             }
             ui.subjects.forEach { name ->
                 SelectOptionRow(name, ui.subject == name) { vm.setSubject(name); selector = null }
@@ -260,13 +261,9 @@ fun CalendarAddClassScreen(
                 SelectOptionRow(name, ui.classTypeId == id) { vm.setClassType(id); selector = null }
             }
         }
+        // Semesters are set up in the web admin (v0.514); a class can have none.
         "term" -> SelectorOverlay("Semester", onClose = { selector = null }) {
-            Row(
-                Modifier.fillMaxWidth().clickable { selector = null; showAddSemester = true }.padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("+ Add a new semester", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
-            }
+            SelectOptionRow("No semester", ui.termId.isBlank()) { vm.setTerm(""); selector = null }
             ui.terms.forEach { (id, name) ->
                 SelectOptionRow(name, ui.termId == id) { vm.setTerm(id); selector = null }
             }
@@ -309,10 +306,6 @@ fun CalendarAddClassScreen(
     if (showUntil) ClassDatePicker(ui.runsUntil, { vm.setRunsUntil(it); showUntil = false }, { showUntil = false })
     if (showAddSubject) AddSubjectDialog({ vm.setSubject(it); showAddSubject = false }, { showAddSubject = false })
     if (showCustomReminder) CustomReminderDialog({ vm.addReminder(it); showCustomReminder = false }, { showCustomReminder = false })
-    if (showAddSemester) AddSemesterDialog(
-        onAdd = { n, st, en -> vm.setNewTerm(n, st, en); showAddSemester = false },
-        onDismiss = { showAddSemester = false },
-    )
     if (addressSearchOpen) AddressSearchScreen(
         initial = ui.location,
         repo = container.sessionRepository,
@@ -339,9 +332,7 @@ private fun studentName(ui: ClassFormUiState): String =
 private fun optName(opts: List<Pair<String, String>>, id: String, empty: String): String =
     opts.firstOrNull { it.first == id }?.second ?: empty
 
-private fun semesterLabel(ui: ClassFormUiState): String =
-    if (ui.newTermName.isNotBlank()) "New: ${ui.newTermName}"
-    else optName(ui.terms, ui.termId, "Semester")
+private fun semesterLabel(ui: ClassFormUiState): String = optName(ui.terms, ui.termId, "No semester")
 
 private fun daysLabel(days: Set<String>): String =
     if (days.isEmpty()) "Meets on" else DAYS.filter { it.first in days }.joinToString(", ") { it.second.take(3) }
@@ -447,41 +438,6 @@ private fun AddSubjectDialog(onAdd: (String) -> Unit, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
     }
-}
-
-@Composable
-private fun AddSemesterDialog(onAdd: (String, String, String) -> Unit, onDismiss: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var start by remember { mutableStateOf("") }
-    var end by remember { mutableStateOf("") }
-    var pickStart by remember { mutableStateOf(false) }
-    var pickEnd by remember { mutableStateOf(false) }
-    AnimatedDialog(
-        onDismissRequest = onDismiss,
-        title = "New semester",
-        confirmButton = {
-            TextButton(onClick = {
-                if (name.trim().length >= 2 && start.isNotBlank() && end.isNotBlank()) {
-                    onAdd(name.trim(), start, end)
-                }
-            }) { Text("Add") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        Column {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                placeholder = { Text("Fall 2025\u2026") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SelectRow(KairosIcons.Calendar, start.ifBlank { "Start date" }, muted = start.isBlank()) { pickStart = true }
-            SelectRow(KairosIcons.Calendar, end.ifBlank { "End date" }, muted = end.isBlank()) { pickEnd = true }
-        }
-    }
-    if (pickStart) ClassDatePicker(start, { start = it; pickStart = false }, { pickStart = false })
-    if (pickEnd) ClassDatePicker(end, { end = it; pickEnd = false }, { pickEnd = false })
 }
 
 @Composable

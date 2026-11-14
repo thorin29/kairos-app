@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — No class approvals (v0.514.0, server 0.714.0)
+
+- Removed Settings › Parents › Class approvals (`SchoolApprovalsScreen`,
+  its ViewModel, `Route.SchoolApprovals`, the `school/approvals` calls and
+  DTOs) and the approvals dot on the menu's profile (it now only means an
+  update).
+- Add class: Semester is optional, with "No semester" first in the list, and
+  "+ Add a new semester" is gone (semesters live in the web admin).
+  "+ Add a new subject" only shows to admins; the server refuses a new subject
+  from anyone else. `CreateClassRequest` loses `newTermName/Start/End`.
+- Needs server 0.714 (the server drops the approvals route).
+
 ## 2026-11 — The app tour (v0.513.0)
 
 - Mocked up and worded with the user on the design canvas first. A tour box

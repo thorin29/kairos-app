@@ -3260,41 +3260,6 @@ data class SubmitAddressResponse(
 
 
 @Serializable
-data class SchoolApprovalsDto(
-    val subjects: List<PendingSubjectDto> = emptyList(),
-    val terms: List<PendingTermDto> = emptyList(),
-    val allSubjects: List<ClassOptionDto> = emptyList(),
-    val allTerms: List<ClassOptionDto> = emptyList(),
-)
-
-@Serializable
-data class PendingSubjectDto(
-    val id: String = "",
-    val name: String = "",
-    val proposedBy: String? = null,
-)
-
-@Serializable
-data class PendingTermDto(
-    val id: String = "",
-    val name: String = "",
-    val startISO: String = "",
-    val endISO: String = "",
-    val proposedBy: String? = null,
-)
-
-@Serializable
-data class ApprovalActionRequest(
-    val kind: String,
-    val op: String,
-    val id: String,
-    val name: String? = null,
-    val start: String? = null,
-    val end: String? = null,
-    val targetId: String? = null,
-)
-
-@Serializable
 data class ClassFormDto(
     val canMakeClass: Boolean = false,
     val isAdmin: Boolean = false,
@@ -3310,9 +3275,6 @@ data class ClassFormDto(
 data class CreateClassRequest(
     val replaceEventId: String? = null,
     val newSubject: String? = null,
-    val newTermName: String? = null,
-    val newTermStart: String? = null,
-    val newTermEnd: String? = null,
     val userId: String? = null,
     val classTypeId: String? = null,
     val termId: String? = null,

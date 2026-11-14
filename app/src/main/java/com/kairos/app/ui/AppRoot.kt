@@ -263,16 +263,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         }
     }
 
-    val isAdmin = person.role == "ADMIN"
-    var approvalsCount by remember { mutableStateOf(0) }
-    LaunchedEffect(isAdmin, selectedKey) {
-        if (isAdmin) {
-            runCatching { container.sessionRepository.loadSchoolApprovals() }
-                .getOrNull()
-                ?.let { approvalsCount = it.subjects.size + it.terms.size }
-        }
-    }
-
     // Bump each time we come back to Home from another destination, so Home can
     // reload the day. Reliable under our drawer nav, where ON_RESUME doesn't fire.
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -493,7 +483,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         navController.navigate(Route.Settings)
                     },
                     updateAvailable = updateInfo != null,
-                    approvalsBadge = approvalsCount > 0,
                     onOpenUpdate = {
                         closeDrawer()
                         navController.navigate(Route.SettingsUpdate)
@@ -757,10 +746,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         // asks the same "Sign out?" as the side rail.
                         onOpenDevices = { navController.navigate(Route.Devices) },
                         onSignOut = { confirmSignOut = true },
-                        onOpenApprovals = if (isAdmin) {
-                            { navController.navigate(Route.SchoolApprovals) }
-                        } else null,
-                        approvalsCount = approvalsCount,
                         updateAvailable = updateInfo != null,
                         onTakeTour = {
                             scope.launch {
@@ -769,11 +754,6 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         },
                         tourTips = tourTips,
                         onToggleTourTips = { scope.launch { container.settingsStore.setTourTips(person.id, !tourTips) } },
-                    )
-                }
-                composable<Route.SchoolApprovals> {
-                    com.kairos.app.ui.school.SchoolApprovalsScreen(
-                        onBack = { navController.popBackStack() },
                     )
                 }
                 composable<Route.SettingsAppearance> {

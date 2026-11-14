@@ -69,7 +69,6 @@ fun KairosRail(
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
     updateAvailable: Boolean = false,
-    approvalsBadge: Boolean = false,
     onOpenUpdate: () -> Unit = {},
     /** Section keys the server says to hide (Hockey not set up; no Money). */
     hiddenKeys: Set<String> = emptySet(),
@@ -150,7 +149,7 @@ fun KairosRail(
                     }
                 }
                 Box(Modifier.tourTarget("rail.profile")) {
-                    FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable, approvalsBadge)
+                    FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable)
                 }
                 if (expanded) {
                     // Collapse control on the left, version pinned far-right.
@@ -262,7 +261,6 @@ private fun FooterPerson(
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
     updateAvailable: Boolean = false,
-    approvalsBadge: Boolean = false,
 ) {
     if (expanded) {
         Row(
@@ -282,7 +280,7 @@ private fun FooterPerson(
             ) {
                 Box(contentAlignment = Alignment.TopEnd) {
                     Avatar(person)
-                    if (updateAvailable || approvalsBadge) {
+                    if (updateAvailable) {
                         Box(
                             Modifier
                                 .size(11.dp)
@@ -320,7 +318,7 @@ private fun FooterPerson(
                 Box(Modifier.clip(CircleShape).clickable { onOpenSettings() }) {
                     Avatar(person)
                 }
-                if (updateAvailable || approvalsBadge) {
+                if (updateAvailable) {
                     Box(
                         Modifier
                             .size(11.dp)
