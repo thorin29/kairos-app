@@ -293,6 +293,25 @@ class MovementSetsViewModel(
         }
     }
 
+    /**
+     * Working up to a bodyweight target (v0.508): for a reps or timed movement
+     * with no weight, a target set's hint is last time's value for that set,
+     * so ticking an empty box logs what was done last time. The target stays
+     * in the scheme above ("Today 5 × 10"). The first time and warm-up sets
+     * keep the target. Returns (reps, seconds), or null to keep the target.
+     */
+    private fun workUpHint(
+        t: com.kairos.app.data.remote.dto.TargetSetDto?,
+        l: MovementSetDto?,
+    ): Pair<Int?, Int?>? {
+        if (t == null || l == null || t.warmup || metric == "WEIGHT" || t.weight != null) return null
+        return if (metric == "DURATION") {
+            l.seconds?.let { Pair(t.reps, it) }
+        } else {
+            l.reps?.let { Pair(it, t.seconds) }
+        }
+    }
+
     /** Today's sets, else the targets, else last time's: the targets fill the
      *  hints in place of last time, and a target with no weight yet (no
      *  training max) takes last time's weight. */
@@ -311,8 +330,8 @@ class MovementSetsViewModel(
                     r = s.reps?.toString() ?: "",
                     s = s.seconds?.toString() ?: "",
                     hintW = t?.weight ?: last.getOrNull(i)?.weight,
-                    hintR = t?.reps ?: last.getOrNull(i)?.reps,
-                    hintS = t?.seconds ?: last.getOrNull(i)?.seconds,
+                    hintR = workUpHint(t = t, l = last.getOrNull(i))?.first ?: t?.reps ?: last.getOrNull(i)?.reps,
+                    hintS = workUpHint(t = t, l = last.getOrNull(i))?.second ?: t?.seconds ?: last.getOrNull(i)?.seconds,
                     saved = true,
                     added = i >= maxOf(last.size, target.size),
                     top = t?.top ?: false,
@@ -329,8 +348,8 @@ class MovementSetsViewModel(
                 SetRow(
                     key = k++,
                     hintW = t.weight ?: last.getOrNull(i)?.weight,
-                    hintR = t.reps,
-                    hintS = t.seconds ?: last.getOrNull(i)?.seconds,
+                    hintR = workUpHint(t = t, l = last.getOrNull(i))?.first ?: t.reps,
+                    hintS = workUpHint(t = t, l = last.getOrNull(i))?.second ?: t.seconds ?: last.getOrNull(i)?.seconds,
                     top = t.top,
                     pct = t.pct,
                     plus = t.plus,
@@ -345,8 +364,8 @@ class MovementSetsViewModel(
                 SetRow(
                     key = k++,
                     hintW = t.weight ?: last.getOrNull(i)?.weight,
-                    hintR = t.reps,
-                    hintS = t.seconds ?: last.getOrNull(i)?.seconds,
+                    hintR = workUpHint(t = t, l = last.getOrNull(i))?.first ?: t.reps,
+                    hintS = workUpHint(t = t, l = last.getOrNull(i))?.second ?: t.seconds ?: last.getOrNull(i)?.seconds,
                     top = t.top,
                     pct = t.pct,
                     plus = t.plus,

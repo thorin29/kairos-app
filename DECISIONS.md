@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Bodyweight work-up hints start from last time (v0.508.0, server 0.708.0)
+
+- A program's target filled every set's hint, so 5 × 10 pull-ups showed 10
+  in each box, and ticking an empty box logged 10, even for someone at 3.
+- `workUpHint` in `MovementSetsViewModel`: for a reps or timed movement (not
+  `WEIGHT`) and a target set with no weight and not a warm-up, the hint is
+  last time's reps (or seconds) for that set. The scheme line keeps the
+  target. First time, warm-ups and weighted sets are unchanged. Same rule as
+  the web (0.708); no API change.
+
 ## 2026-11 — Monthly tests compare with the last test (v0.507.0, server 0.707.0)
 
 - The test card's "Last time" and the hints inside it came from the last day

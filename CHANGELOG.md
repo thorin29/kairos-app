@@ -1,4 +1,8 @@
 # Changelog
+## 0.508.0
+
+- Working up to a bodyweight target (like 5 × 10 pull-ups): each set starts from what you did last time, and the target stays at the top.
+
 ## 0.507.0
 
 - Monthly tests show your last test, not your last workout: the plank, and the wall sit, dead hang and push-up hold (needs server 0.707).
