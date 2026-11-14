@@ -1,4 +1,8 @@
 # Changelog
+## 0.506.0
+
+- Game time shows the ROG logo for time played on the ROG Ally.
+
 ## 0.505.0
 
 - A paused class shows "paused" and how many lessons are done (needs server 0.703).

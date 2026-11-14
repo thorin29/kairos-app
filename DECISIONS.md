@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — ROG Ally on Game time (v0.506.0, server 0.706.0)
+
+- The game-time collector (5.0.0) adds a third source, `"ally"` (a ROG Ally
+  handheld, via Microsoft Family Safety). It arrives in the same `platforms`
+  list the screen already reads; no API change.
+- `PlatformIcons` now draws from one ordered list (Xbox, Steam, ROG Ally),
+  matching the web. The Ally has no logo of its own, so it shows the Republic
+  of Gamers mark from Simple Icons (`KairosIcons.Rog`, the same source as the
+  Steam glyph) in ROG red, described as "ROG Ally".
+- A value not in the list draws nothing, so a future source can't break the
+  row.
+
 ## 2026-11 — Paused classes on the School card (v0.505.0, server 0.703.0)
 
 - Server 0.702 lets a parent pause a class for one student: no schedule, one

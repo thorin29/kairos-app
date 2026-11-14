@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -214,18 +215,26 @@ private fun AvatarCircle(p: GamePersonDto, diameter: Dp) {
     }
 }
 
+/** One game-time source the collector reports, in display order. */
+private data class GamePlatform(val key: String, val label: String, val icon: ImageVector, val tint: Color)
+
+// A value not listed here (a future source) draws nothing (v0.506).
+private val GAME_PLATFORMS = listOf(
+    GamePlatform(key = "xbox", label = "Xbox", icon = KairosIcons.Xbox, tint = XboxGreen),
+    GamePlatform(key = "steam", label = "Steam", icon = KairosIcons.Steam, tint = Color(0xFF1B2838)),
+    GamePlatform(key = "ally", label = "ROG Ally", icon = KairosIcons.Rog, tint = Color(0xFFFF0029)),
+)
+
 @Composable
 private fun PlatformIcons(platforms: List<String>) {
-    if (platforms.isEmpty()) return
+    val known = GAME_PLATFORMS.filter { platforms.contains(it.key) }
+    if (known.isEmpty()) return
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (platforms.contains("xbox")) {
-            Icon(KairosIcons.Xbox, "Xbox", tint = XboxGreen, modifier = Modifier.size(15.dp))
-        }
-        if (platforms.contains("steam")) {
-            Icon(KairosIcons.Steam, "Steam", tint = Color(0xFF1B2838), modifier = Modifier.size(15.dp))
+        known.forEach { p ->
+            Icon(imageVector = p.icon, contentDescription = p.label, tint = p.tint, modifier = Modifier.size(15.dp))
         }
     }
 }
