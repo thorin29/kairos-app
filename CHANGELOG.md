@@ -1,4 +1,8 @@
 # Changelog
+## 0.511.0
+
+- Switching a day's warm-up shows the list of warm-ups to pick from (Match the day and Rotation stay in the plan).
+
 ## 0.510.0
 
 - Switch on a day's warm-up changes it for that day only; your plan and rotation stay as they are.

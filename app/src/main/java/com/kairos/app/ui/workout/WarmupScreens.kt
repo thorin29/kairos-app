@@ -277,7 +277,8 @@ internal fun RoutinePicker(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         ) {
             // The same chooser Add workout uses (v0.445).
-            WarmupChooser(value = current, onChange = { pick(it) }, kind = kind)
+            // A one-day Switch (v0.511) picks one routine; Match and Rotation are plan-only.
+            WarmupChooser(value = current, onChange = { pick(it) }, kind = kind, oneOnly = date != null)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
     }
@@ -289,7 +290,13 @@ internal fun RoutinePicker(
  * warm-up. Tapping a row chooses it.
  */
 @Composable
-internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit, kind: String = "warmup") {
+internal fun WarmupChooser(
+    value: String?,
+    onChange: (String?) -> Unit,
+    kind: String = "warmup",
+    /** Just the routine list, no Match the day / Rotation (a one-day Switch). */
+    oneOnly: Boolean = false,
+) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
     var routines by remember { mutableStateOf<List<WarmupRoutineDto>?>(null) }
@@ -311,6 +318,7 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit, kind: St
     var mode by remember {
         mutableStateOf(
             when {
+                oneOnly -> "one"
                 value == "match" -> "match"
                 value?.startsWith("rot:") == true -> "rotation"
                 else -> "one"
@@ -322,7 +330,7 @@ internal fun WarmupChooser(value: String?, onChange: (String?) -> Unit, kind: St
     }
 
     Column {
-        WarmupModeSwitch(mode = mode, onMode = { mode = it }, kind = kind)
+        if (!oneOnly) WarmupModeSwitch(mode = mode, onMode = { mode = it }, kind = kind)
         val list = routines
         if (list == null && error == null) CircularProgressIndicator(Modifier.padding(8.dp))
         if (mode == "match") {

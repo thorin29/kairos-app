@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — A one-day Switch picks from the plain list (v0.511.0, server 0.711.0)
+
+- The day window's Switch opened the plan's chooser, so a plan set to Match
+  the day opened on that tab with only Save (and saving "match" for one day
+  isn't valid). `WarmupChooser(oneOnly = true)` hides the Match / Rotation
+  switch and opens on the routine list, like the web's day Switch already
+  did. The plan builder's chooser is unchanged. No server change.
+
 ## 2026-11 — Switching a day's warm-up is for that day only (v0.510.0, server 0.711.0)
 
 - The warm-up window's Switch posts `workouts/day-warmup { date,
