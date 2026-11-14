@@ -1,4 +1,8 @@
 # Changelog
+## 0.520.0
+
+- Family goal: parents see who voted for each idea.
+
 ## 0.519.0
 
 - Scan code on Set up and Reconnect: scan the invitation QR in the app. A new phone gets the server and the code in one scan.

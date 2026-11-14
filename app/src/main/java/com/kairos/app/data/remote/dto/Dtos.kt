@@ -2981,6 +2981,8 @@ data class CoopProposalDto(
     val status: String = "PROPOSED",
     val votes: Int = 0,
     val iVoted: Boolean = false,
+    /** Who voted (server 0.720): parents only, empty otherwise. */
+    val voterNames: List<String> = emptyList(),
 )
 
 @Serializable

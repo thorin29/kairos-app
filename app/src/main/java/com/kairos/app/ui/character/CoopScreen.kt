@@ -213,6 +213,10 @@ private fun ProposalCard(p: CoopProposalDto, data: CoopDto, busy: Boolean, vm: C
                 Text(p.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text("Proposed by ${p.proposedByName} \u00b7 ${p.votes} vote${if (p.votes == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Parents see who voted (v0.520).
+            if (p.voterNames.isNotEmpty()) {
+                Text("Voted: ${p.voterNames.joinToString(", ")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // One vote a month: with my vote on another idea, this moves it.

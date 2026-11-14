@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Who voted on the family goal (v0.520.0, server 0.720.0)
+
+- `CoopProposalDto.voterNames` (parents only, from server 0.720); the Family
+  goal screen adds "Voted: …" under an idea's vote count when it has any.
+- The game warm-up's change is server-side only (it no longer counts toward
+  the workout), so the home card simply stops listing it.
+
 ## 2026-11 — In-app QR scanning (v0.519.0, server 0.719.0)
 
 - CameraX (preview + ImageAnalysis) with ZXing core's `QRCodeReader` on the
