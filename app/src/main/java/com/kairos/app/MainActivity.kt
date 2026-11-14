@@ -182,6 +182,10 @@ class MainActivity : ComponentActivity() {
             data.getQueryParameter("token")?.takeIf { it.isNotBlank() }?.let {
                 container.pendingJoinToken.value = it
             }
+            // The invitation's server (web 0.719+), used only before a server is set.
+            data.getQueryParameter("server")
+                ?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+                ?.let { container.pendingJoinServer.value = it }
         }
         if (fresh) handleCalendarFile(intent)
     }

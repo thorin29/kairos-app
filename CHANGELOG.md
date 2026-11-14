@@ -1,4 +1,9 @@
 # Changelog
+## 0.519.0
+
+- Scan code on Set up and Reconnect: scan the invitation QR in the app. A new phone gets the server and the code in one scan.
+- The workout card says "Remaining" for what's left.
+
 ## 0.518.0
 
 - If the app closes during the tour, it picks up at the same step next time.

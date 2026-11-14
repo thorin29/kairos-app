@@ -18,8 +18,8 @@ android {
         applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 590
-        versionName = "0.518.0"
+        versionCode = 591
+        versionName = "0.519.0"
 
         // Baked in at build time so the app can show when this build was made.
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
@@ -139,6 +139,11 @@ dependencies {
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    // QR scanning for setup (v0.519).
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.zxing.core)
 
     debugImplementation(libs.androidx.ui.tooling)
 

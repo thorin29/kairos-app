@@ -39,6 +39,18 @@ fun AuthFlow(reconnectPerson: com.kairos.app.data.remote.dto.PersonDto? = null) 
     var code by remember { mutableStateOf("") }
     var showForgot by remember { mutableStateOf(false) }
     var showRecover by remember { mutableStateOf(false) }
+    var scanning by remember { mutableStateOf(false) }
+    // A server from an invitation link only applies before one is set.
+    LaunchedEffect(Unit) { container.pendingJoinServer.value = null }
+    if (scanning) {
+        QrScanDialog(
+            onResult = { text ->
+                scanning = false
+                parseJoin(text)?.let { container.pendingJoinToken.value = it.token }
+            },
+            onClose = { scanning = false },
+        )
+    }
     var diag by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         diag = runCatching { container.settingsStore.enrollLossReason() }.getOrNull()
@@ -82,17 +94,16 @@ fun AuthFlow(reconnectPerson: com.kairos.app.data.remote.dto.PersonDto? = null) 
         Spacer(Modifier.height(16.dp))
         Button(
             onClick = {
-                val raw = code.trim()
-                val token = if (raw.contains("token=")) {
-                    raw.substringAfter("token=").substringBefore("&").trim()
-                } else {
-                    raw
-                }
-                if (token.isNotBlank()) container.pendingJoinToken.value = token
+                parseJoin(code)?.let { container.pendingJoinToken.value = it.token }
             },
             enabled = code.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Continue") }
+        // Scan code (v0.519): the invitation's QR fills the code in.
+        androidx.compose.material3.OutlinedButton(
+            onClick = { scanning = true },
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) { Text("Scan code") }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = { showForgot = true }) {
             Text("Forgot your password?")

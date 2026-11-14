@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-11 — In-app QR scanning (v0.519.0, server 0.719.0)
+
+- CameraX (preview + ImageAnalysis) with ZXing core's `QRCodeReader` on the
+  brightness plane, in our own full-screen `QrScanDialog`
+  (`ui/auth/QrScan.kt`), not the maintenance-mode zxing-android-embedded.
+  Apache 2.0, no Play services, so it works on GrapheneOS. Pinned CameraX
+  1.4.2 and zxing core 3.5.3; bump only those lines if Gradle flags them.
+- CAMERA is asked for only when Scan code is tapped (`uses-feature` camera
+  not required); refusing it leaves typing the code.
+- `parseJoin` reads a bare code, a pasted link or the QR
+  (`kairos://join?token=…&server=…`). Set up: Scan code sets the code and, with
+  a server in the QR, fills the address and connects, then the invitation
+  opens. Set up / Reconnect (AuthFlow): Scan code fills the code; a server in
+  it is ignored there. A `kairos://join` link opened by the phone's camera
+  passes its server through `pendingJoinServer`, used only before a server is
+  set.
+- Home workout card: "Left" → "Remaining".
+
 ## 2026-11 — The tour resumes where it was (v0.518.0)
 
 - Replaces 0.517's "seen as it starts". Each stop is saved as it comes up

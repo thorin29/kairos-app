@@ -12,11 +12,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,12 +47,43 @@ fun SetupScreen() {
         ActivityResultContracts.RequestPermission(),
     ) { _ -> vm.connect() }
 
-    fun onConnect() {
-        if (com.kairos.app.data.remote.LocalNetwork.needsPermission(context, ui.url.trim())) {
+    fun connectTo(url: String) {
+        if (com.kairos.app.data.remote.LocalNetwork.needsPermission(context, url.trim())) {
             localNetLauncher.launch(com.kairos.app.data.remote.LocalNetwork.PERMISSION)
         } else {
             vm.connect()
         }
+    }
+
+    fun onConnect() = connectTo(ui.url)
+
+    // Scan code (v0.519): an invitation QR carries the server and the code, so
+    // a new phone connects and goes straight on to the invitation.
+    var scanning by remember { mutableStateOf(false) }
+    fun useJoin(scan: com.kairos.app.ui.auth.JoinScan?) {
+        if (scan == null) return
+        container.pendingJoinToken.value = scan.token
+        scan.server?.let { server ->
+            vm.onUrlChange(server)
+            connectTo(server)
+        }
+    }
+    // The same from an invitation link opened with the phone's camera.
+    val linkServer by container.pendingJoinServer.collectAsState()
+    LaunchedEffect(linkServer) {
+        val server = linkServer ?: return@LaunchedEffect
+        container.pendingJoinServer.value = null
+        vm.onUrlChange(server)
+        connectTo(server)
+    }
+    if (scanning) {
+        com.kairos.app.ui.auth.QrScanDialog(
+            onResult = { text ->
+                scanning = false
+                useJoin(com.kairos.app.ui.auth.parseJoin(text))
+            },
+            onClose = { scanning = false },
+        )
     }
 
     Column(
@@ -105,5 +141,12 @@ fun SetupScreen() {
                 Text("Connect")
             }
         }
+        OutlinedButton(
+            onClick = { scanning = true },
+            enabled = !ui.connecting,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) { Text("Scan code") }
     }
 }

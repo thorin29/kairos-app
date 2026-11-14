@@ -43,6 +43,9 @@ class AppContainer(context: Context) {
     /** An invite token from a `kairos://join` deep link (or pasted), consumed by
      *  the onboarding to show the join / set-password screen. */
     val pendingJoinToken = MutableStateFlow<String?>(null)
+    /** The server address from an invitation link (v0.519), for a phone not
+     *  connected yet: Setup fills it in and connects. */
+    val pendingJoinServer = MutableStateFlow<String?>(null)
 
     /** A calendar file opened or shared into the app, read and waiting for the
      *  Calendar screen to turn it into a New event (see IcsImport.kt). */

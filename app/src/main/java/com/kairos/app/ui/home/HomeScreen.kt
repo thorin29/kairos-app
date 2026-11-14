@@ -771,9 +771,9 @@ private fun WorkoutSummaryCard(
                             color = ChoresGreen,
                         )
                     } else if (remaining.isNotEmpty()) {
-                        // Started, not finished: what's left, two per line.
+                        // Started, not finished: what's remaining, two per line.
                         Text(
-                            "Left",
+                            "Remaining",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -30,6 +30,11 @@ okhttp = "4.12.0"
 kotlinxSerialization = "1.7.3"
 coroutines = "1.9.0"
 
+# QR scanning (v0.519): CameraX for the preview, ZXing's core decoder.
+# Both Apache 2.0, no Google Play code, so it works on GrapheneOS.
+camerax = "1.4.2"
+zxing = "3.5.3"
+
 # Test
 junit = "4.13.2"
 androidxJunit = "1.2.1"
@@ -62,6 +67,11 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
