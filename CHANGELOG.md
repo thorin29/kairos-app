@@ -1,4 +1,8 @@
 # Changelog
+## 0.512.0
+
+- Overdue chores have a light red tint in the chore list, including a missed chore's extra day.
+
 ## 0.511.0
 
 - Switching a day's warm-up shows the list of warm-ups to pick from (Match the day and Rotation stay in the plan).

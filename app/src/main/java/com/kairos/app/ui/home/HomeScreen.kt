@@ -1000,8 +1000,14 @@ private fun formatBonus(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toStr
 private fun ChoreCheckRow(task: TaskDto, busyIds: Set<String>, vm: HomeViewModel) {
     val done = task.status == "COMPLETE"
     val enabled = !busyIds.contains(task.id) && task.completable
+    // Overdue (incl. a chore's grace day, server 0.713) gets the behind tint.
+    val behind = task.isOverdue && !done && task.completable
     Row(
-        Modifier.fillMaxWidth().clickable(enabled = enabled) { vm.toggle(task.id, done) }.padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier
+            .fillMaxWidth()
+            .then(if (behind) Modifier.background(MaterialTheme.colorScheme.error.copy(alpha = 0.06f)) else Modifier)
+            .clickable(enabled = enabled) { vm.toggle(task.id, done) }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = done, onCheckedChange = null)

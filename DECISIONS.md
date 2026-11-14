@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Overdue chores tinted (v0.512.0, server 0.713.0)
+
+- The server now keeps a superseded chore one extra day (overdue) so it can
+  still be logged. `ChoreCheckRow` gives overdue, unfinished, completable rows
+  the same light red tint as behind school work (`error` at 6%). Expired rows
+  (not completable) stay untinted.
+
 ## 2026-11 — A one-day Switch picks from the plain list (v0.511.0, server 0.711.0)
 
 - The day window's Switch opened the plan's chooser, so a plan set to Match
