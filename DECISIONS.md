@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-11 — Bible round 3 in the app (v0.525.0, server 0.729.0)
+
+- The ⋮ PlanMenu is gone (its style didn't fit). Family (admins): Add readings
+  and Start over buttons. Personal: a 2×2 of Edit plan, Log, Add readings,
+  Import / export; Start over is a text button beside "Progress since".
+  Family import / export are web-only.
+- `BooksPage`: full screen, a card per section, three tiles a row; opened from
+  the Bible / OT / NT cards and the Sections card. The dialog is gone.
+- `AddReadingsPage` is three steps: What (testament → section → book →
+  chapters with a breadcrumb, or typed), How (`ChoiceCard`s: Additional
+  readings / Insert into the plan, the insert end date from a preview), Review
+  (server preview of the chosen mode).
+- `StartOverPage`: keep the plan, or (personal) end it — `deleteReadingPlan`
+  then start over — and open a fresh `PlanWizard` (NEW_PLAN, so the old plan
+  can't seed it).
+
+
 ## 2026-11 — Tracker books in a dialog (v0.524.0, server 0.727.0)
 
 - The book grid moved into an AnimatedDialog opened from the Bible / OT / NT

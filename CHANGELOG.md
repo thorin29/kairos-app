@@ -1,4 +1,8 @@
 # Changelog
+## 0.525.0
+
+- Bible: buttons replace the ⋮ menu; an All books page; Add readings in three steps (additional readings or insert into the plan); Start over asks whether to keep the plan or start a new one. Family import / export moved to the web.
+
 ## 0.524.0
 
 - Bible tracker: tap the Bible, OT or NT card, or a section, to see its books. Milestones show at most five, rolled up.

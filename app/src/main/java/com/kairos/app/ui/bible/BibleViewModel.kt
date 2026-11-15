@@ -101,16 +101,19 @@ class BibleViewModel(
 
     /** "Start over": every bar back to 0% (the family's needs a parent). Times
      *  read and milestones are kept. */
-    fun startOver(mine: Boolean) {
+    fun startOver(mine: Boolean, endPlan: Boolean = false) {
         if (_ui.value.busy) return
         _ui.update { it.copy(busy = true, actionError = null) }
         viewModelScope.launch {
             try {
+                // "End this plan and start a new one": the plan goes first.
+                if (mine && endPlan) session.deleteReadingPlan()
                 val t = session.startOverReading(if (mine) "mine" else "family")
                 _ui.update {
                     if (mine) it.copy(busy = false, myTracker = t, savedTick = it.savedTick + 1)
                     else it.copy(busy = false, familyTracker = t, savedTick = it.savedTick + 1)
                 }
+                if (endPlan) load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(busy = false, actionError = e.error.message) }
             }

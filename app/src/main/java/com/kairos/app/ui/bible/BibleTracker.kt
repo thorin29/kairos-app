@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -102,29 +104,21 @@ private fun TrackBar(percent: Int, color: Color, height: Dp = 8.dp, modifier: Mo
 
 /**
  * How many times each book, section, testament and the whole Bible has been
- * read, the progress toward the next time, and the milestones (mirrors the web
- * BibleTracker, server 0.724).
+ * read, the progress this time through, and the milestones (mirrors the web
+ * BibleTracker). The cards and the sections open the all-books page.
  */
 @OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun TrackerSection(tracker: TrackerDto) {
-    // Books open in a dialog: the Bible card shows all 66, a testament card its
-    // books, a section row its books.
-    var books by remember { mutableStateOf<Pair<String, (BibleBook) -> Boolean>?>(null) }
+fun TrackerSection(tracker: TrackerDto, onOpenBooks: () -> Unit, onStartOver: (() -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(tracker.bible to "Bible", tracker.ot to "OT", tracker.nt to "NT").forEach { (l, short) ->
                 val color = colorOf(l)
-                OutlinedCard(
-                    onClick = {
-                        books = l.label to { b: BibleBook -> l.kind == "bible" || b.testament.name == l.testament }
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
+                OutlinedCard(onClick = onOpenBooks, modifier = Modifier.weight(1f)) {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(short, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                            Text("×${l.times}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = color)
+                            Text("\u00d7${l.times}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = color)
                         }
                         TrackBar(percent = l.progress, color = color, height = 6.dp)
                         Text("${l.progress}%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -132,27 +126,27 @@ fun TrackerSection(tracker: TrackerDto) {
                 }
             }
         }
-        medium(tracker.bible.sinceISO)?.let {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "This time through the Bible since $it",
+                medium(tracker.bible.sinceISO)?.let { "Progress since $it" } ?: "",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
             )
+            if (onStartOver != null) {
+                androidx.compose.material3.TextButton(onClick = onStartOver) { Text("Start over") }
+            }
         }
 
-        OutlinedCard(Modifier.fillMaxWidth()) {
+        OutlinedCard(onClick = onOpenBooks, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("SECTIONS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                    Text("All books \u203a", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                }
                 tracker.sections.forEach { s ->
                     val color = colorOf(s)
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { books = s.label to { b: BibleBook -> b.group == s.key } }
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(s.label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(104.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         TrackBar(percent = s.progress, color = color, modifier = Modifier.weight(1f))
                         TimesPill(n = s.times, color = color)
@@ -163,28 +157,39 @@ fun TrackerSection(tracker: TrackerDto) {
 
         MilestonesCard(tracker)
     }
+}
 
-    books?.let { (title, pick) ->
-        com.kairos.app.ui.common.AnimatedDialog(
-            onDismissRequest = { books = null },
-            title = title,
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { books = null }) { Text("Close") } },
-        ) {
+/** Every book on one page: a card per section, three small tiles a row. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun BooksPage(tracker: TrackerDto, onBack: () -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onBack)
+    androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.IconButton(onClick = onBack) {
+                    androidx.compose.material3.Icon(com.kairos.app.ui.nav.KairosIcons.ChevronLeft, contentDescription = "Back")
+                }
+                Text("All books", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            }
             Column(
-                Modifier
-                    .heightIn(max = 520.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 tracker.sections.forEach { s ->
-                    val inSection = tracker.books.filter { b ->
-                        val book = BIBLE_BOOKS.firstOrNull { it.name == b.key }
-                        book != null && book.group == s.key && pick(book)
-                    }
-                    if (inSection.isNotEmpty()) {
-                        Text(s.label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            inSection.forEach { b -> BookTile(b) }
+                    val books = tracker.books.filter { b -> BIBLE_BOOKS.firstOrNull { it.name == b.key }?.group == s.key }
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(s.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text("${s.progress}% \u00b7 \u00d7${s.times}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            books.chunked(3).forEach { rowBooks ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    rowBooks.forEach { b -> Box(Modifier.weight(1f)) { BookTile(b) } }
+                                    repeat(3 - rowBooks.size) { Box(Modifier.weight(1f)) }
+                                }
+                            }
                         }
                     }
                 }
@@ -198,7 +203,7 @@ private fun BookTile(b: TrackerLevelDto) {
     val color = colorOf(b)
     Column(
         Modifier
-            .width(104.dp)
+            .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
             .padding(horizontal = 6.dp, vertical = 5.dp),

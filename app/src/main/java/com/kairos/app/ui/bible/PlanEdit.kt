@@ -132,18 +132,68 @@ private fun DateField(label: String, iso: String, onPick: (String) -> Unit) {
     }
 }
 
-/** "Add to: Family plan / My plan" — only parents get the choice. */
+/** A choice card: radio, title, lines of explanation. */
 @Composable
-private fun ScopeSwitch(isAdmin: Boolean, hasMine: Boolean, toFamily: Boolean, onChange: (Boolean) -> Unit) {
-    if (!isAdmin || !hasMine) return
-    Segmented(options = listOf("Family plan", "My plan"), selected = if (toFamily) 0 else 1) { onChange(it == 0) }
+internal fun ChoiceCard(title: String, lines: List<String>, selected: Boolean, onClick: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(if (selected) 2.dp else 1.dp, if (selected) accent else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        androidx.compose.material3.RadioButton(selected = selected, onClick = onClick, modifier = Modifier.size(20.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            lines.filter { it.isNotEmpty() }.forEach {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
 }
 
+@Composable
+private fun StepHeader(step: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        listOf("What", "How", "Review").forEachIndexed { i, label ->
+            val on = i == step
+            val color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    Modifier.size(20.dp).border(1.5.dp, color, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) { Text("${i + 1}", style = MaterialTheme.typography.labelSmall, color = color) }
+                Text(label, style = MaterialTheme.typography.labelLarge, color = color, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListRow(title: String, sub: String? = null, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 4.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            sub?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        Icon(KairosIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+    }
+}
+
+private fun sectionLabel(group: String) = if (group == "General Epistles") "General letters" else group
+
 /**
- * Add readings (mirrors the web form): pick chapters — each tap is a day, a
- * long press puts it on the last reading's day — or type passages, then choose
- * how they fit. The preview comes from the server, which saves with the same
- * rule.
+ * Add readings in three steps (mirrors the web form): what — pick chapters a
+ * level at a time (testament, section, book, chapters; a long press puts a
+ * chapter on the day before) or type passages; how — additional readings on
+ * the same days, or inserted into the plan; and a review from the server,
+ * which saves with the same rule.
  */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -153,159 +203,191 @@ fun AddReadingsPage(
     hasMine: Boolean,
     today: String,
     startFamily: Boolean,
-    familyEndsWhenDone: Boolean,
-    mineEndsWhenDone: Boolean,
     onDone: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var toFamily by remember { mutableStateOf(startFamily || !hasMine) }
+    var step by remember { mutableStateOf(0) }
     var tab by remember { mutableStateOf(0) }
-    var book by remember { mutableStateOf("Luke") }
+    var testament by remember { mutableStateOf<Testament?>(null) }
+    var group by remember { mutableStateOf<String?>(null) }
+    var book by remember { mutableStateOf<String?>(null) }
     val items = remember { mutableStateListOf<ReadingItem>() }
     var nextId by remember { mutableStateOf(1) }
     var typed by remember { mutableStateOf("") }
     var startISO by remember { mutableStateOf(today) }
-    var mode by remember { mutableStateOf(0) }
-    var ownDays by remember { mutableStateOf(1) }
+    var insert by remember { mutableStateOf(false) }
+    var insertPreview by remember { mutableStateOf<AddReadingsDto?>(null) }
     var preview by remember { mutableStateOf<AddReadingsDto?>(null) }
     var working by remember { mutableStateOf(false) }
 
-    // A plan that ends when its readings are done always pushes back.
-    val pushOnly = if (toFamily) familyEndsWhenDone else mineEndsWhenDone
-    fun changed() { preview = null }
-    fun request(save: Boolean) = AddReadingsRequest(
+    fun request(mode: String, save: Boolean) = AddReadingsRequest(
         scope = if (toFamily) "family" else "mine",
         readings = items.map { it.label },
         startISO = startISO,
-        mode = if (pushOnly) "push" else listOf("push", "add", "mix")[mode],
-        ownDays = ownDays,
+        mode = mode,
         preview = !save,
     )
+    fun refreshInsert() {
+        insertPreview = null
+        if (items.isEmpty()) return
+        scope.launch { insertPreview = vm.addReadings(request(mode = "push", save = false)) }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        ScopeSwitch(isAdmin = isAdmin, hasMine = hasMine, toFamily = toFamily) { toFamily = it; changed() }
-        Segmented(options = listOf("Pick chapters", "Type passages"), selected = tab) { tab = it }
+        StepHeader(step)
 
-        if (tab == 0) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BIBLE_BOOKS.forEach { b ->
-                    val on = b.name == book
-                    Text(
-                        b.name,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (on) Color.White else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { book = b.name }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
+        when (step) {
+            0 -> {
+                if (isAdmin && hasMine) {
+                    Segmented(options = listOf("Family plan", "My plan"), selected = if (toFamily) 0 else 1) { toFamily = it == 0 }
+                }
+                Segmented(options = listOf("Pick chapters", "Type passages"), selected = tab) { tab = it }
+                if (tab == 0) {
+                    // Breadcrumb: tap a level to go back to it.
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Books", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clickable { testament = null; group = null; book = null })
+                        testament?.let { t ->
+                            Text("\u203a ${if (t == Testament.OT) "Old Testament" else "New Testament"}", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { group = null; book = null })
+                        }
+                        group?.let { g ->
+                            Text("\u203a ${sectionLabel(g)}", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { book = null })
+                        }
+                        book?.let { Text("\u203a $it", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) }
+                    }
+                    when {
+                        testament == null -> Column {
+                            Testament.entries.forEach { t ->
+                                ListRow(
+                                    title = if (t == Testament.OT) "Old Testament" else "New Testament",
+                                    sub = "${BIBLE_BOOKS.count { it.testament == t }} books",
+                                ) { testament = t }
+                            }
+                        }
+                        group == null -> Column {
+                            BIBLE_GROUPS.filter { g -> BIBLE_BOOKS.firstOrNull { it.group == g }?.testament == testament }.forEach { g ->
+                                val inGroup = BIBLE_BOOKS.filter { it.group == g }
+                                ListRow(
+                                    title = sectionLabel(g),
+                                    sub = if (inGroup.size > 1) "${inGroup.first().name} \u2013 ${inGroup.last().name}" else null,
+                                ) { group = g }
+                            }
+                        }
+                        book == null -> Column {
+                            BIBLE_BOOKS.filter { it.group == group }.forEach { b -> ListRow(title = b.name) { book = b.name } }
+                        }
+                        else -> {
+                            val name = book!!
+                            val chapters = BIBLE_BOOKS.firstOrNull { it.name == name }?.chapters ?: 0
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                for (c in 1..chapters) {
+                                    val picked = items.any { it.refs.any { r -> r.first == name && r.second == c } }
+                                    Box(
+                                        Modifier
+                                            .size(width = 44.dp, height = 40.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (picked) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                            .border(1.dp, if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                                            .combinedClickable(
+                                                onClick = { items.add(ReadingItem(id = nextId++, refs = listOf(name to c))) },
+                                                onLongClick = {
+                                                    val last = items.lastOrNull()
+                                                    if (last != null && last.text == null) {
+                                                        items[items.size - 1] = last.copy(refs = last.refs + (name to c))
+                                                    } else {
+                                                        items.add(ReadingItem(id = nextId++, refs = listOf(name to c)))
+                                                    }
+                                                },
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) { Text("$c", color = if (picked) Color.White else MaterialTheme.colorScheme.onSurface) }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = typed,
+                        onValueChange = { typed = it },
+                        label = { Text("Passages, one per day") },
+                        minLines = 3,
+                        modifier = Modifier.fillMaxWidth(),
                     )
+                    OutlinedButton(onClick = {
+                        typed.lines().map { it.trim() }.filter { it.isNotEmpty() }.forEach {
+                            items.add(ReadingItem(id = nextId++, text = it))
+                        }
+                        typed = ""
+                    }) { Text("Add to the list") }
                 }
-            }
-            val chapters = BIBLE_BOOKS.firstOrNull { it.name == book }?.chapters ?: 0
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (c in 1..chapters) {
-                    Box(
-                        Modifier
-                            .size(width = 44.dp, height = 40.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                            .combinedClickable(
-                                onClick = {
-                                    items.add(ReadingItem(id = nextId++, refs = listOf(book to c)))
-                                    changed()
-                                },
-                                onLongClick = {
-                                    val last = items.lastOrNull()
-                                    if (last != null && last.text == null) {
-                                        items[items.size - 1] = last.copy(refs = last.refs + (book to c))
-                                    } else {
-                                        items.add(ReadingItem(id = nextId++, refs = listOf(book to c)))
-                                    }
-                                    changed()
-                                },
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) { Text("$c", style = MaterialTheme.typography.bodyMedium) }
-                }
-            }
-        } else {
-            OutlinedTextField(
-                value = typed,
-                onValueChange = { typed = it },
-                label = { Text("Passages, one per day") },
-                minLines = 3,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedButton(onClick = {
-                typed.lines().map { it.trim() }.filter { it.isNotEmpty() }.forEach {
-                    items.add(ReadingItem(id = nextId++, text = it))
-                }
-                typed = ""
-                changed()
-            }) { Text("Add to the list") }
-        }
 
-        if (items.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items.forEach { item ->
-                    Row(
-                        Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(item.label, style = MaterialTheme.typography.bodyMedium)
+                Text("READINGS TO ADD", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                if (items.isEmpty()) {
+                    Text("Nothing yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                items.forEachIndexed { i, item ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Day ${i + 1} \u00b7 ${item.label}", modifier = Modifier.weight(1f))
                         Box(
-                            Modifier.size(28.dp).clip(CircleShape).clickable { items.remove(item); changed() },
+                            Modifier.size(32.dp).clip(CircleShape).clickable { items.remove(item) },
                             contentAlignment = Alignment.Center,
                         ) { Icon(KairosIcons.Close, contentDescription = "Remove ${item.label}", modifier = Modifier.size(14.dp)) }
                     }
                 }
+                Text(
+                    "Each chapter is a day. Long-press to add it to the day before.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        }
-
-        DateField("Starting", startISO) { startISO = it; changed() }
-        if (!pushOnly) {
-            Segmented(options = listOf("Push back", "Add to days", "Some of each"), selected = mode) { mode = it; changed() }
-        }
-        if (!pushOnly && mode == 2 && items.isNotEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Move the end by", modifier = Modifier.weight(1f))
-                OutlinedButton(onClick = { ownDays = (ownDays - 1).coerceAtLeast(0); changed() }) { Text("−") }
-                Text("$ownDays", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                OutlinedButton(onClick = { ownDays = (ownDays + 1).coerceAtMost(items.size); changed() }) { Text("+") }
+            1 -> {
+                DateField("Starting", startISO) { startISO = it; refreshInsert() }
+                Text("${items.size} ${if (items.size == 1) "reading" else "readings"} \u00b7 starting ${formatShortISO(startISO)}")
+                ChoiceCard(
+                    title = "Additional readings",
+                    lines = listOf(
+                        "Additional passages on the same days as your current reading plan.",
+                        "End date of the overall plan does not change.",
+                    ),
+                    selected = !insert,
+                ) { insert = false }
+                val p = insertPreview
+                ChoiceCard(
+                    title = "Insert into the plan",
+                    lines = listOf(
+                        "Shifts the end date of the plan.",
+                        "Readings after ${formatShortISO(startISO)} move ${items.size} ${if (items.size == 1) "day" else "days"} later.",
+                        if (p?.endISO != null && p.oldEndISO != null) "Plan will end ${formatShortISO(p.endISO)} instead of ${formatShortISO(p.oldEndISO)}." else "",
+                    ),
+                    selected = insert,
+                ) { insert = true }
             }
-        }
-
-        preview?.let { p ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Preview", fontWeight = FontWeight.SemiBold)
-                p.endISO?.let { end ->
-                    val was = p.oldEndISO?.takeIf { it != end }?.let { " (was ${formatShortISO(it)})" } ?: ""
-                    Text("Ends ${formatShortISO(end)}$was", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Column {
-                p.rows.forEach { d ->
-                    val isNew = d.tag == "new" || d.tag == "added"
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Text(formatShortISO(d.iso), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp))
-                        Text(d.passage, fontWeight = if (isNew) FontWeight.SemiBold else FontWeight.Normal, modifier = Modifier.weight(1f))
-                        Text(
-                            when {
-                                d.tag == "new" -> "new"
-                                d.tag == "added" -> "added"
-                                d.fromISO != null -> "was ${formatShortISO(d.fromISO)}"
-                                else -> ""
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+            else -> {
+                val p = preview
+                if (p == null) {
+                    Text("Working\u2026", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(
+                        if (insert) "Inserted \u00b7 plan ends ${p.endISO?.let { formatShortISO(it) } ?: ""}"
+                        else "Additional readings \u00b7 plan still ends ${p.oldEndISO?.let { formatShortISO(it) } ?: ""}",
+                    )
+                    p.rows.take(30).forEach { d ->
+                        val isNew = d.tag == "new" || d.tag == "added"
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(formatShortISO(d.iso), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp))
+                            Text(
+                                d.passage,
+                                fontWeight = if (isNew) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+                            d.fromISO?.let {
+                                Text("was ${formatShortISO(it)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
@@ -313,25 +395,31 @@ fun AddReadingsPage(
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(
-                onClick = {
-                    working = true
-                    scope.launch { preview = vm.addReadings(request(save = false)); working = false }
-                },
-                enabled = items.isNotEmpty() && !working,
+                onClick = { if (step == 0) onDone() else step -= 1 },
                 modifier = Modifier.weight(1f),
-            ) { Text("Preview") }
+            ) { Text(if (step == 0) "Cancel" else "Back") }
             Button(
                 onClick = {
-                    working = true
-                    scope.launch {
-                        val res = vm.addReadings(request(save = true))
-                        working = false
-                        if (res != null) onDone()
+                    when (step) {
+                        0 -> { step = 1; refreshInsert() }
+                        1 -> {
+                            step = 2
+                            preview = null
+                            scope.launch { preview = vm.addReadings(request(mode = if (insert) "push" else "add", save = false)) }
+                        }
+                        else -> {
+                            working = true
+                            scope.launch {
+                                val res = vm.addReadings(request(mode = if (insert) "push" else "add", save = true))
+                                working = false
+                                if (res != null) onDone()
+                            }
+                        }
                     }
                 },
-                enabled = preview != null && !working,
+                enabled = items.isNotEmpty() && !working && (step < 2 || preview != null),
                 modifier = Modifier.weight(1f),
-            ) { Text("Add ${items.size} ${if (items.size == 1) "reading" else "readings"}") }
+            ) { Text(if (step < 2) "Next" else "Add ${items.size} ${if (items.size == 1) "reading" else "readings"}") }
         }
     }
 }
@@ -343,10 +431,9 @@ private val WEEKDAY_LETTERS = listOf("S", "M", "T", "W", "T", "F", "S")
  *  passages alone are laid out from a start date on the chosen weekdays. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ImportPlanPage(vm: BibleViewModel, isAdmin: Boolean, today: String, startFamily: Boolean, onDone: () -> Unit) {
+fun ImportPlanPage(vm: BibleViewModel, today: String, onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var toFamily by remember { mutableStateOf(startFamily && isAdmin) }
     var text by remember { mutableStateOf("") }
     var startISO by remember { mutableStateOf(today) }
     val weekdays = remember { mutableStateListOf(0, 1, 2, 3, 4, 5, 6) }
@@ -363,7 +450,7 @@ fun ImportPlanPage(vm: BibleViewModel, isAdmin: Boolean, today: String, startFam
     }
 
     fun request(save: Boolean) = ImportPlanRequest(
-        scope = if (toFamily) "family" else "mine",
+        scope = "mine",
         text = text,
         startISO = if (dated) null else startISO,
         weekdays = if (dated) null else weekdays.sorted(),
@@ -371,9 +458,6 @@ fun ImportPlanPage(vm: BibleViewModel, isAdmin: Boolean, today: String, startFam
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        if (isAdmin) {
-            Segmented(options = listOf("Family plan", "My plan"), selected = if (toFamily) 0 else 1) { toFamily = it == 0; preview = null }
-        }
         OutlinedTextField(
             value = text,
             onValueChange = { text = it; preview = null },
@@ -448,5 +532,45 @@ fun ImportPlanPage(vm: BibleViewModel, isAdmin: Boolean, today: String, startFam
             ) { Text("Import") }
         }
         Box(Modifier.height(4.dp))
+    }
+}
+
+/**
+ * Start over: keep the plan (progress back to 0%), or — for a personal plan —
+ * end it and start a new one. Either way finished books and milestones stay.
+ */
+@Composable
+fun StartOverPage(allowNewPlan: Boolean, busy: Boolean, onCancel: () -> Unit, onConfirm: (endPlan: Boolean) -> Unit) {
+    var endPlan by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("How do you want to start over?")
+        ChoiceCard(
+            title = "Keep my current plan",
+            lines = listOf("Progress bars go back to 0%.", "Your plan resets starting with today\u2019s reading."),
+            selected = !endPlan,
+        ) { endPlan = false }
+        if (allowNewPlan) {
+            ChoiceCard(
+                title = "End this plan and start a new one",
+                lines = listOf("Your current plan ends today.", "Progress resets to zero, and the plan builder will open to create a new plan."),
+                selected = endPlan,
+            ) { endPlan = true }
+        }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text("EITHER WAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+            Text("Books you\u2019ve already finished stay counted. If you\u2019ve read Romans twice, it still shows \u00d72.", style = MaterialTheme.typography.bodySmall)
+            Text("Your milestones stay, and \u201cStarted over\u201d is added.", style = MaterialTheme.typography.bodySmall)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            Button(onClick = { onConfirm(endPlan) }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Start over") }
+        }
     }
 }

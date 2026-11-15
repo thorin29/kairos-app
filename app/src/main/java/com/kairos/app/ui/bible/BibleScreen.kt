@@ -113,7 +113,6 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val snackbar = remember { SnackbarHostState() }
     var personalSub by remember { mutableStateOf<PersonalSub?>(null) }
     var confirmReset by remember { mutableStateOf(false) }
-    var confirmStartOver by remember { mutableStateOf<Boolean?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var exportText by remember { mutableStateOf<String?>(null) }
@@ -135,11 +134,11 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
             }
         }
     }
-    val menu = PlanMenuActions(
+    val actions = PlanActions(
         add = { mine -> personalSub = if (mine) PersonalSub.ADD_MINE else PersonalSub.ADD_FAMILY },
-        importPlan = { mine -> personalSub = if (mine) PersonalSub.IMPORT_MINE else PersonalSub.IMPORT_FAMILY },
-        export = { mine -> export(mine) },
-        startOver = { mine -> confirmStartOver = mine },
+        importExport = { personalSub = PersonalSub.IMPORT_MINE },
+        startOver = { mine -> personalSub = if (mine) PersonalSub.START_OVER_MINE else PersonalSub.START_OVER_FAMILY },
+        books = { mine -> personalSub = if (mine) PersonalSub.BOOKS_MINE else PersonalSub.BOOKS_FAMILY },
     )
 
     LaunchedEffect(ui.savedTick) {
@@ -184,13 +183,13 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                             ProgressTabs(ui.tab, onSelect = vm::setTab)
                         }
                         if (personal == null || ui.tab == BibleTab.FAMILY) {
-                            FamilyContent(data = data, tracker = ui.familyTracker, isAdmin = ui.isAdmin, menu = menu)
+                            FamilyContent(data = data, tracker = ui.familyTracker, isAdmin = ui.isAdmin, actions = actions)
                         } else {
                             PersonalContent(
                                 vm, ui,
                                 onCreateEdit = { personalSub = PersonalSub.PLAN },
                                 onLog = { personalSub = PersonalSub.LOG },
-                                menu = menu,
+                                actions = actions,
                             )
                         }
                     }
@@ -207,6 +206,9 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
         PersonalSub.PLAN -> if (personal != null) PersonalSubPage("Reading plan", onBack = { personalSub = null }) {
             PlanWizard(vm, personal.plan, today, ui.busy, onDone = { personalSub = null })
         }
+        PersonalSub.NEW_PLAN -> if (personal != null) PersonalSubPage("New plan", onBack = { personalSub = null }) {
+            PlanWizard(vm, null, today, ui.busy, onDone = { personalSub = null })
+        }
         PersonalSub.LOG -> if (personal != null) PersonalSubPage("Log reading", onBack = { personalSub = null }) {
             ui.myTracker?.let { t ->
                 ManualRunRow(manual = t.manual, busy = ui.busy, onReset = { confirmReset = true })
@@ -221,30 +223,35 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
                 hasMine = hasMine,
                 today = today,
                 startFamily = personalSub == PersonalSub.ADD_FAMILY,
-                familyEndsWhenDone = ui.data?.family?.endsWhenDone == true,
-                mineEndsWhenDone = personal?.plan?.endKind == "DONE",
                 onDone = { personalSub = null },
             )
         }
-        PersonalSub.IMPORT_FAMILY, PersonalSub.IMPORT_MINE -> PersonalSubPage("Import a plan", onBack = { personalSub = null }) {
-            ImportPlanPage(
-                vm = vm,
-                isAdmin = ui.isAdmin,
-                today = today,
-                startFamily = personalSub == PersonalSub.IMPORT_FAMILY,
-                onDone = { personalSub = null },
-            )
+        PersonalSub.IMPORT_MINE -> PersonalSubPage("Import / export", onBack = { personalSub = null }) {
+            if (hasMine) {
+                OutlinedButton(onClick = { export(true) }, modifier = Modifier.fillMaxWidth()) { Text("Export this plan") }
+                Spacer(Modifier.height(16.dp))
+            }
+            ImportPlanPage(vm = vm, today = today, onDone = { personalSub = null })
+        }
+        PersonalSub.BOOKS_FAMILY, PersonalSub.BOOKS_MINE -> {
+            val t = if (personalSub == PersonalSub.BOOKS_MINE) ui.myTracker else ui.familyTracker
+            if (t != null) BooksPage(tracker = t, onBack = { personalSub = null })
+        }
+        PersonalSub.START_OVER_FAMILY, PersonalSub.START_OVER_MINE -> {
+            val mine = personalSub == PersonalSub.START_OVER_MINE
+            PersonalSubPage("Start over", onBack = { personalSub = null }) {
+                StartOverPage(
+                    allowNewPlan = mine && hasMine,
+                    busy = ui.busy,
+                    onCancel = { personalSub = null },
+                    onConfirm = { endPlan ->
+                        vm.startOver(mine = mine, endPlan = endPlan)
+                        personalSub = if (endPlan) PersonalSub.NEW_PLAN else null
+                    },
+                )
+            }
         }
         null -> {}
-    }
-
-    confirmStartOver?.let { mine ->
-        com.kairos.app.ui.common.AnimatedDialog(
-            onDismissRequest = { confirmStartOver = null },
-            title = "Start over?",
-            confirmButton = { TextButton(onClick = { vm.startOver(mine); confirmStartOver = null }) { Text("Start over") } },
-            dismissButton = { TextButton(onClick = { confirmStartOver = null }) { Text("Cancel") } },
-        ) { Text("Every bar goes back to 0%. Times read and milestones are kept.") }
     }
 
     if (confirmReset) {
@@ -258,36 +265,17 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     }
 }
 
-private enum class PersonalSub { PLAN, LOG, ADD_FAMILY, ADD_MINE, IMPORT_FAMILY, IMPORT_MINE }
-
-/** The plan ⋮ menu's actions; `mine` picks the personal plan over the family's. */
-private class PlanMenuActions constructor(
-    val add: (Boolean) -> Unit,
-    val importPlan: (Boolean) -> Unit,
-    val export: (Boolean) -> Unit,
-    val startOver: (Boolean) -> Unit,
-)
-
-@Composable
-private fun PlanMenu(mine: Boolean, hasPlan: Boolean, menu: PlanMenuActions) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }) { Icon(KairosIcons.More, contentDescription = "Plan options") }
-        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            if (hasPlan) {
-                androidx.compose.material3.DropdownMenuItem(text = { Text("Add readings") }, onClick = { open = false; menu.add(mine) })
-            }
-            androidx.compose.material3.DropdownMenuItem(text = { Text("Import a plan") }, onClick = { open = false; menu.importPlan(mine) })
-            if (hasPlan) {
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { Text(if (mine) "Export this plan" else "Export the plan") },
-                    onClick = { open = false; menu.export(mine) },
-                )
-            }
-            androidx.compose.material3.DropdownMenuItem(text = { Text("Start over") }, onClick = { open = false; menu.startOver(mine) })
-        }
-    }
+private enum class PersonalSub {
+    PLAN, NEW_PLAN, LOG, ADD_FAMILY, ADD_MINE, IMPORT_MINE, BOOKS_FAMILY, BOOKS_MINE, START_OVER_FAMILY, START_OVER_MINE,
 }
+
+/** What the Bible views' buttons open; `mine` picks the personal plan over the family's. */
+private class PlanActions constructor(
+    val add: (Boolean) -> Unit,
+    val importExport: () -> Unit,
+    val startOver: (Boolean) -> Unit,
+    val books: (Boolean) -> Unit,
+)
 
 /** A full-screen page (back bar + a white card holding the content) for the
  *  personal reading plan editor and the reading log. */
@@ -352,7 +340,7 @@ private fun FamilyContent(
     data: com.kairos.app.data.remote.dto.ReadingDto,
     tracker: com.kairos.app.data.remote.dto.TrackerDto?,
     isAdmin: Boolean,
-    menu: PlanMenuActions,
+    actions: PlanActions,
 ) {
     val family = data.family
     if (family.havePlan && family.cards.isNotEmpty()) {
@@ -366,14 +354,16 @@ private fun FamilyContent(
         }
     }
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.weight(1f)) {
-            SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, KairosThemeState.accent)
+    SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, KairosThemeState.accent)
+    // Import / export and new family plans are on the web.
+    if (isAdmin && family.havePlan) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = { actions.add(false) }, modifier = Modifier.weight(1f)) { Text("Add readings") }
+            OutlinedButton(onClick = { actions.startOver(false) }, modifier = Modifier.weight(1f)) { Text("Start over") }
         }
-        if (isAdmin) PlanMenu(mine = false, hasPlan = family.havePlan, menu = menu)
     }
     if (tracker != null) {
-        TrackerSection(tracker)
+        TrackerSection(tracker = tracker, onOpenBooks = { actions.books(false) })
     } else {
         CoverageCards(family.stats, KairosThemeState.accent)
         GroupsCard(family.stats.groups, KairosThemeState.accent)
@@ -469,7 +459,7 @@ private fun PersonalContent(
     ui: BibleUiState,
     onCreateEdit: () -> Unit,
     onLog: () -> Unit,
-    menu: PlanMenuActions,
+    actions: PlanActions,
 ) {
     val data = ui.data ?: return
     val personal = data.personal ?: return
@@ -486,20 +476,26 @@ private fun PersonalContent(
         }
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
-            Text(if (personal.plan != null) "Edit plan" else "Create plan")
-        }
-        OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) {
-            Text("Log")
-        }
-        PlanMenu(mine = true, hasPlan = personal.plan != null, menu = menu)
-    }
-
     SectionRow("Your reading", if (personal.stats.wholeBible) "Whole Bible read" else null, color)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
+                Text(if (personal.plan != null) "Edit plan" else "Create plan")
+            }
+            OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) { Text("Log") }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = { actions.add(true) },
+                enabled = personal.plan != null,
+                modifier = Modifier.weight(1f),
+            ) { Text("Add readings") }
+            OutlinedButton(onClick = actions.importExport, modifier = Modifier.weight(1f)) { Text("Import / export") }
+        }
+    }
     val tracker = ui.myTracker
     if (tracker != null) {
-        TrackerSection(tracker)
+        TrackerSection(tracker = tracker, onOpenBooks = { actions.books(true) }, onStartOver = { actions.startOver(true) })
     } else {
         CoverageCards(personal.stats, color)
         GroupsCard(personal.stats.groups, color)
