@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Start over in Edit plan (v0.526.0, server 0.730.0)
+
+- Start over left the Bible pages: personal is a text button at the bottom of
+  `PlanOverview` (Edit plan); family is web-only. The Bible buttons use
+  `outlinedButtonColors(containerColor = Color.White)`. The Start over page's
+  box is "NOTE" with bullets.
+
+
 ## 2026-11 — Bible round 3 in the app (v0.525.0, server 0.729.0)
 
 - The ⋮ PlanMenu is gone (its style didn't fit). Family (admins): Add readings

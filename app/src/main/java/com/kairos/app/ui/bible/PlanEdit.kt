@@ -564,9 +564,9 @@ fun StartOverPage(allowNewPlan: Boolean, busy: Boolean, onCancel: () -> Unit, on
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text("EITHER WAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
-            Text("Books you\u2019ve already finished stay counted. If you\u2019ve read Romans twice, it still shows \u00d72.", style = MaterialTheme.typography.bodySmall)
-            Text("Your milestones stay, and \u201cStarted over\u201d is added.", style = MaterialTheme.typography.bodySmall)
+            Text("NOTE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+            Text("\u2022  Books you\u2019ve already finished stay counted. If you\u2019ve read Romans twice, it still shows \u00d72.", style = MaterialTheme.typography.bodySmall)
+            Text("\u2022  Your milestones stay, and \u201cStarted over\u201d is added.", style = MaterialTheme.typography.bodySmall)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }

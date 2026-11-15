@@ -204,7 +204,11 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val hasMine = personal?.plan != null
     when (personalSub) {
         PersonalSub.PLAN -> if (personal != null) PersonalSubPage("Reading plan", onBack = { personalSub = null }) {
-            PlanWizard(vm, personal.plan, today, ui.busy, onDone = { personalSub = null })
+            PlanWizard(
+                vm, personal.plan, today, ui.busy,
+                onDone = { personalSub = null },
+                onStartOver = { personalSub = PersonalSub.START_OVER_MINE },
+            )
         }
         PersonalSub.NEW_PLAN -> if (personal != null) PersonalSubPage("New plan", onBack = { personalSub = null }) {
             PlanWizard(vm, null, today, ui.busy, onDone = { personalSub = null })
@@ -268,6 +272,10 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
 private enum class PersonalSub {
     PLAN, NEW_PLAN, LOG, ADD_FAMILY, ADD_MINE, IMPORT_MINE, BOOKS_FAMILY, BOOKS_MINE, START_OVER_FAMILY, START_OVER_MINE,
 }
+
+/** Outlined buttons on a white surface, so they stand out from the page. */
+@Composable
+private fun whiteButton() = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
 
 /** What the Bible views' buttons open; `mine` picks the personal plan over the family's. */
 private class PlanActions constructor(
@@ -357,9 +365,8 @@ private fun FamilyContent(
     SectionRow("Family reading", if (family.stats.wholeBible) "Whole Bible read" else null, KairosThemeState.accent)
     // Import / export and new family plans are on the web.
     if (isAdmin && family.havePlan) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = { actions.add(false) }, modifier = Modifier.weight(1f)) { Text("Add readings") }
-            OutlinedButton(onClick = { actions.startOver(false) }, modifier = Modifier.weight(1f)) { Text("Start over") }
+        OutlinedButton(onClick = { actions.add(false) }, colors = whiteButton(), modifier = Modifier.fillMaxWidth()) {
+            Text("Add readings")
         }
     }
     if (tracker != null) {
@@ -479,23 +486,26 @@ private fun PersonalContent(
     SectionRow("Your reading", if (personal.stats.wholeBible) "Whole Bible read" else null, color)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onCreateEdit, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = onCreateEdit, colors = whiteButton(), modifier = Modifier.weight(1f)) {
                 Text(if (personal.plan != null) "Edit plan" else "Create plan")
             }
-            OutlinedButton(onClick = onLog, modifier = Modifier.weight(1f)) { Text("Log") }
+            OutlinedButton(onClick = onLog, colors = whiteButton(), modifier = Modifier.weight(1f)) { Text("Log") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(
                 onClick = { actions.add(true) },
                 enabled = personal.plan != null,
+                colors = whiteButton(),
                 modifier = Modifier.weight(1f),
             ) { Text("Add readings") }
-            OutlinedButton(onClick = actions.importExport, modifier = Modifier.weight(1f)) { Text("Import / export") }
+            OutlinedButton(onClick = actions.importExport, colors = whiteButton(), modifier = Modifier.weight(1f)) {
+                Text("Import / export")
+            }
         }
     }
     val tracker = ui.myTracker
     if (tracker != null) {
-        TrackerSection(tracker = tracker, onOpenBooks = { actions.books(true) }, onStartOver = { actions.startOver(true) })
+        TrackerSection(tracker = tracker, onOpenBooks = { actions.books(true) })
     } else {
         CoverageCards(personal.stats, color)
         GroupsCard(personal.stats.groups, color)

@@ -76,11 +76,13 @@ fun PlanWizard(
     today: String,
     busy: Boolean,
     onDone: () -> Unit,
+    /** Opens Start over — kept here, at the bottom of the plan, as a last resort. */
+    onStartOver: (() -> Unit)? = null,
 ) {
     var editing by remember { mutableStateOf(existingPlan == null) }
 
     if (existingPlan != null && !editing) {
-        PlanOverview(vm, existingPlan, busy, onEdit = { editing = true }, onDeleted = onDone)
+        PlanOverview(vm, existingPlan, busy, onEdit = { editing = true }, onDeleted = onDone, onStartOver = onStartOver)
         return
     }
 
@@ -133,6 +135,7 @@ private fun PlanOverview(
     busy: Boolean,
     onEdit: () -> Unit,
     onDeleted: () -> Unit,
+    onStartOver: (() -> Unit)?,
 ) {
     var confirm by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -146,6 +149,18 @@ private fun PlanOverview(
             Button(onClick = onEdit, modifier = Modifier.weight(1f)) { Text("Edit plan") }
             OutlinedButton(onClick = { confirm = true }, enabled = !busy, modifier = Modifier.weight(1f)) {
                 Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        if (onStartOver != null) {
+            androidx.compose.material3.HorizontalDivider(Modifier.padding(top = 8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Reset progress, or end this plan and start a new one.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onStartOver) { Text("Start over") }
             }
         }
     }

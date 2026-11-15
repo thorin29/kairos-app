@@ -1,4 +1,8 @@
 # Changelog
+## 0.526.0
+
+- Bible: Start over moved to the bottom of Edit plan; the family's is on the web. Buttons are white.
+
 ## 0.525.0
 
 - Bible: buttons replace the ⋮ menu; an All books page; Add readings in three steps (additional readings or insert into the plan); Start over asks whether to keep the plan or start a new one. Family import / export moved to the web.
