@@ -1,4 +1,10 @@
 # Changelog
+## 0.522.0
+
+- Bible tracker replaces eras: times read per book, section, testament and the whole Bible, progress toward the next time, milestones and bests.
+- Log reading has Reset for your manual reading.
+- Add readings only offers Push back on a chapters-a-day plan.
+
 ## 0.521.0
 
 - Bible: reading eras with a section chart against an earlier era and a count of full passes, for the family and your own plan.

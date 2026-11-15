@@ -132,14 +132,14 @@ private fun PlanView(
                             if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
                             else androidx.compose.ui.graphics.Color.Transparent,
                         )
-                        .clickable(enabled = !busy) { vm.markDay(d.passage, !d.read) }
+                        .clickable(enabled = !busy) { vm.markDay(d.passage, !d.read, d.iso) }
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Checkbox(
                         checked = d.read,
-                        onCheckedChange = { checked -> vm.markDay(d.passage, checked) },
+                        onCheckedChange = { checked -> vm.markDay(d.passage, checked, d.iso) },
                         enabled = !busy,
                     )
                     Column(Modifier.weight(1f)) {

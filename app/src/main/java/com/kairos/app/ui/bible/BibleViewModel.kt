@@ -29,9 +29,9 @@ data class BibleUiState(
     val actionError: String? = null,
     /** Bumps after each successful write, so a snackbar can react. */
     val savedTick: Int = 0,
-    val familyEras: com.kairos.app.data.remote.dto.ErasDto? = null,
-    val myEras: com.kairos.app.data.remote.dto.ErasDto? = null,
-    /** A parent can change the family plan and start a family era. */
+    val familyTracker: com.kairos.app.data.remote.dto.TrackerDto? = null,
+    val myTracker: com.kairos.app.data.remote.dto.TrackerDto? = null,
+    /** A parent can change the family plan. */
     val isAdmin: Boolean = false,
 )
 
@@ -67,7 +67,7 @@ class BibleViewModel(
                 val data = freshData()
                 _ui.update { it.copy(loading = false, data = data, isAdmin = session.currentPersonIsAdmin()) }
                 com.kairos.app.ui.common.ScreenSnapshots.bible = data
-                loadEras(data.personal != null)
+                loadTrackers(data.personal != null)
             } catch (e: ApiException) {
                 _ui.update {
                     if (it.data == null) it.copy(loading = false, loadError = e.error.message)
@@ -90,25 +90,23 @@ class BibleViewModel(
 
     fun setTab(tab: BibleTab) = _ui.update { it.copy(tab = tab) }
 
-    // ---- Eras, adding readings, import / export (v0.521). Online only. ----
+    // ---- Tracker, adding readings, import / export (v0.521+). Online only. ----
 
-    private suspend fun loadEras(withMine: Boolean) {
-        runCatching { session.loadReadingEras("family") }.getOrNull()?.let { e -> _ui.update { it.copy(familyEras = e) } }
+    private suspend fun loadTrackers(withMine: Boolean) {
+        runCatching { session.loadReadingTracker("family") }.getOrNull()?.let { t -> _ui.update { it.copy(familyTracker = t) } }
         if (withMine) {
-            runCatching { session.loadReadingEras("mine") }.getOrNull()?.let { e -> _ui.update { it.copy(myEras = e) } }
+            runCatching { session.loadReadingTracker("mine") }.getOrNull()?.let { t -> _ui.update { it.copy(myTracker = t) } }
         }
     }
 
-    fun startEra(mine: Boolean) {
+    /** End this person's manual reading: marks stay counted, the checklist clears. */
+    fun resetManual() {
         if (_ui.value.busy) return
         _ui.update { it.copy(busy = true, actionError = null) }
         viewModelScope.launch {
             try {
-                val e = session.startReadingEra(if (mine) "mine" else "family")
-                _ui.update {
-                    if (mine) it.copy(busy = false, myEras = e, savedTick = it.savedTick + 1)
-                    else it.copy(busy = false, familyEras = e, savedTick = it.savedTick + 1)
-                }
+                val t = session.resetManualReading("mine")
+                _ui.update { it.copy(busy = false, myTracker = t, savedTick = it.savedTick + 1) }
                 load()
             } catch (e: ApiException) {
                 _ui.update { it.copy(busy = false, actionError = e.error.message) }
@@ -197,8 +195,8 @@ class BibleViewModel(
         }
 
     fun deletePlan() = optimistic({ clearPlan(it) }) { session.deleteReadingPlan() }
-    fun markDay(passage: String, read: Boolean) =
-        optimistic({ toggleDay(it, passage, read) }) { session.markReading(passage, read) }
+    fun markDay(passage: String, read: Boolean, iso: String? = null) =
+        optimistic({ toggleDay(it, passage, read) }) { session.markReading(passage, read, iso) }
     fun saveBook(bookName: String, chapters: List<Int>) =
         optimistic({ setBookChapters(it, bookName, chapters) }) { session.saveReadingBook(bookName, chapters) }
     fun bulkBooks(bookNames: List<String>, read: Boolean) =

@@ -524,13 +524,13 @@ interface ApiService {
     @POST("reading/plan/delete")
     suspend fun deleteReadingPlan(): Response<TaskStatusDto>
 
-    @GET("reading/eras")
-    suspend fun readingEras(@Query("scope") scope: String): Response<com.kairos.app.data.remote.dto.ErasDto>
+    @GET("reading/tracker")
+    suspend fun readingTracker(@Query("scope") scope: String): Response<com.kairos.app.data.remote.dto.TrackerDto>
 
-    @POST("reading/eras")
-    suspend fun startReadingEra(
-        @Body body: com.kairos.app.data.remote.dto.EraStartRequest,
-    ): Response<com.kairos.app.data.remote.dto.ErasDto>
+    @POST("reading/tracker")
+    suspend fun readingTrackerAction(
+        @Body body: com.kairos.app.data.remote.dto.TrackerActionRequest,
+    ): Response<com.kairos.app.data.remote.dto.TrackerDto>
 
     @POST("reading/plan/add")
     suspend fun addReadings(

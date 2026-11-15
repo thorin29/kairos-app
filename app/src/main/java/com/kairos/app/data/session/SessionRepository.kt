@@ -1242,11 +1242,15 @@ class SessionRepository(
         runAuthed { requireService().deleteReadingPlan() }
     }
 
-    suspend fun loadReadingEras(scope: String): com.kairos.app.data.remote.dto.ErasDto =
-        runAuthed { requireService().readingEras(scope = scope) }
+    suspend fun loadReadingTracker(scope: String): com.kairos.app.data.remote.dto.TrackerDto =
+        runAuthed { requireService().readingTracker(scope = scope) }
 
-    suspend fun startReadingEra(scope: String): com.kairos.app.data.remote.dto.ErasDto =
-        runAuthed { requireService().startReadingEra(com.kairos.app.data.remote.dto.EraStartRequest(scope = scope)) }
+    suspend fun resetManualReading(scope: String): com.kairos.app.data.remote.dto.TrackerDto =
+        runAuthed {
+            requireService().readingTrackerAction(
+                com.kairos.app.data.remote.dto.TrackerActionRequest(scope = scope, action = "reset"),
+            )
+        }
 
     suspend fun addReadings(
         body: com.kairos.app.data.remote.dto.AddReadingsRequest,
@@ -1261,10 +1265,10 @@ class SessionRepository(
     suspend fun exportReadingPlan(scope: String): com.kairos.app.data.remote.dto.ExportPlanDto =
         runAuthed { requireService().exportReadingPlan(scope = scope) }
 
-    suspend fun markReading(passage: String, read: Boolean) {
+    suspend fun markReading(passage: String, read: Boolean, iso: String? = null) {
         runAuthed {
             requireService().markReading(
-                com.kairos.app.data.remote.dto.MarkReadingRequest(passage, read),
+                com.kairos.app.data.remote.dto.MarkReadingRequest(passage = passage, read = read, iso = iso),
             )
         }
     }
@@ -1393,6 +1397,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 593
+        const val CLIENT_BUILD = 594
     }
 }

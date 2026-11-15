@@ -147,7 +147,16 @@ private fun ScopeSwitch(isAdmin: Boolean, hasMine: Boolean, toFamily: Boolean, o
  */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun AddReadingsPage(vm: BibleViewModel, isAdmin: Boolean, hasMine: Boolean, today: String, startFamily: Boolean, onDone: () -> Unit) {
+fun AddReadingsPage(
+    vm: BibleViewModel,
+    isAdmin: Boolean,
+    hasMine: Boolean,
+    today: String,
+    startFamily: Boolean,
+    familyEndsWhenDone: Boolean,
+    mineEndsWhenDone: Boolean,
+    onDone: () -> Unit,
+) {
     val scope = rememberCoroutineScope()
     var toFamily by remember { mutableStateOf(startFamily || !hasMine) }
     var tab by remember { mutableStateOf(0) }
@@ -161,12 +170,14 @@ fun AddReadingsPage(vm: BibleViewModel, isAdmin: Boolean, hasMine: Boolean, toda
     var preview by remember { mutableStateOf<AddReadingsDto?>(null) }
     var working by remember { mutableStateOf(false) }
 
+    // A plan that ends when its readings are done always pushes back.
+    val pushOnly = if (toFamily) familyEndsWhenDone else mineEndsWhenDone
     fun changed() { preview = null }
     fun request(save: Boolean) = AddReadingsRequest(
         scope = if (toFamily) "family" else "mine",
         readings = items.map { it.label },
         startISO = startISO,
-        mode = listOf("push", "add", "mix")[mode],
+        mode = if (pushOnly) "push" else listOf("push", "add", "mix")[mode],
         ownDays = ownDays,
         preview = !save,
     )
@@ -256,8 +267,10 @@ fun AddReadingsPage(vm: BibleViewModel, isAdmin: Boolean, hasMine: Boolean, toda
         }
 
         DateField("Starting", startISO) { startISO = it; changed() }
-        Segmented(options = listOf("Push back", "Add to days", "Some of each"), selected = mode) { mode = it; changed() }
-        if (mode == 2 && items.isNotEmpty()) {
+        if (!pushOnly) {
+            Segmented(options = listOf("Push back", "Add to days", "Some of each"), selected = mode) { mode = it; changed() }
+        }
+        if (!pushOnly && mode == 2 && items.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Move the end by", modifier = Modifier.weight(1f))
                 OutlinedButton(onClick = { ownDays = (ownDays - 1).coerceAtLeast(0); changed() }) { Text("−") }

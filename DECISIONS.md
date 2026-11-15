@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-11 — Bible tracker in the app (v0.522.0, server 0.724.0)
+
+- `BibleTracker.kt` `TrackerSection` mirrors the web tracker: Bible / OT / NT
+  cards with ×counts and progress, sections with ×pills, a book tile grid,
+  milestones with filter chips and bests. It replaces `ErasCard` (deleted) and
+  shows once `GET reading/tracker` loads; until then the old cards show.
+- Log reading: `ManualRunRow` with Reset (AnimatedDialog confirm) →
+  `POST reading/tracker {action:"reset"}`. "Start a new era" is gone from the
+  ⋮ menu. The tracker calls are never queued offline.
+- `MarkReadingRequest.iso` sends the day's date, so a day with an extra is
+  marked as that day.
+- Add readings hides the fit choices when the plan ends when its readings are
+  done (`family.endsWhenDone`, `plan.endKind == "DONE"`).
+
+
 ## 2026-11 — Bible eras, adding readings, import / export (v0.521.0, server 0.723.0)
 
 - `BibleEras.kt` `ErasCard` mirrors the web ReadingEras: this era's sections

@@ -2085,6 +2085,9 @@ data class ReadingFamilyDto(
     val remaining: Int = 0,
     val lastDayISO: String? = null,
     val stats: ReadingStatsDto = ReadingStatsDto(),
+    /** The current family plan ends when its readings are done (server 0.724):
+     *  added readings always push it back. */
+    val endsWhenDone: Boolean = false,
 )
 
 @Serializable
@@ -2099,6 +2102,8 @@ data class PersonalPlanDayDto(
 data class PersonalPlanDto(
     val id: String = "",
     val name: String = "",
+    /** "DONE": ends when its readings are done (server 0.724). */
+    val endKind: String = "DATE",
     val remaining: Int = 0,
     val days: List<PersonalPlanDayDto> = emptyList(),
 )
@@ -2150,34 +2155,53 @@ data class PlanPreviewDayDto(
 // ---- Reading eras, adding readings, import / export (v0.521) ----
 
 @Serializable
-data class SectionCountDto(
+data class TrackerLevelDto(
+    val key: String = "",
     val label: String = "",
-    val testament: String = "OT",
-    val read: Int = 0,
+    val kind: String = "",
+    val testament: String? = null,
+    val chapters: Int = 0,
+    val times: Int = 0,
+    val ahead: Int = 0,
+    val progress: Int = 0,
+    val sinceISO: String? = null,
+)
+
+@Serializable
+data class MilestoneDto(
+    val atISO: String? = null,
+    val kind: String = "",
+    val label: String = "",
+    val detail: String = "",
+    val days: Int? = null,
+)
+
+@Serializable
+data class BestDto(val label: String = "", val days: Int = 0)
+
+@Serializable
+data class ManualRunDto(
+    val open: Boolean = false,
+    val startedISO: String? = null,
+    val untimed: Boolean = false,
     val chapters: Int = 0,
 )
 
 @Serializable
-data class EraSummaryDto(
-    val id: String = "",
-    val label: String = "",
-    val startISO: String? = null,
-    val endISO: String? = null,
-    val read: Int = 0,
-    val percent: Int = 0,
-    val full: Boolean = false,
-    val sections: List<SectionCountDto> = emptyList(),
+data class TrackerDto(
+    val bible: TrackerLevelDto = TrackerLevelDto(),
+    val ot: TrackerLevelDto = TrackerLevelDto(),
+    val nt: TrackerLevelDto = TrackerLevelDto(),
+    val sections: List<TrackerLevelDto> = emptyList(),
+    val books: List<TrackerLevelDto> = emptyList(),
+    val milestones: List<MilestoneDto> = emptyList(),
+    val bests: List<BestDto> = emptyList(),
+    val plansCompleted: Int = 0,
+    val manual: ManualRunDto = ManualRunDto(),
 )
 
 @Serializable
-data class ErasDto(
-    val current: EraSummaryDto = EraSummaryDto(),
-    val past: List<EraSummaryDto> = emptyList(),
-    val passes: Int = 0,
-)
-
-@Serializable
-data class EraStartRequest(val scope: String)
+data class TrackerActionRequest(val scope: String, val action: String)
 
 @Serializable
 data class AddReadingsRequest(
@@ -2237,6 +2261,8 @@ data class ExportPlanDto(
 data class MarkReadingRequest(
     val passage: String,
     val read: Boolean,
+    /** The day's date (server 0.724), so the day itself is marked. */
+    val iso: String? = null,
 )
 
 @Serializable
