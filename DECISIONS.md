@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Start over (v0.523.0, server 0.726.0)
+
+- Plan ⋮ menu: Start over (family for admins, and mine), confirmed in an
+  AnimatedDialog → `POST reading/tracker {action:"startOver"}`. The bars come
+  from the server, so a started-again book needs nothing here.
+
+
 ## 2026-11 — Bible tracker in the app (v0.522.0, server 0.724.0)
 
 - `BibleTracker.kt` `TrackerSection` mirrors the web tracker: Bible / OT / NT

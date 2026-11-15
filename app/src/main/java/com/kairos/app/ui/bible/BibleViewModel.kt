@@ -99,6 +99,24 @@ class BibleViewModel(
         }
     }
 
+    /** "Start over": every bar back to 0% (the family's needs a parent). Times
+     *  read and milestones are kept. */
+    fun startOver(mine: Boolean) {
+        if (_ui.value.busy) return
+        _ui.update { it.copy(busy = true, actionError = null) }
+        viewModelScope.launch {
+            try {
+                val t = session.startOverReading(if (mine) "mine" else "family")
+                _ui.update {
+                    if (mine) it.copy(busy = false, myTracker = t, savedTick = it.savedTick + 1)
+                    else it.copy(busy = false, familyTracker = t, savedTick = it.savedTick + 1)
+                }
+            } catch (e: ApiException) {
+                _ui.update { it.copy(busy = false, actionError = e.error.message) }
+            }
+        }
+    }
+
     /** End this person's manual reading: marks stay counted, the checklist clears. */
     fun resetManual() {
         if (_ui.value.busy) return

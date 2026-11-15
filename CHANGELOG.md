@@ -1,4 +1,8 @@
 # Changelog
+## 0.523.0
+
+- Bible: Start over in the plan ⋮ menu sets every bar back to 0%; times read and milestones are kept.
+
 ## 0.522.0
 
 - Bible tracker replaces eras: times read per book, section, testament and the whole Bible, progress toward the next time, milestones and bests.

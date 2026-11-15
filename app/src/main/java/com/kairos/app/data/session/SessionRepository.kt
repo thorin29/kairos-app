@@ -1245,6 +1245,13 @@ class SessionRepository(
     suspend fun loadReadingTracker(scope: String): com.kairos.app.data.remote.dto.TrackerDto =
         runAuthed { requireService().readingTracker(scope = scope) }
 
+    suspend fun startOverReading(scope: String): com.kairos.app.data.remote.dto.TrackerDto =
+        runAuthed {
+            requireService().readingTrackerAction(
+                com.kairos.app.data.remote.dto.TrackerActionRequest(scope = scope, action = "startOver"),
+            )
+        }
+
     suspend fun resetManualReading(scope: String): com.kairos.app.data.remote.dto.TrackerDto =
         runAuthed {
             requireService().readingTrackerAction(
@@ -1397,6 +1404,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 594
+        const val CLIENT_BUILD = 595
     }
 }

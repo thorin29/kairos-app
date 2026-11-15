@@ -113,6 +113,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
     val snackbar = remember { SnackbarHostState() }
     var personalSub by remember { mutableStateOf<PersonalSub?>(null) }
     var confirmReset by remember { mutableStateOf(false) }
+    var confirmStartOver by remember { mutableStateOf<Boolean?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var exportText by remember { mutableStateOf<String?>(null) }
@@ -138,6 +139,7 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
         add = { mine -> personalSub = if (mine) PersonalSub.ADD_MINE else PersonalSub.ADD_FAMILY },
         importPlan = { mine -> personalSub = if (mine) PersonalSub.IMPORT_MINE else PersonalSub.IMPORT_FAMILY },
         export = { mine -> export(mine) },
+        startOver = { mine -> confirmStartOver = mine },
     )
 
     LaunchedEffect(ui.savedTick) {
@@ -236,6 +238,15 @@ fun BibleScreen(onOpenDrawer: () -> Unit, refreshKey: Int = 0) {
         null -> {}
     }
 
+    confirmStartOver?.let { mine ->
+        com.kairos.app.ui.common.AnimatedDialog(
+            onDismissRequest = { confirmStartOver = null },
+            title = "Start over?",
+            confirmButton = { TextButton(onClick = { vm.startOver(mine); confirmStartOver = null }) { Text("Start over") } },
+            dismissButton = { TextButton(onClick = { confirmStartOver = null }) { Text("Cancel") } },
+        ) { Text("Every bar goes back to 0%. Times read and milestones are kept.") }
+    }
+
     if (confirmReset) {
         val chapters = ui.myTracker?.manual?.chapters ?: 0
         com.kairos.app.ui.common.AnimatedDialog(
@@ -254,6 +265,7 @@ private class PlanMenuActions constructor(
     val add: (Boolean) -> Unit,
     val importPlan: (Boolean) -> Unit,
     val export: (Boolean) -> Unit,
+    val startOver: (Boolean) -> Unit,
 )
 
 @Composable
@@ -272,6 +284,7 @@ private fun PlanMenu(mine: Boolean, hasPlan: Boolean, menu: PlanMenuActions) {
                     onClick = { open = false; menu.export(mine) },
                 )
             }
+            androidx.compose.material3.DropdownMenuItem(text = { Text("Start over") }, onClick = { open = false; menu.startOver(mine) })
         }
     }
 }
