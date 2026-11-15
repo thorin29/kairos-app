@@ -1,4 +1,8 @@
 # Changelog
+## 0.524.0
+
+- Bible tracker: tap the Bible, OT or NT card, or a section, to see its books. Milestones show at most five, rolled up.
+
 ## 0.523.0
 
 - Bible: Start over in the plan ⋮ menu sets every bar back to 0%; times read and milestones are kept.

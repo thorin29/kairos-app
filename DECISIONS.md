@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Tracker books in a dialog (v0.524.0, server 0.727.0)
+
+- The book grid moved into an AnimatedDialog opened from the Bible / OT / NT
+  cards (clickable OutlinedCard) or a section row; it scrolls (max 520dp).
+  Milestone filter chips are gone — the server sends at most five, rolled up.
+
+
 ## 2026-11 — Start over (v0.523.0, server 0.726.0)
 
 - Plan ⋮ menu: Start over (family for admins, and mine), confirmed in an

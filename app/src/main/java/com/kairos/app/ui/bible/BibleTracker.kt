@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -97,29 +100,27 @@ private fun TrackBar(percent: Int, color: Color, height: Dp = 8.dp, modifier: Mo
     }
 }
 
-private val FILTERS = listOf(
-    "All" to emptyList(),
-    "Bible" to listOf("bible"),
-    "Testaments" to listOf("testament"),
-    "Sections" to listOf("section"),
-    "Books" to listOf("book"),
-    "Plans" to listOf("plan"),
-    "Manual" to listOf("manual"),
-)
-
 /**
  * How many times each book, section, testament and the whole Bible has been
  * read, the progress toward the next time, and the milestones (mirrors the web
  * BibleTracker, server 0.724).
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun TrackerSection(tracker: TrackerDto) {
+    // Books open in a dialog: the Bible card shows all 66, a testament card its
+    // books, a section row its books.
+    var books by remember { mutableStateOf<Pair<String, (BibleBook) -> Boolean>?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(tracker.bible to "Bible", tracker.ot to "OT", tracker.nt to "NT").forEach { (l, short) ->
                 val color = colorOf(l)
-                OutlinedCard(Modifier.weight(1f)) {
+                OutlinedCard(
+                    onClick = {
+                        books = l.label to { b: BibleBook -> l.kind == "bible" || b.testament.name == l.testament }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(short, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -143,7 +144,15 @@ fun TrackerSection(tracker: TrackerDto) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 tracker.sections.forEach { s ->
                     val color = colorOf(s)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { books = s.label to { b: BibleBook -> b.group == s.key } }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
                         Text(s.label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(104.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         TrackBar(percent = s.progress, color = color, modifier = Modifier.weight(1f))
                         TimesPill(n = s.times, color = color)
@@ -152,21 +161,35 @@ fun TrackerSection(tracker: TrackerDto) {
             }
         }
 
-        OutlinedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        MilestonesCard(tracker)
+    }
+
+    books?.let { (title, pick) ->
+        com.kairos.app.ui.common.AnimatedDialog(
+            onDismissRequest = { books = null },
+            title = title,
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { books = null }) { Text("Close") } },
+        ) {
+            Column(
+                Modifier
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 tracker.sections.forEach { s ->
-                    val books = tracker.books.filter { b -> BIBLE_BOOKS.firstOrNull { it.name == b.key }?.group == s.key }
-                    if (books.isNotEmpty()) {
+                    val inSection = tracker.books.filter { b ->
+                        val book = BIBLE_BOOKS.firstOrNull { it.name == b.key }
+                        book != null && book.group == s.key && pick(book)
+                    }
+                    if (inSection.isNotEmpty()) {
                         Text(s.label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            books.forEach { b -> BookTile(b) }
+                            inSection.forEach { b -> BookTile(b) }
                         }
                     }
                 }
             }
         }
-
-        MilestonesCard(tracker)
     }
 }
 
@@ -192,31 +215,14 @@ private fun BookTile(b: TrackerLevelDto) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MilestonesCard(tracker: TrackerDto) {
-    var filter by remember { mutableStateOf(0) }
-    val kinds = FILTERS[filter].second
-    val shown = tracker.milestones.filter { kinds.isEmpty() || it.kind in kinds }
+    val shown = tracker.milestones
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Milestones", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FILTERS.forEachIndexed { i, (label, _) ->
-                    val on = i == filter
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (on) Color.White else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { filter = i }
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                    )
-                }
-            }
             if (shown.isEmpty()) {
                 Text("Nothing finished yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            shown.take(60).forEach { m -> MilestoneRow(m) }
+            shown.forEach { m -> MilestoneRow(m) }
             if (tracker.bests.isNotEmpty() || tracker.plansCompleted > 0) {
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     tracker.bests.forEach { b ->
