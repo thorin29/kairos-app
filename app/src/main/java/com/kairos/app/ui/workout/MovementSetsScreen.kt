@@ -47,6 +47,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -112,6 +114,9 @@ fun MovementSetsScreen(
         },
     )
     val ui by vm.ui.collectAsState()
+    // A day still to come (v0.527): the planned sets and weights, read-only —
+    // nothing to log, swap or skip, and leaving saves nothing.
+    val preview = date > java.time.LocalDate.now().toString()
     var swapping by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     // Log with sets still to do asks first (v0.439); finishing early keeps them.
@@ -145,7 +150,7 @@ fun MovementSetsScreen(
             onWeightConsumed()
         }
     }
-    BackHandler { vm.leave() }
+    BackHandler { if (preview) onDone() else vm.leave() }
 
     val isWeight = metric == "WEIGHT"
     // An EZ bar movement (v0.515): plates instead of remove, on the EZ bar.
@@ -164,6 +169,7 @@ fun MovementSetsScreen(
                         // off (v0.473), so the bar keeps its height.
                         FitTitle(text = if (swapped) ui.doingName ?: name else name)
                         val status = when {
+                            preview -> "Preview \u00b7 ${dayName(date)}"
                             ui.status.isNotBlank() -> ui.status
                             ui.lastDate != null -> "Last: ${shortDate(ui.lastDate!!)}"
                             else -> ""
@@ -185,7 +191,7 @@ fun MovementSetsScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { vm.leave() }) {
+                    IconButton(onClick = { if (preview) onDone() else vm.leave() }) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -194,7 +200,7 @@ fun MovementSetsScreen(
                         name = if (swapped) ui.doingName ?: name else name,
                         onClick = { showInfo = true },
                     )
-                    Box(Modifier.padding(end = 12.dp)) {
+                    if (!preview) Box(Modifier.padding(end = 12.dp)) {
                         if (swapped) {
                             SmallPill(label = "Undo", icon = false) { vm.swapTo(null) }
                         } else if (!ui.skipped && !ui.loading) {
@@ -206,7 +212,7 @@ fun MovementSetsScreen(
             )
         },
         bottomBar = {
-            if (!ui.loading) {
+            if (!ui.loading && !preview) {
                 Surface(color = MaterialTheme.colorScheme.surface) {
                     // Above the gesture bar, so rounded screen corners never
                     // clip the tiles.
@@ -266,7 +272,23 @@ fun MovementSetsScreen(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .then(
+                            if (preview) {
+                                Modifier
+                                    .alpha(0.55f)
+                                    .pointerInput(Unit) {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                                    .changes.forEach { if (it.pressed != it.previousPressed) it.consume() }
+                                            }
+                                        }
+                                    }
+                            } else {
+                                Modifier
+                            },
+                        ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Only while nothing is logged that day (v0.455): a day already
@@ -283,7 +305,7 @@ fun MovementSetsScreen(
                     // with today's weight once it's beaten.
                     // The program's plan for today: "Today Work up to a top set ·
                     // Strength waves · Week 2 of 4".
-                    ui.suggestion?.takeIf { !ui.skipped }?.let { sg ->
+                    ui.suggestion?.takeIf { !ui.skipped && !preview }?.let { sg ->
                         SuggestionCard(
                             title = sg.title,
                             why = sg.why,

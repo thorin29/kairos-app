@@ -1,4 +1,8 @@
 # Changelog
+## 0.527.0
+
+- Workouts: on a day still to come, tap a movement to see its planned sets and weights (read-only).
+
 ## 0.526.0
 
 - Bible: Start over moved to the bottom of Edit plan; the family's is on the web. Buttons are white.

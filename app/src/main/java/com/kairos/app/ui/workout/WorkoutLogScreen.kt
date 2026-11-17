@@ -417,9 +417,9 @@ fun WorkoutLogScreen(
                     // so nothing on it looks open (v0.460).
                     Column(
                         Modifier
-                            .alpha(if (ui.rested) 0.4f else if (future) 0.55f else 1f)
-                            // A day still to come only previews its plan (v0.461).
-                            .then(if (future) Modifier.pointerInput(Unit) { consumeAllTaps() } else Modifier),
+                            .alpha(if (ui.rested) 0.4f else if (future) 0.55f else 1f),
+                        // A day still to come only previews its plan (v0.461); its
+                        // movements open read-only to show the sets and weights (v0.527).
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         todaySections.forEach { section ->
@@ -440,8 +440,13 @@ fun WorkoutLogScreen(
                                     onOpenCalculatorFor = openCalc,
                                     onOpenSets = openSets,
                                     onOpenCore = openCore,
+                                    preview = future,
                                 )
                             }
+                            Column(
+                                Modifier.then(if (future) Modifier.pointerInput(Unit) { consumeAllTaps() } else Modifier),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
                             conds.forEach { c ->
                                 val block = section.blocks.first { it.plannedWorkoutId == c.plannedWorkoutId }
                                 ConditioningCard(
@@ -545,6 +550,7 @@ fun WorkoutLogScreen(
                                         { skipped: Boolean -> vm.setSimpleSkipped(plannedWorkoutId = p.plannedWorkoutId, skipped = skipped) }
                                     },
                                 )
+                            }
                             }
                         }
                     }
@@ -1206,6 +1212,8 @@ private fun DaySectionView(
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
     onOpenSets: (WorkoutBlock, MovementInput) -> Unit,
+    /** A day still to come: only a movement opens (read-only); nothing else reacts. */
+    preview: Boolean = false,
     onOpenCore: (WorkoutBlock) -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1229,18 +1237,18 @@ private fun DaySectionView(
                         MovementCard(
                             m = tests[0].copy(name = testName, swappedFromName = null),
                             overdue = overdue,
-                            onOpen = { onOpenCore(testBlock) },
+                            onOpen = { if (!preview) onOpenCore(testBlock) },
                         )
                     } else {
-                        CoreDayCard(block = testBlock, overdue = overdue, onOpen = { onOpenCore(testBlock) })
+                        CoreDayCard(block = testBlock, overdue = overdue, onOpen = { if (!preview) onOpenCore(testBlock) })
                     }
                 }
                 val workout = if (tests.isNotEmpty()) block.copy(inputs = block.inputs - tests.toSet(), coreTest = null, coreTests = emptyList()) else block
                 CoreDayCard(
                     block = workout,
                     overdue = overdue,
-                    onOpen = { onOpenCore(workout) },
-                    onRemove = if (block.extra) ({ vm.removeExtra(id = block.plannedWorkoutId) }) else null,
+                    onOpen = { if (!preview) onOpenCore(workout) },
+                    onRemove = if (block.extra && !preview) ({ vm.removeExtra(id = block.plannedWorkoutId) }) else null,
                 )
             } else if (opensSetLogger(block)) {
                 block.inputs.forEach { m ->
@@ -1251,7 +1259,9 @@ private fun DaySectionView(
                     )
                 }
             } else {
-                WorkoutBlockCard(block, vm, onOpenCalculatorFor)
+                Box(Modifier.then(if (preview) Modifier.pointerInput(Unit) { consumeAllTaps() } else Modifier)) {
+                    WorkoutBlockCard(block, vm, onOpenCalculatorFor)
+                }
             }
         }
     }

@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Preview a future day's movements (v0.527.0, server 0.731.0)
+
+- The future day page no longer swallows every tap: `DaySectionView(preview)`
+  lets a movement card open; Core cards, removes, block cards and the other
+  sections still consume taps. `MovementSetsScreen` treats a date after today
+  as a preview: faded rows that don't react, "Preview · <day>" under the name,
+  no Swap, no bottom bar, no suggestion, and Back leaves without `leave()` (so
+  nothing saves).
+
+
 ## 2026-11 — Start over in Edit plan (v0.526.0, server 0.730.0)
 
 - Start over left the Bible pages: personal is a text button at the bottom of
