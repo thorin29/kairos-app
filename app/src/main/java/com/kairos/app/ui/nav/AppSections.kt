@@ -30,6 +30,8 @@ val APP_SECTIONS: List<AppSection> = listOf(
     AppSection("games", "Game time", Color(0xFF4338CA), KairosIcons.Gamepad, built = true),
     AppSection("hockey", "Ice time", Color(0xFF0E7490), KairosIcons.Hockey, built = true),
     AppSection("characters", "Characters", Color(0xFFDB2777), KairosIcons.Trophy),
+    // The family goal and the completion grid (v0.529), last like the web.
+    AppSection(key = "summary", label = "Summary", color = Color(0xFFB45309), icon = KairosIcons.Summary, built = true),
 )
 
 fun sectionFor(key: String): AppSection =

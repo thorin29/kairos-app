@@ -1,4 +1,9 @@
 # Changelog
+## 0.529.0
+
+- Summary, last in the menu: the family goal and a week or month completion grid. Parents see everyone, kids see themselves. Tap a day for its log.
+- Characters no longer shows the family goal.
+
 ## 0.528.0
 
 - Workouts: Odd squad, set up by blocks: a muscle group a day, then A main lift in ladders, B a density pair, C a finisher. Edit it while it runs.

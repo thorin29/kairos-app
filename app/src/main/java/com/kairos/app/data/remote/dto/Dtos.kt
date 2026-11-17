@@ -3776,3 +3776,57 @@ data class AdjustRequest(
     /** Hurt: add a replacement for each move left out (server 0.675+; default yes). */
     val replace: Boolean? = null,
 )
+
+
+/** Summary (server 0.733+): the family goal and the completion grid. */
+@Serializable
+data class SummaryDto(
+    val seasonName: String = "",
+    val familyGoal: FamilyGoalDto = FamilyGoalDto(),
+    val view: String = "week",
+    val from: String = "",
+    val to: String = "",
+    val today: String = "",
+    val filter: String = "all",
+    val rows: List<CompletionRowDto> = emptyList(),
+)
+
+@Serializable
+data class CompletionRowDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String = "#64748b",
+    val avatarPath: String? = null,
+    val avatarPosition: String? = null,
+    val days: List<CompletionDayDto> = emptyList(),
+    val total: Int? = null,
+)
+
+/** A day: pct null when nothing was due; late when late work was finished that day. */
+@Serializable
+data class CompletionDayDto(
+    val date: String = "",
+    val pct: Int? = null,
+    val done: Int = 0,
+    val due: Int = 0,
+    val late: Boolean = false,
+    val future: Boolean = false,
+)
+
+@Serializable
+data class DayLogDto(
+    val items: List<DayLogItemDto> = emptyList(),
+    val doneCount: Int = 0,
+    val assigned: Int = 0,
+)
+
+/** doneOn: finished later on that day; from: late work from that day. */
+@Serializable
+data class DayLogItemDto(
+    val title: String = "",
+    val category: String = "",
+    val done: Boolean = false,
+    val skipped: Boolean = false,
+    val doneOn: String? = null,
+    val from: String? = null,
+)

@@ -717,6 +717,21 @@ interface ApiService {
     @GET("coop")
     suspend fun coop(): Response<com.kairos.app.data.remote.dto.CoopDto>
 
+    /** Summary: the family goal and the completion grid (server 0.733+). */
+    @GET("summary")
+    suspend fun summary(
+        @Query("view") view: String,
+        @Query("at") at: String?,
+        @Query("f") filter: String,
+    ): Response<com.kairos.app.data.remote.dto.SummaryDto>
+
+    /** A person's day log from the grid (server 0.733+). */
+    @GET("summary/day")
+    suspend fun summaryDay(
+        @Query("userId") userId: String,
+        @Query("date") date: String,
+    ): Response<com.kairos.app.data.remote.dto.DayLogDto>
+
     @POST("coop/propose")
     suspend fun proposeCoop(@Body body: com.kairos.app.data.remote.dto.ProposeCoopRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 

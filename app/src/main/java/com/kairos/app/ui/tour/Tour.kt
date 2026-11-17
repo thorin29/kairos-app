@@ -193,7 +193,7 @@ val TOUR_STOPS: List<TourStop> = listOf(
         id = "characters", where = "section:characters", page = true, title = "Characters",
         lines = l(
             "A page to track a companion that grows when you finish your tasks, workouts, assignments, and Bible reading.",
-            "Level it up, hatch new ones, and work with the family toward a shared reward.",
+            "Level it up and hatch new ones.",
         ),
     ),
     TourStop(

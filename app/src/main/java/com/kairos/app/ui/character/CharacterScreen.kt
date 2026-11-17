@@ -105,7 +105,7 @@ private fun CharacterContent(person: PersonDto, ui: CharacterUiState, vm: Charac
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        FamilyGoalCard(data.familyGoal, onClick = onOpenCoop)
+        // The family goal moved to Summary (v0.529).
         CompanionCard(c)
 
         // Actions below the card — only what applies. Same card design throughout.
@@ -163,7 +163,7 @@ private fun CharAction(
 }
 
 @Composable
-private fun FamilyGoalCard(goal: FamilyGoalDto, onClick: () -> Unit) {
+internal fun FamilyGoalCard(goal: FamilyGoalDto, onClick: () -> Unit) {
     OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(14.dp),

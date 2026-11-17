@@ -1110,6 +1110,10 @@ class SessionRepository(
 
     suspend fun loadCoop(): com.kairos.app.data.remote.dto.CoopDto =
         runAuthed { requireService().coop() }
+    suspend fun loadSummary(view: String, at: String?, filter: String): com.kairos.app.data.remote.dto.SummaryDto =
+        runAuthed { requireService().summary(view = view, at = at, filter = filter) }
+    suspend fun loadDayLog(userId: String, date: String): com.kairos.app.data.remote.dto.DayLogDto =
+        runAuthed { requireService().summaryDay(userId = userId, date = date) }
     suspend fun proposeCoop(title: String, detail: String) {
         runAuthed { requireService().proposeCoop(com.kairos.app.data.remote.dto.ProposeCoopRequest(title, detail)) }
     }
@@ -1404,6 +1408,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 600
+        const val CLIENT_BUILD = 601
     }
 }

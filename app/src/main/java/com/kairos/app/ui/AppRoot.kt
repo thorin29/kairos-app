@@ -63,6 +63,7 @@ import com.kairos.app.ui.chores.ChoresScreen
 import com.kairos.app.ui.money.MoneyScreen
 import com.kairos.app.ui.groceries.GroceriesScreen
 import com.kairos.app.ui.character.CharacterScreen
+import com.kairos.app.ui.character.SummaryScreen
 import com.kairos.app.ui.character.GalleryScreen
 import com.kairos.app.ui.character.CoopScreen
 import com.kairos.app.ui.reading.ReadingGoalsScreen
@@ -641,6 +642,11 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             person = person,
                             onOpenDrawer = { openDrawer() },
                             onOpenGallery = { navController.navigate(Route.Gallery) },
+                            onOpenCoop = { navController.navigate(Route.Coop) },
+                        )
+                    } else if (key == "summary") {
+                        SummaryScreen(
+                            onOpenDrawer = { openDrawer() },
                             onOpenCoop = { navController.navigate(Route.Coop) },
                         )
                     } else if (key == "groceries") {

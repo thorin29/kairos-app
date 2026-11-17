@@ -269,6 +269,12 @@ object KairosIcons {
         "M17 6h2.5A1.5 1.5 0 0 1 21 7.5c0 1.9-1.6 3.5-3.5 3.5H17",
         "M12 14v3M9 20h6M10 17h4l.5 3h-5l.5-3Z",
     )
+    /** A grid of days, for Summary (v0.529). */
+    val Summary = stroked(
+        "Summary",
+        "M6 4h12a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-11A2.5 2.5 0 0 1 6 4Z",
+        "M3.5 9h17M9.17 9v11M14.83 9v11M3.5 14.5h17",
+    )
     val ChevronLeft = stroked("ChevronLeft", "M15 6l-6 6 6 6")
     val ChevronRight = stroked("ChevronRight", "M9 6l6 6-6 6")
     val Switch = stroked("Switch", "M4 8h13M14 5l3 3-3 3", "M20 16H7M10 13l-3 3 3 3")

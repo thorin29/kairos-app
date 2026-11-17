@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Summary screen (v0.529.0, server 0.733.0)
+
+- New "summary" section (last in `APP_SECTIONS`) → `SummaryScreen` in
+  ui/character: `FamilyGoalCard` (moved off Characters, now internal) and
+  the completion card from `GET /summary`: Week / Month, area chips, ‹ ›.
+  More than one person: a row each (month as compact squares); one person:
+  their week row, or their month as a calendar. Tapping a day opens a bottom
+  sheet from `GET /summary/day` with "Done Mon" / "From Sun" tags.
+- The Characters tour line no longer mentions the shared reward. No tour stop
+  for Summary.
+
 ## 2026-11 — Odd squad builder and progress charts (v0.528.0, server 0.732.0)
 
 - A program with `builder` opens `BlockBuilder` (new file) instead of
