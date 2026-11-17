@@ -829,6 +829,9 @@ data class ProgramsDto(
     val setup: CurrentSetupDto? = null,
     /** The person's own version of each program they changed, by key (server 0.666+). */
     val versions: Map<String, ProgramVersionDto> = emptyMap(),
+    /** The garage's length for a shuttle carry; a parent may change it (server 0.734+). */
+    val garageFeet: Int = 20,
+    val canEditGarage: Boolean = false,
 )
 
 /** A person's own version of a program: its setup and extras when they ended it. */
@@ -3830,3 +3833,9 @@ data class DayLogItemDto(
     val doneOn: String? = null,
     val from: String? = null,
 )
+
+@Serializable
+data class GarageRequest(val feet: Int)
+
+@Serializable
+data class GarageAckDto(val feet: Int = 20)

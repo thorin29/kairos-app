@@ -47,6 +47,7 @@ import com.kairos.app.data.remote.dto.ProgramOptionDto
 import com.kairos.app.data.remote.dto.ProgramRoleDto
 import com.kairos.app.data.remote.dto.StartProgramRequest
 import com.kairos.app.ui.common.AnimatedDialog
+import com.kairos.app.ui.common.RollPicker
 
 private val BUILDER_STEPS = listOf("Days", "Blocks", "Movements", "Review")
 private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -82,6 +83,9 @@ internal fun BlockBuilder(
     error: String?,
     initial: CurrentSetupDto? = null,
     nextMaxes: Map<String, Double>? = null,
+    /** The garage's length for a shuttle carry; null when it can't be changed here (v0.530). */
+    garageFeet: Int? = null,
+    onGarage: ((Int) -> Unit)? = null,
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
@@ -330,6 +334,17 @@ internal fun BlockBuilder(
                                         on = picks[k] == o.id,
                                         sub = finisherSub(r.schemes[o.id] ?: r.scheme),
                                         onPick = { picks[k] = o.id },
+                                    )
+                                }
+                                // The garage's length, for a shuttle carry's lengths (v0.530).
+                                if (garageFeet != null && onGarage != null) {
+                                    HorizontalDivider()
+                                    RollPicker(
+                                        label = "Garage length",
+                                        selectedLabel = "$garageFeet ft",
+                                        options = (10..60).map { "$it" to "$it ft" },
+                                        onSelect = { v -> v.toIntOrNull()?.let(onGarage) },
+                                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     )
                                 }
                             }

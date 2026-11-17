@@ -717,6 +717,10 @@ interface ApiService {
     @GET("coop")
     suspend fun coop(): Response<com.kairos.app.data.remote.dto.CoopDto>
 
+    /** The garage's length for a shuttle carry, a parent only (server 0.734+). */
+    @POST("workouts/garage")
+    suspend fun setGarage(@Body body: com.kairos.app.data.remote.dto.GarageRequest): Response<com.kairos.app.data.remote.dto.GarageAckDto>
+
     /** Summary: the family goal and the completion grid (server 0.733+). */
     @GET("summary")
     suspend fun summary(

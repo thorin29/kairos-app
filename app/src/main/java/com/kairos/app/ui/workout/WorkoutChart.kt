@@ -470,8 +470,8 @@ private fun LiftRow(s: ProgressSeriesDto, tone: Color, onOpen: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                (s.best?.let { "Best " + setText(it.value, it.reps) } ?: "No weight yet") +
-                    (last?.let { " \u00b7 last " + setText(it.value, it.reps) } ?: ""),
+                (s.best?.let { "Best " + setText(it.value, it.reps) + (if (s.unit == "reps") " reps" else "") } ?: "No weight yet") +
+                    (last?.let { " \u00b7 last " + setText(it.value, it.reps) + (if (s.unit == "reps") " reps" else "") } ?: ""),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

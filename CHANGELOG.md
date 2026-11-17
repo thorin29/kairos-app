@@ -1,4 +1,11 @@
 # Changelog
+## 0.530.0
+
+- Odd squad: a missed rep repeats that week's ladders (server side).
+- Pull-ups, push-ups and dips show on the progress charts by reps.
+- Parents can set the garage length in the Odd squad builder.
+- Work-shift calendars draw like work shifts.
+
 ## 0.529.0
 
 - Summary, last in the menu: the family goal and a week or month completion grid. Parents see everyone, kids see themselves. Tap a day for its log.

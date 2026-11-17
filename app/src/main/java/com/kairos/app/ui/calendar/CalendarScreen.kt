@@ -958,7 +958,8 @@ private fun MonthDayCell(
 @Composable
 private fun MonthChip(e: CalEventDto, onClick: () -> Unit) {
     val color = parseColor(e.color)
-    if (e.external) {
+    // A work schedule's shifts draw like any work shift (server 0.734).
+    if (e.external && e.kind != "WORK") {
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() },

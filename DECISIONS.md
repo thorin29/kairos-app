@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Garage length, bodyweight rows, work calendars (v0.530.0, server 0.734.0)
+
+- `BlockBuilder` takes `garageFeet` / `onGarage` (null when the phone can't
+  change it, from `canEditGarage`); a RollPicker of 10–60 ft sits at the end
+  of the finisher card and saves through `POST /workouts/garage`.
+- Lift rows add " reps" for a bodyweight series (`unit == "reps"`).
+- `MonthChip` draws an external event solid when its kind is WORK.
+
 ## 2026-11 — Summary screen (v0.529.0, server 0.733.0)
 
 - New "summary" section (last in `APP_SECTIONS`) → `SummaryScreen` in

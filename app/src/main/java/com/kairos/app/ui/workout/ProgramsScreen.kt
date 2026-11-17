@@ -208,6 +208,8 @@ fun ProgramsScreen(
                 )
                 editProgram != null && editSetup != null -> BlockBuilder(
                     program = editProgram,
+                    garageFeet = d.garageFeet.takeIf { d.canEditGarage },
+                    onGarage = { feet -> act(block = { session.setGarageFeet(feet) }) },
                     current = d.current,
                     busy = busy,
                     error = error,
@@ -222,6 +224,8 @@ fun ProgramsScreen(
                 )
                 nextProgram != null && nextSetup != null && nextProgram.builder -> BlockBuilder(
                     program = nextProgram,
+                    garageFeet = d.garageFeet.takeIf { d.canEditGarage },
+                    onGarage = { feet -> act(block = { session.setGarageFeet(feet) }) },
                     current = d.current,
                     busy = busy,
                     error = error,
@@ -237,6 +241,8 @@ fun ProgramsScreen(
                 setup != null && setup.builder -> key(setup.key) {
                     BlockBuilder(
                         program = setup,
+                        garageFeet = d.garageFeet.takeIf { d.canEditGarage },
+                        onGarage = { feet -> act(block = { session.setGarageFeet(feet) }) },
                         current = d.current,
                         busy = busy,
                         error = error,

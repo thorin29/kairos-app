@@ -649,6 +649,9 @@ class SessionRepository(
     suspend fun startProgram(body: com.kairos.app.data.remote.dto.StartProgramRequest): WorkoutAckDto =
         runAuthed { requireService().startProgram(body) }
 
+    suspend fun setGarageFeet(feet: Int): com.kairos.app.data.remote.dto.GarageAckDto =
+        runAuthed { requireService().setGarage(com.kairos.app.data.remote.dto.GarageRequest(feet = feet)) }
+
     suspend fun forgetProgramVersion(key: String): WorkoutAckDto =
         runAuthed { requireService().forgetProgramVersion(com.kairos.app.data.remote.dto.ForgetProgramVersionRequest(key = key)) }
 
@@ -1408,6 +1411,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 601
+        const val CLIENT_BUILD = 602
     }
 }
