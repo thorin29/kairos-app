@@ -11,26 +11,28 @@ plugins {
 }
 
 android {
-    namespace = "com.budget.app"
+    namespace = "com.kairos.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.budget.app"
+        applicationId = "com.kairos.app"
         minSdk = 26
         targetSdk = 37
-        // Bump both for every release; the in-app updater compares versionCode.
-        versionCode = 11
-        versionName = "0.6.0"
+        versionCode = 600
+        versionName = "0.528.0"
 
+        // Baked in at build time so the app can show when this build was made.
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
-        // The GitHub repo the in-app updater reads releases from.
-        buildConfigField("String", "UPDATE_REPO", "\"thorin29/budget-app\"")
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
-        // The release key comes from CI (GitHub secrets, decoded to a file) and
-        // never lives in the repo. Without it, release builds are unsigned.
+        // The release key is supplied by CI through environment variables
+        // (decoded from GitHub secrets). Kept out of the repo entirely. When the
+        // env vars are absent (e.g. a local debug build), this stays empty and
+        // the release type simply goes unsigned rather than failing to configure.
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_FILE")
             if (keystorePath != null) {
@@ -44,11 +46,14 @@ android {
 
     buildTypes {
         release {
-            // Signed with the same key every time, so each update installs over
-            // the last and the phone stays enrolled.
+            // Sign with the stable release key when CI provides it, so every
+            // build installs over the last one and enrollment persists.
             if (System.getenv("KEYSTORE_FILE") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // R8 minify/shrink left off until we can verify on-device that no
+            // Compose/serialization/Retrofit member gets stripped; the keep
+            // rules in proguard-rules.pro are ready for when we enable it.
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
@@ -79,18 +84,25 @@ android {
     }
 
     testOptions {
-        // JVM unit tests run against a stubbed android.jar; return defaults
-        // instead of throwing so pure logic that touches android.* still runs.
+        // JVM unit tests run against a stubbed android.jar, where every android.*
+        // call throws RuntimeException("Stub!"). Production code that logs with
+        // android.util.Log is therefore untestable without this — it is what made
+        // SyncManager's drop path (Log.w on a rejected write) fail under test while
+        // the identical success path passed. Stubs return defaults instead.
         unitTests.isReturnDefaultValues = true
     }
 }
 
+// Kotlin toolchain is a top-level extension (not nested in android {}). This
+// sets both the Java and Kotlin compile targets to 17.
 kotlin {
     jvmToolchain(17)
 }
 
-// Room writes each database version's schema here. Commit these files: a
-// future schema change migrates from them (the queue is never dropped).
+// Room 3 schema export. The generated schema JSON is checked into app/schemas
+// as a record of each version. We use destructive migration for this DB (it's a
+// disposable read cache), so these schemas are documentation, not migration
+// inputs — but the Room Gradle Plugin requires a directory when exportSchema is on.
 room3 {
     schemaDirectory("$projectDir/schemas")
 }
@@ -100,7 +112,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))
@@ -108,26 +119,37 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.work.runtime.ktx)
+
+    // Room 3 (local persistence) + bundled SQLite so the DB uses one consistent
+    // SQLite build across all devices rather than the OS copy. room3-compiler
+    // runs via KSP (Room 3 is KSP-only).
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+    ksp(libs.androidx.room3.compiler)
+
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.serialization)
+    implementation(libs.okhttp.logging)
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Home-screen widget (calendar + tasks), written in Compose-style Glance.
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.android)
+    // QR scanning for setup (v0.519).
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.zxing.core)
 
-    // Room 3 with a bundled SQLite; the compiler runs through KSP.
-    implementation(libs.androidx.room3.runtime)
-    implementation(libs.androidx.sqlite.bundled)
-    ksp(libs.androidx.room3.compiler)
-
-    implementation(libs.okhttp)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.coroutines.android)
-
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)
-    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
 }

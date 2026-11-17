@@ -165,18 +165,23 @@ fun ProgramsScreen(
     }
     val nextSetup = data?.setup?.takeIf { changing != null }
     val nextProgram = nextSetup?.let { ns -> data?.choices?.firstOrNull { it.key == ns.key } }
+    // A builder program edits in place, same week (v0.528).
+    var editing by remember { mutableStateOf(false) }
+    val editSetup = data?.setup?.takeIf { editing }
+    val editProgram = editSetup?.let { es -> data?.choices?.firstOrNull { it.key == es.key && it.builder } }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
-                    Text(nextProgram?.name ?: setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs")
+                    Text(editProgram?.name ?: nextProgram?.name ?: setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs")
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = {
                             when {
+                                editProgram != null -> editing = false
                                 nextProgram != null -> changing = null
                                 setup != null -> setupKey = null
                                 picking && data?.active != null && !startPicking -> picking = false
@@ -201,6 +206,49 @@ fun ProgramsScreen(
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 )
+                editProgram != null && editSetup != null -> BlockBuilder(
+                    program = editProgram,
+                    current = d.current,
+                    busy = busy,
+                    error = error,
+                    initial = editSetup,
+                    nextMaxes = d.active?.maxes?.associate { it.poolExerciseId to it.weight },
+                    onStart = { req ->
+                        act(block = { session.startProgram(req) }) {
+                            editing = false
+                            reload()
+                        }
+                    },
+                )
+                nextProgram != null && nextSetup != null && nextProgram.builder -> BlockBuilder(
+                    program = nextProgram,
+                    current = d.current,
+                    busy = busy,
+                    error = error,
+                    initial = nextSetup,
+                    nextMaxes = changing,
+                    onStart = { req ->
+                        act(block = { session.startProgram(req.copy(next = true)) }) {
+                            changing = null
+                            reload()
+                        }
+                    },
+                )
+                setup != null && setup.builder -> key(setup.key) {
+                    BlockBuilder(
+                        program = setup,
+                        current = d.current,
+                        busy = busy,
+                        error = error,
+                        onStart = { req ->
+                            act(block = { session.startProgram(req) }) {
+                                setupKey = null
+                                picking = false
+                                onEditPlan()
+                            }
+                        },
+                    )
+                }
                 nextProgram != null && nextSetup != null -> ProgramSetup(
                     program = nextProgram,
                     current = d.current,
@@ -244,8 +292,11 @@ fun ProgramsScreen(
                 ) {
                     val a = d.active
                     if (a != null && !picking) {
+                        val builder = d.choices.any { it.key == a.key && it.builder }
                         ActiveProgramCard(
                             info = a,
+                            builder = builder,
+                            onEdit = if (builder && d.setup != null) ({ editing = true }) else null,
                             onCycle = { cycleOpen = true },
                             onChange = { picking = true },
                             onEnd = { ending = true },
@@ -403,6 +454,9 @@ private fun ChooserTabs(selected: String, onSelect: (String) -> Unit) {
 @Composable
 private fun ActiveProgramCard(
     info: ProgramInfoDto,
+    /** A builder program (Odd squad): its weights are for 5 reps, and Edit. */
+    builder: Boolean = false,
+    onEdit: (() -> Unit)? = null,
     onCycle: () -> Unit,
     onChange: () -> Unit,
     onEnd: () -> Unit,
@@ -418,7 +472,7 @@ private fun ActiveProgramCard(
             }
             if (info.maxes.isNotEmpty()) {
                 Text(
-                    "TRAINING MAXES",
+                    if (builder) "WEIGHT FOR 5 REPS" else "TRAINING MAXES",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -429,6 +483,14 @@ private fun ActiveProgramCard(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                onEdit?.let { edit ->
+                    Text(
+                        "Edit",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { edit() }.padding(vertical = 6.dp),
+                    )
+                }
                 Text(
                     "Change program",
                     style = MaterialTheme.typography.labelLarge,

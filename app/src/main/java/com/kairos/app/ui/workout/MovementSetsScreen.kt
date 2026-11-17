@@ -533,7 +533,7 @@ private fun SetCard(
                         SetField(
                             value = row.r,
                             hint = row.hintR?.let { "$it${if (row.plus) "+" else ""}" } ?: "rep",
-                            label = if (repsUnit != null) "Distance, set $index" else "Reps, set $index",
+                            label = if (repsUnit == "lengths") "Lengths, set $index" else if (repsUnit != null) "Distance, set $index" else "Reps, set $index",
                             decimal = false,
                             enabled = enabled,
                             modifier = Modifier.width(if (repsUnit != null) 76.dp else 68.dp),

@@ -860,6 +860,8 @@ data class CurrentExtrasDto(
     val warmupRoutine: String? = null,
     val cardioDays: List<Int> = emptyList(),
     val conditioningDays: List<Int> = emptyList(),
+    /** The Core day's weekday, for the block builder (server 0.732+). */
+    val coreDay: Int? = null,
 )
 
 @Serializable
@@ -870,6 +872,8 @@ data class ProgramChoiceDto(
     val weeks: Int = 1,
     val defaultDays: List<Int> = emptyList(),
     val days: List<ProgramDayDto> = emptyList(),
+    /** Set up with the block builder, Odd squad (server 0.732+). */
+    val builder: Boolean = false,
 )
 
 @Serializable
@@ -889,6 +893,10 @@ data class ProgramRoleDto(
     val scheme: String = "",
     val defaultId: String? = null,
     val options: List<ProgramOptionDto> = emptyList(),
+    /** The builder's block, "A" "B" or "C" (server 0.732+). */
+    val block: String? = null,
+    /** A finisher's sets by option id, when they differ (server 0.732+). */
+    val schemes: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -925,6 +933,8 @@ data class StartProgramRequest(
     val conditioningDays: List<Int>? = null,
     /** The running program's next cycle with these changes (server 0.626+). */
     val next: Boolean? = null,
+    /** The builder's Core day weekday (server 0.732+). */
+    val coreDay: Int? = null,
 )
 
 @Serializable
@@ -1558,6 +1568,19 @@ data class ProgressSeriesDto(
     /** The line for one rep range at a time ("4–6 reps"), so sets are
      *  compared with sets like them. Server 0.610+; only ranges with points. */
     val bands: List<RepBandDto> = emptyList(),
+    /** Sandbags and clubs: the chart follows reps, density or time (server 0.732+). */
+    val fixed: Boolean = false,
+    /** A main lift in the running program (server 0.732+). */
+    val program: SeriesProgramDto? = null,
+)
+
+/** The running program for a lift's chart: its week and training max (server 0.732+). */
+@Serializable
+data class SeriesProgramDto(
+    val name: String = "",
+    val label: String = "",
+    val tm: Double? = null,
+    val since: String = "",
 )
 
 @Serializable
@@ -1589,6 +1612,13 @@ data class GraphPointDto(
     val reps: Int? = null,
     /** LIGHT or TEST: a program's light or test day, drawn hollow (server 0.611+). */
     val intent: String? = null,
+    /** The day's estimated max from every set, volume, total reps, seconds
+     *  and reps a minute (server 0.732+). */
+    val est: Double? = null,
+    val volume: Double? = null,
+    val total: Int? = null,
+    val seconds: Int? = null,
+    val density: Double? = null,
 )
 
 

@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -496,12 +497,16 @@ private fun LiftRow(s: ProgressSeriesDto, tone: Color, onOpen: () -> Unit) {
         if (trend != null) Column(horizontalAlignment = Alignment.End) {
             when (trend) {
                 is LiftTrend.Up -> {
-                    Text("+" + fmt(trend.delta) + " " + s.unit, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFF047857))
+                    Text("+" + fmt(trend.delta) + " " + trendUnit(s), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFF047857))
                     Text("30 days", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                is LiftTrend.Flat -> {
-                    Text("Flat", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Color(0xFFB45309))
-                    Text("${trend.weeks} " + if (trend.weeks == 1) "week" else "weeks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                is LiftTrend.Holding -> {
+                    Text("Holding", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(weeksText(trend.weeks) + " in a row", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                is LiftTrend.Stopped -> {
+                    Text("Last done", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(weeksText(trend.weeks) + " ago", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -513,23 +518,69 @@ private fun setText(v: Double, reps: Int?): String = fmt(v) + (reps?.takeIf { it
 
 private sealed interface LiftTrend {
     data class Up(val delta: Double) : LiftTrend
-    data class Flat(val weeks: Int) : LiftTrend
+    data class Holding(val weeks: Int) : LiftTrend
+    data class Stopped(val weeks: Int) : LiftTrend
 }
 
-/** The web's liftTrend: climbing over 30 days, else whole weeks since the best. */
+/** What a lift's trend follows (server 0.732): reps for a fixed weight (a
+ *  sandbag), the estimated max for a lift in a program, else the top weight. */
+private fun trendPoints(s: ProgressSeriesDto): List<GraphPointDto> = when {
+    s.fixed -> s.points.filter { (it.total ?: 0) > 0 }.map { it.copy(value = (it.total ?: 0).toDouble()) }
+    s.program != null -> s.points.mapNotNull { p -> p.est?.let { p.copy(value = it) } }
+    else -> s.points
+}
+
+private fun trendUnit(s: ProgressSeriesDto): String = if (s.fixed) "reps" else s.unit
+private fun weeksText(n: Int): String = "$n " + if (n == 1) "week" else "weeks"
+
+/** Weeks in a row with the lift done (this week once it's done). */
+private fun weeksInARow(points: List<GraphPointDto>): Int {
+    val weeks = points.mapNotNull { mondayOf(it.date) }.toSet()
+    var mon = mondayOf(LocalDate.now().toString()) ?: return 0
+    if (mon !in weeks) mon -= 7
+    var n = 0
+    while (mon in weeks) {
+        n++
+        mon -= 7
+    }
+    return n
+}
+
+/** The last 12 weeks, oldest first: 2 done, 1 done light, 0 missed, -1 before it started. */
+private fun weekDots(points: List<GraphPointDto>, n: Int = 12): List<Int> {
+    val byWeek = mutableMapOf<Long, Boolean>()
+    points.forEach { p -> mondayOf(p.date)?.let { w -> byWeek[w] = (byWeek[w] ?: false) || p.intent != "LIGHT" } }
+    val first = points.mapNotNull { mondayOf(it.date) }.minOrNull()
+    val thisMon = mondayOf(LocalDate.now().toString()) ?: return emptyList()
+    return (n - 1 downTo 0).map { k ->
+        val w = thisMon - 7L * k
+        when {
+            first == null || w < first -> -1
+            byWeek.containsKey(w) -> if (byWeek[w] == true) 2 else 1
+            k == 0 -> -1
+            else -> 0
+        }
+    }
+}
+
+/** The web's liftTrend (v0.732): climbing over 30 days; else holding, weeks
+ *  in a row, while it's still done; else when it was last done. */
 private fun liftTrend(s: ProgressSeriesDto): LiftTrend? {
-    val pts = s.points.sortedBy { it.date }
+    val pts = trendPoints(s).sortedBy { it.date }
     if (pts.isEmpty()) return null
+    val today = LocalDate.now().toEpochDay()
+    val ago = today - (epochDay(pts.last().date) ?: today)
+    if (ago > 14) return LiftTrend.Stopped(weeks = maxOf(2, (ago / 7).toInt()))
     val cutoff = LocalDate.now().minusDays(30).toString()
     val before = pts.filter { it.date <= cutoff }
+    val latest = pts.lastOrNull { it.intent == null }?.value ?: pts.last().value
     if (before.isNotEmpty()) {
-        val delta = (pts.last().value - before.maxOf { it.value }).roundToInt().toDouble()
+        val delta = (latest - before.maxOf { it.value }).roundToInt().toDouble()
         if (delta > 0) return LiftTrend.Up(delta = delta)
     }
-    val best = s.best ?: return null
-    val weeks = ((LocalDate.now().toEpochDay() - (epochDay(best.date) ?: LocalDate.now().toEpochDay())) / 7).toInt()
-    if (before.isEmpty() && weeks < 1) return null
-    return LiftTrend.Flat(weeks = weeks.coerceAtLeast(0))
+    val weeks = weeksInARow(pts)
+    if (before.isEmpty() && weeks < 2) return null
+    return LiftTrend.Holding(weeks = weeks)
 }
 
 /** The web's estimatedMax: Epley from the best set of 12 reps or fewer, down to a plate step. */
@@ -572,19 +623,64 @@ private fun LiftPageDialog(
         next = runCatching { session.liftNext(movement = s.poolExerciseId) }.getOrNull()
     }
     var band by remember(s.poolExerciseId) { mutableStateOf("all") }
+    // What the chart follows (server 0.732): Est. max / Top weight / Volume,
+    // or for a fixed weight Reps / Density / Time.
+    var mode by remember(s.poolExerciseId) { mutableStateOf(if (s.fixed) "reps" else "est") }
     val all = s.points.sortedBy { it.date }
-    val points = if (band == "all") all else s.bands.firstOrNull { it.key == band }?.points ?: emptyList()
-    val ahead = next?.takeIf { band == "all" }
+    val modes = if (s.fixed) {
+        listOfNotNull(
+            "reps" to "Reps",
+            ("density" to "Density").takeIf { all.any { it.density != null } },
+            ("time" to "Time").takeIf { all.any { (it.seconds ?: 0) > 0 } },
+        )
+    } else {
+        listOf("est" to "Est. max", "top" to "Top weight", "volume" to "Volume")
+    }
+    val points = when (mode) {
+        "est" -> all.mapNotNull { p -> p.est?.let { p.copy(value = it, reps = null) } }
+        "volume" -> all.map { it.copy(value = it.volume ?: 0.0, reps = null) }
+        "reps" -> all.filter { (it.total ?: 0) > 0 }.map { it.copy(value = (it.total ?: 0).toDouble(), reps = null) }
+        "density" -> all.mapNotNull { p -> p.density?.let { p.copy(value = it, reps = null) } }
+        "time" -> all.filter { (it.seconds ?: 0) > 0 }.map { it.copy(value = (it.seconds ?: 0).toDouble(), reps = null) }
+        else -> if (band == "all") all else s.bands.firstOrNull { it.key == band }?.points ?: emptyList()
+    }
+    val pointUnit = when (mode) {
+        "reps" -> "reps"
+        "density" -> "reps/min"
+        "time" -> "sec"
+        else -> s.unit
+    }
+    val linked = mode != "top" && mode != "volume"
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val tmColor = Color(0xFF3B6FB6)
+    // Est. max: the top weight and the training max dashed behind it.
+    val refs: List<Pair<List<GraphPointDto>, Color>> = if (mode == "est") {
+        val tm = s.program?.tm
+        listOfNotNull(
+            all to muted,
+            tm?.let { t ->
+                val from = listOfNotNull(s.program?.since, all.firstOrNull()?.date).maxOrNull() ?: LocalDate.now().toString()
+                listOf(GraphPointDto(date = from, value = t), GraphPointDto(date = LocalDate.now().toString(), value = t)) to tmColor
+            },
+        )
+    } else emptyList()
+    val ahead = next?.takeIf { band == "all" && mode == "top" }
     val tone = muscleColor(s.muscleGroup) ?: LINE
     val kg = s.unit == "kg"
-    val step = if (kg) 5.0 else 10.0
-    val values = points.map { it.value } + listOfNotNull(ahead?.weight)
+    val step = when (mode) {
+        "est", "top" -> if (kg) 5.0 else 10.0
+        "volume" -> 500.0
+        "density" -> 1.0
+        else -> 5.0
+    }
+    val values = points.map { it.value } + refs.flatMap { r -> r.first.map { it.value } } + listOfNotNull(ahead?.weight)
     val lo = values.minOrNull() ?: 0.0
     val hi = values.maxOrNull() ?: (step * 2)
     val yMin = floor(lo / step) * step
     var yMax = ceil(hi / step) * step
     if (yMax <= yMin) yMax = yMin + step * 2
-    val xs = points.mapNotNull { epochDay(it.date) } + listOfNotNull(ahead?.date?.let { epochDay(it) })
+    val xs = points.mapNotNull { epochDay(it.date) } + refs.flatMap { r -> r.first.mapNotNull { epochDay(it.date) } } +
+        listOfNotNull(ahead?.date?.let { epochDay(it) })
     val xMin = xs.minOrNull() ?: 0L
     val xMax = xs.maxOrNull() ?: 1L
     fun px(day: Long, w: Float): Float =
@@ -602,6 +698,16 @@ private fun LiftPageDialog(
     val surface = MaterialTheme.colorScheme.surface
     val trend = liftTrend(s)
     val est = estimatedMax(s)
+    val streak = weeksInARow(all)
+    val dots = weekDots(all)
+    val doneWeeks = dots.count { it > 0 }
+    val counted = dots.count { it >= 0 }
+    val trendChip = when (trend) {
+        is LiftTrend.Up -> (if (s.fixed) "Reps" else if (s.program != null) "Est. max" else "Top weight") + " +" + fmt(trend.delta) + " " + trendUnit(s) + " in 30 days"
+        is LiftTrend.Holding -> "Holding \u00b7 " + weeksText(trend.weeks) + " in a row"
+        is LiftTrend.Stopped -> "Last done " + weeksText(trend.weeks) + " ago"
+        null -> null
+    }
 
     androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
@@ -625,13 +731,56 @@ private fun LiftPageDialog(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(groupLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = tone)
+                        s.program?.let { pr ->
+                            Text(
+                                pr.name + " \u00b7 " + pr.label + (pr.tm?.let { " \u00b7 training max " + fmt(it) + " " + s.unit } ?: ""),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 Column(
                     Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (s.bands.isNotEmpty()) {
+                    if (trendChip != null || (streak >= 2 && trend !is LiftTrend.Holding)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            trendChip?.let { LiftChip(label = it, filled = true) }
+                            if (streak >= 2 && trend !is LiftTrend.Holding) LiftChip(label = weeksText(streak) + " in a row", filled = false)
+                        }
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        modes.forEach { (k, label) ->
+                            val on = mode == k
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(if (on) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        mode = k
+                                        tapped = null
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    if (mode == "top" && s.bands.isNotEmpty()) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             (listOf("all" to "All") + s.bands.map { it.key to it.label }).forEach { (key, label) ->
                                 BandChip(label = label, selected = band == key) {
@@ -656,7 +805,7 @@ private fun LiftPageDialog(
                                 Modifier
                                     .fillMaxWidth()
                                     .fillMaxHeight()
-                                    .pointerInput(points, band) {
+                                    .pointerInput(points, band, mode) {
                                         detectTapGestures { tap ->
                                             var best: GraphPointDto? = null
                                             var bestOffset = Offset.Zero
@@ -704,6 +853,16 @@ private fun LiftPageDialog(
                                         drawLine(markColor, Offset(x, h - 10f), Offset(x, h), strokeWidth = 4f)
                                     }
                                 }
+                                // Reference lines, dashed: the top weight, the training max.
+                                val refDash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(12f, 10f))
+                                refs.forEach { (line, c) ->
+                                    val o = line.mapNotNull { p -> epochDay(p.date)?.let { Offset(px(it, w), py(p.value, h)) } }
+                                    for (k in 1 until o.size) drawLine(c, o[k - 1], o[k], strokeWidth = 3f, pathEffect = refDash)
+                                }
+                                if (linked) {
+                                    val o = points.mapNotNull { p -> epochDay(p.date)?.let { Offset(px(it, w), py(p.value, h)) } }
+                                    for (k in 1 until o.size) drawLine(tone, o[k - 1], o[k], strokeWidth = 4f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                }
                                 points.forEach { p ->
                                     val d = epochDay(p.date) ?: return@forEach
                                     val o = Offset(px(d, w), py(p.value, h))
@@ -713,7 +872,7 @@ private fun LiftPageDialog(
                                         drawCircle(tone, radius = 5f, center = o)
                                     }
                                 }
-                                s.best?.takeIf { band == "all" }?.let { b ->
+                                s.best?.takeIf { band == "all" && mode == "top" }?.let { b ->
                                     epochDay(b.date)?.let { d ->
                                         drawCircle(tone, radius = 14f, center = Offset(px(d, w), py(b.value, h)), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
                                     }
@@ -745,7 +904,7 @@ private fun LiftPageDialog(
                                     },
                                 ) {
                                     Text(
-                                        "${dateLabel(epochDay(tp.date) ?: 0L)} \u00b7 ${setText(tp.value, tp.reps)} ${s.unit}" +
+                                        "${dateLabel(epochDay(tp.date) ?: 0L)} \u00b7 ${setText(tp.value, tp.reps)} $pointUnit" +
                                             when (tp.intent) {
                                                 "LIGHT" -> " \u00b7 light day"
                                                 "TEST" -> " \u00b7 test day"
@@ -768,6 +927,11 @@ private fun LiftPageDialog(
                     }
                     // What the marks are, in words.
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (mode == "est") {
+                            ChartKey(color = tone, label = "Est. max", square = false)
+                            ChartKey(color = muted, label = "Top weight", square = false)
+                            if (s.program?.tm != null) ChartKey(color = tmColor, label = "Training max", square = false)
+                        }
                         if (shade.isNotEmpty()) ChartKey(color = shadeColor, label = "Light week", square = true)
                         if (shownMarks.isNotEmpty()) ChartKey(color = markColor, label = shownMarks.map { it.label }.distinct().joinToString(", "), square = true)
                         if (ahead != null) {
@@ -776,6 +940,39 @@ private fun LiftPageDialog(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                             )
+                        }
+                    }
+                    if (counted > 1) {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "CONSISTENCY",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text("$doneWeeks of $counted weeks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    dots.forEach { d ->
+                                        Box(
+                                            Modifier
+                                                .size(18.dp)
+                                                .clip(RoundedCornerShape(5.dp))
+                                                .background(
+                                                    when (d) {
+                                                        2 -> tone
+                                                        1 -> tone.copy(alpha = 0.4f)
+                                                        0 -> MaterialTheme.colorScheme.surfaceVariant
+                                                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                    },
+                                                ),
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -790,9 +987,14 @@ private fun LiftPageDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             StatTile(
                                 "30 days",
-                                when (trend) { is LiftTrend.Up -> "+" + fmt(trend.delta); is LiftTrend.Flat -> "Flat"; null -> "\u2014" },
-                                if (trend is LiftTrend.Up) s.unit else "",
-                                when (trend) { is LiftTrend.Up -> "still climbing"; is LiftTrend.Flat -> "no gain"; null -> "no older session" },
+                                when (trend) { is LiftTrend.Up -> "+" + fmt(trend.delta); is LiftTrend.Holding -> "Holding"; is LiftTrend.Stopped -> "Stopped"; null -> "\u2014" },
+                                if (trend is LiftTrend.Up) trendUnit(s) else "",
+                                when (trend) {
+                                    is LiftTrend.Up -> "still climbing"
+                                    is LiftTrend.Holding -> weeksText(trend.weeks) + " in a row"
+                                    is LiftTrend.Stopped -> weeksText(trend.weeks) + " ago"
+                                    null -> "no older session"
+                                },
                                 Modifier.weight(1f),
                                 up = trend is LiftTrend.Up,
                             )
@@ -827,6 +1029,28 @@ private fun LiftPageDialog(
                 }
             }
         }
+    }
+}
+
+/** A chip over a lift's chart: the trend (filled) or weeks in a row. */
+@Composable
+private fun LiftChip(label: String, filled: Boolean) {
+    val shape = RoundedCornerShape(50)
+    Box(
+        Modifier
+            .height(28.dp)
+            .clip(shape)
+            .background(if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.primary, shape)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (filled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

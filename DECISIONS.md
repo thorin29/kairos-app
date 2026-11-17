@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — Odd squad builder and progress charts (v0.528.0, server 0.732.0)
+
+- A program with `builder` opens `BlockBuilder` (new file) instead of
+  `ProgramSetup`: Days (a weekday picker dialog per day), Blocks, Movements,
+  Review, the same as the web. It keeps the plan's warm-up, cardio and
+  conditioning days as they are and sends `coreDay`. Edit on the running
+  program's card reopens it on `setup` (same week); the cycle's "with
+  changes" opens it too.
+- `WorkoutChart`: `liftTrend` follows est. max for a program's main lift
+  (`program`), reps for a `fixed` movement, else the top weight; Holding /
+  Stopped replace Flat. The lift page adds the trend and weeks-in-a-row chips,
+  an Est. max / Top weight / Volume switch (Reps / Density / Time when fixed)
+  with dashed top-weight and training-max lines, and a 12-week consistency row.
+- A shuttle carry's reps field reads "Lengths". The garage length is set on
+  the web (Admin → Workouts → Equipment).
+
 ## 2026-11 — Preview a future day's movements (v0.527.0, server 0.731.0)
 
 - The future day page no longer swallows every tap: `DaySectionView(preview)`
