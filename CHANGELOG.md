@@ -1,4 +1,8 @@
 # Changelog
+## 0.531.0
+
+- Docs only: README, ARCHITECTURE and RELEASING brought up to date. No change in the app.
+
 ## 0.530.0
 
 - Odd squad: a missed rep repeats that week's ladders (server side).

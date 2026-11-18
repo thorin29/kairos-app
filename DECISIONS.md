@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Docs match the app (v0.531.0, server 0.735.0)
+
+- README, ARCHITECTURE and RELEASING checked against the code: stack versions
+  (AGP 9.4.0, Gradle 9.6.0, SDK 37, Compose BOM 2026.09.00), Room, CameraX
+  and ZXing, nine colours and eight backgrounds, Summary, the QR join and the
+  tour. Open work is listed only at the top of the web repo's ROADMAP.md.
+
 ## 2026-11 — Garage length, bodyweight rows, work calendars (v0.530.0, server 0.734.0)
 
 - `BlockBuilder` takes `garageFeet` / `onGarage` (null when the phone can't

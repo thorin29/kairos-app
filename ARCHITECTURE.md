@@ -7,10 +7,12 @@ from source** rather than inventing its own UX.
 
 ## Stack / build
 
-- AGP 8.13.2, Gradle 8.13, Kotlin 2.2.21, Compose BOM 2025.06.01.
-- compileSdk / targetSdk 36, minSdk 26, JDK 17. `applicationId com.kairos.app`.
+- AGP 9.4.0, Gradle 9.6.0, Kotlin 2.2.21, Compose BOM 2026.09.00.
+- compileSdk / targetSdk 37, minSdk 26, JDK 17. `applicationId com.kairos.app`.
 - Retrofit + OkHttp + `retrofit2-kotlinx-serialization-converter`, kotlinx.serialization.
-- DataStore (settings + token blob). Coil (`io.coil-kt:coil-compose:2.7.0`) for avatars.
+- DataStore (settings + token blob). Room 3 page cache (`data/local/KairosDatabase`).
+  Coil (`io.coil-kt:coil-compose:2.7.0`) for avatars. WorkManager, Glance (widget),
+  CameraX + ZXing for the invitation QR (no Google Play code).
 - Navigation-Compose type-safe routes. Manual DI (no Hilt).
 - Release APK is signed in CI (`.github/workflows/android.yml`) with secrets
   `KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`
@@ -133,20 +135,23 @@ web's own font files converted to TTF in `res/font/` (Bricolage cut to 600 and
 700). Titles and labels are a step heavier than Material's defaults. Plain
 `Text` picks it up through `MaterialTheme`; don't set `fontFamily` per screen.
 
-**Eight colour schemes plus a light/dark mode, per device** (`ui/theme/Theme.kt`).
+**Nine colour schemes, eight backgrounds and a light/dark mode, per device**
+(`ui/theme/Theme.kt`).
 The mode is `SettingsStore.themeMode`: SYSTEM (default; follows the phone),
 LIGHT or DARK — the old on/off `dark_mode` key still decides it for anyone who
 set it. `widgetPalette(scheme, dark)` hands the home-screen widget the same
 colours.
 `ThemeScheme` is the enum — TEAL (default), OLIVE, GREEN, BLUE, PURPLE, PINK,
-ORANGE, RED — resolved from a stored key with `ThemeScheme.fromKey`, and
+ORANGE, RED, GRAPHITE — resolved from a stored key with `ThemeScheme.fromKey`, and
 `KairosTheme(scheme, darkTheme)` picks `lightScheme(p)` / `darkScheme(p)` and
 publishes `KairosThemeState.accent` / `.sidebar` / `.dark` for non-Material
 surfaces. `MainActivity` reads both from `SettingsStore` and passes them in.
 Settings → Appearance also holds the 24-hour clock option. (The "light only,
 dark mode deliberately off" rule this file used to carry was superseded when the
-Settings epic shipped; the web has the same eight themes household-wide from
-Admin → Appearance.)
+Settings epic shipped; the web has the same colours household-wide from
+Admin → Appearance.) `BackgroundScheme` (CLASSIC, STONE, MIST, LINEN, SAGE,
+LAVENDER, BLUSH, TWOTONE) is chosen separately from the colour, each with a
+light and a dark set.
 
 ## Grocery and store icons
 

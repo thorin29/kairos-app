@@ -41,8 +41,8 @@ phone (`/auth/login`) and re-confirming after a credential change
 ## What the app does
 
 Mirrors each person's personal view of the household: Home dashboard, Calendar,
-Chores, Bible reading, Reading, School, Workouts, Shopping, Money, Game time,
-Ice time (hockey) and Characters. Beyond parity with the web personal view it
+Tasks, Chores, Bible reading, Reading, School, Workouts, Shopping, Money, Game
+time, Ice time (hockey), Characters and Summary. Beyond parity with the web personal view it
 adds:
 
 - **Offline-first.** Screens render from an on-device cache and work without a
@@ -51,7 +51,7 @@ adds:
 - **Settings** (gear by your name): your profile card on top (photo, framing
   and your colour, which syncs to the web and calendar), then **Account**
   (password, the devices signed in with Revoke, sign out), **Look & feel**
-  (dark mode, eight colour themes, 24-hour clock, the home-screen widget and
+  (System / Light / Dark, nine colours, eight backgrounds, 24-hour clock, the home-screen widget and
   the workout timer, all per device), **Notifications & reminders**,
   **Connected apps** (Concept2), **Parents** and **Help & about** (how scoring
   works, software update, diagnostics).
@@ -67,13 +67,18 @@ adds:
   It also has family WODs, pauses for sick, injured or away, and a body map
   with the training heat map. A running timer keeps going outside the app, as
   a notification and a small floating window.
+- **Summary**: the family goal and a week or month completion grid; parents
+  see everyone, kids see themselves.
+- **Guided tour** of the menu and every page, shown once and replayable from
+  Settings → Help & about.
 - **Companions** to raise through growth stages, deepen, and swap back in from
   the gallery.
 
 ## First-launch flow (this build)
 
 1. **Setup** — enter your server address; the app runs a `/meta` handshake.
-2. **Join** — type the invitation code a parent sent you; the app checks it
+2. **Join** — scan the invitation QR (it carries the server address, so step 1
+   is filled in for you) or type the code a parent sent you; the app checks it
    (`/auth/join/check`), asks you to create or confirm your password, then calls
    `/auth/join`, stores the token, and fetches `/me`.
 3. **Home** — the personal dashboard for whoever you enrolled as, with the full
@@ -82,8 +87,9 @@ adds:
 ## Tech
 
 Jetpack Compose (Material 3) · Navigation-Compose (type-safe routes) ·
-Retrofit + OkHttp · kotlinx.serialization · DataStore · Android Keystore ·
-manual DI. Versions are pinned in `gradle/libs.versions.toml`.
+Retrofit + OkHttp · kotlinx.serialization · Room (page cache) · DataStore ·
+WorkManager · Glance (widget) · CameraX + ZXing (QR scan, no Google Play code) ·
+Coil · Android Keystore · manual DI. Versions are pinned in `gradle/libs.versions.toml`.
 
 ## Network / server notes
 
