@@ -1,4 +1,8 @@
 # Changelog
+## 0.532.0
+
+- A movement on two workouts the same day stays on the first one. The later card shows it as "in Core" and no longer shows the first card's sets or how it felt. Needs server 0.736.
+
 ## 0.531.0
 
 - Docs only: README, ARCHITECTURE and RELEASING brought up to date. No change in the app.

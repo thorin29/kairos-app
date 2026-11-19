@@ -897,6 +897,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         title = r.title,
                         moves = com.kairos.app.ui.workout.decodeCoreMoves(r.moves),
                         late = r.late,
+                        note = r.note,
                         onDone = {
                             navController.previousBackStackEntry?.savedStateHandle?.set("setsSaved", true)
                             navController.popBackStack()

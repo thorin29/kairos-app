@@ -80,6 +80,8 @@ sealed interface Route {
         val title: String,
         val moves: String,
         val late: Boolean = false,
+        /** Movements left off because an earlier card has them today (v0.532). */
+        val note: String = "",
     ) : Route
 
     @Serializable

@@ -1188,6 +1188,8 @@ fun CoreWorkoutScreen(
     moves: List<CoreMoveRef>,
     late: Boolean,
     onDone: () -> Unit,
+    /** Movements left to an earlier card today (v0.532), one line. */
+    note: String = "",
     /** The plate calculator for a set (v0.515): label, weight, bar ("ez" or ""). */
     onOpenCalculator: (String, Double, String) -> Unit = { _, _, _ -> },
     /** The calculator's weight on the way back, for the movement it was opened from. */
@@ -1314,6 +1316,13 @@ fun CoreWorkoutScreen(
                     "${dayName(date)} · logging late",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (note.isNotEmpty()) {
+                Text(
+                    note,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             moves.forEachIndexed { i, m ->

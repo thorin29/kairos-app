@@ -66,6 +66,8 @@ data class MovementInput(
     val last: String = "",
     /** Sets logged but not finished (server 0.716): not done yet. */
     val open: Boolean = false,
+    /** On an earlier card today (server 0.736): that card's name. */
+    val repeatOf: String? = null,
 )
 
 /** One planned workout for the day (e.g. Core, Arms). A day can have several. */
@@ -335,6 +337,7 @@ class WorkoutLogViewModel(
                         summary = e.summary,
                         last = e.last,
                         open = e.open,
+                        repeatOf = e.repeatOf,
                     )
                 },
                 category = b.category,

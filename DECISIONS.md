@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — One movement, one card a day (v0.532.0, server 0.736.0)
+
+- The server marks a movement already on an earlier card that day with
+  `repeatOf`. The day page leaves it out of that card's group screen (so its
+  sets and "how did it feel" aren't loaded there), and the card's line and the
+  group screen say "Hollow hold in Core". `Route.CoreWorkout` gains `note`.
+
 ## 2026-11 — Docs match the app (v0.531.0, server 0.735.0)
 
 - README, ARCHITECTURE and RELEASING checked against the code: stack versions

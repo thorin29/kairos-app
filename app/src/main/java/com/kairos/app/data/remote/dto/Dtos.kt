@@ -1071,6 +1071,9 @@ data class PlannedMovementDto(
     val setCount: Int = 0,
     /** Sets logged but not finished (server 0.716): sets left, Log not pressed. */
     val open: Boolean = false,
+    /** Planned on an earlier card the same day (server 0.736): that card's
+     *  name. Off this card for the day; the server counts it as skipped. */
+    val repeatOf: String? = null,
     /** The day's sets in a few words: "5 sets · top 185 × 1". */
     val summary: String = "",
     /** Last time's sets in a few words, for a movement not done yet. */

@@ -227,7 +227,7 @@ fun WorkoutLogScreen(
                                 plannedWorkoutId = block.plannedWorkoutId,
                                 title = block.name,
                                 moves = encodeCoreMoves(
-                                    block.inputs.filter { it.tracked }.map { m ->
+                                    block.inputs.filter { it.tracked && it.repeatOf == null }.map { m ->
                                         CoreMoveRef(
                                             slotId = m.plannedExerciseId ?: m.poolExerciseId,
                                             name = m.swappedFromName ?: m.name,
@@ -238,6 +238,7 @@ fun WorkoutLogScreen(
                                     },
                                 ),
                                 late = day < today,
+                                note = repeatLine(block.inputs),
                             ),
                         )
                     }
@@ -1276,8 +1277,9 @@ private fun CoreDayCard(
     /** Added to this day only (v0.477): ✕ takes it off. */
     onRemove: (() -> Unit)? = null,
 ) {
-    val tracked = block.inputs.filter { it.tracked }
+    val tracked = block.inputs.filter { it.tracked && it.repeatOf == null }
     val done = tracked.count { (it.setCount > 0 || (it.logged && !it.skipped)) && !it.open }
+    val repeats = repeatLine(block.inputs)
     val colors = if (overdue) CardDefaults.outlinedCardColors(containerColor = overdueTint())
     else CardDefaults.outlinedCardColors()
     OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth(), colors = colors) {
@@ -1305,7 +1307,8 @@ private fun CoreDayCard(
                 }
                 Text(
                     lastTest ?: ("${tracked.size} " + (if (tracked.size == 1) "movement" else "movements") +
-                        if (done > 0) " \u00b7 $done logged" else ""),
+                        (if (done > 0) " \u00b7 $done logged" else "") +
+                        (if (repeats.isNotEmpty()) " \u00b7 $repeats" else "")),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1325,6 +1328,10 @@ private fun CoreDayCard(
         }
     }
 }
+
+/** "Hollow hold in Core": movements this card leaves to an earlier card today (v0.532). */
+internal fun repeatLine(inputs: List<MovementInput>): String =
+    inputs.filter { it.repeatOf != null }.joinToString(" \u00b7 ") { "${it.name} in ${it.repeatOf}" }
 
 private fun overdueTint(): Color = if (KairosThemeState.dark) Color(0xFF3A1A1E) else Color(0xFFFEF2F2)
 
