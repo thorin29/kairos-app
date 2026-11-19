@@ -3788,7 +3788,8 @@ data class AdjustRequest(
 @Serializable
 data class SummaryDto(
     val seasonName: String = "",
-    val familyGoal: FamilyGoalDto = FamilyGoalDto(),
+    /** Left out when asked with goal=0 (server 0.740); keep the last one. */
+    val familyGoal: FamilyGoalDto? = null,
     val view: String = "week",
     val from: String = "",
     val to: String = "",

@@ -727,6 +727,8 @@ interface ApiService {
         @Query("view") view: String,
         @Query("at") at: String?,
         @Query("f") filter: String,
+        /** "0": skip the family goal, the slow part (server 0.740+). */
+        @Query("goal") goal: String? = null,
     ): Response<com.kairos.app.data.remote.dto.SummaryDto>
 
     /** A person's day log from the grid (server 0.733+). */

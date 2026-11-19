@@ -1,4 +1,8 @@
 # Changelog
+## 0.536.0
+
+- Summary: the week and month arrows are quick. Weeks you've seen show straight away, the week before is fetched ahead of time, and the family goal is loaded once instead of every time. Needs server 0.740.
+
 ## 0.535.0
 
 - The side menu fits the screen without scrolling. Rows close up a little on shorter phones (never under 32dp), the logo bar is shorter, and the bottom is one row: you, the app version under your name, switch and collapse.

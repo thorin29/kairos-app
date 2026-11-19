@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Faster Summary weeks (v0.536.0, server 0.740.0)
+
+- `SummaryViewModel` keeps the ranges seen this visit (view|from|filter),
+  shows a cached one at once and refreshes it quietly, prefetches the range
+  before the one shown, and asks with `goal=0` after the first load (the family
+  goal is kept from that load). Only the newest request updates the screen.
+- `SummaryDto.familyGoal` is nullable; an older server always sends it.
+
 ## 2026-11 — A side menu that never scrolls (v0.535.0, server 0.739.0)
 
 - `KairosRail`: the section list sits in a `BoxWithConstraints`; row pitch is

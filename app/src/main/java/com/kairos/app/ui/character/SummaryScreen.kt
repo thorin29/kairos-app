@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kairos.app.data.remote.dto.CompletionDayDto
 import com.kairos.app.data.remote.dto.CompletionRowDto
 import com.kairos.app.data.remote.dto.DayLogDto
+import com.kairos.app.data.remote.dto.FamilyGoalDto
 import com.kairos.app.data.remote.dto.SummaryDto
 import com.kairos.app.data.session.SessionRepository
 import com.kairos.app.ui.common.LogoMenuButton
@@ -83,38 +84,76 @@ class SummaryViewModel(private val session: SessionRepository) : ViewModel() {
     private val _ui = MutableStateFlow(SummaryUiState())
     val ui: StateFlow<SummaryUiState> = _ui.asStateFlow()
 
-    init { load() }
+    /** Ranges already seen this visit, keyed view|from|filter (v0.535). The
+     *  arrows show one at once and refresh it quietly. */
+    private val cache = mutableMapOf<String, SummaryDto>()
+    private var goal: FamilyGoalDto? = null
+    private var seq = 0
 
-    fun load() {
+    init { load(at = null, withGoal = true) }
+
+    private fun key(view: String, from: String, filter: String) = "$view|$from|$filter"
+
+    /** Fetches a range; [at] null is the current one. Only the newest request
+     *  lands, and the range before it is fetched next so Back is instant. */
+    private fun load(at: String?, withGoal: Boolean) {
         val s = _ui.value
+        val mine = ++seq
         _ui.update { it.copy(loading = it.data == null, error = null) }
         viewModelScope.launch {
             try {
-                val d = session.loadSummary(view = s.view, at = s.at, filter = s.filter)
-                _ui.update { it.copy(loading = false, data = d) }
+                val d = session.loadSummary(view = s.view, at = at, filter = s.filter, withGoal = withGoal)
+                d.familyGoal?.let { goal = it }
+                val full = d.copy(familyGoal = goal)
+                cache[key(d.view, d.from, d.filter)] = full
+                if (mine == seq) _ui.update { it.copy(loading = false, data = full) }
+                prefetch(full, -1)
             } catch (e: Exception) {
-                _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load the summary.") }
+                if (mine == seq) _ui.update { it.copy(loading = false, error = e.message ?: "Couldn't load the summary.") }
             }
         }
     }
 
+    private fun startOf(d: SummaryDto, by: Int): String? {
+        val from = runCatching { LocalDate.parse(d.from) }.getOrNull() ?: return null
+        return (if (d.view == "month") from.plusMonths(by.toLong()) else from.plusWeeks(by.toLong())).toString()
+    }
+
+    private fun prefetch(d: SummaryDto, by: Int) {
+        val at = startOf(d, by) ?: return
+        if (cache.containsKey(key(d.view, at, d.filter))) return
+        viewModelScope.launch {
+            runCatching { session.loadSummary(view = d.view, at = at, filter = d.filter, withGoal = false) }
+                .onSuccess { p -> cache[key(p.view, p.from, p.filter)] = p.copy(familyGoal = goal) }
+        }
+    }
+
+    /** Shows a range from the cache straight away, then refreshes it. */
+    private fun go(at: String?) {
+        val s = _ui.value
+        val hit = at?.let { cache[key(s.view, it, s.filter)] }
+        if (hit != null) _ui.update { it.copy(data = hit.copy(familyGoal = goal)) }
+        load(at = at, withGoal = false)
+    }
+
+    fun load() = load(at = _ui.value.at, withGoal = true)
+
     fun setView(view: String) {
         _ui.update { it.copy(view = view, at = null) }
-        load()
+        go(null)
     }
 
     fun setFilter(f: String) {
         _ui.update { it.copy(filter = f) }
-        load()
+        go(_ui.value.data?.from)
     }
 
     /** One week or month back (-1) or on (+1). */
     fun shift(by: Int) {
         val d = _ui.value.data ?: return
-        val from = runCatching { LocalDate.parse(d.from) }.getOrNull() ?: return
-        val next = if (d.view == "month") from.plusMonths(by.toLong()) else from.plusWeeks(by.toLong())
-        _ui.update { it.copy(at = next.toString()) }
-        load()
+        val next = startOf(d, by) ?: return
+        _ui.update { it.copy(at = next) }
+        go(next)
     }
 
     fun openDay(row: CompletionRowDto, date: String) {
@@ -204,7 +243,7 @@ fun SummaryScreen(onOpenDrawer: () -> Unit, onOpenCoop: () -> Unit) {
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    FamilyGoalCard(data.familyGoal, onClick = onOpenCoop)
+                    data.familyGoal?.let { FamilyGoalCard(it, onClick = onOpenCoop) }
                     CompletionCard(data = data, ui = ui, vm = vm)
                 }
             }
