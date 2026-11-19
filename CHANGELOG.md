@@ -1,4 +1,8 @@
 # Changelog
+## 0.535.0
+
+- The side menu fits the screen without scrolling. Rows close up a little on shorter phones (never under 32dp), the logo bar is shorter, and the bottom is one row: you, the app version under your name, switch and collapse.
+
 ## 0.534.0
 
 - The note now reads "Hollow hold was removed because it is in another workout today."

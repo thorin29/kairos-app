@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import com.kairos.app.ui.theme.KairosThemeState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kairos.app.BuildConfig
 import com.kairos.app.data.remote.dto.PersonDto
@@ -90,7 +92,7 @@ fun KairosRail(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(56.dp)
                     .padding(start = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -110,15 +112,32 @@ fun KairosRail(
                 }
             }
 
-            Column(
+            // Rows share the height left (v0.535): 48dp each at most, 36 at
+            // least, so the menu fits without scrolling; below that it scrolls.
+            val sections = APP_SECTIONS.filter { it.key !in hiddenKeys }
+            BoxWithConstraints(
                 Modifier
                     .weight(1f)
-                    .tourTarget("rail.sections")
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .fillMaxWidth()
+                    .tourTarget("rail.sections"),
             ) {
-                APP_SECTIONS.filter { it.key !in hiddenKeys }.forEach { section ->
-                    RailRow(section, section.key == selectedKey, expanded) { onSection(section) }
+                val pitch = if (sections.isEmpty()) 48.dp
+                else ((maxHeight - 8.dp) / sections.size).coerceIn(36.dp, 48.dp)
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    sections.forEach { section ->
+                        RailRow(
+                            section = section,
+                            selected = section.key == selectedKey,
+                            expanded = expanded,
+                            rowHeight = pitch - 4.dp,
+                            onClick = { onSection(section) },
+                        )
+                    }
                 }
             }
 
@@ -149,43 +168,16 @@ fun KairosRail(
                     }
                 }
                 Box(Modifier.tourTarget("rail.profile")) {
-                    FooterPerson(person, expanded, onSignOut, onOpenSettings, updateAvailable)
+                    FooterPerson(
+                        person = person,
+                        expanded = expanded,
+                        onSignOut = onSignOut,
+                        onOpenSettings = onOpenSettings,
+                        updateAvailable = updateAvailable,
+                        onCollapse = onToggleExpanded,
+                    )
                 }
-                if (expanded) {
-                    // Collapse control on the left, version pinned far-right.
-                    Row(
-                        Modifier.fillMaxWidth().height(40.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(
-                            Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable(onClick = onToggleExpanded)
-                                .height(40.dp)
-                                .padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                KairosIcons.ChevronLeft, "Collapse",
-                                tint = OnSidebar.copy(alpha = 0.85f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                "Collapse",
-                                color = OnSidebar.copy(alpha = 0.85f),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        Text(
-                            "v${BuildConfig.VERSION_NAME}",
-                            color = OnSidebar.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(end = 6.dp),
-                        )
-                    }
-                } else {
+                if (!expanded) {
                     Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
                         Box(
                             Modifier
@@ -212,6 +204,7 @@ private fun RailRow(
     section: AppSection,
     selected: Boolean,
     expanded: Boolean,
+    rowHeight: Dp,
     onClick: () -> Unit,
 ) {
     val content = if (selected) section.color else OnSidebar.copy(alpha = 0.85f)
@@ -223,7 +216,7 @@ private fun RailRow(
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (selected) Color.White else Color.Transparent)
                 .clickable(onClick = onClick)
-                .height(44.dp)
+                .height(rowHeight)
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -242,7 +235,8 @@ private fun RailRow(
         Box(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
             Box(
                 Modifier
-                    .size(44.dp)
+                    .width(44.dp)
+                    .height(rowHeight)
                     .clip(RoundedCornerShape(12.dp))
                     .background(if (selected) Color.White else Color.Transparent)
                     .clickable(onClick = onClick),
@@ -261,6 +255,7 @@ private fun FooterPerson(
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
     updateAvailable: Boolean = false,
+    onCollapse: () -> Unit = {},
 ) {
     if (expanded) {
         Row(
@@ -293,21 +288,38 @@ private fun FooterPerson(
                     }
                 }
                 Spacer(Modifier.width(12.dp))
-                Text(
-                    person.name,
-                    color = OnSidebar,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                // Name with the app's version under it (v0.535).
+                Column {
+                    Text(
+                        person.name,
+                        color = OnSidebar,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "v${BuildConfig.VERSION_NAME}",
+                        color = OnSidebar.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                    )
+                }
             }
-            IconButton(onClick = onSignOut) {
+            IconButton(onClick = onSignOut, modifier = Modifier.size(40.dp)) {
                 Icon(
                     KairosIcons.Switch,
                     contentDescription = "Sign out / switch",
                     tint = OnSidebar.copy(alpha = 0.85f),
                     modifier = Modifier.size(22.dp),
+                )
+            }
+            IconButton(onClick = onCollapse, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    KairosIcons.ChevronLeft,
+                    contentDescription = "Collapse",
+                    tint = OnSidebar.copy(alpha = 0.85f),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }

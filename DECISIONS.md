@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — A side menu that never scrolls (v0.535.0, server 0.739.0)
+
+- `KairosRail`: the section list sits in a `BoxWithConstraints`; row pitch is
+  `(maxHeight - 8dp) / sections`, held between 36 and 48dp (rows 32–44). The
+  scroll stays as a fallback below that. "Update available" takes ~36dp and
+  the rows absorb it.
+- Header 64 → 56dp. The open footer is one row: avatar, name with
+  `v${VERSION_NAME}` under it, switch, collapse; the separate Collapse/version
+  row is gone. Collapsed is unchanged.
+
 ## 2026-11 — Repeat wording, again (v0.534.0, server 0.738.0)
 
 - `repeatLine` now says "…was removed because it is in another workout today."
