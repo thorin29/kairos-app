@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Repeat wording, again (v0.534.0, server 0.738.0)
+
+- `repeatLine` now says "…was removed because it is in another workout today."
+  The other workout may not be done yet, so "already completed" was wrong.
+
+## 2026-11 — Repeat wording (v0.533.0, server 0.737.0)
+
+- `repeatLine` now builds "X was removed because it was already completed
+  today." (or "X and Y were…"); the card shows it on its own line.
+
 ## 2026-11 — One movement, one card a day (v0.532.0, server 0.736.0)
 
 - The server marks a movement already on an earlier card that day with

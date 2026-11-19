@@ -1,4 +1,12 @@
 # Changelog
+## 0.534.0
+
+- The note now reads "Hollow hold was removed because it is in another workout today."
+
+## 0.533.0
+
+- A workout that leaves out a movement done earlier today says "Hollow hold was removed because it was already completed today." on its card and its screen.
+
 ## 0.532.0
 
 - A movement on two workouts the same day stays on the first one. The later card shows it as "in Core" and no longer shows the first card's sets or how it felt. Needs server 0.736.

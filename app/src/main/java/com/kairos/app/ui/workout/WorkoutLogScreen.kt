@@ -1307,8 +1307,8 @@ private fun CoreDayCard(
                 }
                 Text(
                     lastTest ?: ("${tracked.size} " + (if (tracked.size == 1) "movement" else "movements") +
-                        (if (done > 0) " \u00b7 $done logged" else "") +
-                        (if (repeats.isNotEmpty()) " \u00b7 $repeats" else "")),
+                        (if (done > 0) " \u00b7 $done logged" else "")) +
+                        (if (repeats.isNotEmpty()) "\n$repeats" else ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1329,9 +1329,14 @@ private fun CoreDayCard(
     }
 }
 
-/** "Hollow hold in Core": movements this card leaves to an earlier card today (v0.532). */
-internal fun repeatLine(inputs: List<MovementInput>): String =
-    inputs.filter { it.repeatOf != null }.joinToString(" \u00b7 ") { "${it.name} in ${it.repeatOf}" }
+/** "Hollow hold was removed because it is in another workout today." (v0.532, wording v0.534) */
+internal fun repeatLine(inputs: List<MovementInput>): String {
+    val names = inputs.filter { it.repeatOf != null }.map { it.name }
+    if (names.isEmpty()) return ""
+    val list = if (names.size <= 2) names.joinToString(" and ") else names.dropLast(1).joinToString(", ") + " and " + names.last()
+    return if (names.size == 1) "$list was removed because it is in another workout today."
+    else "$list were removed because they are in another workout today."
+}
 
 private fun overdueTint(): Color = if (KairosThemeState.dark) Color(0xFF3A1A1E) else Color(0xFFFEF2F2)
 
