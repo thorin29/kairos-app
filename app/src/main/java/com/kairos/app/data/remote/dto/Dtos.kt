@@ -1221,6 +1221,8 @@ data class FamilyWodDto(
     val type: String = "",
     val typeLabel: String = "",
     val movements: List<String> = emptyList(),
+    /** Each line's movement name, for its ⓘ (server 0.743). */
+    val moveNames: List<String> = emptyList(),
     val members: List<FamilyWodMemberDto> = emptyList(),
     val who: String = "",
     val mine: String? = null,
@@ -1254,6 +1256,8 @@ data class FamilyWodChoiceDto(
     val kind: String? = null,
     /** What it is, for its ⓘ (server 0.680+). */
     val movements: List<String> = emptyList(),
+    /** Each line's movement name, for its ⓘ (server 0.743). */
+    val moveNames: List<String> = emptyList(),
     val about: String? = null,
 )
 

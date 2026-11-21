@@ -1,4 +1,8 @@
 # Changelog
+## 0.537.0
+
+- Every movement in a conditioning workout, a Family WOD and the core, arms and holds lists has its ⓘ with the how-to and Watch how.
+
 ## 0.536.0
 
 - Summary: the week and month arrows are quick. Weeks you've seen show straight away, the week before is fetched ahead of time, and the family goal is loaded once instead of every time. Needs server 0.740.

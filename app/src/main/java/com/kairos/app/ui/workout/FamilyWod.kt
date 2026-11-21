@@ -310,7 +310,12 @@ fun FamilyWodScreen(
                         Text(next.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                         Text(next.typeLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(next.who, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        next.movements.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                        next.movements.forEachIndexed { i, line ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                                MovementInfoByName(name = next.moveNames.getOrNull(i).orEmpty())
+                            }
+                        }
                         if (next.mine == null) {
                             Button(onClick = { act(FamilyWodRequest(join = next.id, on = true)) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Join") }
                         } else if (next.mine == "JOINED" && next.logged == 0) {
@@ -405,7 +410,12 @@ private fun WodInfoDialog(c: FamilyWodChoiceDto, onDismiss: () -> Unit) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(c.typeLabel + (c.minutes?.let { " · about $it min" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            c.movements.forEach { Text(it) }
+            c.movements.forEachIndexed { i, line ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                    MovementInfoByName(name = c.moveNames.getOrNull(i).orEmpty())
+                }
+            }
             c.about?.let { Text(it) }
         }
     }

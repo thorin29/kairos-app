@@ -88,7 +88,12 @@ internal fun ConditioningCard(
             if (workout.scaled != null) {
                 VersionToggle(value = version, onChange = { version = it })
             }
-            movements.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
+            movements.forEach { m ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(m.line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                    MovementInfoByName(name = m.name)
+                }
+            }
             val meta = listOfNotNull(
                 workout.today?.let { "Today: $it" },
                 workout.last?.let { "Your last: $it" },

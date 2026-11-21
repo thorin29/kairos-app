@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.nav.KairosIcons
 import java.net.URLEncoder
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.sync.withLock
 
 /** A video search for how a movement is done (same link as the web). */
 internal fun watchUrl(name: String): String =
@@ -91,3 +94,38 @@ internal fun MovementAboutInline(name: String, about: String?) {
     }
 }
 
+
+/** How-tos by movement name, from the shared pool, loaded once (v0.537). */
+private object MovementAbouts {
+    private var byName: Map<String, String?>? = null
+    private val lock = kotlinx.coroutines.sync.Mutex()
+
+    suspend fun of(session: com.kairos.app.data.session.SessionRepository, name: String): String? {
+        val map = lock.withLock {
+            byName ?: runCatching { session.loadWorkoutPool().exercises.associate { it.name.lowercase() to it.about } }
+                .getOrNull()
+                ?.also { byName = it }
+        }
+        return map?.get(name.trim().lowercase())
+    }
+}
+
+/** ⓘ for a movement known only by name (conditioning workouts, Family WOD,
+ *  core lists): opens the how-to and "Watch how" (v0.537). */
+@Composable
+internal fun MovementInfoByName(
+    name: String,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    if (name.isBlank()) return
+    val container = com.kairos.app.ui.common.rememberContainer()
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var about by androidx.compose.runtime.remember(name) { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    MovementInfoButton(name = name, onClick = { open = true }, tint = tint)
+    if (open) {
+        androidx.compose.runtime.LaunchedEffect(name) {
+            about = MovementAbouts.of(container.sessionRepository, name)
+        }
+        MovementInfoDialog(name = name, about = about, onDismiss = { open = false })
+    }
+}

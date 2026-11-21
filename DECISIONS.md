@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — ⓘ on every movement list (v0.537.0, server 0.743.0)
+
+- `MovementInfoByName` (MovementInfo.kt): the ⓘ for lists that only carry a
+  name. The how-to comes from the shared pool (`workouts/pool`), loaded once
+  per app run. Added to ConditioningCard, ConditioningPicker (both lists),
+  Family WOD (day and choice, using `moveNames`) and the core workout peek.
+
 ## 2026-11 — Faster Summary weeks (v0.536.0, server 0.740.0)
 
 - `SummaryViewModel` keeps the ranges seen this visit (view|from|filter),

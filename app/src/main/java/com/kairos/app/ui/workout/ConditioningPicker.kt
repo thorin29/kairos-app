@@ -220,7 +220,12 @@ private fun RunWorkout(
         if (scaled != null) {
             VersionToggle(value = version, onChange = { version = it })
         }
-        movements.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
+        movements.forEach { m ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(m.line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                MovementInfoByName(name = m.name)
+            }
+        }
         if (meta.isNotEmpty()) {
             Text(
                 meta.joinToString(" · "),
@@ -449,7 +454,12 @@ internal fun ConditioningPage(
                 else -> OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(w.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        built?.movements?.forEach { m -> Text(m.line, style = MaterialTheme.typography.bodyMedium) }
+                        built?.movements?.forEach { m ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(m.line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                                MovementInfoByName(name = m.name)
+                            }
+                        }
                     }
                 }
             }

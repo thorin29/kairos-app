@@ -212,12 +212,15 @@ internal fun CoreRotationPicker(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 w.moves.forEach { m ->
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(
-                            m.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                m.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            MovementInfoByName(name = m.name)
+                        }
                         Text(
                             m.label,
                             style = MaterialTheme.typography.bodyMedium,
