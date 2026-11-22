@@ -65,6 +65,11 @@ import com.kairos.app.ui.common.AnimatedDialog
 /** The weekly-training colours (v0.481), so a kind reads the same everywhere. */
 // v0.496: Weekly training's Cardio and Conditioning colours.
 internal val CARDIO_COLOR = Color(0xFF0EA5E9)
+
+/** A cardio kind's colour from the server ("#rrggbb", server 0.745+), else
+ *  the one Cardio blue. */
+private fun cardioKindColor(hex: String): Color =
+    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(CARDIO_COLOR)
 internal val CONDITIONING_COLOR = Color(0xFFC026D3)
 private val EASY_SHADE = Color(0xFF9FD9F6)
 private val HARD_SHADE = Color(0xFF075985)
@@ -128,7 +133,14 @@ private fun SmallCaps(text: String, modifier: Modifier = Modifier) {
 
 /** Twelve weekly bars with dates under them. */
 @Composable
-private fun WeekBars(values: List<Double>, starts: List<String>, color: Color, height: Dp) {
+private fun WeekBars(
+    values: List<Double>,
+    starts: List<String>,
+    color: Color,
+    height: Dp,
+    /** Each week split by kind, bottom first (v0.540): white lines between. */
+    parts: List<List<Pair<Double, Color>>> = emptyList(),
+) {
     val max = maxOf(1.0, values.maxOrNull() ?: 1.0)
     val line = MaterialTheme.colorScheme.outlineVariant
     Column(Modifier.fillMaxWidth()) {
@@ -136,9 +148,22 @@ private fun WeekBars(values: List<Double>, starts: List<String>, color: Color, h
             val n = values.size.coerceAtLeast(1)
             val gap = 4.dp.toPx()
             val bw = (size.width - gap * (n - 1)) / n
+            val seam = 1.dp.toPx()
             values.forEachIndexed { i, v ->
                 val h = (v / max).toFloat() * size.height
-                if (v > 0) drawRect(color, topLeft = Offset(i * (bw + gap), size.height - h), size = androidx.compose.ui.geometry.Size(bw, maxOf(h, 2f)))
+                val split = parts.getOrNull(i).orEmpty().filter { it.first > 0 }
+                val sum = split.sumOf { it.first }
+                if (v > 0 && split.isNotEmpty() && sum > 0) {
+                    var bottom = size.height
+                    split.forEachIndexed { j, (amount, c) ->
+                        val sh = (amount / sum).toFloat() * maxOf(h, 2f)
+                        drawRect(c, topLeft = Offset(i * (bw + gap), bottom - sh), size = androidx.compose.ui.geometry.Size(bw, sh))
+                        if (j > 0) drawRect(Color.White, topLeft = Offset(i * (bw + gap), bottom - seam / 2), size = androidx.compose.ui.geometry.Size(bw, seam))
+                        bottom -= sh
+                    }
+                } else if (v > 0) {
+                    drawRect(color, topLeft = Offset(i * (bw + gap), size.height - h), size = androidx.compose.ui.geometry.Size(bw, maxOf(h, 2f)))
+                }
             }
             drawLine(line, Offset(0f, size.height), Offset(size.width, size.height), 1.5f)
         }
@@ -184,7 +209,12 @@ internal fun CardioChartCard(data: CardioChartsDto, onOpen: () -> Unit) {
                     Text("${data.thisWeek.minutes} min", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     if (data.thisWeek.lines.isNotEmpty()) {
                         data.thisWeek.lines.forEach { l ->
-                            Text(l.label + " · " + l.detail, style = MaterialTheme.typography.labelMedium, color = muted)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (l.color.isNotEmpty()) {
+                                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(cardioKindColor(l.color)))
+                                }
+                                Text(l.label + " · " + l.detail, style = MaterialTheme.typography.labelMedium, color = muted)
+                            }
                         }
                     } else {
                         data.last?.let { Text("Last: " + it.label + " · " + dayLong(it.date), style = MaterialTheme.typography.labelMedium, color = muted) }
@@ -192,7 +222,13 @@ internal fun CardioChartCard(data: CardioChartsDto, onOpen: () -> Unit) {
                 }
                 Chevron()
             }
-            WeekBars(values = data.weeks.map { it.minutes.toDouble() }, starts = data.weeks.map { it.start }, color = CARDIO_COLOR, height = 48.dp)
+            WeekBars(
+                values = data.weeks.map { it.minutes.toDouble() },
+                starts = data.weeks.map { it.start },
+                color = CARDIO_COLOR,
+                height = 48.dp,
+                parts = data.weeks.map { w -> w.parts.map { p -> p.minutes.toDouble() to cardioKindColor(p.color) } },
+            )
         }
     }
 }
@@ -304,7 +340,7 @@ internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
                 } else {
                     SmallCaps(volTitle)
                     Spacer(Modifier.height(8.dp))
-                    WeekBars(values = a.weeks.map { it.value }, starts = a.weeks.map { it.start }, color = CARDIO_COLOR, height = 90.dp)
+                    WeekBars(values = a.weeks.map { it.value }, starts = a.weeks.map { it.start }, color = if (a.color.isEmpty()) CARDIO_COLOR else cardioKindColor(a.color), height = 90.dp)
                 }
             }
         }
@@ -363,7 +399,7 @@ internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
                 Column(Modifier.padding(12.dp)) {
                     SmallCaps(volTitle)
                     Spacer(Modifier.height(8.dp))
-                    WeekBars(values = a.weeks.map { it.value }, starts = a.weeks.map { it.start }, color = CARDIO_COLOR, height = 90.dp)
+                    WeekBars(values = a.weeks.map { it.value }, starts = a.weeks.map { it.start }, color = if (a.color.isEmpty()) CARDIO_COLOR else cardioKindColor(a.color), height = 90.dp)
                 }
             }
         }

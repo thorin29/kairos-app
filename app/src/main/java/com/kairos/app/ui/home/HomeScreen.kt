@@ -76,6 +76,7 @@ import com.kairos.app.data.remote.dto.PersonDto
 import com.kairos.app.data.remote.dto.ReadingProgressDto
 import com.kairos.app.data.remote.dto.SchoolCardProgressDto
 import com.kairos.app.data.remote.dto.TaskDto
+import com.kairos.app.data.remote.dto.WorkoutBlocksDto
 import com.kairos.app.data.remote.dto.UpForGrabsDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.AnimatedDialog
@@ -355,6 +356,7 @@ private fun DashboardContent(
                                 rest = d.workoutRest,
                                 extraLogged = d.workoutExtraLogged,
                                 remaining = d.workoutRemaining.orEmpty(),
+                                blocks = d.workoutBlocks,
                                 onOpen = { onLogWorkout(d.date) },
                             )
                         }
@@ -725,19 +727,35 @@ private fun WorkoutSummaryCard(
     extraLogged: Boolean = false,
     /** Started and not finished (v0.516): what's left, in place of the names. */
     remaining: List<String> = emptyList(),
+    /** Two or more workouts today (v0.540): "1 of 2 workouts"; a skipped one counts. */
+    blocks: WorkoutBlocksDto? = null,
     onOpen: () -> Unit,
 ) {
     // A rest day reads "Rest day!" (v0.460): the plan's Rest, or Rest / skip
     // pressed. A skipped day where something else got done (a game, another
     // workout) reads "Complete for today!" instead.
-    val restDay = rest != null && !(rest == "skipped" && extraLogged)
+    val restDay = blocks == null && rest != null && !(rest == "skipped" && extraLogged)
     val todayNames = if (rest != null) emptyList() else today.filter { it.status != "COMPLETE" }.map { it.title }
     // What else the day holds, under the title (server 0.628+): conditioning,
     // cardio, a game on the calendar ("Hockey game 7:30 PM").
     val extras = today.mapNotNull { it.subtitle?.takeIf { s -> s.isNotBlank() } }.distinct()
     val hadWork = today.isNotEmpty() || overdueCount > 0
     val completeForToday =
-        !restDay && todayNames.isEmpty() && overdueCount == 0 && (hadWork || (rest == "skipped" && extraLogged))
+        if (blocks != null) {
+            blocks.done >= blocks.total && overdueCount == 0
+        } else {
+            !restDay && todayNames.isEmpty() && overdueCount == 0 && (hadWork || (rest == "skipped" && extraLogged))
+        }
+    val blocksLine: @Composable () -> Unit = {
+        if (blocks != null) {
+            Text(
+                "${blocks.done} of ${blocks.total} workouts",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
     Column {
         SectionHeader("Workouts", "EXERCISE")
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
@@ -771,6 +789,7 @@ private fun WorkoutSummaryCard(
                             color = ChoresGreen,
                         )
                     } else if (remaining.isNotEmpty()) {
+                        blocksLine()
                         // Started, not finished: what's remaining, two per line.
                         Text(
                             "Remaining",
@@ -793,6 +812,7 @@ private fun WorkoutSummaryCard(
                             )
                         }
                     } else {
+                        blocksLine()
                         // Today's workout names, up to two per line, "·"-separated.
                         todayNames.chunked(2).forEach { pair ->
                             Text(
@@ -801,7 +821,7 @@ private fun WorkoutSummaryCard(
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
-                        if (todayNames.isEmpty() && overdueCount == 0) {
+                        if (todayNames.isEmpty() && overdueCount == 0 && blocks == null) {
                             Text(
                                 "No workout today",
                                 style = MaterialTheme.typography.bodyMedium,

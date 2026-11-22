@@ -151,6 +151,8 @@ data class DashboardDto(
     val workoutExtraLogged: Boolean = false,
     /** Started, not finished (server 0.716): what's left. Null otherwise. */
     val workoutRemaining: List<String>? = null,
+    /** Two or more workouts today (server 0.745+): how many are done or skipped. */
+    val workoutBlocks: WorkoutBlocksDto? = null,
     val reading: List<ReadingProgressDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
@@ -633,7 +635,7 @@ data class CardioEntryDto(
     val hurt: String? = null,
 )
 
-/** POST workouts/cardio. activity: row, run, ruck, jump_rope, bike, other. */
+/** POST workouts/cardio. activity: row, run, ruck, hike, walk, jump_rope, bike, other. */
 @Serializable
 data class CardioLogRequest(
     val date: String,
@@ -1003,6 +1005,9 @@ data class TrainingWeekDto(
     val kinds: TrainingKindsDto? = null,
     /** Workout days the plan had that week (server 0.671+). */
     val planned: Int = 0,
+    /** Planned parts plus sport events (server 0.745+): the chart's Planned
+     *  line; null before they were saved or from an older server. */
+    val plannedParts: Int? = null,
     /** Sunday to Saturday (server 0.671+). */
     val dayList: List<TrainingDayDto> = emptyList(),
 )
@@ -1305,6 +1310,9 @@ data class WorkoutPauseRequest(val reason: String? = null, val until: String? = 
 @Serializable
 data class SoreListDto(val sore: List<SoreSpotDto> = emptyList())
 
+@Serializable
+data class WorkoutBlocksDto(val done: Int = 0, val total: Int = 0)
+
 /** Cardio by activity (server 0.674+). */
 @Serializable
 data class CardioChartsDto(
@@ -1314,14 +1322,19 @@ data class CardioChartsDto(
     val last: CardioLastDto? = null,
 )
 
+/** parts: each kind's minutes that week, bottom first (server 0.745+). */
 @Serializable
-data class WeekMinutesDto(val start: String = "", val minutes: Int = 0)
+data class WeekMinutesDto(val start: String = "", val minutes: Int = 0, val parts: List<CardioPartDto> = emptyList())
+
+/** color: "#rrggbb" (server 0.745+). */
+@Serializable
+data class CardioPartDto(val key: String = "", val minutes: Int = 0, val color: String = "")
 
 @Serializable
 data class CardioThisWeekDto(val minutes: Int = 0, val lines: List<CardioLineDto> = emptyList())
 
 @Serializable
-data class CardioLineDto(val label: String = "", val detail: String = "")
+data class CardioLineDto(val key: String = "", val label: String = "", val detail: String = "", val color: String = "")
 
 @Serializable
 data class CardioLastDto(val date: String = "", val label: String = "")
@@ -1331,6 +1344,8 @@ data class CardioLastDto(val date: String = "", val label: String = "")
 data class CardioActivityDto(
     val key: String = "",
     val label: String = "",
+    /** "#rrggbb" (server 0.745+); empty from an older server. */
+    val color: String = "",
     val measure: String = "min",
     val weeks: List<WeekValueDto> = emptyList(),
     val thisWeek: CardioActivityWeekDto = CardioActivityWeekDto(),

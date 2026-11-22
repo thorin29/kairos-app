@@ -420,7 +420,7 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
     fun colorOf(key: String): Color = WEEK_KINDS.firstOrNull { it.key == key }?.color ?: accent
     fun total(w: com.kairos.app.data.remote.dto.TrainingWeekDto): Int =
         WEEK_KINDS.sumOf { kindCount(w.kinds, it.key) }.takeIf { it > 0 } ?: w.days
-    val max = maxOf(7, t.weeks.maxOfOrNull { maxOf(total(it), it.planned) } ?: 0)
+    val max = maxOf(7, t.weeks.maxOfOrNull { maxOf(total(it), it.plannedParts ?: 0) } ?: 0)
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val ink = MaterialTheme.colorScheme.onSurface
     val used = WEEK_KINDS.filter { k -> t.weeks.any { kindCount(it.kinds, k.key) > 0 } }
@@ -464,8 +464,10 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
                             drawRect(colorOf(k.key), topLeft = Offset(0f, y - hh), size = Size(size.width, (hh - 1.dp.toPx()).coerceAtLeast(1f)))
                             y -= hh
                         }
-                        if (w.planned > 0) {
-                            val py = h - w.planned * unit
+                        // Planned parts plus sport events (v0.540); none before they were saved.
+                        val plannedLine = w.plannedParts ?: 0
+                        if (plannedLine > 0) {
+                            val py = h - plannedLine * unit
                             drawLine(
                                 muted.copy(alpha = 0.7f),
                                 Offset(0f, py),
@@ -495,7 +497,7 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
                         Text(" " + k.label, style = MaterialTheme.typography.labelSmall, color = muted)
                     }
                 }
-                Text("- - Planned days", style = MaterialTheme.typography.labelSmall, color = muted)
+                Text("- - Planned", style = MaterialTheme.typography.labelSmall, color = muted)
             }
             t.weeks.getOrNull(picked)?.let { w ->
                 androidx.compose.material3.HorizontalDivider()

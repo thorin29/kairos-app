@@ -60,6 +60,8 @@ private val CARDIO_KINDS = listOf(
     CardioKind(key = "row", label = "Row", meters = true),
     CardioKind(key = "run", label = "Run", distance = true),
     CardioKind(key = "ruck", label = "Ruck", distance = true, load = true),
+    CardioKind(key = "hike", label = "Hike", distance = true),
+    CardioKind(key = "walk", label = "Walk", distance = true),
     CardioKind(key = "jump_rope", label = "Jump rope"),
     CardioKind(key = "bike", label = "Bike", distance = true),
     CardioKind(key = "other", label = "Other"),

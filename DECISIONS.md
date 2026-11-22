@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Cardio colours and x of y (v0.540.0, server 0.745.0)
+
+- `WeekBars` (EnduranceCharts.kt) takes `parts`: each week's kinds stacked
+  bottom first with 1dp white seams. Colours come from the server as hex
+  (`CardioPartDto.color`, `CardioLineDto.color`, `CardioActivityDto.color`),
+  parsed by `cardioKindColor`, which falls back to the one Cardio blue.
+- `WorkoutSummaryCard` takes `blocks` (`DashboardDto.workoutBlocks`): with it,
+  "N of M workouts" heads the remaining or the names, Complete for today!
+  needs all of them done or skipped, and Rest day doesn't show.
+- Weekly training draws the Planned line from `plannedParts` (null: none);
+  `planned` stays for "x of y planned days".
+- Cardio kinds add Hike and Walk (distance).
+
 ## 2026-11 — Build fix for workouts as blocks (v0.539.0, server 0.744.0)
 
 - 0.538.0 did not compile: `DayWorkouts.kt` declared `clockText(min)` and

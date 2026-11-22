@@ -1,4 +1,11 @@
 # Changelog
+## 0.540.0
+
+- Cardio: each week's bar is split by type in its own colour, with sport in green, and each line this week has its colour. Hike and Walk are new in Add cardio.
+- Home: on a day with two or more workouts the Workouts card shows "1 of 2 workouts"; a skipped one counts.
+- Weekly training: the Planned line counts planned parts and sport events, saved each day from now on.
+- Needs server 0.745.
+
 ## 0.539.0
 
 - Fixes the 0.538 build: two names in the new workouts list clashed with existing ones. Same features as 0.538. Needs server 0.744.
