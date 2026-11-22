@@ -123,6 +123,10 @@ fun WorkoutLogScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showAdjust by remember { mutableStateOf(false) }
     var editSport by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
+    // Which of the day's workouts is open (v0.538): null lets the day decide,
+    // "list" is Today's workouts, "plan" the planned workout, else a sport.
+    var pick by remember(ui.date) { mutableStateOf<String?>(null) }
+    var timeOpen by remember { mutableStateOf(false) }
     // Which card's movement launched the calculator, so its returned weight goes
     // to the right input.
     // Survives navigating to the calculator and back (a plain remember is wiped
@@ -243,10 +247,128 @@ fun WorkoutLogScreen(
                         )
                     }
 
+                    // A day still to come has nothing done yet: no bar (v0.462).
+                    val planProgress = if (future) 0 to 0 else dayProgress(todayBlocks.filter { !it.extra }).let { (d, t) ->
+                        // Warm-up and Cardio plans count like any block; what was
+                        // added to the day only (v0.477) doesn't.
+                        val planned = ui.simple.filter { !it.extra }
+                        (d + planned.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
+                            (t + planned.size + ui.picks.size)
+                    }
+                    // The day's workouts (v0.538): the planned one and each sport
+                    // event, in time order. Two or more and the list shows until
+                    // only one is still open.
+                    val hasPlan = !ui.restPlanned && !ui.rested && (todayBlocks.any { !it.extra } || ui.simple.any { !it.extra } || ui.picks.isNotEmpty())
+                    val dayBlocks = orderDayBlocks(
+                        listOfNotNull(if (hasPlan) DayBlockUi(key = "plan", time = ui.workoutTime?.time) else null) +
+                            ui.sports.map { DayBlockUi(key = it.eventId, time = it.start, sport = it) },
+                    )
+                    val openKeys = dayBlocks.filter { b ->
+                        b.sport?.let { it.state == "open" } ?: (planProgress.first < planProgress.second)
+                    }.map { it.key }
+                    val view = when {
+                        dayBlocks.size < 2 -> dayBlocks.firstOrNull()?.key ?: "plan"
+                        pick == "list" || dayBlocks.any { it.key == pick } -> pick!!
+                        openKeys.size == 1 -> openKeys[0]
+                        else -> "list"
+                    }
+                    androidx.activity.compose.BackHandler(enabled = dayBlocks.size >= 2 && view != "list") { pick = "list" }
+                    if (dayBlocks.size >= 2 && view != "list") {
+                        TextButton(onClick = { pick = "list" }) { Text("\u2190 Today\u2019s workouts") }
+                    }
+                    if (view == "list") {
+                        ui.date?.let { d ->
+                            DayHeader(
+                                date = d,
+                                today = today,
+                                title = "${dayBlocks.size} workouts",
+                                progress = 0 to 0,
+                                strip = ui.strip,
+                                onPickDate = { showDatePicker = true },
+                                onPickDay = { vm.setDate(it) },
+                                stripPage = { ui.stripPages[it] },
+                                onNeedPage = { vm.loadStripPage(it) },
+                                onToday = { ui.strip?.today?.let { vm.setDate(it) } },
+                            )
+                        }
+                        DayWorkoutsList(
+                            blocks = dayBlocks,
+                            planTitle = ui.title.ifBlank { ui.planName ?: "Workout" },
+                            planParts = daySections(todayBlocks.filter { !it.extra }, ui.order.ifEmpty { DEFAULT_ORDER }, ui.simple.filter { !it.extra }.map { simpleSection(it.category) }.toSet())
+                                .map { it.title },
+                            planDone = planProgress.first,
+                            planTotal = planProgress.second,
+                            onOpen = { pick = it },
+                            onTime = { timeOpen = true },
+                            onAnswer = { id, went -> vm.answerSport(eventId = id, went = went) },
+                        )
+                        if (timeOpen) {
+                            WorkoutTimeDialog(
+                                time = ui.workoutTime?.time,
+                                usual = ui.workoutTime?.usual,
+                                onSave = { t ->
+                                    timeOpen = false
+                                    vm.setWorkoutTime(time = t)
+                                },
+                                onDismiss = { timeOpen = false },
+                            )
+                        }
+                        return@Column
+                    }
+                    val openSport = ui.sports.firstOrNull { it.eventId == view }
+                    if (openSport != null) {
+                        SportPage(
+                            sport = openSport,
+                            onAnswer = { vm.answerSport(eventId = openSport.eventId, went = it) },
+                            onEdit = {
+                                editSport = com.kairos.app.data.remote.dto.LoggedOtherDto(
+                                    name = openSport.title,
+                                    label = openSport.title,
+                                    sport = com.kairos.app.data.remote.dto.SportSessionDto(
+                                        sessionId = openSport.sessionId.orEmpty(),
+                                        minutes = openSport.minutes,
+                                        flexTime = openSport.flexTime,
+                                        effort = openSport.effort,
+                                        hurt = openSport.hurt,
+                                    ),
+                                )
+                            },
+                            warmup = {
+                                val sd = ui.sportDay
+                                val sr = sd?.routine
+                                if (sd != null && sr != null) {
+                                    SportWarmupCard(
+                                        label = sd.label,
+                                        routine = sr,
+                                        state = sd.state,
+                                        onState = { vm.setSportWarmupState(state = it) },
+                                    )
+                                }
+                            },
+                        )
+                        editSport?.let { g ->
+                            val sp = g.sport
+                            if (sp != null) {
+                                SportEditDialog(
+                                    title = g.label ?: g.name,
+                                    sport = sp,
+                                    onSave = { minutes, effort, hurt ->
+                                        vm.editSport(sessionId = sp.sessionId, minutes = minutes, effort = effort, hurt = hurt)
+                                        editSport = null
+                                    },
+                                    onDismiss = { editSport = null },
+                                )
+                            }
+                        }
+                        return@Column
+                    }
+
                     ui.date?.let { d ->
                         DayHeader(
                             date = d,
                             today = today,
+                            time = if (hasPlan && !future) ui.workoutTime?.time else null,
+                            onTime = if (hasPlan && !future) ({ timeOpen = true }) else null,
                             title = ui.title.ifBlank {
                                 ui.planName ?: when {
                                     todayBlocks.isNotEmpty() -> "Workout"
@@ -257,14 +379,7 @@ fun WorkoutLogScreen(
                             },
                             logged = ui.loggedAny,
                             planned = todayBlocks.isNotEmpty() || ui.simple.isNotEmpty() || ui.picks.isNotEmpty(),
-                            // A day still to come has nothing done yet: no bar (v0.462).
-                            progress = if (future) 0 to 0 else dayProgress(todayBlocks.filter { !it.extra }).let { (d, t) ->
-                                // Warm-up and Cardio plans count like any block; what was
-                                // added to the day only (v0.477) doesn't.
-                                val planned = ui.simple.filter { !it.extra }
-                                (d + planned.count { it.done || it.skipped } + ui.picks.count { it.done.isNotEmpty() || it.skipped }) to
-                                    (t + planned.size + ui.picks.size)
-                            },
+                            progress = planProgress,
                             strip = ui.strip,
                             programLine = ui.programLine,
                             light = ui.light,
@@ -327,6 +442,17 @@ fun WorkoutLogScreen(
                                 onDismiss = { editSport = null },
                             )
                         }
+                    }
+                    if (timeOpen) {
+                        WorkoutTimeDialog(
+                            time = ui.workoutTime?.time,
+                            usual = ui.workoutTime?.usual,
+                            onSave = { t ->
+                                timeOpen = false
+                                vm.setWorkoutTime(time = t)
+                            },
+                            onDismiss = { timeOpen = false },
+                        )
                     }
                     if (showAdjust) {
                         AdjustTodayScreen(
@@ -404,8 +530,6 @@ fun WorkoutLogScreen(
                     val simpleKinds = buildSet {
                         ui.simple.forEach { add(simpleSection(it.category)) }
                         if (ui.cardio.isNotEmpty()) add("CARDIO")
-                        // A sport on the day (v0.472): a Warm-up section for its warm-up.
-                        if (ui.sportDay != null) add("WARMUP")
                         // Conditioning to pick, or one-off results to show (v0.491:
                         // adding moved to the day's one "+ Additional" button).
                         val plannedNames = ui.conditioning.map { it.name.take(40) }.toSet() + listOfNotNull(ui.familyWod?.name?.take(40))
@@ -505,31 +629,15 @@ fun WorkoutLogScreen(
                                 }
                                 // Mobility (v0.469) shows like a Warm-up: its routine, done with a tap.
                                 "WARMUP", "MOBILITY", "STRETCH" -> {
-                                  val sd = ui.sportDay
                                   ui.simple.filter { simpleSection(it.category) == section.kind }.forEach { w ->
                                     WarmupCard(
                                         plan = w,
                                         date = ui.date,
-                                        sport = if (w.category == "WARMUP" && sd != null) {
-                                            SportChoice(label = sd.label, forSport = sd.forSport, onChange = { vm.setWarmupForSport(it) })
-                                        } else {
-                                            null
-                                        },
                                         onDone = { vm.setWarmup(plannedWorkoutId = w.plannedWorkoutId, done = it) },
                                         onSkip = { vm.setSimpleSkipped(plannedWorkoutId = w.plannedWorkoutId, skipped = it) },
                                         onChanged = { vm.load() },
                                         onRemove = if (w.extra) ({ vm.removeExtra(id = w.plannedWorkoutId) }) else null,
                                     )
-                                  }
-                                  // The day's sport, optional, when the planned Warm-up isn't for it.
-                                  val sr = sd?.routine
-                                  if (section.kind == "WARMUP" && sd != null && !sd.forSport && sr != null) {
-                                      SportWarmupCard(
-                                          label = sd.label,
-                                          routine = sr,
-                                          state = sd.state,
-                                          onState = { vm.setSportWarmupState(state = it) },
-                                      )
                                   }
                                 }
                                 "CARDIO" -> CardioBlock(
@@ -1064,6 +1172,9 @@ private fun DayHeader(
     date: String,
     today: String,
     title: String,
+    /** The planned workout's time (v0.538): shown after the date, tap to change. */
+    time: Int? = null,
+    onTime: (() -> Unit)? = null,
     progress: Pair<Int, Int>,
     strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
     programLine: String = "",
@@ -1124,6 +1235,11 @@ private fun DayHeader(
                     style = MaterialTheme.typography.labelLarge,
                     color = if (date < today && planned && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (onTime != null) {
+                Spacer(Modifier.width(8.dp))
+                TimeChip(time = time, onClick = onTime)
+                Spacer(Modifier.weight(1f))
             }
             // Back to today (v0.463): only when the strip or the day is elsewhere.
             if (strip != null && (offToday || date != today)) {

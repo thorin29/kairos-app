@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Workouts as blocks (v0.538.0, server 0.744.0)
+
+- `DayWorkouts.kt`: `DayBlockUi`, `orderDayBlocks`, `DayWorkoutsList` (cards
+  with a coloured edge per type), `SportPage`, `WorkoutTimeDialog` (Material
+  TimePicker, as elsewhere in the app) and `UsualTimesScreen` (Settings →
+  Workouts → Usual workout time, `Route.SettingsWorkoutTimes`).
+- `WorkoutLogScreen` decides the view from the day's blocks: the list while
+  two or more are open, else the single open one; system back and
+  "← Today's workouts" return to the list. The planned page no longer offers
+  the sport warm-up or the "warm up for the sport" switch; both live on the
+  sport page.
+- `WorkoutLogViewModel`: `sports`, `workoutTime`, `setWorkoutTime`,
+  `answerSport`. Weekly training adds Core and Isometric kinds.
+
 ## 2026-11 — ⓘ on every movement list (v0.537.0, server 0.743.0)
 
 - `MovementInfoByName` (MovementInfo.kt): the ⓘ for lists that only carry a

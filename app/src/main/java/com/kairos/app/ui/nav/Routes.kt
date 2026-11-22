@@ -45,6 +45,10 @@ sealed interface Route {
     @Serializable
     data object SettingsConcept2 : Route
 
+    /** Usual workout time per weekday (v0.538). */
+    @Serializable
+    data object SettingsWorkoutTimes : Route
+
     @Serializable
     data class AddClass(
         val replaceEventId: String? = null,

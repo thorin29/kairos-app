@@ -784,6 +784,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenScoring = { navController.navigate(Route.SettingsScoring) },
                         onOpenPassword = { navController.navigate(Route.SettingsPassword) },
                         onOpenConcept2 = { navController.navigate(Route.SettingsConcept2) },
+                        onOpenWorkoutTimes = { navController.navigate(Route.SettingsWorkoutTimes) },
                         // Devices had a screen but no way in (v0.501); Sign out
                         // asks the same "Sign out?" as the side rail.
                         onOpenDevices = { navController.navigate(Route.Devices) },
@@ -803,6 +804,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.SettingsPassword> {
                     com.kairos.app.ui.settings.PasswordScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.SettingsWorkoutTimes> {
+                    com.kairos.app.ui.workout.UsualTimesScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.SettingsConcept2> {
                     com.kairos.app.ui.settings.Concept2Screen(onBack = { navController.popBackStack() })

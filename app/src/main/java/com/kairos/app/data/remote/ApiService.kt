@@ -589,6 +589,15 @@ interface ApiService {
     @POST("chores/release")
     suspend fun releaseChore(@Body body: com.kairos.app.data.remote.dto.ReleaseChoreRequest): Response<com.kairos.app.data.remote.dto.OkStatusDto>
 
+    @POST("workouts/time")
+    suspend fun setWorkoutTime(@Body body: com.kairos.app.data.remote.dto.WorkoutTimeRequest): Response<com.kairos.app.data.remote.dto.WorkoutTimeDto>
+
+    @GET("workouts/usual-times")
+    suspend fun usualTimes(): Response<com.kairos.app.data.remote.dto.UsualTimesDto>
+
+    @POST("workouts/usual-times")
+    suspend fun setUsualTimes(@Body body: com.kairos.app.data.remote.dto.UsualTimesDto): Response<com.kairos.app.data.remote.dto.UsualTimesDto>
+
     @POST("sport/confirm")
     suspend fun sportConfirm(@Body body: com.kairos.app.data.remote.dto.SportAnswerRequest): Response<Unit>
 

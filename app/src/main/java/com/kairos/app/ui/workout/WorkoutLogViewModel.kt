@@ -143,6 +143,10 @@ data class WorkoutLogUiState(
     val adjusted: com.kairos.app.data.remote.dto.AdjustedDto? = null,
     /** A sport on the day (v0.472): the warm-up switch and its optional warm-up. */
     val sportDay: com.kairos.app.data.remote.dto.SportDayDto? = null,
+    /** The day's sport events, each its own workout (v0.538). */
+    val sports: List<com.kairos.app.data.remote.dto.DaySportDto> = emptyList(),
+    /** When the planned workout is done that day (v0.538). */
+    val workoutTime: com.kairos.app.data.remote.dto.WorkoutTimeDto? = null,
     /** The day's rows from Concept2, when connected (server 0.614+). */
     val concept2: com.kairos.app.data.remote.dto.Concept2DayDto? = null,
     val concept2Checking: Boolean = false,
@@ -379,6 +383,8 @@ class WorkoutLogViewModel(
                 light = plan.light,
                 adjusted = plan.adjusted,
                 sportDay = plan.sportDay,
+                sports = plan.sports,
+                workoutTime = plan.workoutTime,
                 order = plan.order,
                 simple = plan.simple,
                 cardio = plan.cardio,
@@ -614,6 +620,29 @@ class WorkoutLogViewModel(
         _ui.update { u -> u.copy(sportDay = u.sportDay?.copy(forSport = forSport)) }
         viewModelScope.launch {
             runCatching { session.setWarmupForSport(date = d, forSport = forSport) }
+            load()
+        }
+    }
+
+    /** One day's workout time, minutes from midnight; null for the usual (v0.538). */
+    fun setWorkoutTime(time: Int?) {
+        val d = date ?: return
+        viewModelScope.launch {
+            runCatching { session.setWorkoutTime(date = d, time = time) }
+                .onSuccess { t -> _ui.update { it.copy(workoutTime = t) } }
+                .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't change the time.") } }
+        }
+    }
+
+    /** "Did you go?" for a sport event that day (v0.538). */
+    fun answerSport(eventId: String, went: Boolean) {
+        val d = date ?: return
+        _ui.update { u ->
+            u.copy(sports = u.sports.map { if (it.eventId == eventId) it.copy(state = if (went) "went" else "skipped") else it })
+        }
+        viewModelScope.launch {
+            runCatching { if (went) session.sportConfirm(eventId, d) else session.sportDecline(eventId, d) }
+                .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't save that.") } }
             load()
         }
     }

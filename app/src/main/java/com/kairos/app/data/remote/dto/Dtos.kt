@@ -389,6 +389,10 @@ data class WorkoutPlanDto(
     val adjusted: AdjustedDto? = null,
     /** A sport on the calendar that day (server 0.662+): the warm-up switch. */
     val sportDay: SportDayDto? = null,
+    /** The day's sport events, each its own workout (server 0.744+). */
+    val sports: List<DaySportDto> = emptyList(),
+    /** When the planned workout is done that day (server 0.744+). */
+    val workoutTime: WorkoutTimeDto? = null,
     /** Section order for this weekday: WARMUP, CARDIO, STRENGTH, CONDITIONING,
      *  STRETCH, SPORT (server 0.615+; empty on an older server). */
     val order: List<String> = emptyList(),
@@ -1006,6 +1010,9 @@ data class TrainingWeekDto(
 @Serializable
 data class TrainingKindsDto(
     val lift: Int = 0,
+    /** Core and holds (server 0.744+). */
+    val core: Int = 0,
+    val iso: Int = 0,
     val cardio: Int = 0,
     val conditioning: Int = 0,
     val sport: Int = 0,
@@ -3714,6 +3721,40 @@ data class LoggedLineDto(val name: String = "", val summary: String = "")
 
 /** A sport on the day (server 0.662+): what it's called, whether the day's
  *  Warm-up is for it, and its warm-up routine. */
+@Serializable
+data class DaySportDto(
+    val eventId: String = "",
+    val title: String = "",
+    val label: String = "",
+    /** Minutes from midnight. */
+    val start: Int = 0,
+    val end: Int = 0,
+    val startLabel: String = "",
+    val endLabel: String = "",
+    val ended: Boolean = false,
+    /** "open", "went" or "skipped". */
+    val state: String = "open",
+    val sessionId: String? = null,
+    val minutes: Int = 0,
+    val flexTime: Boolean = false,
+    val effort: String? = null,
+    val hurt: String? = null,
+)
+
+/** Minutes from midnight, or null (server 0.744+). */
+@Serializable
+data class WorkoutTimeDto(
+    val time: Int? = null,
+    val usual: Int? = null,
+    val changed: Boolean = false,
+)
+
+@Serializable
+data class WorkoutTimeRequest(val date: String, val time: Int? = null)
+
+@Serializable
+data class UsualTimesDto(val times: List<Int?> = emptyList())
+
 @Serializable
 data class SportDayDto(
     val label: String = "Hockey",

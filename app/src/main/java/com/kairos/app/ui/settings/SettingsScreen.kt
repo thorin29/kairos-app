@@ -68,6 +68,8 @@ fun SettingsScreen(
     onOpenScoring: () -> Unit = {},
     onOpenPassword: () -> Unit = {},
     onOpenConcept2: () -> Unit = {},
+    /** Usual workout time per weekday (v0.538). */
+    onOpenWorkoutTimes: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
     onSignOut: () -> Unit = {},
     updateAvailable: Boolean = false,
@@ -106,6 +108,10 @@ fun SettingsScreen(
                     onOpen = onOpenNotifications,
                 ),
             ),
+        ),
+        SettingGroup(
+            "Workouts",
+            listOf(SettingRow(icon = KairosIcons.Clock, title = "Usual workout time", sub = "Per weekday", onOpen = onOpenWorkoutTimes)),
         ),
         SettingGroup(
             "Connected apps",

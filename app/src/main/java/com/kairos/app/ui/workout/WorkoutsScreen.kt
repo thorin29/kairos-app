@@ -384,6 +384,9 @@ private data class WeekKind(val key: String, val label: String, val color: Color
 
 private val WEEK_KINDS = listOf(
     WeekKind(key = "lift", label = "Strength", color = Color(0xFF4F46E5)),
+    // v0.538: core and holds count as themselves.
+    WeekKind(key = "core", label = "Core", color = Color(0xFFD97706)),
+    WeekKind(key = "iso", label = "Isometric", color = Color(0xFFDB2777)),
     // v0.496: colours no muscle group uses, so Cardio never reads as Chest,
     // Conditioning as Core or Sport as Upper back.
     WeekKind(key = "conditioning", label = "Conditioning", color = Color(0xFFC026D3)),
@@ -394,6 +397,8 @@ private val WEEK_KINDS = listOf(
 
 private fun kindCount(k: com.kairos.app.data.remote.dto.TrainingKindsDto?, key: String): Int = when (key) {
     "lift" -> k?.lift ?: 0
+    "core" -> k?.core ?: 0
+    "iso" -> k?.iso ?: 0
     "conditioning" -> k?.conditioning ?: 0
     "cardio" -> k?.cardio ?: 0
     "sport" -> k?.sport ?: 0
@@ -402,7 +407,8 @@ private fun kindCount(k: com.kairos.app.data.remote.dto.TrainingKindsDto?, key: 
 
 /**
  * Weekly training (v0.481; the web's): a bar per week for the last 12, split
- * by what the days held (lifting, conditioning, cardio, sport), a dashed mark
+ * by the workouts and parts done (v0.538: lifting, core, holds, conditioning,
+ * cardio, each sport event, mobility; never warm-ups), a dashed mark
  * at the days the plan had, and weeks trained in a row. Tap a week for its
  * seven days. Turning up, not weight.
  */

@@ -1,4 +1,11 @@
 # Changelog
+## 0.538.0
+
+- Workouts as blocks: a sport event from the calendar is its own workout with its own page (did you go, time and how it felt, its own warm-up). With two or more workouts on a day, Workouts lists them in time order until one is left.
+- Your workout has a time: tap it on the day to change it for that day; usual times per weekday in Settings → Workouts.
+- Weekly training counts workouts and parts, with Core and Isometric of their own; warm-ups no longer count.
+- Needs server 0.744.
+
 ## 0.537.0
 
 - Every movement in a conditioning workout, a Family WOD and the core, arms and holds lists has its ⓘ with the how-to and Watch how.
