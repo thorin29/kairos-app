@@ -62,7 +62,7 @@ internal fun orderDayBlocks(blocks: List<DayBlockUi>): List<DayBlockUi> =
         compareBy<IndexedValue<DayBlockUi>>({ it.value.time == null }, { it.value.time ?: 0 }, { it.index }),
     ).map { it.value }
 
-internal fun clockText(min: Int): String {
+internal fun timeOfDayText(min: Int): String {
     val h = (min / 60) % 24
     val m = min % 60
     return if (TimeFmt.military) "%02d:%02d".format(h, m)
@@ -89,7 +89,7 @@ private fun BlockCard(color: Color, onClick: () -> Unit, content: @Composable ()
 @Composable
 internal fun TimeChip(time: Int?, onClick: () -> Unit) {
     Text(
-        (time?.let { clockText(it) } ?: "Set a time") + " ✎",
+        (time?.let { timeOfDayText(it) } ?: "Set a time") + " ✎",
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
@@ -190,7 +190,7 @@ internal fun DayWorkoutsList(
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+private fun BlockSectionLabel(text: String) {
     Text(
         text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
@@ -221,7 +221,7 @@ internal fun SportPage(
                 Text(sport.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
         }
-        SectionLabel(text = "Did you go?")
+        BlockSectionLabel(text = "Did you go?")
         OutlinedCard(Modifier.fillMaxWidth()) {
             Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (sport.state == "went") {
@@ -237,7 +237,7 @@ internal fun SportPage(
             }
         }
         if (sport.state == "went" && sport.sessionId != null) {
-            SectionLabel(text = "Time and how it felt")
+            BlockSectionLabel(text = "Time and how it felt")
             OutlinedCard(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -257,7 +257,7 @@ internal fun SportPage(
                 }
             }
         }
-        SectionLabel(text = "Warm-up")
+        BlockSectionLabel(text = "Warm-up")
         warmup()
     }
 }
@@ -282,7 +282,7 @@ internal fun WorkoutTimeDialog(
             Column(Modifier.padding(20.dp)) {
                 Text("Workout time", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Today only · " + (usual?.let { "usually ${clockText(it)}" } ?: "no usual time"),
+                    "Today only · " + (usual?.let { "usually ${timeOfDayText(it)}" } ?: "no usual time"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -343,7 +343,7 @@ fun UsualTimesScreen(onBack: () -> Unit) {
             } else {
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column {
-                        DAY_NAMES.forEachIndexed { i, d ->
+                        WEEKDAY_NAMES.forEachIndexed { i, d ->
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -353,7 +353,7 @@ fun UsualTimesScreen(onBack: () -> Unit) {
                             ) {
                                 Text(d, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                                 Text(
-                                    list[i]?.let { clockText(it) } ?: "None",
+                                    list[i]?.let { timeOfDayText(it) } ?: "None",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (list[i] != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -369,7 +369,7 @@ fun UsualTimesScreen(onBack: () -> Unit) {
     val list = times
     if (i != null && list != null) {
         UsualTimeDialog(
-            day = DAY_NAMES[i],
+            day = WEEKDAY_NAMES[i],
             time = list[i],
             onSave = { t ->
                 editing = null
@@ -380,7 +380,7 @@ fun UsualTimesScreen(onBack: () -> Unit) {
     }
 }
 
-private val DAY_NAMES = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+private val WEEKDAY_NAMES = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable

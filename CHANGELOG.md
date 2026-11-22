@@ -1,4 +1,8 @@
 # Changelog
+## 0.539.0
+
+- Fixes the 0.538 build: two names in the new workouts list clashed with existing ones. Same features as 0.538. Needs server 0.744.
+
 ## 0.538.0
 
 - Workouts as blocks: a sport event from the calendar is its own workout with its own page (did you go, time and how it felt, its own warm-up). With two or more workouts on a day, Workouts lists them in time order until one is left.

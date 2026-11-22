@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Build fix for workouts as blocks (v0.539.0, server 0.744.0)
+
+- 0.538.0 did not compile: `DayWorkouts.kt` declared `clockText(min)` and
+  `SectionLabel`, which clash with `clockText(sec)` in Timer.kt and the
+  internal `SectionLabel` in CardioBlock.kt (same package). Renamed to
+  `timeOfDayText` and `BlockSectionLabel`; the weekday list is
+  `WEEKDAY_NAMES`. New top-level names in `ui/workout` are checked against the
+  package first.
+
 ## 2026-11 — Workouts as blocks (v0.538.0, server 0.744.0)
 
 - `DayWorkouts.kt`: `DayBlockUi`, `orderDayBlocks`, `DayWorkoutsList` (cards
