@@ -1063,7 +1063,7 @@ private fun hasOtherWindow(k: String) = k in listOf("core", "arms", "iso", "mobi
 // --- Endurance days and finishers (v0.548; the web's other-days) -------------
 
 private val ENDURANCE_CARDIO = listOf("ROW" to "Row", "RUN" to "Run", "RUCK" to "Ruck", "BIKE" to "Bike", "WALK" to "Walk", "HIKE" to "Hike", "ROPE" to "Jump rope")
-private fun clockOf(sec: Int) = "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}"
+private fun enduranceClock(sec: Int) = "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}"
 
 /** "steady.ROW.40", "int.BIKE.8.60.60", else circuit ids. */
 private data class EndurancePick(val mode: String, val cardio: String = "ROW", val minutes: Int = 30, val rounds: Int = 8, val work: Int = 60, val rest: Int = 60, val ids: List<String> = emptyList())
@@ -1085,7 +1085,7 @@ private fun enduranceIds(p: EndurancePick): List<String> = when (p.mode) {
 }
 private fun enduranceName(p: EndurancePick): String {
     val c = ENDURANCE_CARDIO.firstOrNull { it.first == p.cardio }?.second ?: "Cardio"
-    return if (p.mode == "steady") "Long steady \u00b7 $c ${p.minutes} min" else "Intervals \u00b7 $c ${p.rounds} \u00d7 ${clockOf(p.work)} / ${clockOf(p.rest)}"
+    return if (p.mode == "steady") "Long steady \u00b7 $c ${p.minutes} min" else "Intervals \u00b7 $c ${p.rounds} \u00d7 ${enduranceClock(p.work)} / ${enduranceClock(p.rest)}"
 }
 internal val FINISH_LABEL = mapOf("none" to "None", "core" to "Core", "iso" to "Holds", "carry" to "Carries")
 
@@ -1182,14 +1182,14 @@ private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone:
                         Dropdown(label = "Rounds", selected = "$rounds", options = (1..20).map { "$it" to "$it" }, onSelect = { rounds = it.toInt() })
                         Dropdown(
                             label = "Work",
-                            selected = clockOf(work),
-                            options = listOf(20, 30, 40, 45, 60, 90, 120, 180, 240, 300).map { "$it" to clockOf(it) },
+                            selected = enduranceClock(work),
+                            options = listOf(20, 30, 40, 45, 60, 90, 120, 180, 240, 300).map { "$it" to enduranceClock(it) },
                             onSelect = { work = it.toInt() },
                         )
                         Dropdown(
                             label = "Rest",
-                            selected = clockOf(rest),
-                            options = listOf(10, 15, 20, 30, 45, 60, 90, 120, 180).map { "$it" to clockOf(it) },
+                            selected = enduranceClock(rest),
+                            options = listOf(10, 15, 20, 30, 45, 60, 90, 120, 180).map { "$it" to enduranceClock(it) },
                             onSelect = { rest = it.toInt() },
                         )
                     }

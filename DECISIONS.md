@@ -1,6 +1,12 @@
 # Decisions
 
-## 2026-11 — Endurance days, finishers, 5/3/1 misses (v0.548.0, server 0.754.0)
+## 2026-11 — Endurance days, finishers, 5/3/1 misses (v0.549.0, server 0.754.0)
+
+- 0.548.0 didn't compile: a private `clockOf` in ProgramsScreen clashed with
+  the internal `clockOf` in MovementSetsScreen (a private name doesn't hide
+  an internal one from the same package). Renamed `enduranceClock`; 0.548.0
+  never shipped. Before packaging, check new top-level names against
+  internal ones across ui/workout, not just against other private ones.
 
 - Other days: Endurance with its window (Long steady / Intervals / Circuit),
   picks in the web's format (`EndurancePick`, `enduranceIds`).

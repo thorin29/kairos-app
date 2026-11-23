@@ -1,5 +1,5 @@
 # Changelog
-## 0.548.0
+## 0.549.0
 
 - Endurance days in Other days: Long steady, Intervals, or circuits to rotate.
 - Finishers after the lifts: Core, Holds or Carries on each lift day.
