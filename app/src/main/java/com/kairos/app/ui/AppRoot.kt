@@ -900,6 +900,9 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                     val familyChanged by entry.savedStateHandle
                         .getStateFlow("familyChanged", 0)
                         .collectAsState()
+                    val programsChanged by entry.savedStateHandle
+                        .getStateFlow("programsChanged", 0)
+                        .collectAsState()
                     WorkoutLogScreen(
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
@@ -915,6 +918,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         onOpenPrograms = { navController.navigate(Route.ProgramsChange) },
                         onOpenFamilyWod = { d -> navController.navigate(Route.FamilyWodEdit(date = d)) },
                         familyChanged = familyChanged,
+                        onWhatsNext = { navController.navigate(Route.Programs) },
+                        programsChanged = programsChanged,
                     )
                 }
                 composable<Route.CoreWorkout> { entry ->

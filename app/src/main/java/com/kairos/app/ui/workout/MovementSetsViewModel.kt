@@ -70,6 +70,8 @@ data class MovementSetsUi(
      *  planned movement has a set scheme. */
     val targetScheme: String = "",
     val targetTitle: String = "",
+    /** "↑ 5 from cycle 1" (v0.542). */
+    val targetUp: String = "",
     /** One suggestion card (server 0.612+), hidden once answered. */
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
     /** Heaviest weight in the last two weeks, for the big-jump note. */
@@ -141,6 +143,7 @@ class MovementSetsViewModel(
                     holdUnit = log.holdUnit,
                     sides = log.sides,
                     targetTitle = log.target?.title ?: "",
+                    targetUp = log.target?.up.orEmpty(),
                     lastSets = last,
                     lastDate = log.last?.date,
                     skipped = log.skipped,

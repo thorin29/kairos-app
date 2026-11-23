@@ -1,4 +1,11 @@
 # Changelog
+## 0.542.0
+
+- Program setup asks about the other days (Rest, Skip, or add Core, Arms, Isometric, Mobility, Stretching, Cardio, Conditioning or a muscle group), then Warm-up, Cardio and Finishers as their own steps and the week to review. Odd squad too.
+- What's next at the end of a cycle: each lift's suggested raise, or Same, to keep or change; Continue or New plan. Until then the program's day asks first.
+- A continued program shows its cycle, what went up on the plan card, and "↑ 5 from cycle 1" on the lift.
+- Needs server 0.748.
+
 ## 0.541.0
 
 - Workouts: the plan card shows your program or your own plan with the week at a glance, and Edit / Change / End. Edit opens Your plan, with the program's maxes and Change movements on top. Saved plans replaces the Edit plan button.

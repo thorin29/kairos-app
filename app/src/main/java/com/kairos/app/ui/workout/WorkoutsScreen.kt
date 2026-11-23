@@ -633,7 +633,11 @@ private fun PlanCard(
                 Column(Modifier.padding(end = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(a.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        Text(a.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (a.cycle > 1) "Cycle ${a.cycle} \u00b7 ${a.label}" else a.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     if (plan != null && plan.others.isNotEmpty()) {
                         Text(
@@ -642,10 +646,24 @@ private fun PlanCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    // The success mark (v0.542): the last cycle and what went up.
+                    if (a.cycle > 1) {
+                        Text(
+                            "\u2191 Cycle ${a.cycle - 1} done \u00b7 ${a.lastRaises.size} of ${a.maxes.size} lifts went up",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF047857),
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(0xFF059669).copy(alpha = 0.1f))
+                                .padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
                 }
                 if (a.blockDone) {
                     Box(Modifier.padding(end = 8.dp)) {
-                        ProgramPill(label = "Cycle done \u00b7 what's next?", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onOpen)
+                        ProgramPill(label = "What's next?", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onOpen)
                     }
                 }
                 plan?.let { Box(Modifier.padding(end = 8.dp)) { WeekStrip(days = it.strip) } }

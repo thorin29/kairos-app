@@ -49,13 +49,13 @@ import com.kairos.app.data.remote.dto.StartProgramRequest
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.RollPicker
 
-private val BUILDER_STEPS = listOf("Days", "Blocks", "Movements", "Extras", "Review")
+private val BUILDER_STEPS = listOf("Days", "Other days", "Blocks", "Movements", "Warm-up", "Cardio", "Finishers", "Review")
 private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 /** Monday first. */
 private val WEEK_ORDER = listOf(1, 2, 3, 4, 5, 6, 0)
+/** A weekday not used by the program (v0.542: open; Other days decides). */
 private const val REST = -1
-private const val CORE = -2
 
 /** How a finisher is logged, from its sets. */
 private fun finisherSub(scheme: String?): String = when {
@@ -79,8 +79,10 @@ private fun finisherSub(scheme: String?): String = when {
 internal fun BlockBuilder(
     program: ProgramChoiceDto,
     current: CurrentExtrasDto,
-    /** Warm-up routines for the Extras step (v0.540). */
+    /** Warm-up routines for the Warm-up step (v0.540). */
     warmups: List<com.kairos.app.data.remote.dto.WarmupRoutineDto> = emptyList(),
+    /** What each weekday holds now, Sunday first (v0.542). */
+    otherDays: List<String> = emptyList(),
     busy: Boolean,
     error: String?,
     initial: CurrentSetupDto? = null,
@@ -95,13 +97,15 @@ internal fun BlockBuilder(
     var warmup by remember(program.key) { mutableStateOf(if (current.warmup) current.warmupRoutine ?: "" else "none") }
     var cardioDays by remember(program.key) { mutableStateOf(current.cardioDays) }
     var conditioningDays by remember(program.key) { mutableStateOf(current.conditioningDays) }
-    // Weekday → a program day's index, CORE or REST.
+    // Other days (v0.542): the same program keeps what each day holds; a new
+    // one keeps the rest days.
+    var other by remember(program.key) { mutableStateOf(startOther(otherDays, initial != null)) }
+    // Weekday → a program day's index, or REST (open).
     val week = remember(program.key) {
         mutableStateListOf<Int>().apply {
             repeat(7) { add(REST) }
             val days = initial?.days?.takeIf { it.size == program.days.size } ?: program.defaultDays
             days.forEachIndexed { i, dow -> if (dow in 0..6) this[dow] = i }
-            current.coreDay?.let { if (it in 0..6 && this[it] == REST) this[it] = CORE }
         }
     }
     val picks = remember(program.key) {
@@ -135,8 +139,7 @@ internal fun BlockBuilder(
         return r.options.firstOrNull { it.id == id }?.name
     }
     fun dayName(v: Int) = when (v) {
-        CORE -> "Core"
-        REST -> "Rest"
+        REST -> "\u2014"
         else -> program.days.getOrNull(v)?.name ?: ""
     }
     // Main lifts with a weight (a bodyweight pull-up has none to set).
@@ -187,7 +190,13 @@ internal fun BlockBuilder(
                         }
                     }
                 }
-                1 -> {
+                1 -> OtherDaysStep(
+                    programDays = (0..6).filter { week[it] != REST },
+                    other = other,
+                    onChange = { d, k -> other = other + (d to k) },
+                    had = if (initial != null) otherDays else null,
+                )
+                2 -> {
                     dayTabs()
                     BuilderCard(title = "${program.days[tab].name} day") {
                         listOf("A", "B", "C").forEachIndexed { n, b ->
@@ -228,7 +237,7 @@ internal fun BlockBuilder(
                         }
                     }
                 }
-                2 -> {
+                3 -> {
                     dayTabs()
                     roles(tab, "A").forEach { r ->
                         val k = "$tab:${r.key}"
@@ -333,26 +342,30 @@ internal fun BlockBuilder(
                         }
                     }
                 }
-                3 -> ExtrasStep(
-                    warmups = warmups,
-                    warmup = warmup,
-                    onWarmup = { warmup = it },
-                    cardioDays = cardioDays,
-                    onCardio = { cardioDays = it },
-                    conditioningDays = conditioningDays,
-                    onConditioning = { conditioningDays = it },
-                )
+                4 -> WarmupStep(warmups = warmups, warmup = warmup, onWarmup = { warmup = it })
+                5 -> CardioStep(days = cardioDays, onDays = { cardioDays = it })
+                6 -> FinishersStep(days = conditioningDays, onDays = { conditioningDays = it })
                 else -> {
                     BuilderCard(title = "${program.name} · ${program.weeks} weeks") {
                         var first = true
                         WEEK_ORDER.forEach { dow ->
                             val v = week[dow]
-                            if (v == REST) return@forEach
+                            if (v == REST) {
+                                val k = other[dow] ?: "skip"
+                                if (k == "skip") return@forEach
+                                if (!first) HorizontalDivider()
+                                first = false
+                                Text(
+                                    "${DAY_NAMES[dow]} · ${otherWords(k)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(vertical = 9.dp),
+                                )
+                                return@forEach
+                            }
                             if (!first) HorizontalDivider()
                             first = false
-                            val body = if (v == CORE) {
-                                "Your core rotation · test stays monthly"
-                            } else {
+                            val body = run {
                                 buildList {
                                     roles(v, "A").firstOrNull()?.let { add(nameOf(v, it.key) ?: "Main lift") }
                                     if (!blockOff(v, "B")) {
@@ -413,19 +426,20 @@ internal fun BlockBuilder(
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val core = week.indexOf(CORE)
+                        val progDays = program.days.indices.map { week.indexOf(it) }
+                        val payload = otherPayload(progDays, other, cardioDays, conditioningDays)
                         onStart(
                             StartProgramRequest(
                                 key = program.key,
-                                days = program.days.indices.map { week.indexOf(it) },
+                                days = progDays,
                                 picks = picks.mapValues { (k, v) -> if (k in off) null else v },
                                 tops = emptyMap(),
                                 maxes = mains.mapNotNull { (id, _) -> maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let { id to it } }.toMap(),
                                 warmup = warmup != "none",
                                 warmupRoutine = if (warmup != "none") warmup else null,
-                                cardioDays = cardioDays,
-                                conditioningDays = conditioningDays,
-                                coreDay = core.takeIf { it >= 0 },
+                                cardioDays = payload.cardioDays,
+                                conditioningDays = payload.conditioningDays,
+                                other = payload.other,
                             ),
                         )
                     },
@@ -437,7 +451,7 @@ internal fun BlockBuilder(
     choosingDay?.let { dow ->
         AnimatedDialog(onDismissRequest = { choosingDay = null }, title = DAY_NAMES[dow]) {
             Column {
-                (program.days.indices.toList() + listOf(CORE, REST)).forEach { v ->
+                (program.days.indices.toList() + listOf(REST)).forEach { v ->
                     Text(
                         dayName(v),
                         style = MaterialTheme.typography.bodyLarge,

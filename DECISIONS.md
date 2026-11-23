@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-11 — Other days and What's next (v0.542.0, server 0.748.0)
+
+- Shared setup steps in ProgramsScreen.kt: `OtherDaysStep`, `WarmupStep`,
+  `CardioStep`, `FinishersStep`, `ReviewWeek`, with `startOther` (same
+  program keeps each day; a new one keeps rest days) and `otherPayload`
+  (sends `other`, adds cardio and conditioning picks to those days). The
+  classic setup and `BlockBuilder` both use them; the builder's Days step
+  no longer offers Core or Rest.
+- `WhatsNextDialog` replaces `CycleEndDialog`: per-lift +step / Same from
+  `ProgramInfoDto.check`, Continue, New plan, and the harder program's
+  preview.
+- The day page waits on `programWait` (program.blockDone): a card with
+  What's next? opening Programs (`onWhatsNext`, Route.Programs), which
+  bumps `programsChanged` so the day reloads.
+- Success marks: the plan card's cycle and "↑ Cycle N done" line, and
+  `MovementTargetDto.up` on the lift page.
+
 ## 2026-11 — Plan card and one setup style (v0.541.0, server 0.747.0)
 
 - `PlanCard` (WorkoutsScreen) replaces `ProgramSummaryCard` and the Edit plan

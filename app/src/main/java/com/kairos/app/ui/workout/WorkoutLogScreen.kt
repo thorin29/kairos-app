@@ -112,6 +112,10 @@ fun WorkoutLogScreen(
     onOpenFamilyWod: (String) -> Unit = {},
     /** Bumped when that page saved: reload the day. */
     familyChanged: Int = 0,
+    /** What's next at a cycle's end (v0.542): Programs, with the choice open. */
+    onWhatsNext: () -> Unit = onOpenPrograms,
+    /** Bumped when Programs changed something, so the day reloads. */
+    programsChanged: Int = 0,
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -146,6 +150,7 @@ fun WorkoutLogScreen(
     // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
     var addingMenu by remember { mutableStateOf(false) }
     LaunchedEffect(familyChanged) { if (familyChanged != 0) vm.load() }
+    LaunchedEffect(programsChanged) { if (programsChanged != 0) vm.load() }
     var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     var extraKind by remember { mutableStateOf<String?>(null) }
     var logKind by remember { mutableStateOf<String?>(null) }
@@ -391,6 +396,21 @@ fun WorkoutLogScreen(
                             onNeedPage = { vm.loadStripPage(it) },
                             onToday = { ui.strip?.today?.let { vm.setDate(it) } },
                         )
+                    }
+                    // The program's cycle ended (v0.542): its day waits for What's next.
+                    ui.programWait?.let { name ->
+                        androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Cycle done. Choose what's next to see today's lifts.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                ProgramPill(label = "What's next?", filled = true, onClick = onWhatsNext)
+                            }
+                        }
+                        return@Column
                     }
                     // A paused day (v0.488): household or the person's own.
                     ui.paused?.let { line ->

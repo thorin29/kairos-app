@@ -329,6 +329,14 @@ fun MovementSetsScreen(
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
+                    if (ui.targetUp.isNotBlank()) {
+                        Text(
+                            ui.targetUp,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF047857),
+                        )
+                    }
 
                     val chips = if (isWeight && ui.repsUnit == null) vm.recordChips() else emptyList()
                     if (chips.isNotEmpty()) {

@@ -774,6 +774,8 @@ data class SuggestionAnswerRequest(
 data class MovementTargetDto(
     /** "Strength waves · Week 2 of 4"; blank outside a program. */
     val title: String = "",
+    /** "↑ 5 from cycle 1": a main lift raised for this cycle (server 0.748+). */
+    val up: String? = null,
     /** "Work up to a top set", "3 × 8–12". */
     val scheme: String = "",
     val sets: List<TargetSetDto> = emptyList(),
@@ -809,6 +811,25 @@ data class ProgramInfoDto(
     val intent: String? = null,
     val blockDone: Boolean = false,
     val maxes: List<TrainingMaxDto> = emptyList(),
+    /** The cycle, and what each main lift went up by when it began (server 0.748+). */
+    val cycle: Int = 1,
+    val lastRaises: Map<String, Double> = emptyMap(),
+    /** With blockDone: each main lift's suggestion for the next cycle (server 0.748+). */
+    val check: List<LiftCheckDto> = emptyList(),
+    /** With blockDone, when the cycle felt easy: a harder program to try. */
+    val harder: HarderProgramDto? = null,
+)
+
+@Serializable
+data class LiftCheckDto(val poolExerciseId: String = "", val suggest: Double = 0.0, val reason: String = "")
+
+@Serializable
+data class HarderProgramDto(
+    val key: String = "",
+    val name: String = "",
+    val blurb: String = "",
+    val days: List<String> = emptyList(),
+    val weeks: Int = 1,
 )
 
 @Serializable
@@ -840,6 +861,8 @@ data class ProgramsDto(
     val canEditGarage: Boolean = false,
     /** The plan card: the week at a glance, last day, other days (server 0.747+). */
     val plan: PlanSummaryDto? = null,
+    /** What each weekday holds now, Sunday first (server 0.748+). */
+    val otherDays: List<String> = emptyList(),
 )
 
 /** strip: Monday first; ends: the plan's last day or null; others: the other
@@ -960,6 +983,8 @@ data class StartProgramRequest(
     val next: Boolean? = null,
     /** The builder's Core day weekday (server 0.732+). */
     val coreDay: Int? = null,
+    /** The days the program doesn't use, weekday → kind (server 0.748+). */
+    val other: Map<String, String>? = null,
 )
 
 @Serializable

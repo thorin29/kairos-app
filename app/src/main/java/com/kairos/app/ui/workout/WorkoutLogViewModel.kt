@@ -129,6 +129,9 @@ data class WorkoutLogUiState(
     val stripPages: Map<Int, com.kairos.app.data.remote.dto.WorkoutStripDto> = emptyMap(),
     /** "Strength waves · Week 2 of 4", when a program is running. */
     val programLine: String = "",
+    /** A program day after its cycle ended, before What's next was chosen
+     *  (v0.542): the program's name; the day waits for the choice. */
+    val programWait: String? = null,
     /** The day's suggestion card, hidden once answered (server 0.612+). */
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
     /** Areas marked sore (server 0.675+): Adjust today opens Hurt on the first. */
@@ -376,6 +379,7 @@ class WorkoutLogViewModel(
                 strip = plan.strip.also { stripFetched.clear() },
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
+                programWait = plan.program?.takeIf { it.blockDone }?.name,
                 suggestion = plan.suggestion,
                 sore = plan.sore,
                 swappedWith = plan.swappedWith,
