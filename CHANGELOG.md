@@ -1,4 +1,9 @@
 # Changelog
+## 0.551.0
+
+- Places: moving the map and scrolling the list no longer pull out the menu.
+- Needs server 0.762.
+
 ## 0.550.0
 
 - Places: everyone on the map, with tracks and each person's day.

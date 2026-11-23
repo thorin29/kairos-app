@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
  * Links away from Places (Google Maps, directions) open in the phone's apps.
  */
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
 fun PlacesScreen(onOpenDrawer: () -> Unit) {
     val container = rememberContainer()
@@ -74,8 +74,19 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
             settings.domStorageEnabled = true
             settings.setSupportZoom(false)
             CookieManager.getInstance().setAcceptCookie(true)
+            // Every touch on the page belongs to the page (panning the map,
+            // scrolling the list). Without this the menu's swipe-to-open took
+            // over any sideways drift and cancelled the page's gesture. The
+            // menu still opens from the logo or by swiping the top bar.
+            setOnTouchListener { v, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                false
+            }
         }
     }
+    fun crumb(what: String) = com.kairos.app.data.diag.Breadcrumbs.drop("places $what")
 
     // The page asks: notifications for arrive/leave need the phone's permission.
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -93,6 +104,13 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
     fun open(to: String = "/places/embed") {
         scope.launch {
             val url = runCatching { container.sessionRepository.placesWebUrl(to = to) }
+            crumb(
+                when {
+                    url.isFailure -> "link failed: ${url.exceptionOrNull()?.javaClass?.simpleName}"
+                    url.getOrNull() == null -> "off"
+                    else -> "link ok to=$to"
+                },
+            )
             state = when {
                 url.isFailure -> "error"
                 url.getOrNull() == null -> "off"
@@ -112,6 +130,14 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
                 val url = request.url
                 val same = origin != null && url.toString().startsWith(origin) && (url.path ?: "").startsWith("/places/embed")
                 if (same) return false
+                if (request.isRedirect || !request.hasGesture()) {
+                    // Sent somewhere else without a tap (a sign-in portal in
+                    // front of the server, a wrong address): stay here and say so.
+                    crumb("redirected to ${url.host}${url.path ?: ""}")
+                    state = "blocked"
+                    return true
+                }
+                crumb("open outside ${url.host}")
                 runCatching {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url.toString())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
@@ -121,11 +147,20 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
                 // The page's session expired (or the server restarted): get a
                 // fresh link for the page that was open, a few times at most.
+                if (request.isForMainFrame) crumb("http ${errorResponse.statusCode} ${request.url.path}")
                 if (request.isForMainFrame && errorResponse.statusCode == 401 && renewals < 3) {
                     renewals += 1
                     val path = request.url.path?.takeIf { it.startsWith("/places/embed") && it != "/places/embed/start" }
                     open(to = path ?: "/places/embed")
                 }
+            }
+
+            override fun onPageFinished(view: WebView, url: String?) {
+                crumb("page ${Uri.parse(url ?: "").path}")
+            }
+
+            override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+                if (request.isForMainFrame) crumb("load error ${error.errorCode} ${request.url.host}")
             }
 
             override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
@@ -155,6 +190,10 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
                 "loading" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 "off" -> Message(text = "Places isn’t set up yet.", onRetry = { reopen += 1 })
                 "error" -> Message(text = "Couldn’t open Places.", onRetry = { reopen += 1 })
+                "blocked" -> Message(
+                    text = "Places was sent to another page instead of opening here.",
+                    onRetry = { reopen += 1 },
+                )
             }
         }
     }

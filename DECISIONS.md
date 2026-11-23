@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-11 — Places touches, redirects, diagnostics (v0.551.0, server 0.762.0+)
+
+- The menu's swipe-to-open (Material ModalNavigationDrawer, anywhere on the
+  screen) stole sideways drift from the Places WebView and cancelled the
+  page's gesture, so panning the map and scrolling the list were choppy and
+  opened the menu. The WebView now calls
+  `parent.requestDisallowInterceptTouchEvent(true)` on ACTION_DOWN, which
+  Compose's AndroidView interop honours: the page owns its touches, and the
+  menu still opens from the logo or the top bar. Drawer gestures stay on
+  elsewhere (Calendar remains the one screen with them off).
+- An off-origin navigation without a tap (a redirect, e.g. Authelia's portal
+  in front of the server) is no longer handed to the browser; the screen says
+  Places was sent elsewhere. Tapped outside links still open in the phone's
+  apps.
+- Diagnostics get `places …` breadcrumbs: link ok/failed/off, pages loaded,
+  main-frame HTTP errors, load errors, redirects away.
+
+
 ## 2026-11 — Places and Kairos notifications (v0.550.0, server 0.762.0)
 
 - **Places is the web page in a WebView** (`ui/places/PlacesScreen.kt`), not a
