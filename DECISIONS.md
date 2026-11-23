@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Two programs at once, part 2 (v0.544.0, server 0.750.0)
+
+- `WorkoutPlanDto.programBlocks` (`DayProgramBlockDto`), kept in the UI state
+  only with two or more. Each becomes a `DayBlockUi` keyed `prog:<id>` with
+  its own name, parts, progress, Done or Skipped.
+- `programInView` picks the open program (the one tapped, else the only one
+  still open when no sport is); the screen narrows `blocks`, `simple`,
+  `picks` and `conditioning` to its `plannedWorkoutIds`, so everything below
+  works unchanged. The collected state is `uiAll`; `ui` is the narrowed copy.
+- Skip / Unskip calls `POST workouts/program-skip`.
+
 ## 2026-11 — Two programs at once, part 1 (v0.543.0, server 0.749.0)
 
 - `ProgramsDto.also` (each a `ProgramInfoDto` with `setup`), `id` on every

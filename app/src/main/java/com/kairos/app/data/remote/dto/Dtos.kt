@@ -309,6 +309,27 @@ data class WorkoutDateRequest(
     val date: String,
 )
 
+/** One program's workout on a day two programs share (server 0.750+). */
+@Serializable
+data class DayProgramBlockDto(
+    val programId: String = "",
+    val name: String = "",
+    val plannedWorkoutIds: List<String> = emptyList(),
+    val parts: List<String> = emptyList(),
+    val done: Boolean = false,
+    val skipped: Boolean = false,
+    val doneCount: Int = 0,
+    val total: Int = 0,
+)
+
+/** Body for skipping one program's workout for a day (server 0.750+). */
+@Serializable
+data class ProgramSkipRequest(
+    val date: String,
+    val programId: String,
+    val skipped: Boolean,
+)
+
 /** Body for skipping one planned movement for a day. An empty
  *  [poolExerciseId] skips a plan logged as a single result (HIIT). */
 @Serializable
@@ -393,6 +414,8 @@ data class WorkoutPlanDto(
     val sportDay: SportDayDto? = null,
     /** The day's sport events, each its own workout (server 0.744+). */
     val sports: List<DaySportDto> = emptyList(),
+    /** One per program when two run that day (server 0.750+). */
+    val programBlocks: List<DayProgramBlockDto> = emptyList(),
     /** When the planned workout is done that day (server 0.744+). */
     val workoutTime: WorkoutTimeDto? = null,
     /** Section order for this weekday: WARMUP, CARDIO, STRENGTH, CONDITIONING,

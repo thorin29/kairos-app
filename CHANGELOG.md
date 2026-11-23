@@ -1,4 +1,9 @@
 # Changelog
+## 0.544.0
+
+- With two programs on a day, each is its own workout: its own card in Today's workouts, its own progress, and Skip for just that one.
+- Needs server 0.750.
+
 ## 0.543.0
 
 - Two programs at once: Add program on the plan card or in Programs sets one up beside the first (its own days, lifts and weights; a third asks first). Each has its own What's next, Change movements on Your plan, and End.

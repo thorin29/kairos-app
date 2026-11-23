@@ -132,6 +132,8 @@ data class WorkoutLogUiState(
     /** A program day after its cycle ended, before What's next was chosen
      *  (v0.542): the program's name; the day waits for the choice. */
     val programWait: String? = null,
+    /** One per program when two run today (v0.544): each its own workout. */
+    val programBlocks: List<com.kairos.app.data.remote.dto.DayProgramBlockDto> = emptyList(),
     /** The day's suggestion card, hidden once answered (server 0.612+). */
     val suggestion: com.kairos.app.data.remote.dto.SuggestionDto? = null,
     /** Areas marked sore (server 0.675+): Adjust today opens Hurt on the first. */
@@ -380,6 +382,7 @@ class WorkoutLogViewModel(
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
                 programWait = plan.program?.takeIf { it.blockDone }?.name,
+                programBlocks = plan.programBlocks.takeIf { it.size >= 2 }.orEmpty(),
                 suggestion = plan.suggestion,
                 sore = plan.sore,
                 swappedWith = plan.swappedWith,
@@ -635,6 +638,16 @@ class WorkoutLogViewModel(
             runCatching { session.setWorkoutTime(date = d, time = time) }
                 .onSuccess { t -> _ui.update { it.copy(workoutTime = t) } }
                 .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't change the time.") } }
+        }
+    }
+
+    /** One program's workout skipped on its own (v0.544). */
+    fun skipProgramDay(programId: String, skipped: Boolean) {
+        val d = date ?: return
+        viewModelScope.launch {
+            runCatching { session.workoutProgramSkip(date = d, programId = programId, skipped = skipped) }
+                .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't save that.") } }
+            load()
         }
     }
 

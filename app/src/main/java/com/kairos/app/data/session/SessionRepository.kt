@@ -452,6 +452,14 @@ class SessionRepository(
         runAuthed { requireService().workoutRest(WorkoutDateRequest(date)) }
 
     /** Skip or un-skip one planned movement for [date]; "" = the whole plan. */
+    /** Skips (or unskips) one program's workout on a day two programs share. */
+    suspend fun workoutProgramSkip(date: String, programId: String, skipped: Boolean): WorkoutAckDto =
+        runAuthed {
+            requireService().workoutProgramSkip(
+                com.kairos.app.data.remote.dto.ProgramSkipRequest(date = date, programId = programId, skipped = skipped),
+            )
+        }
+
     suspend fun workoutSkip(
         date: String,
         plannedWorkoutId: String,
@@ -1419,6 +1427,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 615
+        const val CLIENT_BUILD = 616
     }
 }

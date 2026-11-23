@@ -49,11 +49,12 @@ internal val PLAN_COLOR = Color(0xFF4F46E5)
 internal val SPORT_COLOR = Color(0xFF65A30D)
 
 internal data class DayBlockUi(
-    /** "plan", or the sport's event id. */
+    /** "plan", "prog:<id>" for one program's workout (v0.544), or the sport's event id. */
     val key: String,
     /** Minutes from midnight, or null. */
     val time: Int?,
     val sport: DaySportDto? = null,
+    val program: com.kairos.app.data.remote.dto.DayProgramBlockDto? = null,
 )
 
 /** Timed blocks by time; a block without one after them, in the order given. */
@@ -135,29 +136,35 @@ internal fun DayWorkoutsList(
         blocks.forEach { b ->
             val sp = b.sport
             if (sp == null) {
-                BlockCard(color = PLAN_COLOR, onClick = { onOpen("plan") }) {
+                val pg = b.program
+                val parts = pg?.parts ?: planParts
+                val done = pg?.doneCount ?: planDone
+                val total = pg?.total ?: planTotal
+                BlockCard(color = PLAN_COLOR, onClick = { onOpen(b.key) }) {
                     TimeChip(time = b.time, onClick = onTime)
                     Spacer(Modifier.height(4.dp))
-                    CardChevronRow(title = planTitle)
-                    if (planParts.isNotEmpty()) {
+                    CardChevronRow(title = pg?.name ?: planTitle)
+                    if (parts.isNotEmpty()) {
                         Text(
-                            planParts.joinToString(" · "),
+                            parts.joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    if (planTotal > 0 && planDone >= planTotal) {
+                    if (pg?.skipped == true) {
+                        DoneChip(label = "Skipped")
+                    } else if (pg?.done ?: (planTotal > 0 && planDone >= planTotal)) {
                         DoneChip(label = "Done")
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             LinearProgressIndicator(
-                                progress = { if (planTotal > 0) planDone / planTotal.toFloat() else 0f },
+                                progress = { if (total > 0) done / total.toFloat() else 0f },
                                 modifier = Modifier.weight(1f),
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             )
                             Text(
-                                "$planDone of $planTotal done",
+                                "$done of $total done",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

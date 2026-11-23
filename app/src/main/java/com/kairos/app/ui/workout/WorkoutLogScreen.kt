@@ -123,13 +123,26 @@ fun WorkoutLogScreen(
             initializer { WorkoutLogViewModel(container.sessionRepository, date, container.payloadCache) }
         },
     )
-    val ui by vm.ui.collectAsState()
+    val uiAll by vm.ui.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showAdjust by remember { mutableStateOf(false) }
     var editSport by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     // Which of the day's workouts is open (v0.538): null lets the day decide,
     // "list" is Today's workouts, "plan" the planned workout, else a sport.
-    var pick by remember(ui.date) { mutableStateOf<String?>(null) }
+    var pick by remember(uiAll.date) { mutableStateOf<String?>(null) }
+    // Two programs today (v0.544): each is its own workout. The open one
+    // narrows the day to its own entries.
+    val viewProg = programInView(ui = uiAll, pick = pick)
+    val ui = viewProg?.let { p ->
+        val ids = p.plannedWorkoutIds.toSet()
+        uiAll.copy(
+            blocks = uiAll.blocks.filter { it.isOverdue || it.extra || it.plannedWorkoutId in ids },
+            simple = uiAll.simple.filter { it.extra || it.plannedWorkoutId in ids },
+            picks = uiAll.picks.filter { it.plannedWorkoutId in ids },
+            conditioning = uiAll.conditioning.filter { it.plannedWorkoutId in ids },
+            title = p.name,
+        )
+    } ?: uiAll
     var timeOpen by remember { mutableStateOf(false) }
     // Which card's movement launched the calculator, so its returned weight goes
     // to the right input.
@@ -264,12 +277,20 @@ fun WorkoutLogScreen(
                     // event, in time order. Two or more and the list shows until
                     // only one is still open.
                     val hasPlan = !ui.restPlanned && !ui.rested && (todayBlocks.any { !it.extra } || ui.simple.any { !it.extra } || ui.picks.isNotEmpty())
+                    val planBlocks = when {
+                        ui.programBlocks.isNotEmpty() && !ui.restPlanned && !ui.rested ->
+                            ui.programBlocks.map { DayBlockUi(key = "prog:${it.programId}", time = ui.workoutTime?.time, program = it) }
+                        hasPlan -> listOf(DayBlockUi(key = "plan", time = ui.workoutTime?.time))
+                        else -> emptyList()
+                    }
                     val dayBlocks = orderDayBlocks(
-                        listOfNotNull(if (hasPlan) DayBlockUi(key = "plan", time = ui.workoutTime?.time) else null) +
+                        planBlocks +
                             ui.sports.map { DayBlockUi(key = it.eventId, time = it.start, sport = it) },
                     )
                     val openKeys = dayBlocks.filter { b ->
-                        b.sport?.let { it.state == "open" } ?: (planProgress.first < planProgress.second)
+                        b.sport?.let { it.state == "open" }
+                            ?: b.program?.let { !it.done && !it.skipped }
+                            ?: (planProgress.first < planProgress.second)
                     }.map { it.key }
                     val view = when {
                         dayBlocks.size < 2 -> dayBlocks.firstOrNull()?.key ?: "plan"
@@ -395,6 +416,16 @@ fun WorkoutLogScreen(
                             stripPage = { ui.stripPages[it] },
                             onNeedPage = { vm.loadStripPage(it) },
                             onToday = { ui.strip?.today?.let { vm.setDate(it) } },
+                        )
+                    }
+                    // One program's workout skipped on its own (v0.544).
+                    if (viewProg != null && !future) {
+                        ProgramPill(
+                            label = if (viewProg.skipped) "Unskip" else "Skip",
+                            onClick = {
+                                vm.skipProgramDay(programId = viewProg.programId, skipped = !viewProg.skipped)
+                                if (!viewProg.skipped) pick = null
+                            },
                         )
                     }
                     // The program's cycle ended (v0.542): its day waits for What's next.
@@ -2326,5 +2357,18 @@ private fun SportEditDialog(
                 )
             }
         }
+    }
+}
+
+/** The program whose workout is open on a day two programs share (v0.544):
+ *  the one picked, else the only one still open when nothing else is. */
+private fun programInView(ui: WorkoutLogUiState, pick: String?): com.kairos.app.data.remote.dto.DayProgramBlockDto? {
+    val blocks = ui.programBlocks
+    return when {
+        blocks.isEmpty() || ui.restPlanned || ui.rested -> null
+        pick?.startsWith("prog:") == true -> blocks.firstOrNull { "prog:${it.programId}" == pick }
+        pick != null -> null
+        ui.sports.any { it.state == "open" } -> null
+        else -> blocks.filter { !it.done && !it.skipped }.singleOrNull()
     }
 }
