@@ -86,22 +86,6 @@ private fun BlockCard(color: Color, onClick: () -> Unit, content: @Composable ()
     }
 }
 
-/** The planned workout's time, tap to change it for this day. */
-@Composable
-internal fun TimeChip(time: Int?, onClick: () -> Unit) {
-    Text(
-        (time?.let { timeOfDayText(it) } ?: "Set a time") + " ✎",
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 3.dp),
-    )
-}
-
 @Composable
 private fun CardChevronRow(title: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -128,8 +112,9 @@ internal fun DayWorkoutsList(
     planParts: List<String>,
     planDone: Int,
     planTotal: Int,
+    /** A day still to come: a preview, no progress (v0.545). */
+    future: Boolean = false,
     onOpen: (String) -> Unit,
-    onTime: () -> Unit,
     onAnswer: (eventId: String, went: Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -141,8 +126,14 @@ internal fun DayWorkoutsList(
                 val done = pg?.doneCount ?: planDone
                 val total = pg?.total ?: planTotal
                 BlockCard(color = PLAN_COLOR, onClick = { onOpen(b.key) }) {
-                    TimeChip(time = b.time, onClick = onTime)
-                    Spacer(Modifier.height(4.dp))
+                    b.time?.let { t ->
+                        Text(
+                            timeOfDayText(t),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     CardChevronRow(title = pg?.name ?: planTitle)
                     if (parts.isNotEmpty()) {
                         Text(
@@ -152,11 +143,13 @@ internal fun DayWorkoutsList(
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    if (pg?.skipped == true) {
-                        DoneChip(label = "Skipped")
+                    if (future) {
+                        // A preview: nothing to show yet.
+                    } else if (pg?.skipped == true) {
+                        DoneChip(label = "Skipped", positive = false)
                     } else if (pg?.done ?: (planTotal > 0 && planDone >= planTotal)) {
-                        DoneChip(label = "Done")
-                    } else {
+                        DoneChip(label = "Complete")
+                    } else if (total > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             LinearProgressIndicator(
                                 progress = { if (total > 0) done / total.toFloat() else 0f },
@@ -182,9 +175,10 @@ internal fun DayWorkoutsList(
                     CardChevronRow(title = sp.title)
                     Spacer(Modifier.height(6.dp))
                     when (sp.state) {
-                        "went" -> DoneChip(label = "Went · ${sp.minutes} min")
+                        "went" -> DoneChip(label = "Logged · ${sp.minutes} min")
                         "skipped" -> DoneChip(label = "Didn’t go", positive = false)
-                        else -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Asked only once the event is over (v0.545).
+                        else -> if (sp.ended) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Did you go?", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                             AccentOutlinedButton(onClick = { onAnswer(sp.eventId, false) }) { Text("No") }
                             androidx.compose.material3.Button(onClick = { onAnswer(sp.eventId, true) }) { Text("Yes") }
@@ -228,8 +222,8 @@ internal fun SportPage(
                 Text(sport.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
         }
-        BlockSectionLabel(text = "Did you go?")
-        OutlinedCard(Modifier.fillMaxWidth()) {
+        if (sport.ended || sport.state != "open") BlockSectionLabel(text = "Did you go?")
+        if (sport.ended || sport.state != "open") OutlinedCard(Modifier.fillMaxWidth()) {
             Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (sport.state == "went") {
                     androidx.compose.material3.Button(onClick = {}) { Text("Yes, I went") }
@@ -266,46 +260,6 @@ internal fun SportPage(
         }
         BlockSectionLabel(text = "Warm-up")
         warmup()
-    }
-}
-
-/** The planned workout's time for this day, or back to the usual one. */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-@Composable
-internal fun WorkoutTimeDialog(
-    time: Int?,
-    usual: Int?,
-    onSave: (Int?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val start = time ?: usual ?: 12 * 60
-    val state = androidx.compose.material3.rememberTimePickerState(
-        initialHour = start / 60,
-        initialMinute = start % 60,
-        is24Hour = TimeFmt.military,
-    )
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.padding(20.dp)) {
-                Text("Workout time", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Today only · " + (usual?.let { "usually ${timeOfDayText(it)}" } ?: "no usual time"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(12.dp))
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.TimePicker(state = state)
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    if (time != null && time != usual) {
-                        TextButton(onClick = { onSave(null) }) { Text("Usual") }
-                    }
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
-                    TextButton(onClick = { onSave(state.hour * 60 + state.minute) }) { Text("Save") }
-                }
-            }
-        }
     }
 }
 

@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Day page: always the list, plainer states (v0.545.0, server 0.751.0)
+
+- `view` is "list" unless a block is picked; no auto-open of the only open
+  workout. `programInView` follows the pick only.
+- `DayHeader(late = …)`: the date is in `strip.overdue` (replaces the
+  logged/planned guess). `time`/`onTime`, `TimeChip` and
+  `WorkoutTimeDialog` are gone; the plan card shows its usual time as text.
+- `DayWorkoutsList(future = …)` hides progress; Complete / Logged · N min /
+  Skipped / Didn't go; Did you go? only when `DaySportDto.ended`.
+
 ## 2026-11 — Two programs at once, part 2 (v0.544.0, server 0.750.0)
 
 - `WorkoutPlanDto.programBlocks` (`DayProgramBlockDto`), kept in the UI state

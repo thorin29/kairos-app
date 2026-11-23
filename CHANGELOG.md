@@ -1,4 +1,12 @@
 # Changelog
+## 0.545.0
+
+- A day always opens on its workouts, even with one.
+- Finished workouts read Complete, sport events Logged · minutes. Did you go? waits until the event is over; a day to come shows no progress.
+- Logging late shows only while the day is still open.
+- Set a time left the day page; Usual workout time stays in Settings.
+- Needs server 0.751.
+
 ## 0.544.0
 
 - With two programs on a day, each is its own workout: its own card in Today's workouts, its own progress, and Skip for just that one.

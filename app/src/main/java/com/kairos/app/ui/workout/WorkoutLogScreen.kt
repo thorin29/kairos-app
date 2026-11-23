@@ -143,7 +143,6 @@ fun WorkoutLogScreen(
             title = p.name,
         )
     } ?: uiAll
-    var timeOpen by remember { mutableStateOf(false) }
     // Which card's movement launched the calculator, so its returned weight goes
     // to the right input.
     // Survives navigating to the calculator and back (a plain remember is wiped
@@ -287,19 +286,16 @@ fun WorkoutLogScreen(
                         planBlocks +
                             ui.sports.map { DayBlockUi(key = it.eventId, time = it.start, sport = it) },
                     )
-                    val openKeys = dayBlocks.filter { b ->
-                        b.sport?.let { it.state == "open" }
-                            ?: b.program?.let { !it.done && !it.skipped }
-                            ?: (planProgress.first < planProgress.second)
-                    }.map { it.key }
+                    // The day always opens on its workouts (v0.545), even with only one.
                     val view = when {
-                        dayBlocks.size < 2 -> dayBlocks.firstOrNull()?.key ?: "plan"
-                        pick == "list" || dayBlocks.any { it.key == pick } -> pick!!
-                        openKeys.size == 1 -> openKeys[0]
+                        dayBlocks.isEmpty() -> "plan"
+                        dayBlocks.any { it.key == pick } -> pick!!
                         else -> "list"
                     }
-                    androidx.activity.compose.BackHandler(enabled = dayBlocks.size >= 2 && view != "list") { pick = "list" }
-                    if (dayBlocks.size >= 2 && view != "list") {
+                    // Logging late only while the day is still open for it (v0.545).
+                    val lateDay = ui.date?.let { d -> d < today && ui.strip?.overdue?.contains(d) == true } ?: false
+                    androidx.activity.compose.BackHandler(enabled = dayBlocks.isNotEmpty() && view != "list") { pick = "list" }
+                    if (dayBlocks.isNotEmpty() && view != "list") {
                         TextButton(onClick = { pick = "list" }) { Text("\u2190 Today\u2019s workouts") }
                     }
                     if (view == "list") {
@@ -307,8 +303,9 @@ fun WorkoutLogScreen(
                             DayHeader(
                                 date = d,
                                 today = today,
-                                title = "${dayBlocks.size} workouts",
+                                title = if (dayBlocks.size == 1) "1 workout" else "${dayBlocks.size} workouts",
                                 progress = 0 to 0,
+                                late = lateDay,
                                 strip = ui.strip,
                                 onPickDate = { showDatePicker = true },
                                 onPickDay = { vm.setDate(it) },
@@ -324,21 +321,10 @@ fun WorkoutLogScreen(
                                 .map { it.title },
                             planDone = planProgress.first,
                             planTotal = planProgress.second,
+                            future = future,
                             onOpen = { pick = it },
-                            onTime = { timeOpen = true },
                             onAnswer = { id, went -> vm.answerSport(eventId = id, went = went) },
                         )
-                        if (timeOpen) {
-                            WorkoutTimeDialog(
-                                time = ui.workoutTime?.time,
-                                usual = ui.workoutTime?.usual,
-                                onSave = { t ->
-                                    timeOpen = false
-                                    vm.setWorkoutTime(time = t)
-                                },
-                                onDismiss = { timeOpen = false },
-                            )
-                        }
                         return@Column
                     }
                     val openSport = ui.sports.firstOrNull { it.eventId == view }
@@ -393,8 +379,6 @@ fun WorkoutLogScreen(
                         DayHeader(
                             date = d,
                             today = today,
-                            time = if (hasPlan && !future) ui.workoutTime?.time else null,
-                            onTime = if (hasPlan && !future) ({ timeOpen = true }) else null,
                             title = ui.title.ifBlank {
                                 ui.planName ?: when {
                                     todayBlocks.isNotEmpty() -> "Workout"
@@ -403,8 +387,7 @@ fun WorkoutLogScreen(
                                     else -> "Nothing planned"
                                 }
                             },
-                            logged = ui.loggedAny,
-                            planned = todayBlocks.isNotEmpty() || ui.simple.isNotEmpty() || ui.picks.isNotEmpty(),
+                            late = lateDay,
                             progress = planProgress,
                             strip = ui.strip,
                             programLine = ui.programLine,
@@ -493,17 +476,6 @@ fun WorkoutLogScreen(
                                 onDismiss = { editSport = null },
                             )
                         }
-                    }
-                    if (timeOpen) {
-                        WorkoutTimeDialog(
-                            time = ui.workoutTime?.time,
-                            usual = ui.workoutTime?.usual,
-                            onSave = { t ->
-                                timeOpen = false
-                                vm.setWorkoutTime(time = t)
-                            },
-                            onDismiss = { timeOpen = false },
-                        )
                     }
                     if (showAdjust) {
                         AdjustTodayScreen(
@@ -1223,9 +1195,6 @@ private fun DayHeader(
     date: String,
     today: String,
     title: String,
-    /** The planned workout's time (v0.538): shown after the date, tap to change. */
-    time: Int? = null,
-    onTime: (() -> Unit)? = null,
     progress: Pair<Int, Int>,
     strip: com.kairos.app.data.remote.dto.WorkoutStripDto?,
     programLine: String = "",
@@ -1233,10 +1202,8 @@ private fun DayHeader(
     /** A Go light day's option title (v0.464), with Undo. */
     adjusted: String? = null,
     onUndoAdjust: () -> Unit = {},
-    /** Something was logged that day: a past day isn't "logging late" (v0.431). */
-    logged: Boolean = false,
-    /** Something was planned that day: a day with nothing planned is never late (v0.435). */
-    planned: Boolean = true,
+    /** A past day still open for logging (v0.545): "logging late". */
+    late: Boolean = false,
     onPickDate: () -> Unit,
     onPickDay: (String) -> Unit,
     stripPage: (Int) -> com.kairos.app.data.remote.dto.WorkoutStripDto? = { null },
@@ -1282,15 +1249,10 @@ private fun DayHeader(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    dayLine(date, today) + if (date < today && planned && !logged) " \u00b7 logging late" else "",
+                    dayLine(date, today) + if (late) " \u00b7 logging late" else "",
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (date < today && planned && !logged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (late) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            if (onTime != null) {
-                Spacer(Modifier.width(8.dp))
-                TimeChip(time = time, onClick = onTime)
-                Spacer(Modifier.weight(1f))
             }
             // Back to today (v0.463): only when the strip or the day is elsewhere.
             if (strip != null && (offToday || date != today)) {
@@ -2361,14 +2323,12 @@ private fun SportEditDialog(
 }
 
 /** The program whose workout is open on a day two programs share (v0.544):
- *  the one picked, else the only one still open when nothing else is. */
+ *  the one picked. */
 private fun programInView(ui: WorkoutLogUiState, pick: String?): com.kairos.app.data.remote.dto.DayProgramBlockDto? {
     val blocks = ui.programBlocks
     return when {
         blocks.isEmpty() || ui.restPlanned || ui.rested -> null
         pick?.startsWith("prog:") == true -> blocks.firstOrNull { "prog:${it.programId}" == pick }
-        pick != null -> null
-        ui.sports.any { it.state == "open" } -> null
-        else -> blocks.filter { !it.done && !it.skipped }.singleOrNull()
+        else -> null
     }
 }
