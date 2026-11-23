@@ -57,12 +57,25 @@ private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
+fun EditPlanScreen(
+    onBack: () -> Unit,
+    onOpenRotation: () -> Unit,
+    /** The running program's setup (v0.540): Change movements. */
+    onEditProgram: () -> Unit = {},
+    /** Bumped when the program's setup saved, so the plan reloads. */
+    refreshKey: Int = 0,
+) {
     val container = rememberContainer()
     val vm: EditPlanViewModel = viewModel(
         factory = viewModelFactory { initializer { EditPlanViewModel(container.sessionRepository) } },
     )
     val ui by vm.ui.collectAsState()
+    // The running program, for the Program section (v0.540).
+    var programs by remember { mutableStateOf<com.kairos.app.data.remote.dto.ProgramsDto?>(null) }
+    androidx.compose.runtime.LaunchedEffect(refreshKey) {
+        if (refreshKey > 0) vm.reload()
+        programs = runCatching { container.sessionRepository.loadPrograms() }.getOrNull() ?: programs
+    }
     val todayDow = remember { LocalDate.now().dayOfWeek.value % 7 }
     var addingDay by remember { mutableStateOf<Int?>(null) }
     // A Core day whose rotation is being changed (v0.444).
@@ -107,7 +120,7 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
         },
         topBar = {
             TopAppBar(
-                title = { Text("Workout plan") },
+                title = { Text("Your plan") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
@@ -144,6 +157,11 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                     Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    programs?.active?.let { a ->
+                        item(key = "program") {
+                            ProgramSection(info = a, canChange = programs?.setup != null, onChange = onEditProgram)
+                        }
+                    }
                     item(key = "starts-on") {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
@@ -233,12 +251,7 @@ fun EditPlanScreen(onBack: () -> Unit, onOpenRotation: () -> Unit) {
                             onCoreRotation = { editingCore = it },
                         )
                     }
-                    // Save, share, export and import at the foot of the plan
-                    // (v0.432); opening a saved or household plan is with the
-                    // programs.
-                    item(key = "plan-file") {
-                        PlanFileActions(vm = vm, ui = ui)
-                    }
+                    // Save, share, export and import moved to Saved plans (v0.540).
                 }
             }
 
@@ -587,3 +600,41 @@ private fun planIsoToMillis(iso: String): Long =
 private fun planMillisToIso(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().format(DateTimeFormatter.ISO_DATE)
 
+
+
+/** The program on the plan page (v0.540): its week, training maxes and
+ *  Change movements, the one way to change a program's movements. */
+@Composable
+private fun ProgramSection(
+    info: com.kairos.app.data.remote.dto.ProgramInfoDto,
+    canChange: Boolean,
+    onChange: () -> Unit,
+) {
+    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "PROGRAM",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(info.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text(info.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            info.maxes.forEach { m ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(m.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(
+                        MovementSetsViewModel.fmt(m.weight),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            if (canChange) {
+                androidx.compose.material3.TextButton(onClick = onChange) { Text("Change movements") }
+            }
+        }
+    }
+}

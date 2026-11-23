@@ -838,7 +838,23 @@ data class ProgramsDto(
     /** The garage's length for a shuttle carry; a parent may change it (server 0.734+). */
     val garageFeet: Int = 20,
     val canEditGarage: Boolean = false,
+    /** The plan card: the week at a glance, last day, other days (server 0.747+). */
+    val plan: PlanSummaryDto? = null,
 )
+
+/** strip: Monday first; ends: the plan's last day or null; others: the other
+ *  days' workouts when a program runs ("Arms", "Core"). */
+@Serializable
+data class PlanSummaryDto(
+    val strip: List<StripDayDto> = emptyList(),
+    val ends: String? = null,
+    val hasPlan: Boolean = false,
+    val others: List<String> = emptyList(),
+)
+
+/** kind: lift, core, iso, conditioning, cardio, other, rest or none. */
+@Serializable
+data class StripDayDto(val day: Int = 0, val label: String = "", val kind: String = "none", val program: Boolean = false)
 
 /** A person's own version of a program: its setup and extras when they ended it. */
 @Serializable

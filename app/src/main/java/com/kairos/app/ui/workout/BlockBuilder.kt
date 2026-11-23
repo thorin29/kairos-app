@@ -49,7 +49,7 @@ import com.kairos.app.data.remote.dto.StartProgramRequest
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.RollPicker
 
-private val BUILDER_STEPS = listOf("Days", "Blocks", "Movements", "Review")
+private val BUILDER_STEPS = listOf("Days", "Blocks", "Movements", "Extras", "Review")
 private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 /** Monday first. */
@@ -79,6 +79,8 @@ private fun finisherSub(scheme: String?): String = when {
 internal fun BlockBuilder(
     program: ProgramChoiceDto,
     current: CurrentExtrasDto,
+    /** Warm-up routines for the Extras step (v0.540). */
+    warmups: List<com.kairos.app.data.remote.dto.WarmupRoutineDto> = emptyList(),
     busy: Boolean,
     error: String?,
     initial: CurrentSetupDto? = null,
@@ -89,6 +91,10 @@ internal fun BlockBuilder(
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
+    // Extras (v0.540), as the other programs: each can be left out.
+    var warmup by remember(program.key) { mutableStateOf(if (current.warmup) current.warmupRoutine ?: "" else "none") }
+    var cardioDays by remember(program.key) { mutableStateOf(current.cardioDays) }
+    var conditioningDays by remember(program.key) { mutableStateOf(current.conditioningDays) }
     // Weekday → a program day's index, CORE or REST.
     val week = remember(program.key) {
         mutableStateListOf<Int>().apply {
@@ -151,31 +157,7 @@ internal fun BlockBuilder(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BUILDER_STEPS.forEachIndexed { k, label ->
-                    val on = k == step
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Box(
-                            Modifier
-                                .size(20.dp)
-                                .border(1.5.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "${k + 1}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+            SetupStepHeader(steps = BUILDER_STEPS, step = step)
 
             val dayTabs: @Composable () -> Unit = {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -351,6 +333,15 @@ internal fun BlockBuilder(
                         }
                     }
                 }
+                3 -> ExtrasStep(
+                    warmups = warmups,
+                    warmup = warmup,
+                    onWarmup = { warmup = it },
+                    cardioDays = cardioDays,
+                    onCardio = { cardioDays = it },
+                    conditioningDays = conditioningDays,
+                    onConditioning = { conditioningDays = it },
+                )
                 else -> {
                     BuilderCard(title = "${program.name} · ${program.weeks} weeks") {
                         var first = true
@@ -430,10 +421,10 @@ internal fun BlockBuilder(
                                 picks = picks.mapValues { (k, v) -> if (k in off) null else v },
                                 tops = emptyMap(),
                                 maxes = mains.mapNotNull { (id, _) -> maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let { id to it } }.toMap(),
-                                warmup = current.warmup,
-                                warmupRoutine = if (current.warmup) current.warmupRoutine ?: "" else null,
-                                cardioDays = current.cardioDays,
-                                conditioningDays = current.conditioningDays,
+                                warmup = warmup != "none",
+                                warmupRoutine = if (warmup != "none") warmup else null,
+                                cardioDays = cardioDays,
+                                conditioningDays = conditioningDays,
                                 coreDay = core.takeIf { it >= 0 },
                             ),
                         )

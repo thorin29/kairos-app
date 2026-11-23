@@ -109,6 +109,11 @@ fun ProgramsScreen(
     onEditPlan: () -> Unit = onDone,
     /** A rotation is chosen with the programs, not in the plan editor (v0.432). */
     onOpenRotation: (() -> Unit)? = null,
+    /** Opened from the plan page's Change movements (v0.540): straight into
+     *  the running program's setup; saving goes back. */
+    startEditing: Boolean = false,
+    /** Build my own (v0.540): the plan page, no program. */
+    onBuildOwn: (() -> Unit)? = null,
 ) {
     val container = rememberContainer()
     val session = container.sessionRepository
@@ -165,23 +170,27 @@ fun ProgramsScreen(
     }
     val nextSetup = data?.setup?.takeIf { changing != null }
     val nextProgram = nextSetup?.let { ns -> data?.choices?.firstOrNull { it.key == ns.key } }
-    // A builder program edits in place, same week (v0.528).
-    var editing by remember { mutableStateOf(false) }
+    // A program edits in place, same week (v0.528; every program v0.540).
+    var editing by remember { mutableStateOf(startEditing) }
     val editSetup = data?.setup?.takeIf { editing }
-    val editProgram = editSetup?.let { es -> data?.choices?.firstOrNull { it.key == es.key && it.builder } }
+    val editProgram = editSetup?.let { es -> data?.choices?.firstOrNull { it.key == es.key } }
+    val afterEdit: () -> Unit = {
+        editing = false
+        if (startEditing) onDone() else reload()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
-                    Text(editProgram?.name ?: nextProgram?.name ?: setup?.name ?: if (picking && data?.active != null) "Change program" else "Programs")
+                    Text(editProgram?.name ?: nextProgram?.name ?: setup?.name ?: if (picking) "New plan" else "Programs")
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = {
                             when {
-                                editProgram != null -> editing = false
+                                editProgram != null -> if (startEditing) onBack() else editing = false
                                 nextProgram != null -> changing = null
                                 setup != null -> setupKey = null
                                 picking && data?.active != null && !startPicking -> picking = false
@@ -206,27 +215,35 @@ fun ProgramsScreen(
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 )
+                editProgram != null && editSetup != null && !editProgram.builder -> ProgramSetup(
+                    program = editProgram,
+                    current = d.current,
+                    warmups = d.warmups,
+                    busy = busy,
+                    error = error,
+                    initial = editSetup,
+                    nextMaxes = d.active?.maxes?.associate { it.poolExerciseId to it.weight },
+                    editMode = true,
+                    onStart = { req -> act(block = { session.startProgram(req) }) { afterEdit() } },
+                )
                 editProgram != null && editSetup != null -> BlockBuilder(
                     program = editProgram,
                     garageFeet = d.garageFeet.takeIf { d.canEditGarage },
                     onGarage = { feet -> act(block = { session.setGarageFeet(feet) }) },
                     current = d.current,
+                    warmups = d.warmups,
                     busy = busy,
                     error = error,
                     initial = editSetup,
                     nextMaxes = d.active?.maxes?.associate { it.poolExerciseId to it.weight },
-                    onStart = { req ->
-                        act(block = { session.startProgram(req) }) {
-                            editing = false
-                            reload()
-                        }
-                    },
+                    onStart = { req -> act(block = { session.startProgram(req) }) { afterEdit() } },
                 )
                 nextProgram != null && nextSetup != null && nextProgram.builder -> BlockBuilder(
                     program = nextProgram,
                     garageFeet = d.garageFeet.takeIf { d.canEditGarage },
                     onGarage = { feet -> act(block = { session.setGarageFeet(feet) }) },
                     current = d.current,
+                    warmups = d.warmups,
                     busy = busy,
                     error = error,
                     initial = nextSetup,
@@ -244,6 +261,7 @@ fun ProgramsScreen(
                         garageFeet = d.garageFeet.takeIf { d.canEditGarage },
                         onGarage = { feet -> act(block = { session.setGarageFeet(feet) }) },
                         current = d.current,
+                        warmups = d.warmups,
                         busy = busy,
                         error = error,
                         onStart = { req ->
@@ -302,7 +320,7 @@ fun ProgramsScreen(
                         ActiveProgramCard(
                             info = a,
                             builder = builder,
-                            onEdit = if (builder && d.setup != null) ({ editing = true }) else null,
+                            onEdit = if (d.setup != null) ({ editing = true }) else null,
                             onCycle = { cycleOpen = true },
                             onChange = { picking = true },
                             onEnd = { ending = true },
@@ -314,12 +332,24 @@ fun ProgramsScreen(
                                 d.choices.forEach { c ->
                                     ProgramChoiceCard(c = c, edited = d.versions.containsKey(c.key), onPick = { pick(c.key) })
                                 }
+                                onBuildOwn?.let { own ->
+                                    OutlinedCard(onClick = own, modifier = Modifier.fillMaxWidth()) {
+                                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text("Build my own", style = MaterialTheme.typography.titleMedium)
+                                            Text(
+                                                "No program: pick each day yourself.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
                                 onOpenRotation?.let { open ->
                                     OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth()) {
                                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text("Rotation", style = MaterialTheme.typography.titleMedium)
+                                            Text("Rolling plan", style = MaterialTheme.typography.titleMedium)
                                             Text(
-                                                "A cycle of workouts that repeats every few days, whatever the weekday.",
+                                                "Workouts in a set order every few days, whatever the weekday.",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -426,8 +456,11 @@ fun ProgramsScreen(
 }
 
 @Composable
-private fun ChooserTabs(selected: String, onSelect: (String) -> Unit) {
-    val tabs = listOf("programs" to "Programs", "mine" to "My plans", "household" to "Household")
+internal fun ChooserTabs(
+    selected: String,
+    onSelect: (String) -> Unit,
+    tabs: List<Pair<String, String>> = listOf("programs" to "Programs", "mine" to "My plans", "household" to "Household"),
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -660,10 +693,62 @@ internal fun ProgramPill(
     }
 }
 
+/** Every setup's step header (v0.540): bars, then "2 OF 5 · LIFTS". */
+@Composable
+internal fun SetupStepHeader(steps: List<String>, step: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            steps.forEachIndexed { i, _ ->
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(if (i <= step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                )
+            }
+        }
+        Text(
+            "${step + 1} of ${steps.size} \u00b7 ${steps[step]}".uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Warm-up ("none", "" a plain check, or a routine), cardio days and
+ *  conditioning days (v0.540: Odd squad too). Each can be left out. */
+@Composable
+internal fun ExtrasStep(
+    warmups: List<com.kairos.app.data.remote.dto.WarmupRoutineDto>,
+    warmup: String,
+    onWarmup: (String) -> Unit,
+    cardioDays: List<Int>,
+    onCardio: (List<Int>) -> Unit,
+    conditioningDays: List<Int>,
+    onConditioning: (List<Int>) -> Unit,
+) {
+    fun toggled(list: List<Int>, d: Int): List<Int> = if (d in list) list - d else (list + d).sorted()
+    val warmupOptions = listOf("none" to "None", "" to "Just a check") + warmups.map { it.id to it.name }
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Dropdown(
+            label = "Warm-up",
+            selected = warmupOptions.firstOrNull { it.first == warmup }?.second ?: "Just a check",
+            options = warmupOptions,
+            onSelect = onWarmup,
+        )
+        Text("Cardio", style = MaterialTheme.typography.titleSmall)
+        DayChips(value = cardioDays, onToggle = { d -> onCardio(toggled(cardioDays, d)) })
+        Text("Conditioning", style = MaterialTheme.typography.titleSmall)
+        DayChips(value = conditioningDays, onToggle = { d -> onConditioning(toggled(conditioningDays, d)) })
+    }
+}
+
 /** A row of the seven weekdays; `value` holds the ones on. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DayChips(value: List<Int>, onToggle: (Int) -> Unit) {
+internal fun DayChips(value: List<Int>, onToggle: (Int) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         WEEKDAYS.forEachIndexed { d, label ->
             val on = d in value
@@ -714,6 +799,8 @@ private fun ProgramSetup(
     /** Started from the person's own version (v0.476): its training maxes, and
      *  90% of the best logged for a lift it has none for. */
     fromVersion: Boolean = false,
+    /** Changing the running program from the plan page (v0.540): "Save changes". */
+    editMode: Boolean = false,
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
@@ -781,7 +868,6 @@ private fun ProgramSetup(
     fun tmOf(id: String): Double? = maxFor(id).toDoubleOrNull()?.takeIf { it > 0 }?.let {
         if (nextMaxes != null) it else ((it * 0.9) / 5.0).roundToInt() * 5.0
     }
-    fun toggle(list: List<Int>, d: Int): List<Int> = if (d in list) list - d else (list + d).sorted()
 
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -791,23 +877,7 @@ private fun ProgramSetup(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                SETUP_STEPS.forEachIndexed { i, _ ->
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(if (i <= step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
-                    )
-                }
-            }
-            Text(
-                SETUP_STEPS[step].uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SetupStepHeader(steps = SETUP_STEPS, step = step)
             when (step) {
                 0 -> {
                     Text(program.blurb, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -893,19 +963,15 @@ private fun ProgramSetup(
                         }
                     }
                 }
-                2 -> {
-                    val warmupOptions = listOf("none" to "None", "" to "Just a check") + warmups.map { it.id to it.name }
-                    Dropdown(
-                        label = "Warm-up",
-                        selected = warmupOptions.firstOrNull { it.first == warmup }?.second ?: "Just a check",
-                        options = warmupOptions,
-                        onSelect = { warmup = it },
-                    )
-                    Text("Cardio", style = MaterialTheme.typography.titleSmall)
-                    DayChips(value = cardioDays, onToggle = { d -> cardio = toggle(cardioDays, d) })
-                    Text("Conditioning", style = MaterialTheme.typography.titleSmall)
-                    DayChips(value = conditioning, onToggle = { d -> conditioning = toggle(conditioning, d) })
-                }
+                2 -> ExtrasStep(
+                    warmups = warmups,
+                    warmup = warmup,
+                    onWarmup = { warmup = it },
+                    cardioDays = cardioDays,
+                    onCardio = { cardio = it },
+                    conditioningDays = conditioning,
+                    onConditioning = { conditioning = it },
+                )
                 else -> {
                     if (mains.isEmpty()) {
                         Text("No main lifts.", style = MaterialTheme.typography.bodyMedium)
@@ -967,7 +1033,7 @@ private fun ProgramSetup(
                 ProgramPill(label = "Next", filled = true, modifier = Modifier.weight(1f), onClick = { step += 1 })
             } else {
                 ProgramPill(
-                    label = if (busy) "Starting…" else if (nextMaxes != null && !fromVersion) "Start next cycle" else "Start program",
+                    label = if (busy) "Starting…" else if (editMode) "Save changes" else if (nextMaxes != null && !fromVersion) "Start next cycle" else "Start program",
                     filled = true,
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
@@ -1066,7 +1132,7 @@ private fun CompanionRow(
  * also saves the current plan, and renames or deletes a saved one.
  */
 @Composable
-private fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
+internal fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
     val session = rememberContainer().sessionRepository
     val scope = rememberCoroutineScope()
     var rows by remember(mine) { mutableStateOf<List<Triple<String, String, String>>?>(null) }

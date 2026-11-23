@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Plan card and one setup style (v0.541.0, server 0.747.0)
+
+- `PlanCard` (WorkoutsScreen) replaces `ProgramSummaryCard` and the Edit plan
+  button: program or My plan, `WeekStrip` from `ProgramsDto.plan`, Edit /
+  Change / End (End program asks Go back / Keep; End my plan sets the plan's
+  end to today). Saved plans (`SavedPlansScreen`, `Route.SavedPlans`) holds
+  `PlanLibrary` and `PlanFileActions`, moved from the plan editor.
+- EditPlanScreen ("Your plan") has a Program section; Change movements opens
+  `Route.ProgramsEdit` (`ProgramsScreen(startEditing = true)`), which edits
+  any program in place (classic setups take `editMode`), then bumps
+  `planChanged` so the plan reloads.
+- `SetupStepHeader` and `ExtrasStep` are shared by the classic setup and
+  `BlockBuilder` (which gains an Extras step). Rotation reads Rolling plan.
+
 ## 2026-11 — Cardio colours and x of y (v0.540.0, server 0.745.0)
 
 - `WeekBars` (EnduranceCharts.kt) takes `parts`: each week's kinds stacked

@@ -137,6 +137,14 @@ sealed interface Route {
     @Serializable
     data object EditPlan : Route
 
+    /** The running program's setup, straight from the plan page (v0.540). */
+    @Serializable
+    data object ProgramsEdit : Route
+
+    /** My plans, Household, and save / share / export / import (v0.540). */
+    @Serializable
+    data object SavedPlans : Route
+
     @Serializable
     data object AddGrocery : Route
 

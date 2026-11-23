@@ -85,6 +85,7 @@ import com.kairos.app.ui.calendar.CalendarAddClassScreen
 import com.kairos.app.ui.workout.BrowseWorkoutsScreen
 import com.kairos.app.ui.workout.CreatePersonalWorkoutScreen
 import com.kairos.app.ui.workout.EditPlanScreen
+import com.kairos.app.ui.workout.SavedPlansScreen
 import com.kairos.app.ui.workout.WarmupsScreen
 import com.kairos.app.ui.workout.RotationScreen
 import com.kairos.app.ui.workout.RecentWorkoutsScreen
@@ -591,6 +592,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenEditPlan = { navController.navigate(Route.EditPlan) },
                             onOpenPrograms = { navController.navigate(Route.Programs) },
                             onChangeProgram = { navController.navigate(Route.ProgramsChange) },
+                            onOpenSavedPlans = { navController.navigate(Route.SavedPlans) },
                             refreshKey = dataRevision + programsChanged,
                             onOpenFamilyWod = { navController.navigate(Route.FamilyWod) },
                             onOpenPause = { navController.navigate(Route.WorkoutPause) },
@@ -696,7 +698,27 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             navController.navigate(Route.EditPlan)
                         },
                         onOpenRotation = { navController.navigate(Route.Rotation) },
+                        onBuildOwn = {
+                            back()
+                            navController.navigate(Route.EditPlan)
+                        },
                     )
+                }
+                composable<Route.ProgramsEdit> {
+                    ProgramsScreen(
+                        onBack = { navController.popBackStack() },
+                        onDone = {
+                            // The plan page reloads: the program rewrote the plan.
+                            navController.previousBackStackEntry?.savedStateHandle?.let { h ->
+                                h["planChanged"] = (h.get<Int>("planChanged") ?: 0) + 1
+                            }
+                            navController.popBackStack()
+                        },
+                        startEditing = true,
+                    )
+                }
+                composable<Route.SavedPlans> {
+                    SavedPlansScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Route.Warmups> {
                     WarmupsScreen(onBack = { navController.popBackStack() })
@@ -747,10 +769,15 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 composable<Route.CreatePersonalWorkout> {
                     CreatePersonalWorkoutScreen(onBack = { navController.popBackStack() })
                 }
-                composable<Route.EditPlan> {
+                composable<Route.EditPlan> { entry ->
+                    val planChanged by entry.savedStateHandle
+                        .getStateFlow("planChanged", 0)
+                        .collectAsState()
                     EditPlanScreen(
+                        refreshKey = planChanged,
                         onBack = { navController.popBackStack() },
                         onOpenRotation = { navController.navigate(Route.Rotation) },
+                        onEditProgram = { navController.navigate(Route.ProgramsEdit) },
                     )
                 }
                 composable<Route.AddGrocery> {

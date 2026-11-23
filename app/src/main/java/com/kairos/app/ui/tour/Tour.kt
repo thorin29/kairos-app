@@ -148,28 +148,29 @@ val TOUR_STOPS: List<TourStop> = listOf(
         lines = l("Your weekly workout at a glance."),
     ),
     TourStop(
-        id = "programs", where = "section:workouts", target = "workouts.programs", title = "Programs",
+        id = "programs", where = "section:workouts", target = "workouts.programs", title = "Your plan",
         lines = l(
-            "Click to select and start a program, Kairos has several different programs depending on your goals.",
-            "Tap here to view or change programs.",
+            "Your program or your own plan, with the week at a glance.",
+            "Edit changes it, Change starts a new plan, End stops it.",
         ),
     ),
     TourStop(
-        id = "plan", where = "section:workouts", target = "workouts.plan", title = "Edit plan and Log workout",
+        id = "plan", where = "section:workouts", target = "workouts.plan", title = "Log workout",
         lines = l(
-            "Edit plan lets you change your plan for each day of the week.",
             "Log workout records today’s sets and warm-ups.",
             "Routines holds your warm-ups and stretches.",
+            "Browse workouts to try one.",
         ),
     ),
     TourStop(
         id = "tools", where = "section:workouts", target = "workouts.tools", title = "More tools",
         lines = l(
-            "Browse workouts, or create your own HIIT or CrossFit workout.",
+            "Create your own HIIT or CrossFit workout.",
             "Calculator displays bars and plates for lifts.",
             "Family Workout of the Day (WOD) is a workout for everyone.",
             "Pause stops your plan for a period of time.",
             "Recent shows what you’ve logged.",
+            "Saved plans keeps plans to use again, share or export.",
         ),
     ),
     TourStop(

@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.data.remote.dto.ProgressSeriesDto
 import com.kairos.app.data.remote.dto.WorkoutProgressDto
@@ -65,10 +66,9 @@ import com.kairos.app.ui.nav.KairosIcons
 import kotlinx.coroutines.launch
 
 /**
- * The Workouts page (launcher). TODAY = the day's plan + Edit plan / Log workout
- * / Rest·skip, then Browse workouts + Weight calculator, then a "Recent
- * workouts" link to its own page. This Week (sports) lands next;
- * Edit plan / Browse / Weight calculator are stubs for now with the same look.
+ * The Workouts page (launcher): progress, the plan card (v0.540: Edit /
+ * Change / End) and nine buttons — log, routines, browse; HIIT, calculator,
+ * Family WOD; Pause, Recent, Saved plans.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +89,8 @@ fun WorkoutsScreen(
     /** Family WOD and Pause workouts, full pages (v0.490). */
     onOpenFamilyWod: () -> Unit = {},
     onOpenPause: () -> Unit = {},
+    /** Saved plans: My plans, Household, save / share / export / import (v0.540). */
+    onOpenSavedPlans: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -227,10 +229,25 @@ fun WorkoutsScreen(
 
                     programs?.let { p ->
                       Box(Modifier.tourTarget("workouts.programs")) {
-                        ProgramSummaryCard(
+                        PlanCard(
                             data = p,
                             onOpen = onOpenPrograms,
+                            onEdit = onOpenEditPlan,
                             onChange = onChangeProgram,
+                            onEndProgram = { restore ->
+                                scope.launch {
+                                    runCatching { container.sessionRepository.endProgram(restore) }
+                                    refreshProgressWeek()
+                                    vm.load()
+                                }
+                            },
+                            onEndPlan = {
+                                scope.launch {
+                                    runCatching { container.sessionRepository.setWeeklyEnd(java.time.LocalDate.now().toString()) }
+                                    refreshProgressWeek()
+                                    vm.load()
+                                }
+                            },
                             onAnswer = { answer ->
                                 scope.launch {
                                     runCatching { container.sessionRepository.answerProgramInvite(answer) }
@@ -280,10 +297,10 @@ fun WorkoutsScreen(
                         }
                     }
 
+                    // The Edit plan button went to the plan card (v0.540): the
+                    // nine are log, routines, browse; HIIT, calculator, Family
+                    // WOD; Pause, Recent, Saved plans.
                     Row(Modifier.tourTarget("workouts.plan"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ActionCard(
-                            KairosIcons.Calendar, "Edit plan", Modifier.weight(1f),
-                        ) { onOpenEditPlan() }
                         ActionCard(
                             KairosIcons.Dumbbell, "Log workout", Modifier.weight(1f),
                             highlighted = true,
@@ -294,13 +311,13 @@ fun WorkoutsScreen(
                         ActionCard(
                             KairosIcons.Flame, "Routines", Modifier.weight(1f),
                         ) { onOpenWarmups() }
+                        ActionCard(
+                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
+                        ) { onOpenBrowse() }
                     }
 
                   Column(Modifier.tourTarget("workouts.tools"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ActionCard(
-                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
-                        ) { onOpenBrowse() }
                         ActionCard(
                             KairosIcons.Plus, "HIIT / CrossFit", Modifier.weight(1f),
                             subtitle = "Create / edit",
@@ -308,18 +325,16 @@ fun WorkoutsScreen(
                         ActionCard(
                             KairosIcons.Dumbbell, "Calculator", Modifier.weight(1f),
                         ) { onOpenCalculator() }
-                    }
-
-                    // Family WOD, Pause and Recent as buttons like the rows above
-                    // (v0.494; were full-width cards). The first two say what's
-                    // on under the label: the next WOD, a pause running or ahead.
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Family WOD and Pause say what's on under the label
+                        // (v0.494): the next WOD, a pause running or ahead.
                         val fw = familyWodLine(refreshKey)
                         ActionCard(
                             KairosIcons.Users, "Family WOD", Modifier.weight(1f),
                             highlighted = fw?.second == true,
                             subtitle = fw?.first,
                         ) { onOpenFamilyWod() }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
                             KairosIcons.Pause, "Pause", Modifier.weight(1f),
                             subtitle = pauseLine(refreshKey),
@@ -327,6 +342,9 @@ fun WorkoutsScreen(
                         ActionCard(
                             KairosIcons.Clock, "Recent", Modifier.weight(1f),
                         ) { onOpenRecent() }
+                        ActionCard(
+                            KairosIcons.Bookmark, "Saved plans", Modifier.weight(1f),
+                        ) { onOpenSavedPlans() }
                     }
                   }
                 }
@@ -585,33 +603,100 @@ private fun weekLabel(iso: String): String = try {
 }
 
 /**
- * The program on the Workouts page: its name and week (tap for Programs), a
- * nudge when a block is done; without one, the invite (no plan and nothing
- * logged lately) or a plain "Programs" row like "Recent workouts".
+ * The plan card (v0.540; the web's): the program or your own plan, the week
+ * at a glance, and Edit / Change / End. It replaces the Edit plan button.
+ * Without a plan, the invite (no plan and nothing logged lately) or New plan.
  */
 @Composable
-private fun ProgramSummaryCard(
+private fun PlanCard(
     data: com.kairos.app.data.remote.dto.ProgramsDto,
     onOpen: () -> Unit,
+    onEdit: () -> Unit,
     onChange: () -> Unit,
+    onEndProgram: (restore: Boolean) -> Unit,
+    onEndPlan: () -> Unit,
     onAnswer: (String) -> Unit,
 ) {
     val a = data.active
+    val plan = data.plan
+    var ending by remember { mutableStateOf(false) }
+    val links: @Composable () -> Unit = {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = onEdit) { Text("Edit") }
+            TextButton(onClick = onChange) { Text("Change") }
+            TextButton(onClick = { ending = true }) { Text(text = "End", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+    }
     when {
-        a != null -> OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-            Row(
-                Modifier.fillMaxWidth().padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(a.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        a != null -> OutlinedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(end = 8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(a.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(a.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (plan != null && plan.others.isNotEmpty()) {
+                        Text(
+                            "With " + listWords(plan.others),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (a.blockDone) {
+                    Box(Modifier.padding(end = 8.dp)) {
+                        ProgramPill(label = "Cycle done \u00b7 what's next?", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onOpen)
+                    }
+                }
+                plan?.let { Box(Modifier.padding(end = 8.dp)) { WeekStrip(days = it.strip) } }
+                links()
+            }
+            if (ending) {
+                AnimatedDialog(
+                    onDismissRequest = { ending = false },
+                    title = "End ${a.name}?",
+                    confirmButton = {
+                        TextButton(onClick = {
+                            ending = false
+                            onEndProgram(true)
+                        }) { Text("Go back to my old plan") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            ending = false
+                            onEndProgram(false)
+                        }) { Text("Keep this plan") }
+                    },
+                    content = {},
+                )
+            }
+        }
+        plan != null && plan.hasPlan && !data.invite -> OutlinedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("My plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     Text(
-                        if (a.blockDone) "Block done \u00b7 choose what's next" else a.label,
+                        plan.ends?.let { "Ends " + planEndDay(it) } ?: "No end date",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (a.blockDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = onChange) { Text("Change program") }
+                Box(Modifier.padding(end = 8.dp)) { WeekStrip(days = plan.strip) }
+                links()
+            }
+            if (ending) {
+                AnimatedDialog(
+                    onDismissRequest = { ending = false },
+                    title = "End my plan?",
+                    confirmButton = {
+                        TextButton(onClick = {
+                            ending = false
+                            onEndPlan()
+                        }) { Text("End today") }
+                    },
+                    dismissButton = { TextButton(onClick = { ending = false }) { Text("Cancel") } },
+                    content = {},
+                )
             }
         }
         data.invite -> OutlinedCard(Modifier.fillMaxWidth()) {
@@ -634,13 +719,61 @@ private fun ProgramSummaryCard(
                 }
             }
         }
-        else -> OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Programs", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text("\u2192", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        else -> OutlinedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("No plan yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                ProgramPill(label = "New plan", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onChange)
+            }
+        }
+    }
+}
+
+/** "Arms", "Arms and Core", "Arms, Core and Mobility". */
+private fun listWords(xs: List<String>): String =
+    if (xs.size <= 1) xs.joinToString("") else xs.dropLast(1).joinToString(", ") + " and " + xs.last()
+
+/** "2026-12-20" → "Dec 20". */
+private fun planEndDay(iso: String): String =
+    runCatching { java.time.LocalDate.parse(iso).format(java.time.format.DateTimeFormatter.ofPattern("MMM d", java.util.Locale.US)) }.getOrDefault(iso)
+
+private val STRIP_DAYS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+private fun stripColor(kind: String): Color = when (kind) {
+    "lift" -> Color(0xFF4F46E5)
+    "core" -> Color(0xFFD97706)
+    "iso" -> Color(0xFFDB2777)
+    "conditioning" -> CONDITIONING_COLOR
+    "cardio" -> CARDIO_COLOR
+    "other" -> Color(0xFF9AA3AD)
+    "rest" -> Color(0xFFCBD5E1)
+    else -> Color.Transparent
+}
+
+/** The week at a glance (v0.540): a bar per weekday in its kind's colour and
+ *  the day's main workout. */
+@Composable
+private fun WeekStrip(days: List<com.kairos.app.data.remote.dto.StripDayDto>) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        days.forEach { d ->
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(STRIP_DAYS.getOrElse(d.day) { "" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    Modifier
+                        .padding(vertical = 4.dp)
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(stripColor(d.kind))
+                        .then(
+                            if (d.kind == "none") Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50)) else Modifier,
+                        ),
+                )
+                Text(
+                    d.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
             }
         }
     }

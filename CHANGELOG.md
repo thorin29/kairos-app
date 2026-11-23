@@ -1,4 +1,10 @@
 # Changelog
+## 0.541.0
+
+- Workouts: the plan card shows your program or your own plan with the week at a glance, and Edit / Change / End. Edit opens Your plan, with the program's maxes and Change movements on top. Saved plans replaces the Edit plan button.
+- Every program setup steps the same way; Odd squad now asks about warm-up, cardio and conditioning, and each can be left out. Rotation is now Rolling plan.
+- Needs server 0.747.
+
 ## 0.540.0
 
 - Cardio: each week's bar is split by type in its own colour, with sport in green, and each line this week has its colour. Hike and Walk are new in Add cardio.

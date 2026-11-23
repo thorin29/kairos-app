@@ -70,7 +70,7 @@ fun RotationScreen(onBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text("Rotation") },
+                title = { Text("Rolling plan") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(KairosIcons.ArrowBack, contentDescription = "Back")
@@ -94,7 +94,7 @@ fun RotationScreen(onBack: () -> Unit) {
 @Composable
 private fun StartRotation(onStart: () -> Unit, enabled: Boolean) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Rotation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text("Rolling plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Text(
             "Put yourself on a repeating cycle of workouts (e.g. Chest, Legs, Push) instead of a fixed weekly plan. Fixed rest weekdays pause the cycle, so a weekend never costs your place.",
             style = MaterialTheme.typography.bodyMedium,
