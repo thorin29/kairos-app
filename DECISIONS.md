@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Your reminders on any event (v0.556.0, server 0.774.0)
+
+- Event detail's "Your reminders" chips now show on every stored event (not
+  only feed events): they start as the event's own; tapping saves the
+  person's own list (all off = muted for them). "Use the event's reminders"
+  resets when they had their own (`reset: true`).
+- The event form edits the event's own reminders (`eventReminders`, falling
+  back to `reminders` on older servers); "Remind me about this" is gone — the
+  reminders go to everyone on the event and each person can mute theirs.
+- Default reminders (`ReminderDefaults`) are saved in the person's choices on
+  the server (`reminderDefaults`): a new phone takes them; a phone with its own
+  and none saved sends them up; changing one pushes it.
+
+
 ## 2026-11 — More optional news (v0.555.0, server 0.773.0)
 
 - Switches: "My turn on shared chores" (morning), "Family workouts I'm in",

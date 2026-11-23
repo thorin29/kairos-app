@@ -354,10 +354,10 @@ class CalendarViewModel(
 
     /** Set the current phone's reminders on a subscribed (feed) event, then
      *  reschedule local notifications and reload so the change shows. */
-    fun setSubscribedReminders(eventId: String, reminders: List<Int>) {
+    fun setSubscribedReminders(eventId: String, reminders: List<Int>, reset: Boolean = false) {
         viewModelScope.launch {
             try {
-                session.setSubscribedReminders(eventId, reminders)
+                session.setSubscribedReminders(eventId = eventId, reminders = reminders, reset = reset)
                 rescheduleReminders()
                 clearPageCaches()
                 load()

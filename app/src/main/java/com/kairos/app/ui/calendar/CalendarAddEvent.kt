@@ -197,7 +197,9 @@ fun AddEventOverlay(
             editEvent?.let { e -> e.memberIds.filter { it != e.ownerId }.toSet() } ?: emptySet(),
         )
     }
-    var reminders by remember { mutableStateOf(editEvent?.reminders ?: emptyList()) }
+    // The event's own reminders (server 0.774+ sends them apart from this
+    // viewer's own, which may be changed or muted).
+    var reminders by remember { mutableStateOf(editEvent?.let { it.eventReminders ?: it.reminders } ?: emptyList()) }
     val reminderDefaults by container.settingsStore.reminderDefaults.collectAsState(initial = null)
     // Whether the person has hand-edited reminders; if so we never auto-change them.
     var reminderTouched by remember { mutableStateOf(editing) }
@@ -510,19 +512,6 @@ fun AddEventOverlay(
                 }
 
                 SectionLine()
-                if (reminders.isNotEmpty()) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "Remind me about this",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(checked = remindMe, onCheckedChange = { remindMe = it })
-                    }
-                }
                 reminders.forEach { m ->
                     Row(
                         Modifier.fillMaxWidth().padding(vertical = 10.dp),

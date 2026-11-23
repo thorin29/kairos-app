@@ -150,7 +150,10 @@ fun DefaultRemindersCard() {
                         Modifier
                             .fillMaxWidth()
                             .clickable {
-                                scope.launch { container.settingsStore.setReminderDefault(kind, m) }
+                                scope.launch {
+                                    container.settingsStore.setReminderDefault(kind, m)
+                                    com.kairos.app.data.notifications.NotifySync.pushDefaults(container.appContext)
+                                }
                                 editingKind = null
                             }
                             .padding(vertical = 10.dp),

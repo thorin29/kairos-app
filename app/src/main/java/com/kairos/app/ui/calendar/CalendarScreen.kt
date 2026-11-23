@@ -1658,10 +1658,10 @@ private fun EventDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp),
                         )
-                        // Reminders. On a subscribed (feed) event you set your own
-                        // by tapping the presets; on your own events they show
-                        // read-only (edit them from the event form).
-                        if (event.external && stored) {
+                        // Your reminders (v0.556; server 0.774+): on any event you
+                        // set your own by tapping the presets — tapping them all off
+                        // mutes the event for you. They start as the event's own.
+                        if (stored) {
                             var mine by remember(event.eventId) {
                                 mutableStateOf(event.reminders.sorted())
                             }
@@ -1704,7 +1704,7 @@ private fun EventDetailScreen(
                                                         mine =
                                                             if (on) mine - m
                                                             else (mine + m).sorted()
-                                                        vm.setSubscribedReminders(event.eventId, mine)
+                                                        vm.setSubscribedReminders(eventId = event.eventId, reminders = mine)
                                                     }
                                                     .padding(horizontal = 12.dp, vertical = 6.dp),
                                             ) {
@@ -1717,6 +1717,14 @@ private fun EventDetailScreen(
                                                 )
                                             }
                                         }
+                                }
+                                if (event.myReminders && !event.external) {
+                                    TextButton(
+                                        onClick = {
+                                            vm.setSubscribedReminders(eventId = event.eventId, reminders = emptyList(), reset = true)
+                                            mine = (event.eventReminders ?: emptyList()).sorted()
+                                        },
+                                    ) { Text("Use the event’s reminders") }
                                 }
                             }
                         } else if (event.reminders.isNotEmpty()) {

@@ -981,10 +981,10 @@ class SessionRepository(
         runAuthed { requireService().saveCalendarPrefs(body) }
     }
 
-    suspend fun setSubscribedReminders(eventId: String, reminders: List<Int>) {
+    suspend fun setSubscribedReminders(eventId: String, reminders: List<Int>, reset: Boolean = false) {
         runAuthed {
             requireService().subscribedReminders(
-                com.kairos.app.data.remote.dto.SubscribedRemindersRequest(eventId, reminders),
+                com.kairos.app.data.remote.dto.SubscribedRemindersRequest(eventId = eventId, reminders = reminders, reset = reset),
             )
         }
     }
@@ -1485,6 +1485,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 627
+        const val CLIENT_BUILD = 628
     }
 }

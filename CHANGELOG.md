@@ -1,4 +1,12 @@
 # Changelog
+## 0.556.0
+
+- Your reminders on any event: tap to change them, or turn them all off to mute that event for you.
+- Reminders set on calendar subscriptions now actually go off.
+- An event's reminders go to everyone on it; "Remind me" is gone from the event form.
+- Your default reminders follow you to a new phone.
+- Needs server 0.774.
+
 ## 0.555.0
 
 - New optional alerts: your turn on shared chores (each morning), family workouts you're in, and for parents money and suggestions waiting for approval.

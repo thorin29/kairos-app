@@ -2616,7 +2616,12 @@ data class CalEventDto(
     val attendees: List<AttendeeDto> = emptyList(),
     val ownerId: String? = null,
     val eventTypeId: String? = null,
+    /** This viewer's reminders (server 0.774+: their own if set, else the event's). */
     val reminders: List<Int> = emptyList(),
+    /** The event's own (suggested) reminders, for editing; null from older servers. */
+    val eventReminders: List<Int>? = null,
+    /** True when the viewer set their own reminders on this event. */
+    val myReminders: Boolean = false,
     val reminderUserIds: List<String> = emptyList(),
     val memberIds: List<String> = emptyList(),
     val calendarName: String? = null,
@@ -2702,6 +2707,8 @@ data class CalendarDto(
 data class SubscribedRemindersRequest(
     val eventId: String,
     val reminders: List<Int>,
+    /** Go back to the event's own reminders (server 0.774+). */
+    val reset: Boolean = false,
 )
 
 @Serializable
@@ -4106,6 +4113,8 @@ data class NotifyPrefsDto(
     val choreTurn: Boolean = false,
     val places: List<PlaceRuleDto> = emptyList(),
     val safety: SafetyChoicesDto = SafetyChoicesDto(),
+    /** Default reminder per event kind ("APPOINTMENT", …), minutes; -1 = none. */
+    val reminderDefaults: Map<String, Int> = emptyMap(),
     val quiet: QuietHoursDto? = null,
 )
 
