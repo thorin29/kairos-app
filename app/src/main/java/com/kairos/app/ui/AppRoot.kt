@@ -593,6 +593,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onOpenPrograms = { navController.navigate(Route.Programs) },
                             onChangeProgram = { navController.navigate(Route.ProgramsChange) },
                             onOpenSavedPlans = { navController.navigate(Route.SavedPlans) },
+                            onAddProgram = { navController.navigate(Route.ProgramsAdd) },
                             refreshKey = dataRevision + programsChanged,
                             onOpenFamilyWod = { navController.navigate(Route.FamilyWod) },
                             onOpenPause = { navController.navigate(Route.WorkoutPause) },
@@ -704,8 +705,18 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         },
                     )
                 }
-                composable<Route.ProgramsEdit> {
+                composable<Route.ProgramsAdd> {
+                    val back: () -> Unit = {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { h ->
+                            h["programsChanged"] = (h.get<Int>("programsChanged") ?: 0) + 1
+                        }
+                        navController.popBackStack()
+                    }
+                    ProgramsScreen(onBack = back, onDone = back, startAdding = true)
+                }
+                composable<Route.ProgramsEdit> { entry ->
                     ProgramsScreen(
+                        editProgramId = entry.toRoute<Route.ProgramsEdit>().programId,
                         onBack = { navController.popBackStack() },
                         onDone = {
                             // The plan page reloads: the program rewrote the plan.
@@ -777,7 +788,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         refreshKey = planChanged,
                         onBack = { navController.popBackStack() },
                         onOpenRotation = { navController.navigate(Route.Rotation) },
-                        onEditProgram = { navController.navigate(Route.ProgramsEdit) },
+                        onEditProgram = { id -> navController.navigate(Route.ProgramsEdit(programId = id)) },
                     )
                 }
                 composable<Route.AddGrocery> {

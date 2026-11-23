@@ -802,6 +802,8 @@ data class TargetSetDto(
 /** A person's running program, as the day page and Workouts page show it. */
 @Serializable
 data class ProgramInfoDto(
+    /** The program row, when two run at once (server 0.749+). */
+    val id: String = "",
     val key: String = "",
     val name: String = "",
     val week: Int = 1,
@@ -818,6 +820,8 @@ data class ProgramInfoDto(
     val check: List<LiftCheckDto> = emptyList(),
     /** With blockDone, when the cycle felt easy: a harder program to try. */
     val harder: HarderProgramDto? = null,
+    /** In `also` only: the program's setup, for Change movements (server 0.749+). */
+    val setup: CurrentSetupDto? = null,
 )
 
 @Serializable
@@ -863,6 +867,8 @@ data class ProgramsDto(
     val plan: PlanSummaryDto? = null,
     /** What each weekday holds now, Sunday first (server 0.748+). */
     val otherDays: List<String> = emptyList(),
+    /** Programs running beside the first, each with its setup (server 0.749+). */
+    val also: List<ProgramInfoDto> = emptyList(),
 )
 
 /** strip: Monday first; ends: the plan's last day or null; others: the other
@@ -985,19 +991,29 @@ data class StartProgramRequest(
     val coreDay: Int? = null,
     /** The days the program doesn't use, weekday → kind (server 0.748+). */
     val other: Map<String, String>? = null,
+    /** Beside the running program (server 0.749+). */
+    val add: Boolean? = null,
+    /** Which running program this changes or replaces (server 0.749+). */
+    val programId: String? = null,
 )
 
 @Serializable
 data class AddedLiftRequest(val day: Int, val poolExerciseId: String, val scheme: String? = null)
 
 @Serializable
-data class EndProgramRequest(val restore: Boolean)
+data class EndProgramRequest(
+    val restore: Boolean,
+    /** Which program, when two run (server 0.749+). */
+    val programId: String? = null,
+)
 
 @Serializable
 data class NextBlockRequest(
     val raise: Boolean,
     /** Each lift's raise, 0 holding it (server 0.620+). */
     val raises: Map<String, Double>? = null,
+    /** Which program, when two run (server 0.749+). */
+    val programId: String? = null,
 )
 
 @Serializable

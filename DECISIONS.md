@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Two programs at once, part 1 (v0.543.0, server 0.749.0)
+
+- `ProgramsDto.also` (each a `ProgramInfoDto` with `setup`), `id` on every
+  program; `StartProgramRequest.add` / `programId`; `programId` on end and
+  next-block requests.
+- ProgramsScreen: extra programs under the first with What's next and End,
+  Add program (`adding`: programs only, setups with `alongside`, which hide
+  the plan-wide steps; a third asks first), `startAdding` (Route.ProgramsAdd)
+  and `editProgramId` (Route.ProgramsEdit(programId)). Ending the first with
+  another running takes only its days.
+- The setups step by name (`steps` / `cur`), so alongside can drop steps.
+- Plan card lists extra programs with What's next; Add program; End with
+  two running opens Programs. Your plan has a Program section per program.
+
 ## 2026-11 — Other days and What's next (v0.542.0, server 0.748.0)
 
 - Shared setup steps in ProgramsScreen.kt: `OtherDaysStep`, `WarmupStep`,

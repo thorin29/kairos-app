@@ -83,6 +83,8 @@ internal fun BlockBuilder(
     warmups: List<com.kairos.app.data.remote.dto.WarmupRoutineDto> = emptyList(),
     /** What each weekday holds now, Sunday first (v0.542). */
     otherDays: List<String> = emptyList(),
+    /** Beside the running program (v0.543): its own days, blocks and weights only. */
+    alongside: Boolean = false,
     busy: Boolean,
     error: String?,
     initial: CurrentSetupDto? = null,
@@ -93,6 +95,8 @@ internal fun BlockBuilder(
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
+    val steps = if (alongside) BUILDER_STEPS.filter { it !in PLAN_WIDE } else BUILDER_STEPS
+    val cur = steps.getOrElse(step) { "" }
     // Extras (v0.540), as the other programs: each can be left out.
     var warmup by remember(program.key) { mutableStateOf(if (current.warmup) current.warmupRoutine ?: "" else "none") }
     var cardioDays by remember(program.key) { mutableStateOf(current.cardioDays) }
@@ -160,7 +164,7 @@ internal fun BlockBuilder(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            SetupStepHeader(steps = BUILDER_STEPS, step = step)
+            SetupStepHeader(steps = steps, step = step)
 
             val dayTabs: @Composable () -> Unit = {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -170,8 +174,8 @@ internal fun BlockBuilder(
                 }
             }
 
-            when (step) {
-                0 -> BuilderCard(title = "Which muscle group each day") {
+            when (cur) {
+                "Days" -> BuilderCard(title = "Which muscle group each day") {
                     WEEK_ORDER.forEachIndexed { n, dow ->
                         if (n > 0) HorizontalDivider()
                         Row(
@@ -190,13 +194,13 @@ internal fun BlockBuilder(
                         }
                     }
                 }
-                1 -> OtherDaysStep(
+                "Other days" -> OtherDaysStep(
                     programDays = (0..6).filter { week[it] != REST },
                     other = other,
                     onChange = { d, k -> other = other + (d to k) },
                     had = if (initial != null) otherDays else null,
                 )
-                2 -> {
+                "Blocks" -> {
                     dayTabs()
                     BuilderCard(title = "${program.days[tab].name} day") {
                         listOf("A", "B", "C").forEachIndexed { n, b ->
@@ -237,7 +241,7 @@ internal fun BlockBuilder(
                         }
                     }
                 }
-                3 -> {
+                "Movements" -> {
                     dayTabs()
                     roles(tab, "A").forEach { r ->
                         val k = "$tab:${r.key}"
@@ -342,9 +346,9 @@ internal fun BlockBuilder(
                         }
                     }
                 }
-                4 -> WarmupStep(warmups = warmups, warmup = warmup, onWarmup = { warmup = it })
-                5 -> CardioStep(days = cardioDays, onDays = { cardioDays = it })
-                6 -> FinishersStep(days = conditioningDays, onDays = { conditioningDays = it })
+                "Warm-up" -> WarmupStep(warmups = warmups, warmup = warmup, onWarmup = { warmup = it })
+                "Cardio" -> CardioStep(days = cardioDays, onDays = { cardioDays = it })
+                "Finishers" -> FinishersStep(days = conditioningDays, onDays = { conditioningDays = it })
                 else -> {
                     BuilderCard(title = "${program.name} · ${program.weeks} weeks") {
                         var first = true
@@ -408,11 +412,11 @@ internal fun BlockBuilder(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (step > 0) ProgramPill(label = "Back", modifier = Modifier.weight(1f), onClick = { step -= 1 })
-            if (step < BUILDER_STEPS.size - 1) {
+            if (step < steps.size - 1) {
                 ProgramPill(
                     label = "Next",
                     filled = true,
-                    enabled = step != 0 || allPlaced,
+                    enabled = cur != "Days" || allPlaced,
                     modifier = Modifier.weight(1f),
                     onClick = {
                         dayTab = 0

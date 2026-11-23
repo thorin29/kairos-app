@@ -137,9 +137,14 @@ sealed interface Route {
     @Serializable
     data object EditPlan : Route
 
-    /** The running program's setup, straight from the plan page (v0.540). */
+    /** A running program's setup, straight from the plan page (v0.540);
+     *  `programId` picks one when two run (v0.543). */
     @Serializable
-    data object ProgramsEdit : Route
+    data class ProgramsEdit(val programId: String? = null) : Route
+
+    /** Add a program beside the running one (v0.543). */
+    @Serializable
+    data object ProgramsAdd : Route
 
     /** My plans, Household, and save / share / export / import (v0.540). */
     @Serializable

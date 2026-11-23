@@ -31,6 +31,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
@@ -91,6 +92,8 @@ fun WorkoutsScreen(
     onOpenPause: () -> Unit = {},
     /** Saved plans: My plans, Household, save / share / export / import (v0.540). */
     onOpenSavedPlans: () -> Unit = {},
+    /** Add a program beside the running one (v0.543). */
+    onAddProgram: () -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -232,6 +235,7 @@ fun WorkoutsScreen(
                         PlanCard(
                             data = p,
                             onOpen = onOpenPrograms,
+                            onAdd = onAddProgram,
                             onEdit = onOpenEditPlan,
                             onChange = onChangeProgram,
                             onEndProgram = { restore ->
@@ -607,6 +611,7 @@ private fun weekLabel(iso: String): String = try {
  * at a glance, and Edit / Change / End. It replaces the Edit plan button.
  * Without a plan, the invite (no plan and nothing logged lately) or New plan.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun PlanCard(
     data: com.kairos.app.data.remote.dto.ProgramsDto,
@@ -616,6 +621,8 @@ private fun PlanCard(
     onEndProgram: (restore: Boolean) -> Unit,
     onEndPlan: () -> Unit,
     onAnswer: (String) -> Unit,
+    /** Add a program beside the running one (v0.543). */
+    onAdd: () -> Unit = {},
 ) {
     val a = data.active
     val plan = data.plan
@@ -666,8 +673,32 @@ private fun PlanCard(
                         ProgramPill(label = "What's next?", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onOpen)
                     }
                 }
+                // Programs beside the first (v0.543): each its week and What's next.
+                data.also.forEach { x ->
+                    HorizontalDivider(Modifier.padding(end = 8.dp))
+                    Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(x.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(
+                            if (x.cycle > 1) "Cycle ${x.cycle} \u00b7 ${x.label}" else x.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (x.blockDone) {
+                        Box(Modifier.padding(end = 8.dp)) {
+                            ProgramPill(label = "What's next?", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onOpen)
+                        }
+                    }
+                }
                 plan?.let { Box(Modifier.padding(end = 8.dp)) { WeekStrip(days = it.strip) } }
-                links()
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = onEdit) { Text("Edit") }
+                    TextButton(onClick = onChange) { Text("Change") }
+                    TextButton(onClick = onAdd) { Text("Add program") }
+                    TextButton(onClick = if (data.also.isEmpty()) ({ ending = true }) else onOpen) {
+                        Text(text = "End", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             if (ending) {
                 AnimatedDialog(

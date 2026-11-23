@@ -663,11 +663,11 @@ class SessionRepository(
     suspend fun forgetProgramVersion(key: String): WorkoutAckDto =
         runAuthed { requireService().forgetProgramVersion(com.kairos.app.data.remote.dto.ForgetProgramVersionRequest(key = key)) }
 
-    suspend fun endProgram(restore: Boolean): WorkoutAckDto =
-        runAuthed { requireService().endProgram(com.kairos.app.data.remote.dto.EndProgramRequest(restore = restore)) }
+    suspend fun endProgram(restore: Boolean, programId: String? = null): WorkoutAckDto =
+        runAuthed { requireService().endProgram(com.kairos.app.data.remote.dto.EndProgramRequest(restore = restore, programId = programId)) }
 
-    suspend fun nextProgramBlock(raise: Boolean, raises: Map<String, Double>? = null): WorkoutAckDto =
-        runAuthed { requireService().nextBlock(com.kairos.app.data.remote.dto.NextBlockRequest(raise = raise, raises = raises)) }
+    suspend fun nextProgramBlock(raise: Boolean, raises: Map<String, Double>? = null, programId: String? = null): WorkoutAckDto =
+        runAuthed { requireService().nextBlock(com.kairos.app.data.remote.dto.NextBlockRequest(raise = raise, raises = raises, programId = programId)) }
 
     suspend fun setTrainingMax(poolExerciseId: String, weight: Double): WorkoutAckDto =
         runAuthed {
@@ -1419,6 +1419,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 614
+        const val CLIENT_BUILD = 615
     }
 }

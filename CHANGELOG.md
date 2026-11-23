@@ -1,4 +1,9 @@
 # Changelog
+## 0.543.0
+
+- Two programs at once: Add program on the plan card or in Programs sets one up beside the first (its own days, lifts and weights; a third asks first). Each has its own What's next, Change movements on Your plan, and End.
+- Needs server 0.749.
+
 ## 0.542.0
 
 - Program setup asks about the other days (Rest, Skip, or add Core, Arms, Isometric, Mobility, Stretching, Cardio, Conditioning or a muscle group), then Warm-up, Cardio and Finishers as their own steps and the week to review. Odd squad too.

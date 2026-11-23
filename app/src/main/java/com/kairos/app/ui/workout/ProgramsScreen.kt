@@ -69,6 +69,8 @@ import com.kairos.app.ui.common.AnimatedDialog
 
 private val WEEKDAYS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 private val SETUP_STEPS = listOf("Days", "Other days", "Lifts", "Warm-up", "Cardio", "Finishers", "Maxes", "Review")
+/** The plan-wide steps, left to the first program beside another (v0.543). */
+internal val PLAN_WIDE = setOf("Other days", "Warm-up", "Cardio", "Finishers")
 
 /** A companion lift's set choices (the web's SCHEME_CHOICES without the wave). */
 private val COMPANION_SCHEMES = listOf(
@@ -115,6 +117,10 @@ fun ProgramsScreen(
     startEditing: Boolean = false,
     /** Build my own (v0.540): the plan page, no program. */
     onBuildOwn: (() -> Unit)? = null,
+    /** With startEditing: which running program (v0.543); the first when null. */
+    editProgramId: String? = null,
+    /** Add a program beside the running one (v0.543). */
+    startAdding: Boolean = false,
 ) {
     val container = rememberContainer()
     val session = container.sessionRepository
@@ -122,7 +128,16 @@ fun ProgramsScreen(
     var data by remember { mutableStateOf<ProgramsDto?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    var picking by remember { mutableStateOf(startPicking) }
+    var picking by remember { mutableStateOf(startPicking || startAdding) }
+    // Beside the running program (v0.543): only Programs to pick, and the
+    // setup without the plan-wide steps.
+    var adding by remember { mutableStateOf(startAdding) }
+    // Which program beside the first is ending or choosing What's next.
+    var endingAlso by remember { mutableStateOf<String?>(null) }
+    var nextAlso by remember { mutableStateOf<String?>(null) }
+    // A third program asks first (v0.543).
+    var askThird by remember { mutableStateOf(false) }
+    var thirdAsked by remember { mutableStateOf(false) }
     var tab by remember { mutableStateOf("programs") }
     var setupKey by remember { mutableStateOf<String?>(null) }
     // A program with the person's own version: Your version or Default first (v0.476).
@@ -140,6 +155,14 @@ fun ProgramsScreen(
                 val d = session.loadPrograms()
                 data = d
                 cycleOpen = d.active?.blockDone == true
+                if (!cycleOpen) nextAlso = d.also.firstOrNull { it.blockDone }?.id
+                // Opened to add one while two already run: ask first.
+                if (startAdding && !thirdAsked && d.also.isNotEmpty()) {
+                    thirdAsked = true
+                    askThird = true
+                    adding = false
+                    picking = false
+                }
                 error = null
             } catch (e: ApiException) {
                 error = e.error.message
@@ -173,8 +196,11 @@ fun ProgramsScreen(
     val nextProgram = nextSetup?.let { ns -> data?.choices?.firstOrNull { it.key == ns.key } }
     // A program edits in place, same week (v0.528; every program v0.540).
     var editing by remember { mutableStateOf(startEditing) }
-    val editSetup = data?.setup?.takeIf { editing }
+    // A program beside the first edits its own setup (v0.543).
+    val editAlso = data?.also?.firstOrNull { it.id == editProgramId && editProgramId != null }
+    val editSetup = (if (editAlso != null) editAlso.setup else data?.setup)?.takeIf { editing }
     val editProgram = editSetup?.let { es -> data?.choices?.firstOrNull { it.key == es.key } }
+    val editId = editAlso?.id ?: data?.active?.id
     val afterEdit: () -> Unit = {
         editing = false
         if (startEditing) onDone() else reload()
@@ -224,9 +250,10 @@ fun ProgramsScreen(
                     busy = busy,
                     error = error,
                     initial = editSetup,
-                    nextMaxes = d.active?.maxes?.associate { it.poolExerciseId to it.weight },
+                    nextMaxes = (editAlso ?: d.active)?.maxes?.associate { it.poolExerciseId to it.weight },
                     editMode = true,
-                    onStart = { req -> act(block = { session.startProgram(req) }) { afterEdit() } },
+                    alongside = editAlso != null,
+                    onStart = { req -> act(block = { session.startProgram(req.copy(programId = editId)) }) { afterEdit() } },
                 )
                 editProgram != null && editSetup != null -> BlockBuilder(
                     program = editProgram,
@@ -238,8 +265,9 @@ fun ProgramsScreen(
                     busy = busy,
                     error = error,
                     initial = editSetup,
-                    nextMaxes = d.active?.maxes?.associate { it.poolExerciseId to it.weight },
-                    onStart = { req -> act(block = { session.startProgram(req) }) { afterEdit() } },
+                    nextMaxes = (editAlso ?: d.active)?.maxes?.associate { it.poolExerciseId to it.weight },
+                    alongside = editAlso != null,
+                    onStart = { req -> act(block = { session.startProgram(req.copy(programId = editId)) }) { afterEdit() } },
                 )
                 nextProgram != null && nextSetup != null && nextProgram.builder -> BlockBuilder(
                     program = nextProgram,
@@ -269,11 +297,17 @@ fun ProgramsScreen(
                     otherDays = d.otherDays,
                         busy = busy,
                         error = error,
+                        alongside = adding,
                         onStart = { req ->
-                            act(block = { session.startProgram(req) }) {
+                            act(block = { session.startProgram(if (adding) req.copy(add = true) else req) }) {
                                 setupKey = null
                                 picking = false
-                                onEditPlan()
+                                if (adding) {
+                                    adding = false
+                                    if (startAdding) onDone() else reload()
+                                } else {
+                                    onEditPlan()
+                                }
                             }
                         },
                     )
@@ -305,11 +339,17 @@ fun ProgramsScreen(
                         initial = version?.setup,
                         nextMaxes = version?.setup?.maxes,
                         fromVersion = version != null,
+                        alongside = adding,
                         onStart = { req ->
-                            act(block = { session.startProgram(req) }) {
+                            act(block = { session.startProgram(if (adding) req.copy(add = true) else req) }) {
                                 setupKey = null
                                 picking = false
-                                onEditPlan()
+                                if (adding) {
+                                    adding = false
+                                    if (startAdding) onDone() else reload()
+                                } else {
+                                    onEditPlan()
+                                }
                             }
                         },
                     )
@@ -332,6 +372,35 @@ fun ProgramsScreen(
                             onChange = { picking = true },
                             onEnd = { ending = true },
                         )
+                        // Programs beside the first (v0.543): each its own What's next and End.
+                        d.also.forEach { x ->
+                            OutlinedCard(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(x.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                                        Text(x.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (x.blockDone) ProgramPill(label = "What's next?", filled = true, modifier = Modifier.fillMaxWidth(), onClick = { nextAlso = x.id })
+                                    TextButton(onClick = { endingAlso = x.id }) { Text("End ${x.name}") }
+                                }
+                            }
+                        }
+                        ProgramPill(
+                            label = "Add program",
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                if (d.also.isNotEmpty()) askThird = true
+                                else {
+                                    adding = true
+                                    picking = true
+                                }
+                            },
+                        )
+                    } else if (adding) {
+                        // Only programs to add, none already running.
+                        d.choices.filter { c -> c.key != d.active?.key && d.also.none { it.key == c.key } }.forEach { c ->
+                            ProgramChoiceCard(c = c, edited = d.versions.containsKey(c.key), onPick = { pick(c.key) })
+                        }
                     } else {
                         ChooserTabs(selected = tab, onSelect = { tab = it })
                         when (tab) {
@@ -422,7 +491,20 @@ fun ProgramsScreen(
         }
     }
 
-    if (ending) {
+    // With another program running (v0.543), ending the first takes only its days.
+    if (ending && data?.also?.isNotEmpty() == true) {
+        AnimatedDialog(
+            onDismissRequest = { ending = false },
+            title = "End ${data?.active?.name ?: "program"}?",
+            confirmButton = {
+                TextButton(onClick = { ending = false; act(block = { session.endProgram(restore = false, programId = data?.active?.id) }) { onDone() } }) {
+                    Text("End")
+                }
+            },
+            dismissButton = { TextButton(onClick = { ending = false }) { Text("Cancel") } },
+        ) {}
+    }
+    if (ending && data?.also?.isNotEmpty() != true) {
         AnimatedDialog(
             onDismissRequest = { ending = false },
             title = "End ${data?.active?.name ?: "program"}?",
@@ -447,7 +529,7 @@ fun ProgramsScreen(
             onClose = { cycleOpen = false },
             onContinue = { raises ->
                 cycleOpen = false
-                act(block = { session.nextProgramBlock(raise = false, raises = raises) })
+                act(block = { session.nextProgramBlock(raise = false, raises = raises, programId = active.id.ifBlank { null }) })
             },
             onNewPlan = {
                 cycleOpen = false
@@ -458,6 +540,58 @@ fun ProgramsScreen(
                 picking = true
                 pick(key)
             },
+        )
+    }
+    data?.also?.firstOrNull { it.id == nextAlso }?.let { x ->
+        WhatsNextDialog(
+            info = x,
+            busy = busy,
+            onClose = { nextAlso = null },
+            onContinue = { raises ->
+                nextAlso = null
+                act(block = { session.nextProgramBlock(raise = false, raises = raises, programId = x.id) })
+            },
+            onNewPlan = {
+                nextAlso = null
+                endingAlso = x.id
+            },
+            onTry = { key ->
+                nextAlso = null
+                adding = true
+                picking = true
+                pick(key)
+            },
+        )
+    }
+    if (askThird) {
+        val names = listOfNotNull(data?.active?.name) + data?.also.orEmpty().map { it.name }
+        AnimatedDialog(
+            onDismissRequest = { askThird = false },
+            title = "Add a third program?",
+            confirmButton = {
+                TextButton(onClick = {
+                    askThird = false
+                    adding = true
+                    picking = true
+                }) { Text("Add") }
+            },
+            dismissButton = { TextButton(onClick = { askThird = false }) { Text("Cancel") } },
+        ) {
+            Text("You already have 2 programs: ${names.joinToString(" and ")}.", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+    data?.also?.firstOrNull { it.id == endingAlso }?.let { x ->
+        AnimatedDialog(
+            onDismissRequest = { endingAlso = null },
+            title = "End ${x.name}?",
+            confirmButton = {
+                TextButton(onClick = {
+                    endingAlso = null
+                    act(block = { session.endProgram(restore = false, programId = x.id) })
+                }) { Text("End") }
+            },
+            dismissButton = { TextButton(onClick = { endingAlso = null }) { Text("Cancel") } },
+            content = {},
         )
     }
 }
@@ -982,9 +1116,13 @@ private fun ProgramSetup(
     /** What each weekday holds now, Sunday first (v0.542): the other days start
      *  from it (the same program) or from its rest days (a new one). */
     otherDays: List<String> = emptyList(),
+    /** Beside the running program (v0.543): its own days, lifts and maxes only. */
+    alongside: Boolean = false,
     onStart: (StartProgramRequest) -> Unit,
 ) {
     var step by remember(program.key) { mutableStateOf(0) }
+    val steps = if (alongside) SETUP_STEPS.filter { it !in PLAN_WIDE } else SETUP_STEPS
+    val cur = steps.getOrElse(step) { "" }
     val days = remember(program.key) {
         mutableStateListOf<Int>().apply {
             addAll(initial?.days?.takeIf { it.size == program.days.size } ?: program.defaultDays)
@@ -1073,9 +1211,9 @@ private fun ProgramSetup(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            SetupStepHeader(steps = SETUP_STEPS, step = step)
-            when (step) {
-                0 -> {
+            SetupStepHeader(steps = steps, step = step)
+            when (cur) {
+                "Days" -> {
                     Text(program.blurb, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     program.days.forEachIndexed { i, d ->
                         Text(d.name, style = MaterialTheme.typography.titleSmall)
@@ -1083,13 +1221,13 @@ private fun ProgramSetup(
                     }
                 }
                 // In weekday order, whatever order the program lists its days (v0.432).
-                1 -> OtherDaysStep(
+                "Other days" -> OtherDaysStep(
                     programDays = days.toList(),
                     other = other,
                     onChange = { d, k -> other = other + (d to k) },
                     had = if (editMode) otherDays else null,
                 )
-                2 -> program.days.withIndex().sortedWith(compareBy<IndexedValue<com.kairos.app.data.remote.dto.ProgramDayDto>>({ days[it.index] }, { it.index })).forEach { (i, d) ->
+                "Lifts" -> program.days.withIndex().sortedWith(compareBy<IndexedValue<com.kairos.app.data.remote.dto.ProgramDayDto>>({ days[it.index] }, { it.index })).forEach { (i, d) ->
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("${d.name} · ${WEEKDAYS[days[i]]}", style = MaterialTheme.typography.titleSmall)
@@ -1165,10 +1303,10 @@ private fun ProgramSetup(
                         }
                     }
                 }
-                3 -> WarmupStep(warmups = warmups, warmup = warmup, onWarmup = { warmup = it })
-                4 -> CardioStep(days = cardioDays, onDays = { cardio = it })
-                5 -> FinishersStep(days = conditioning, onDays = { conditioning = it })
-                6 -> {
+                "Warm-up" -> WarmupStep(warmups = warmups, warmup = warmup, onWarmup = { warmup = it })
+                "Cardio" -> CardioStep(days = cardioDays, onDays = { cardio = it })
+                "Finishers" -> FinishersStep(days = conditioning, onDays = { conditioning = it })
+                "Maxes" -> {
                     if (mains.isEmpty()) {
                         Text("No main lifts.", style = MaterialTheme.typography.bodyMedium)
                     }
@@ -1216,7 +1354,7 @@ private fun ProgramSetup(
                         }
                     }
                 }
-                else -> ReviewWeek(days = review)
+                "Review" -> ReviewWeek(days = review)
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
@@ -1226,7 +1364,7 @@ private fun ProgramSetup(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (step > 0) ProgramPill(label = "Back", onClick = { step -= 1 })
-            if (step < SETUP_STEPS.size - 1) {
+            if (step < steps.size - 1) {
                 ProgramPill(label = "Next", filled = true, modifier = Modifier.weight(1f), onClick = { step += 1 })
             } else {
                 ProgramPill(

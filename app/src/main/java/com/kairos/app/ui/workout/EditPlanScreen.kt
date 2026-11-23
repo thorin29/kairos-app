@@ -60,8 +60,9 @@ private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 fun EditPlanScreen(
     onBack: () -> Unit,
     onOpenRotation: () -> Unit,
-    /** The running program's setup (v0.540): Change movements. */
-    onEditProgram: () -> Unit = {},
+    /** A running program's setup (v0.540): Change movements; its id when
+     *  it runs beside the first (v0.543), else null. */
+    onEditProgram: (String?) -> Unit = {},
     /** Bumped when the program's setup saved, so the plan reloads. */
     refreshKey: Int = 0,
 ) {
@@ -159,7 +160,13 @@ fun EditPlanScreen(
                 ) {
                     programs?.active?.let { a ->
                         item(key = "program") {
-                            ProgramSection(info = a, canChange = programs?.setup != null, onChange = onEditProgram)
+                            ProgramSection(info = a, canChange = programs?.setup != null, onChange = { onEditProgram(null) })
+                        }
+                    }
+                    // Programs beside the first (v0.543), each its own.
+                    programs?.also.orEmpty().forEach { x ->
+                        item(key = "program-${x.id}") {
+                            ProgramSection(info = x, canChange = x.setup != null, onChange = { onEditProgram(x.id) })
                         }
                     }
                     item(key = "starts-on") {
