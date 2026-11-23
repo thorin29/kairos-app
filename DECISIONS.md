@@ -1,5 +1,31 @@
 # Decisions
 
+## 2026-11 — Places and Kairos notifications (v0.550.0, server 0.762.0)
+
+- **Places is the web page in a WebView** (`ui/places/PlacesScreen.kt`), not a
+  native map: same Google map, tracks, History and replay as the web, no Maps
+  SDK. The device token never enters the page: the app asks
+  `POST places/web` for a one-time link (60 s), the WebView opens it and gets
+  a 12-hour cookie for the `/places/embed` pages only. A main-frame 401 gets a
+  fresh link (at most 3 per visit). Links away from Places open in the
+  phone's apps. "Not right?" stays on the web.
+- **Notifications are an inbox with a ping** (`data/push/Push.kt`). The server
+  keeps each notification; with Firebase it sends a content-free
+  `{k: "inbox"}` data message and the app collects `GET push/inbox`.
+  Firebase is started in code from `GET push/config` values remembered in
+  SharedPreferences (Application.onCreate starts it from them, so a ping can
+  start the app); `FirebaseInitProvider` is removed and there is no
+  google-services plugin or json, so nothing about any server's Firebase is
+  in the APK. A changed Firebase project applies at the next app start.
+- Without Firebase, or without Play services (token fails), the inbox is
+  checked every 15 minutes (WorkManager); with pings, every 2 hours as a
+  safety net. The app also checks on start.
+- `firebase-messaging` pinned at 25.0.2: 25.1.0 deprecates `getToken` /
+  `onNewToken` for installation-ID registration, which the server's
+  token-based send doesn't use.
+- Android 13+: Places asks for the notification permission once.
+
+
 ## 2026-11 — Endurance days, finishers, 5/3/1 misses (v0.549.0, server 0.754.0)
 
 - 0.548.0 didn't compile: a private `clockOf` in ProgramsScreen clashed with

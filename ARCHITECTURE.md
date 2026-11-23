@@ -12,7 +12,9 @@ from source** rather than inventing its own UX.
 - Retrofit + OkHttp + `retrofit2-kotlinx-serialization-converter`, kotlinx.serialization.
 - DataStore (settings + token blob). Room 3 page cache (`data/local/KairosDatabase`).
   Coil (`io.coil-kt:coil-compose:2.7.0`) for avatars. WorkManager, Glance (widget),
-  CameraX + ZXing for the invitation QR (no Google Play code).
+  CameraX + ZXing for the invitation QR (no Google Play code there).
+- Firebase Cloud Messaging (`firebase-messaging`, started at runtime from the
+  server's values; no google-services plugin) for the Kairos notification ping.
 - Navigation-Compose type-safe routes. Manual DI (no Hilt).
 - Release APK is signed in CI (`.github/workflows/android.yml`) with secrets
   `KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`
@@ -222,6 +224,15 @@ New event, with the event type preset via `AddEventOverlay(presetEventTypeId)`.
 Layout (order, open sections) comes from the server per person; changes are
 applied locally, written to the Room page cache and posted to
 `/api/v1/hockey/prefs` (queued when offline).
+
+## Places and notifications (`ui/places/`, `data/push/`)
+
+- Places is a WebView of the server's `/places/embed` pages, opened through a
+  one-time link from `POST places/web` (see DECISIONS 0.550.0).
+- Notifications: `Push.sync` (start of AppRoot) reads `GET push/config`,
+  starts Firebase at runtime, registers `POST push/token`, and schedules the
+  inbox check; `KairosMessagingService` turns a ping into `Push.checkNow`
+  (`InboxWorker` → `GET push/inbox` → the "Places" channel).
 
 ## Home-screen widget (`widget/`)
 

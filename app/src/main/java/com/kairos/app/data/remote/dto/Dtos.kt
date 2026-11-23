@@ -4029,3 +4029,44 @@ data class GarageRequest(val feet: Int)
 
 @Serializable
 data class GarageAckDto(val feet: Int = 20)
+
+
+/** POST /api/v1/places/web (web 0.762+): a one-time page for the Places WebView. */
+@Serializable
+data class PlacesWebRequest(val to: String = "/places/embed")
+
+@Serializable
+data class PlacesWebDto(val state: String = "", val path: String? = null)
+
+/** GET /api/v1/push/config (web 0.759+): Firebase values, or null without Firebase. */
+@Serializable
+data class PushFirebaseDto(
+    val projectId: String = "",
+    val applicationId: String = "",
+    val apiKey: String = "",
+    val senderId: String = "",
+)
+
+@Serializable
+data class PushConfigDto(val firebase: PushFirebaseDto? = null)
+
+/** POST /api/v1/push/token: this phone's Firebase token, or null to clear it. */
+@Serializable
+data class PushTokenRequest(val token: String? = null)
+
+@Serializable
+data class PushAckDto(val ok: Boolean = false)
+
+/** GET /api/v1/push/inbox: waiting notifications, each handed over once. */
+@Serializable
+data class PushMessageDto(
+    val id: String = "",
+    val kind: String = "",
+    val title: String = "",
+    val body: String = "",
+    val link: String? = null,
+    val createdAt: String = "",
+)
+
+@Serializable
+data class PushInboxDto(val messages: List<PushMessageDto> = emptyList())

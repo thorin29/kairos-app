@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Talks to a self-hosted Kairos server over HTTPS. INTERNET is the only
          permission needed for the first flows; camera (for QR scan) is added in
@@ -87,6 +88,22 @@
                 <data android:mimeType="application/x-ical" />
             </intent-filter>
         </activity>
+
+        <!-- Kairos notifications (v0.550): a Firebase ping means "check your
+             inbox". Firebase is started in code with the server's own values
+             (Push.kt), so its automatic start-up, which needs values built
+             into the app, is removed. -->
+        <service
+            android:name=".data.push.KairosMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <provider
+            android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
 
         <!-- A running workout timer's notification (v0.438). -->
         <service

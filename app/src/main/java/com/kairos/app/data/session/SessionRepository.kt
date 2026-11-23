@@ -427,6 +427,34 @@ class SessionRepository(
         return ok
     }
 
+    /** Push work (v0.550) can run in a process the app never opened, so like
+     *  [completeTaskFromNotification] it primes the service and token itself. */
+    private suspend fun backgroundService(): ApiService? {
+        val base = settings.currentBaseUrl() ?: return null
+        if (service == null) rebuildService(base)
+        if (tokens.current() == null) tokens.load()
+        if (tokens.current() == null) return null
+        return service
+    }
+
+    /** Waiting notifications, or null when the server can't be reached. */
+    suspend fun takePushInboxFromBackground(): List<com.kairos.app.data.remote.dto.PushMessageDto>? {
+        val svc = backgroundService() ?: return null
+        return runCatching { apiCall { svc.pushInbox() }.messages }.getOrNull()
+    }
+
+    suspend fun pushConfigFromBackground(): com.kairos.app.data.remote.dto.PushConfigDto? {
+        val svc = backgroundService() ?: return null
+        return runCatching { apiCall { svc.pushConfig() } }.getOrNull()
+    }
+
+    suspend fun registerPushTokenFromBackground(token: String?): Boolean {
+        val svc = backgroundService() ?: return false
+        return runCatching {
+            apiCall { svc.pushToken(com.kairos.app.data.remote.dto.PushTokenRequest(token = token)) }
+        }.isSuccess
+    }
+
     /** The home-screen widget's feed. Like [completeTaskFromNotification], it
      *  can run in a process the app never opened, so it primes the service and
      *  token itself. Null when it can't reach the server or isn't signed in. */
@@ -1025,6 +1053,19 @@ class SessionRepository(
             )
         }
 
+    /** A full URL for the Places WebView (a one-time ticket), or null when
+     *  Places isn't set up. `to` is /places/embed or /places/embed/<personId>. */
+    suspend fun placesWebUrl(to: String = "/places/embed"): String? {
+        val res = runAuthed { requireService().placesWeb(com.kairos.app.data.remote.dto.PlacesWebRequest(to = to)) }
+        val path = res.path?.takeIf { res.state == "ok" && it.startsWith("/places/embed/start") } ?: return null
+        val base = baseUrlRaw ?: return null
+        return com.kairos.app.data.remote.ApiClient.resolveUrl(base, path)
+    }
+
+    /** The configured server's origin, e.g. https://kairos.example.com. */
+    fun serverOrigin(): String? =
+        baseUrlRaw?.trim()?.removeSuffix("/")?.removeSuffix("/api/v1")
+
     suspend fun loadNav(): com.kairos.app.data.remote.dto.NavDto =
         runAuthed { requireService().nav() }
 
@@ -1431,6 +1472,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 621
+        const val CLIENT_BUILD = 622
     }
 }

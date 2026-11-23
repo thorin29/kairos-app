@@ -516,6 +516,22 @@ interface ApiService {
     @GET("scoring/guide")
     suspend fun scoringGuide(): Response<com.kairos.app.data.remote.dto.ScoringGuideDto>
 
+    @POST("places/web")
+    suspend fun placesWeb(
+        @Body body: com.kairos.app.data.remote.dto.PlacesWebRequest,
+    ): Response<com.kairos.app.data.remote.dto.PlacesWebDto>
+
+    @GET("push/config")
+    suspend fun pushConfig(): Response<com.kairos.app.data.remote.dto.PushConfigDto>
+
+    @POST("push/token")
+    suspend fun pushToken(
+        @Body body: com.kairos.app.data.remote.dto.PushTokenRequest,
+    ): Response<com.kairos.app.data.remote.dto.PushAckDto>
+
+    @GET("push/inbox")
+    suspend fun pushInbox(): Response<com.kairos.app.data.remote.dto.PushInboxDto>
+
     @POST("hockey/prefs")
     suspend fun saveHockeyPrefs(
         @Body body: com.kairos.app.data.remote.dto.HockeyPrefsRequest,

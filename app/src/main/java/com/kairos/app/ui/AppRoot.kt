@@ -240,6 +240,12 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
     fun closeDrawer() { drawerScope.launch { drawerState.close() } }
     LaunchedEffect(Unit) { container.updateChecker.check() }
+    // Kairos notifications (v0.550): register this phone with the server's
+    // Firebase (or fall back to regular checks), and collect anything waiting.
+    LaunchedEffect(Unit) {
+        com.kairos.app.data.push.Push.sync(context = container.appContext)
+        com.kairos.app.data.push.Push.checkNow(context = container.appContext)
+    }
 
     // The app tour (v0.513): the whole tour on first use, then only what's new
     // after an update (when tips are on). Remembered per person on this phone.
@@ -460,6 +466,10 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 go(Route.Section("tasks"), "tasks")
                 container.pendingRoute.value = null
             }
+            "places" -> {
+                go(Route.Section("places"), "places")
+                container.pendingRoute.value = null
+            }
             "home" -> {
                 go(Route.Home, "home")
                 container.pendingRoute.value = null
@@ -628,6 +638,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             },
                             refreshKey = dataRevision,
                         )
+                    } else if (key == "places") {
+                        com.kairos.app.ui.places.PlacesScreen(onOpenDrawer = { openDrawer() })
                     } else if (key == "tasks") {
                         TasksScreen(
                             onOpenDrawer = { openDrawer() },

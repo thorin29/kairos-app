@@ -15,6 +15,9 @@ class KairosApp : Application() {
         // point, so the write is best-effort.
         com.kairos.app.data.diag.CrashTrail.install()
         container = AppContainer(this)
+        // Firebase from the values this server handed over last time (none are
+        // built in), so a "check your inbox" ping can start the app.
+        com.kairos.app.data.push.Push.startFromCache(this)
         com.kairos.app.data.diag.StallWatchdog.start()
     }
 }

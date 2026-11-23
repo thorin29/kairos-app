@@ -1,4 +1,10 @@
 # Changelog
+## 0.550.0
+
+- Places: everyone on the map, with tracks and each person's day.
+- Notifications when someone arrives at or leaves a place.
+- Needs server 0.762.
+
 ## 0.549.0
 
 - Endurance days in Other days: Long steady, Intervals, or circuits to rotate.

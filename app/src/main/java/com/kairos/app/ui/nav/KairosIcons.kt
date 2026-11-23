@@ -225,6 +225,12 @@ object KairosIcons {
         "M8 16v3.5M16 16v3.5",
     )
 
+    val Map = stroked(
+        "Map",
+        "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z",
+        "M9 4v14M15 6v14",
+    )
+
     val Wallet = stroked(
         "Wallet",
         "M21 12V7H5a2 2 0 0 1 0-4h14v4",
