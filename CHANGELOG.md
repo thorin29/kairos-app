@@ -1,4 +1,11 @@
 # Changelog
+## 0.554.0
+
+- Calendar reminders split into My events, Family events and Others’ events I’m on.
+- Changes made on the web or another phone reach this phone right away: reminders reschedule and screens refresh.
+- Optional alert when someone gives you a task.
+- Needs server 0.772.
+
 ## 0.553.0
 
 - Settings → Notifications: choose your own calendar reminders, task alerts and Family map arrive/leave alerts; they follow you to a new phone.

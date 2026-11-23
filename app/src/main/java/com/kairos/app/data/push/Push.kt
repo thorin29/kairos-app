@@ -142,8 +142,16 @@ object Push {
         }
     }.getOrNull()
 
+    /** Kairos news that isn't about places (a task someone gave you). */
+    private const val UPDATES_CHANNEL_ID = "kairos_updates"
+
     private fun ensureChannel(context: Context) {
         val mgr = context.getSystemService(android.app.NotificationManager::class.java) ?: return
+        mgr.createNotificationChannel(
+            android.app.NotificationChannel(UPDATES_CHANNEL_ID, "Kairos updates", android.app.NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Tasks someone gives you and other news from Kairos."
+            },
+        )
         // Created or renamed (the name was "Places" in 0.550–0.551); the
         // phone keeps the person's own settings for the channel.
         mgr.createNotificationChannel(
@@ -153,10 +161,15 @@ object Push {
         )
     }
 
-    internal fun show(context: Context, id: String, title: String, body: String, link: String?) {
+    internal fun show(context: Context, id: String, title: String, body: String, link: String?, kind: String = "places") {
         ensureChannel(context)
         if (!Notifications.hasPermission(context)) return
-        val open = if (link != null && link.startsWith("/places")) "places" else "home"
+        val open = when {
+            link != null && link.startsWith("/places") -> "places"
+            link != null && link.startsWith("/tasks") -> "tasks"
+            else -> "home"
+        }
+        val channel = if (kind == "places" || kind == "safety" || kind == "test") CHANNEL_ID else UPDATES_CHANNEL_ID
         val tap = android.content.Intent(context, com.kairos.app.MainActivity::class.java).apply {
             addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
             putExtra(Notifications.EXTRA_OPEN, open)
@@ -168,7 +181,7 @@ object Push {
             tap,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
         )
-        val n = NotificationCompat.Builder(context, CHANNEL_ID)
+        val n = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body.ifBlank { null })
@@ -191,7 +204,7 @@ class InboxWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     override suspend fun doWork(): Result {
         val repo = (applicationContext as? com.kairos.app.KairosApp)?.container?.sessionRepository ?: return Result.retry()
         val messages = repo.takePushInboxFromBackground() ?: return Result.retry()
-        for (m in messages) Push.show(applicationContext, id = m.id, title = m.title, body = m.body, link = m.link)
+        for (m in messages) Push.show(applicationContext, id = m.id, title = m.title, body = m.body, link = m.link, kind = m.kind)
         return Result.success()
     }
 
@@ -206,10 +219,19 @@ class InboxWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     }
 }
 
-/** Firebase delivery: a ping means "check the inbox"; a new token is re-registered. */
+/** Firebase delivery: "inbox" = collect notifications; "sync" = something
+ *  changed on the server (an event, a task), so reschedule reminders and
+ *  refresh open screens now rather than at the next 2-hourly check. A new
+ *  token is re-registered. */
 class KairosMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
-        if (message.data["k"] == "inbox") Push.checkNow(applicationContext)
+        when (message.data["k"]) {
+            "inbox" -> Push.checkNow(applicationContext)
+            "sync" -> {
+                com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(applicationContext)
+                (applicationContext as? com.kairos.app.KairosApp)?.container?.syncManager?.remoteChanged()
+            }
+        }
     }
 
     override fun onNewToken(token: String) {

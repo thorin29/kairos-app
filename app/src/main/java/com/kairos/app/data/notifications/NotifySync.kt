@@ -20,7 +20,7 @@ object NotifySync {
         } else {
             container.sessionRepository.saveNotifyPrefs(
                 res.prefs.copy(
-                    calendar = CalendarChoicesDto(mine = local.enabled, others = local.enabled),
+                    calendar = CalendarChoicesDto(mine = local.enabled, family = local.enabled, others = local.enabled),
                     tasks = local.tasksEnabled,
                 ),
             )
@@ -30,7 +30,10 @@ object NotifySync {
     /** This phone's switches from the person's choices, then reschedule. */
     suspend fun apply(context: Context, prefs: NotifyPrefsDto) {
         val container = (context.applicationContext as? com.kairos.app.KairosApp)?.container ?: return
-        val next = NotifPrefs(enabled = prefs.calendar.mine || prefs.calendar.others, tasksEnabled = prefs.tasks)
+        val next = NotifPrefs(
+            enabled = prefs.calendar.mine || prefs.calendar.family || prefs.calendar.others,
+            tasksEnabled = prefs.tasks,
+        )
         if (next != container.settingsStore.currentNotifPrefs()) {
             container.settingsStore.setNotifPrefs(next)
         }

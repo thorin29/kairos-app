@@ -4083,7 +4083,7 @@ data class PlaceRuleDto(
 )
 
 @Serializable
-data class CalendarChoicesDto(val mine: Boolean = false, val others: Boolean = false)
+data class CalendarChoicesDto(val mine: Boolean = false, val family: Boolean = false, val others: Boolean = false)
 
 @Serializable
 data class SafetyChoicesDto(
@@ -4100,6 +4100,7 @@ data class QuietHoursDto(val from: String = "22:00", val to: String = "07:00")
 data class NotifyPrefsDto(
     val calendar: CalendarChoicesDto = CalendarChoicesDto(),
     val tasks: Boolean = false,
+    val assigned: Boolean = false,
     val places: List<PlaceRuleDto> = emptyList(),
     val safety: SafetyChoicesDto = SafetyChoicesDto(),
     val quiet: QuietHoursDto? = null,

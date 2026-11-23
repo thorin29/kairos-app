@@ -263,6 +263,13 @@ class SyncManager(
         }
     }
 
+    /** Someone changed something on the server (a Firebase "sync" ping,
+     *  v0.554): drop cached pages and have open screens reload. */
+    fun remoteChanged() {
+        runCatching { cache?.evictAll() }
+        _revision.value = _revision.value + 1
+    }
+
     private companion object {
         const val TAG = "SyncManager"
         // Codes worth retrying rather than dropping: auth (may recover after a

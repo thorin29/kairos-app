@@ -93,7 +93,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
             // First time: start from this phone's own switches.
             val local = container.settingsStore.currentNotifPrefs()
             val seeded = res.prefs.copy(
-                calendar = res.prefs.calendar.copy(mine = local.enabled, others = local.enabled),
+                calendar = res.prefs.calendar.copy(mine = local.enabled, family = local.enabled, others = local.enabled),
                 tasks = local.tasksEnabled,
             )
             prefs = container.sessionRepository.saveNotifyPrefs(seeded) ?: seeded
@@ -139,11 +139,11 @@ fun NotificationsScreen(onBack: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                item { SettingsLabel("Calendar") }
+                item { SettingsLabel("Calendar reminders") }
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         SwitchRow(
-                            title = "Reminders on my events",
+                            title = "My events",
                             checked = p.calendar.mine,
                             onChange = { on ->
                                 if (on) askPermission()
@@ -152,8 +152,16 @@ fun NotificationsScreen(onBack: () -> Unit) {
                         )
                         HorizontalDivider()
                         SwitchRow(
-                            title = "Reminders others set for me",
-                            subtitle = "Family events and events someone else made",
+                            title = "Family events",
+                            checked = p.calendar.family,
+                            onChange = { on ->
+                                if (on) askPermission()
+                                update(p.copy(calendar = p.calendar.copy(family = on)))
+                            },
+                        )
+                        HorizontalDivider()
+                        SwitchRow(
+                            title = "Others’ events I’m on",
                             checked = p.calendar.others,
                             onChange = { on ->
                                 if (on) askPermission()
@@ -172,6 +180,15 @@ fun NotificationsScreen(onBack: () -> Unit) {
                             onChange = { on ->
                                 if (on) askPermission()
                                 update(p.copy(tasks = on))
+                            },
+                        )
+                        HorizontalDivider()
+                        SwitchRow(
+                            title = "When someone gives me a task",
+                            checked = p.assigned,
+                            onChange = { on ->
+                                if (on) askPermission()
+                                update(p.copy(assigned = on))
                             },
                         )
                     }

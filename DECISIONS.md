@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Instant sync, three calendar switches (v0.554.0, server 0.772.0)
+
+- A Firebase `{k: "sync"}` data message (server: debounced 20 s after any
+  write to Event, EventParticipant, Task, SubscribedReminder, RecurringTask;
+  normal priority) runs `NotificationWorker` now and
+  `SyncManager.remoteChanged()` (evict the HTTP cache, bump `revision`, so
+  open screens reload). Reminders still fire from local exact alarms.
+- Calendar choices are My events / Family events / Others' events I'm on (a
+  reminder only ever comes when the event's reminders name the person).
+- "When someone gives me a task" (`assigned`), off until turned on.
+- Push channel stays one ("Family map" id `places`) for now; task alerts
+  from the server use it too.
+
+
 ## 2026-11 — Notifications are each person's own (v0.553.0, server 0.771.0)
 
 - Settings → Notifications is the one place: calendar "Reminders on my
