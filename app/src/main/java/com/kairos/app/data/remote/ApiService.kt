@@ -516,6 +516,14 @@ interface ApiService {
     @GET("scoring/guide")
     suspend fun scoringGuide(): Response<com.kairos.app.data.remote.dto.ScoringGuideDto>
 
+    @GET("notify/prefs")
+    suspend fun notifyPrefs(): Response<com.kairos.app.data.remote.dto.NotifyPrefsResponse>
+
+    @POST("notify/prefs")
+    suspend fun saveNotifyPrefs(
+        @Body body: com.kairos.app.data.remote.dto.NotifyPrefsRequest,
+    ): Response<com.kairos.app.data.remote.dto.NotifyPrefsSavedDto>
+
     @POST("places/web")
     suspend fun placesWeb(
         @Body body: com.kairos.app.data.remote.dto.PlacesWebRequest,

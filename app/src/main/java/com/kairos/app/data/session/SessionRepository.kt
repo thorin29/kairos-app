@@ -437,6 +437,19 @@ class SessionRepository(
         return service
     }
 
+    /** This person's notification choices (server 0.772+), or null offline. */
+    suspend fun notifyPrefsFromBackground(): com.kairos.app.data.remote.dto.NotifyPrefsResponse? {
+        val svc = backgroundService() ?: return null
+        return runCatching { apiCall { svc.notifyPrefs() } }.getOrNull()
+    }
+
+    suspend fun saveNotifyPrefs(prefs: com.kairos.app.data.remote.dto.NotifyPrefsDto): com.kairos.app.data.remote.dto.NotifyPrefsDto? {
+        val svc = backgroundService() ?: return null
+        return runCatching {
+            apiCall { svc.saveNotifyPrefs(com.kairos.app.data.remote.dto.NotifyPrefsRequest(prefs = prefs)) }.prefs
+        }.getOrNull()
+    }
+
     /** Waiting notifications, or null when the server can't be reached. */
     suspend fun takePushInboxFromBackground(): List<com.kairos.app.data.remote.dto.PushMessageDto>? {
         val svc = backgroundService() ?: return null
@@ -1472,6 +1485,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 624
+        const val CLIENT_BUILD = 625
     }
 }

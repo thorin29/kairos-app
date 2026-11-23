@@ -1,4 +1,11 @@
 # Changelog
+## 0.553.0
+
+- Settings → Notifications: choose your own calendar reminders, task alerts and Family map arrive/leave alerts; they follow you to a new phone.
+- Parents: alerts when a child drives over a speed you set, their phone stops updating, or its battery runs low.
+- Quiet hours for Family map news.
+- Needs server 0.771.
+
 ## 0.552.0
 
 - Places is now called Family map.

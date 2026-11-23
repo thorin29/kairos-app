@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-11 — Notifications are each person's own (v0.553.0, server 0.771.0)
+
+- Settings → Notifications is the one place: calendar "Reminders on my
+  events" / "Reminders others set for me", task alerts, Family map "Tell me
+  when …" (who, place, arrives/leaves), Safety for parents (per child speed;
+  no update for N hours; battery below N%), quiet hours (presets). Saved on
+  the server (`GET/POST notify/prefs`); the phone keeps only its two
+  scheduler switches (`NotifPrefs.enabled` = either calendar choice,
+  `tasksEnabled`) in step via `NotifySync`.
+- First run after the update: if the server has nothing for the person, the
+  phone sends its own current switches (both calendar choices = the old
+  Calendar switch), so nobody gains or loses alerts. A new phone takes the
+  saved choices.
+- `NotifPrefs` lost its unused fields (scope, per-type, birthday).
+- Server-side filtering: the upcoming feed drops reminders the person turned
+  off, so the scheduler code is unchanged.
+
+
 ## 2026-11 — Places → Family map (v0.552.0, server 0.766.0)
 
 - Labels only: menu, screen title, messages, and the notification channel's

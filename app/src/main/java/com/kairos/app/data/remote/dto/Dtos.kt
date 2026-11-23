@@ -4070,3 +4070,66 @@ data class PushMessageDto(
 
 @Serializable
 data class PushInboxDto(val messages: List<PushMessageDto> = emptyList())
+
+
+/** One "tell me when" choice (server 0.772+). place: "z:Home" | "n:<id>" | "s:<id>"; about null = anyone. */
+@Serializable
+data class PlaceRuleDto(
+    val id: String = "",
+    val about: String? = null,
+    val place: String = "",
+    val arrive: Boolean = true,
+    val leave: Boolean = false,
+)
+
+@Serializable
+data class CalendarChoicesDto(val mine: Boolean = false, val others: Boolean = false)
+
+@Serializable
+data class SafetyChoicesDto(
+    val speed: Map<String, Int> = emptyMap(),
+    val noUpdateHours: Int? = null,
+    val lowBattery: Int? = null,
+)
+
+@Serializable
+data class QuietHoursDto(val from: String = "22:00", val to: String = "07:00")
+
+/** A person's notification choices, saved on the server for their next phone. */
+@Serializable
+data class NotifyPrefsDto(
+    val calendar: CalendarChoicesDto = CalendarChoicesDto(),
+    val tasks: Boolean = false,
+    val places: List<PlaceRuleDto> = emptyList(),
+    val safety: SafetyChoicesDto = SafetyChoicesDto(),
+    val quiet: QuietHoursDto? = null,
+)
+
+@Serializable
+data class NotifyPersonDto(val id: String = "", val name: String = "", val color: String = "")
+
+@Serializable
+data class NotifyPlaceDto(val key: String = "", val label: String = "")
+
+@Serializable
+data class NotifyOptionsDto(
+    val familyMap: Boolean = false,
+    val isParent: Boolean = false,
+    val people: List<NotifyPersonDto> = emptyList(),
+    val children: List<NotifyPersonDto> = emptyList(),
+    val places: List<NotifyPlaceDto> = emptyList(),
+)
+
+/** GET /api/v1/notify/prefs. `saved` false = no phone has saved choices yet. */
+@Serializable
+data class NotifyPrefsResponse(
+    val prefs: NotifyPrefsDto = NotifyPrefsDto(),
+    val saved: Boolean = false,
+    val options: NotifyOptionsDto = NotifyOptionsDto(),
+)
+
+@Serializable
+data class NotifyPrefsRequest(val prefs: NotifyPrefsDto = NotifyPrefsDto())
+
+@Serializable
+data class NotifyPrefsSavedDto(val prefs: NotifyPrefsDto = NotifyPrefsDto())

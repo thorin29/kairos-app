@@ -245,6 +245,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     LaunchedEffect(Unit) {
         com.kairos.app.data.push.Push.sync(context = container.appContext)
         com.kairos.app.data.push.Push.checkNow(context = container.appContext)
+        runCatching { com.kairos.app.data.notifications.NotifySync.run(context = container.appContext) }
     }
 
     // The app tour (v0.513): the whole tour on first use, then only what's new
