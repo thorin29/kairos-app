@@ -191,6 +191,30 @@ fun NotificationsScreen(onBack: () -> Unit) {
                                 update(p.copy(assigned = on))
                             },
                         )
+                        HorizontalDivider()
+                        SwitchRow(
+                            title = "My turn on shared chores",
+                            subtitle = "Each morning",
+                            checked = p.choreTurn,
+                            onChange = { on ->
+                                if (on) askPermission()
+                                update(p.copy(choreTurn = on))
+                            },
+                        )
+                    }
+                }
+
+                item { SettingsLabel("Workouts") }
+                item {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        SwitchRow(
+                            title = "Family workouts I’m in",
+                            checked = p.familyWorkout,
+                            onChange = { on ->
+                                if (on) askPermission()
+                                update(p.copy(familyWorkout = on))
+                            },
+                        )
                     }
                 }
 
@@ -227,6 +251,22 @@ fun NotificationsScreen(onBack: () -> Unit) {
                                 onClick = { adding = true },
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             ) { Text("+ Tell me when…") }
+                        }
+                    }
+                }
+
+                if (options.isParent) {
+                    item { SettingsLabel("Approvals") }
+                    item {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            SwitchRow(
+                                title = "Money and suggestions to approve",
+                                checked = p.approvals,
+                                onChange = { on ->
+                                    if (on) askPermission()
+                                    update(p.copy(approvals = on))
+                                },
+                            )
                         }
                     }
                 }

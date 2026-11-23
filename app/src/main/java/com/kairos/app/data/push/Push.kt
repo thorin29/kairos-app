@@ -149,7 +149,7 @@ object Push {
         val mgr = context.getSystemService(android.app.NotificationManager::class.java) ?: return
         mgr.createNotificationChannel(
             android.app.NotificationChannel(UPDATES_CHANNEL_ID, "Kairos updates", android.app.NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Tasks someone gives you and other news from Kairos."
+                description = "Tasks, chores, workouts and approvals from Kairos."
             },
         )
         // Created or renamed (the name was "Places" in 0.550–0.551); the
@@ -165,8 +165,12 @@ object Push {
         ensureChannel(context)
         if (!Notifications.hasPermission(context)) return
         val open = when {
-            link != null && link.startsWith("/places") -> "places"
-            link != null && link.startsWith("/tasks") -> "tasks"
+            link == null -> "home"
+            link.startsWith("/places") -> "places"
+            link.startsWith("/tasks") -> "tasks"
+            link.startsWith("/money") -> "money"
+            link.startsWith("/exercise") -> "workouts"
+            link.startsWith("/chores") -> "chores"
             else -> "home"
         }
         val channel = if (kind == "places" || kind == "safety" || kind == "test") CHANNEL_ID else UPDATES_CHANNEL_ID

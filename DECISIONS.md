@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — More optional news (v0.555.0, server 0.773.0)
+
+- Switches: "My turn on shared chores" (morning), "Family workouts I'm in",
+  parents' "Money and suggestions to approve". All start off. They arrive on
+  the "Kairos updates" channel; a tap opens Money / Workouts / Chores (the
+  notification's link → section key via `pendingRoute`).
+
+
 ## 2026-11 — Instant sync, three calendar switches (v0.554.0, server 0.772.0)
 
 - A Firebase `{k: "sync"}` data message (server: debounced 20 s after any

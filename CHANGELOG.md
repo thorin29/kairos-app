@@ -1,4 +1,10 @@
 # Changelog
+## 0.555.0
+
+- New optional alerts: your turn on shared chores (each morning), family workouts you're in, and for parents money and suggestions waiting for approval.
+- Tapping one opens the right page.
+- Needs server 0.773.
+
 ## 0.554.0
 
 - Calendar reminders split into My events, Family events and Others’ events I’m on.
