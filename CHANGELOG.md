@@ -1,4 +1,9 @@
 # Changelog
+## 0.546.0
+
+- Plateau card under the plan card: two or more main muscle groups with no new best in 4 weeks. Try a program (preview), Light week, Swap the movements, or Keep going.
+- Needs server 0.752.
+
 ## 0.545.0
 
 - A day always opens on its workouts, even with one.

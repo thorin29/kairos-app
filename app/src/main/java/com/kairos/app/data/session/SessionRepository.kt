@@ -883,6 +883,10 @@ class SessionRepository(
     suspend fun undoConcept2(resultId: String): WorkoutAckDto =
         runAuthed { requireService().concept2Undo(com.kairos.app.data.remote.dto.Concept2UndoRequest(resultId = resultId)) }
 
+    /** Answer the plateau card (v0.546): light, swap or keep. */
+    suspend fun answerPlateau(answer: String): com.kairos.app.data.remote.dto.PlateauAnswerDto =
+        runAuthed { requireService().answerPlateau(com.kairos.app.data.remote.dto.PlateauAnswerRequest(answer = answer)) }
+
     suspend fun answerProgramInvite(answer: String): WorkoutAckDto =
         runAuthed { requireService().answerInvite(com.kairos.app.data.remote.dto.InviteAnswerRequest(answer = answer)) }
 
@@ -1427,6 +1431,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 617
+        const val CLIENT_BUILD = 618
     }
 }

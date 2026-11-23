@@ -892,7 +892,47 @@ data class ProgramsDto(
     val otherDays: List<String> = emptyList(),
     /** Programs running beside the first, each with its setup (server 0.749+). */
     val also: List<ProgramInfoDto> = emptyList(),
+    /** No new best in 2+ main groups for 4 weeks (server 0.752+), or null. */
+    val plateau: PlateauDto? = null,
 )
+
+/** The plateau card (server 0.752+). `program`: one to try with your own
+ *  plan; null when a program that runs on is the plan (New plan instead). */
+@Serializable
+data class PlateauDto(
+    val title: String = "",
+    val why: String = "",
+    val groups: List<PlateauGroupDto> = emptyList(),
+    val program: PlateauProgramDto? = null,
+)
+
+@Serializable
+data class PlateauGroupDto(val group: String = "", val movement: PlateauMoveDto = PlateauMoveDto())
+
+@Serializable
+data class PlateauMoveDto(
+    val poolExerciseId: String = "",
+    val name: String = "",
+    val weight: Double = 0.0,
+    val reps: Int = 0,
+    val since: String = "",
+)
+
+@Serializable
+data class PlateauProgramDto(
+    val key: String = "",
+    val name: String = "",
+    val blurb: String = "",
+    val days: List<String> = emptyList(),
+    val weeks: Int = 0,
+)
+
+/** POST workouts/plateau (server 0.752+): light, swap or keep. */
+@Serializable
+data class PlateauAnswerRequest(val answer: String)
+
+@Serializable
+data class PlateauAnswerDto(val answer: String = "")
 
 /** strip: Monday first; ends: the plan's last day or null; others: the other
  *  days' workouts when a program runs ("Arms", "Core"). */

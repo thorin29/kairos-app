@@ -121,6 +121,8 @@ fun ProgramsScreen(
     editProgramId: String? = null,
     /** Add a program beside the running one (v0.543). */
     startAdding: Boolean = false,
+    /** Straight into this program's setup (v0.546: the plateau card's Try). */
+    startKey: String? = null,
 ) {
     val container = rememberContainer()
     val session = container.sessionRepository
@@ -191,6 +193,14 @@ fun ProgramsScreen(
     fun pick(key: String) {
         useVersion = false
         if (data?.versions?.containsKey(key) == true) asking = key else setupKey = key
+    }
+    // The plateau card's Try (v0.546): open that program once the list is in.
+    var startDone by remember { mutableStateOf(false) }
+    LaunchedEffect(data) {
+        if (startKey != null && !startDone && data?.choices?.any { it.key == startKey } == true) {
+            startDone = true
+            pick(startKey)
+        }
     }
     val nextSetup = data?.setup?.takeIf { changing != null }
     val nextProgram = nextSetup?.let { ns -> data?.choices?.firstOrNull { it.key == ns.key } }

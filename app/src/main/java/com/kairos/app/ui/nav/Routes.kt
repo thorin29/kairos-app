@@ -146,6 +146,10 @@ sealed interface Route {
     @Serializable
     data object ProgramsAdd : Route
 
+    /** One program's setup, opened from the plateau card's Try (v0.546). */
+    @Serializable
+    data class ProgramsStart(val key: String) : Route
+
     /** My plans, Household, and save / share / export / import (v0.540). */
     @Serializable
     data object SavedPlans : Route

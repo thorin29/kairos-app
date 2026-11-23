@@ -218,6 +218,9 @@ interface ApiService {
     @POST("workouts/programs/max")
     suspend fun trainingMax(@Body body: com.kairos.app.data.remote.dto.TrainingMaxRequest): Response<WorkoutAckDto>
 
+    @POST("workouts/plateau")
+    suspend fun answerPlateau(@Body body: com.kairos.app.data.remote.dto.PlateauAnswerRequest): Response<com.kairos.app.data.remote.dto.PlateauAnswerDto>
+
     @POST("workouts/invite")
     suspend fun answerInvite(@Body body: com.kairos.app.data.remote.dto.InviteAnswerRequest): Response<WorkoutAckDto>
 

@@ -594,6 +594,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             onChangeProgram = { navController.navigate(Route.ProgramsChange) },
                             onOpenSavedPlans = { navController.navigate(Route.SavedPlans) },
                             onAddProgram = { navController.navigate(Route.ProgramsAdd) },
+                            onTryProgram = { key -> navController.navigate(Route.ProgramsStart(key = key)) },
                             refreshKey = dataRevision + programsChanged,
                             onOpenFamilyWod = { navController.navigate(Route.FamilyWod) },
                             onOpenPause = { navController.navigate(Route.WorkoutPause) },
@@ -700,6 +701,24 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         },
                         onOpenRotation = { navController.navigate(Route.Rotation) },
                         onBuildOwn = {
+                            back()
+                            navController.navigate(Route.EditPlan)
+                        },
+                    )
+                }
+                composable<Route.ProgramsStart> { entry ->
+                    val back: () -> Unit = {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { h ->
+                            h["programsChanged"] = (h.get<Int>("programsChanged") ?: 0) + 1
+                        }
+                        navController.popBackStack()
+                    }
+                    ProgramsScreen(
+                        onBack = back,
+                        onDone = back,
+                        startPicking = true,
+                        startKey = entry.toRoute<Route.ProgramsStart>().key,
+                        onEditPlan = {
                             back()
                             navController.navigate(Route.EditPlan)
                         },

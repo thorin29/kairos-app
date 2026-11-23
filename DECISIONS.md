@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Plateau card (v0.546.0, server 0.752.0)
+
+- `ProgramsDto.plateau` (`PlateauDto`); `PlateauCard` under the plan card on
+  Workouts. Answers go to `POST workouts/plateau`; the card hides at once and
+  the page reloads (Swap then opens Your plan).
+- Try → Preview → Start opens `Route.ProgramsStart(key)`: `ProgramsScreen`
+  with `startKey` picks that program once its list loads (asking Your
+  version / Default first when there is one). New plan opens Change.
+
 ## 2026-11 — Day page: always the list, plainer states (v0.545.0, server 0.751.0)
 
 - `view` is "list" unless a block is picked; no auto-open of the only open

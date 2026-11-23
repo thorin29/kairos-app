@@ -94,6 +94,8 @@ fun WorkoutsScreen(
     onOpenSavedPlans: () -> Unit = {},
     /** Add a program beside the running one (v0.543). */
     onAddProgram: () -> Unit = {},
+    /** The plateau card's Try: that program's setup (v0.546). */
+    onTryProgram: (String) -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -256,6 +258,23 @@ fun WorkoutsScreen(
                                 scope.launch {
                                     runCatching { container.sessionRepository.answerProgramInvite(answer) }
                                     programs = p.copy(invite = false)
+                                }
+                            },
+                        )
+                      }
+                      // No new best in 2+ main groups for 4 weeks (v0.546).
+                      p.plateau?.let { pl ->
+                        PlateauCard(
+                            plateau = pl,
+                            onTry = onTryProgram,
+                            onNewPlan = onChangeProgram,
+                            onAnswer = { answer ->
+                                programs = p.copy(plateau = null)
+                                scope.launch {
+                                    runCatching { container.sessionRepository.answerPlateau(answer) }
+                                    if (answer == "swap") onOpenEditPlan()
+                                    refreshProgressWeek()
+                                    vm.load()
                                 }
                             },
                         )
@@ -824,6 +843,88 @@ private fun WeekStrip(days: List<com.kairos.app.data.remote.dto.StripDayDto>) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Plateau (v0.546; server 0.752): two or more main groups with no new best in
+ * 4 weeks. Your own plan: try a program (preview), a light week, swap the
+ * movements. A program that runs on: New plan or a light week. Keep going.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun PlateauCard(
+    plateau: com.kairos.app.data.remote.dto.PlateauDto,
+    onTry: (String) -> Unit,
+    onNewPlan: () -> Unit,
+    onAnswer: (String) -> Unit,
+) {
+    var preview by remember { mutableStateOf(false) }
+    val p = plateau.program
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(plateau.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(plateau.why, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (p != null) {
+                PlateauRow(title = "Try ${p.name}", sub = "${p.days.size} days \u00b7 ${p.weeks} weeks", action = "Preview", onClick = { preview = true })
+                HorizontalDivider()
+                PlateauRow(title = "Light week", sub = "Everything at 60%, then back", action = null, onClick = { onAnswer("light") })
+                HorizontalDivider()
+                PlateauRow(
+                    title = "Swap the movements",
+                    sub = plateau.groups.joinToString(", ") { it.movement.name },
+                    action = null,
+                    onClick = { onAnswer("swap") },
+                )
+            }
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (p == null) {
+                    ProgramPill(label = "New plan", filled = true, onClick = onNewPlan)
+                    ProgramPill(label = "Light week", onClick = { onAnswer("light") })
+                }
+                ProgramPill(label = "Keep going", onClick = { onAnswer("keep") })
+            }
+        }
+    }
+    if (preview && p != null) {
+        AnimatedDialog(
+            onDismissRequest = { preview = false },
+            title = p.name,
+            confirmButton = {
+                TextButton(onClick = {
+                    preview = false
+                    onTry(p.key)
+                }) { Text("Start ${p.name}") }
+            },
+            dismissButton = { TextButton(onClick = { preview = false }) { Text("Cancel") } },
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(p.blurb, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    p.days.forEach { d -> Text(d, style = MaterialTheme.typography.bodyMedium) }
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun PlateauRow(title: String, sub: String, action: String?, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+        if (action != null) {
+            Text(action, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        } else {
+            Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
