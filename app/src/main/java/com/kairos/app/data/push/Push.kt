@@ -144,13 +144,13 @@ object Push {
 
     private fun ensureChannel(context: Context) {
         val mgr = context.getSystemService(android.app.NotificationManager::class.java) ?: return
-        if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
-            mgr.createNotificationChannel(
-                android.app.NotificationChannel(CHANNEL_ID, "Places", android.app.NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "When someone arrives at or leaves a place."
-                },
-            )
-        }
+        // Created or renamed (the name was "Places" in 0.550–0.551); the
+        // phone keeps the person's own settings for the channel.
+        mgr.createNotificationChannel(
+            android.app.NotificationChannel(CHANNEL_ID, "Family map", android.app.NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "When someone arrives at or leaves a place."
+            },
+        )
     }
 
     internal fun show(context: Context, id: String, title: String, body: String, link: String?) {

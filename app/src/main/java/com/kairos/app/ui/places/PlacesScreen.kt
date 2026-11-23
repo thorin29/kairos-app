@@ -179,7 +179,7 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text("Places") },
+                title = { Text("Family map") },
                 navigationIcon = { LogoMenuButton(onClick = onOpenDrawer) },
             )
         },
@@ -188,10 +188,10 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
             AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
             when (state) {
                 "loading" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                "off" -> Message(text = "Places isn’t set up yet.", onRetry = { reopen += 1 })
-                "error" -> Message(text = "Couldn’t open Places.", onRetry = { reopen += 1 })
+                "off" -> Message(text = "Family map isn’t set up yet.", onRetry = { reopen += 1 })
+                "error" -> Message(text = "Couldn’t open Family map.", onRetry = { reopen += 1 })
                 "blocked" -> Message(
-                    text = "Places was sent to another page instead of opening here.",
+                    text = "Family map was sent to another page instead of opening here.",
                     onRetry = { reopen += 1 },
                 )
             }

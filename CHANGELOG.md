@@ -1,4 +1,9 @@
 # Changelog
+## 0.552.0
+
+- Places is now called Family map.
+- Needs server 0.766.
+
 ## 0.551.0
 
 - Places: moving the map and scrolling the list no longer pull out the menu.

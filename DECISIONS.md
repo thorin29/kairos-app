@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Places → Family map (v0.552.0, server 0.766.0)
+
+- Labels only: menu, screen title, messages, and the notification channel's
+  name (`createNotificationChannel` with the same id renames it and keeps the
+  person's settings). Section key `places`, packages and the `places` channel
+  id stay.
+
+
 ## 2026-11 — Places touches, redirects, diagnostics (v0.551.0, server 0.762.0+)
 
 - The menu's swipe-to-open (Material ModalNavigationDrawer, anywhere on the
