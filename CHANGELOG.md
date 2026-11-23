@@ -1,4 +1,11 @@
 # Changelog
+## 0.548.0
+
+- Endurance days in Other days: Long steady, Intervals, or circuits to rotate.
+- Finishers after the lifts: Core, Holds or Carries on each lift day.
+- What's next: a missed + set drops the max 10%; a lift that felt too hard holds.
+- Needs server 0.754.
+
 ## 0.547.0
 
 - Rest days get a moon on Workout days (a rest on a workout day) and in This week (a day that ended as a rest day). A missed day stays blank.

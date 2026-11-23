@@ -968,6 +968,8 @@ data class CurrentSetupDto(
     val schemes: Map<String, String> = emptyMap(),
     val added: List<AddedLiftRequest> = emptyList(),
     val maxes: Map<String, Double> = emptyMap(),
+    /** Finishers after the lifts, by weekday (server 0.754+). */
+    val finishers: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -1054,6 +1056,8 @@ data class StartProgramRequest(
     val coreDay: Int? = null,
     /** The days the program doesn't use, weekday → kind (server 0.748+). */
     val other: Map<String, String>? = null,
+    /** Finishers after the lifts, program weekday → "none" or core/iso/carry with picks (server 0.754+). */
+    val finishers: Map<String, String>? = null,
     /** Beside the running program (server 0.749+). */
     val add: Boolean? = null,
     /** Which running program this changes or replaces (server 0.749+). */

@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Endurance days, finishers, 5/3/1 misses (v0.548.0, server 0.754.0)
+
+- Other days: Endurance with its window (Long steady / Intervals / Circuit),
+  picks in the web's format (`EndurancePick`, `enduranceIds`).
+- `FinishersStep` gains a row per lift day (None / Core / Holds / Carries,
+  each opening `OtherDayWindow`); `StartProgramRequest.finishers`,
+  `CurrentSetupDto.finishers`.
+- `rotationWord` and the movement filter know `endurance` and `carry`.
+- What's next shows a drop (amber, "−15") when `suggest` is negative.
+
 ## 2026-11 — Rest days; Other days windows (v0.547.0, server 0.753.0)
 
 - `RestSquare` (Canvas: pale slate square, a moon cut from two circles), on

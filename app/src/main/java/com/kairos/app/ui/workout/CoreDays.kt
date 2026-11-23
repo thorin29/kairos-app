@@ -61,6 +61,9 @@ import com.kairos.app.ui.common.AnimatedDialog
 internal fun rotationWord(kind: String?) = when (kind) {
     "arms" -> "Arms"
     "iso" -> "Isometric"
+    // Endurance circuits and carry finishers (v0.548).
+    "endurance" -> "Endurance"
+    "carry" -> "Carries"
     else -> "Core"
 }
 
@@ -350,6 +353,9 @@ internal fun CoreWorkoutEditor(
                 "arms" -> it.muscleGroup == "ARMS"
                 // Holds (v0.471): isometric movements and any logged as time.
                 "iso" -> it.category == "ISOMETRIC" || it.metric == "DURATION"
+                // Circuits take any movement; carries the carries (v0.548).
+                "endurance" -> true
+                "carry" -> Regex("carry|farmer", RegexOption.IGNORE_CASE).containsMatchIn(it.name)
                 else -> it.muscleGroup == "CORE" || it.category == "ISOMETRIC"
             }
         }

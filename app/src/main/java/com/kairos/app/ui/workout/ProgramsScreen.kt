@@ -736,13 +736,14 @@ private fun WhatsNextDialog(
 ) {
     fun by(id: String): Double {
         val c = info.check.firstOrNull { it.poolExerciseId == id }
-        return if (c != null && c.suggest > 0) c.suggest else info.maxes.firstOrNull { it.poolExerciseId == id }?.step ?: 5.0
+        // A raise, or a drop after a missed + set (v0.548).
+        return if (c != null && c.suggest != 0.0) c.suggest else info.maxes.firstOrNull { it.poolExerciseId == id }?.step ?: 5.0
     }
     val on = remember(info) {
         mutableStateMapOf<String, Boolean>().apply {
             info.maxes.forEach { m ->
                 val c = info.check.firstOrNull { it.poolExerciseId == m.poolExerciseId }
-                put(m.poolExerciseId, (c?.suggest ?: m.step) > 0)
+                put(m.poolExerciseId, (c?.suggest ?: m.step) != 0.0)
             }
         }
     }
@@ -772,13 +773,17 @@ private fun WhatsNextDialog(
                     Box(
                         Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(if (up) Color(0xFF059669) else MaterialTheme.colorScheme.surface)
-                            .border(1.dp, if (up) Color(0xFF059669) else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
+                            .background(if (!up) MaterialTheme.colorScheme.surface else if (by(m.poolExerciseId) < 0) Color(0xFFD97706) else Color(0xFF059669))
+                            .border(1.dp, if (!up) MaterialTheme.colorScheme.outlineVariant else if (by(m.poolExerciseId) < 0) Color(0xFFD97706) else Color(0xFF059669), RoundedCornerShape(50))
                             .clickable { on[m.poolExerciseId] = !up }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         Text(
-                            if (up) "+${MovementSetsViewModel.fmt(by(m.poolExerciseId))}" else "Same",
+                            when {
+                                !up -> "Same"
+                                by(m.poolExerciseId) < 0 -> "\u2212${MovementSetsViewModel.fmt(-by(m.poolExerciseId))}"
+                                else -> "+${MovementSetsViewModel.fmt(by(m.poolExerciseId))}"
+                            },
                             style = MaterialTheme.typography.labelLarge,
                             color = if (up) Color.White else MaterialTheme.colorScheme.onSurface,
                         )
@@ -909,11 +914,11 @@ internal fun SetupStepHeader(steps: List<String>, step: Int) {
 /** Monday first, for the weekday lists. */
 internal val MONDAY_FIRST = listOf(1, 2, 3, 4, 5, 6, 0)
 private val SETUP_DAY = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-private val OTHER_ADDS = listOf("core", "arms", "iso", "mobility", "stretching", "cardio", "conditioning", "strength")
+private val OTHER_ADDS = listOf("core", "arms", "iso", "mobility", "stretching", "cardio", "conditioning", "strength", "endurance")
 private val OTHER_LABEL = mapOf(
     "rest" to "Rest", "skip" to "Skip", "core" to "Core", "arms" to "Arms", "iso" to "Isometric",
     "mobility" to "Mobility", "stretching" to "Stretching", "cardio" to "Cardio",
-    "conditioning" to "Conditioning", "strength" to "Strength", "custom" to "As it is",
+    "conditioning" to "Conditioning", "strength" to "Strength", "endurance" to "Endurance", "custom" to "As it is",
 )
 private val STRENGTH_GROUPS = listOf(
     "CHEST" to "Chest", "BACK" to "Back", "SHOULDERS" to "Shoulders", "LEGS" to "Legs",
@@ -993,7 +998,7 @@ internal fun OtherDaysStep(
             if (i > 0) HorizontalDivider()
             val raw = other[d] ?: "skip"
             val k = splitOther(raw).kind
-            val picked = splitOther(raw).ids.size
+            val picked = pickedWords(raw)
             val added = k != "rest" && k != "skip"
             val custom = had?.getOrNull(d) == "custom"
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1028,7 +1033,7 @@ internal fun OtherDaysStep(
                 }
                 if (hasOtherWindow(k)) {
                     Text(
-                        if (picked > 0) "${otherWords(k)} \u00b7 $picked picked" else "Choose",
+                        picked,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
@@ -1053,7 +1058,46 @@ internal fun OtherDaysStep(
     }
 }
 
-private fun hasOtherWindow(k: String) = k in listOf("core", "arms", "iso", "mobility", "stretching") || k.startsWith("strength:")
+private fun hasOtherWindow(k: String) = k in listOf("core", "arms", "iso", "mobility", "stretching", "endurance", "carry") || k.startsWith("strength:")
+
+// --- Endurance days and finishers (v0.548; the web's other-days) -------------
+
+private val ENDURANCE_CARDIO = listOf("ROW" to "Row", "RUN" to "Run", "RUCK" to "Ruck", "BIKE" to "Bike", "WALK" to "Walk", "HIKE" to "Hike", "ROPE" to "Jump rope")
+private fun clockOf(sec: Int) = "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}"
+
+/** "steady.ROW.40", "int.BIKE.8.60.60", else circuit ids. */
+private data class EndurancePick(val mode: String, val cardio: String = "ROW", val minutes: Int = 30, val rounds: Int = 8, val work: Int = 60, val rest: Int = 60, val ids: List<String> = emptyList())
+private fun enduranceOf(ids: List<String>): EndurancePick {
+    val p = ids.firstOrNull().orEmpty().split('.')
+    val cardio = p.getOrNull(1)?.takeIf { c -> ENDURANCE_CARDIO.any { it.first == c } } ?: "ROW"
+    fun n(i: Int, lo: Int, hi: Int, d: Int) = p.getOrNull(i)?.toIntOrNull()?.takeIf { it in lo..hi } ?: d
+    return when {
+        p.firstOrNull() == "steady" -> EndurancePick(mode = "steady", cardio = cardio, minutes = n(2, 5, 240, 30))
+        p.firstOrNull() == "int" -> EndurancePick(mode = "int", cardio = cardio, rounds = n(2, 1, 40, 8), work = n(3, 10, 1200, 60), rest = n(4, 0, 1200, 60))
+        ids.isNotEmpty() -> EndurancePick(mode = "circuit", ids = ids)
+        else -> EndurancePick(mode = "steady")
+    }
+}
+private fun enduranceIds(p: EndurancePick): List<String> = when (p.mode) {
+    "steady" -> listOf("steady.${p.cardio}.${p.minutes}")
+    "int" -> listOf("int.${p.cardio}.${p.rounds}.${p.work}.${p.rest}")
+    else -> p.ids
+}
+private fun enduranceName(p: EndurancePick): String {
+    val c = ENDURANCE_CARDIO.firstOrNull { it.first == p.cardio }?.second ?: "Cardio"
+    return if (p.mode == "steady") "Long steady \u00b7 $c ${p.minutes} min" else "Intervals \u00b7 $c ${p.rounds} \u00d7 ${clockOf(p.work)} / ${clockOf(p.rest)}"
+}
+internal val FINISH_LABEL = mapOf("none" to "None", "core" to "Core", "iso" to "Holds", "carry" to "Carries")
+
+/** What a day's window picked: "Long steady · Row 40 min", "Core · 2 picked", or "Choose". */
+private fun pickedWords(raw: String): String {
+    val p = splitOther(raw)
+    if (p.kind == "endurance" && p.ids.isNotEmpty()) {
+        val e = enduranceOf(p.ids)
+        return if (e.mode == "circuit") "Circuits \u00b7 ${p.ids.size} picked" else enduranceName(e)
+    }
+    return if (p.ids.isNotEmpty()) "${FINISH_LABEL[p.kind] ?: otherWords(p.kind)} \u00b7 ${p.ids.size} picked" else "Choose"
+}
 
 /**
  * An added other day's own window (v0.547): the Core, Arms or Isometric
@@ -1061,14 +1105,24 @@ private fun hasOtherWindow(k: String) = k in listOf("core", "arms", "iso", "mobi
  * routine, or a muscle group and its movements. Done sends them with the
  * day; Back keeps the day as it was.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone: (String) -> Unit) {
+private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone: (String) -> Unit, title: String? = null) {
     val session = rememberContainer().sessionRepository
     val start = remember(raw) { splitOther(raw) }
     val kind = start.kind
-    val rot = kind == "core" || kind == "arms" || kind == "iso"
-    var ids by remember { mutableStateOf(start.ids) }
-    var test by remember { mutableStateOf(start.test ?: (kind != "arms")) }
+    val end = kind == "endurance"
+    val rot = kind == "core" || kind == "arms" || kind == "iso" || kind == "carry" || end
+    // Endurance (v0.548): Long steady, Intervals, or circuits to rotate.
+    val first = remember(raw) { enduranceOf(if (end) start.ids else emptyList()) }
+    var mode by remember { mutableStateOf(first.mode) }
+    var cardio by remember { mutableStateOf(first.cardio) }
+    var minutes by remember { mutableStateOf(first.minutes) }
+    var rounds by remember { mutableStateOf(first.rounds) }
+    var work by remember { mutableStateOf(first.work) }
+    var rest by remember { mutableStateOf(first.rest) }
+    var ids by remember { mutableStateOf(if (end) first.ids else start.ids) }
+    var test by remember { mutableStateOf(start.test ?: (kind == "core" || kind == "iso")) }
     var group by remember { mutableStateOf(if (kind.startsWith("strength:")) kind.removePrefix("strength:") else "CHEST") }
     var items by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var pool by remember { mutableStateOf<List<com.kairos.app.data.remote.dto.PoolExerciseDto>?>(null) }
@@ -1084,12 +1138,17 @@ private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone:
     val list = if (strength) pool?.filter { it.category == "WEIGHTS" && it.muscleGroup == group }?.map { it.id to it.name } else items
     AnimatedDialog(
         onDismissRequest = onDismiss,
-        title = "${SETUP_DAY[day]} \u00b7 ${otherWords(kind)}",
+        title = title ?: "${SETUP_DAY[day]} \u00b7 ${otherWords(kind)}",
         confirmButton = {
             TextButton(onClick = {
                 onDone(
                     when {
-                        rot -> joinOther(kind, ids, if (kind == "arms") null else test)
+                        end && mode == "circuit" -> if (ids.isEmpty()) "endurance" else joinOther("endurance", ids)
+                        end -> joinOther(
+                            "endurance",
+                            enduranceIds(EndurancePick(mode = mode, cardio = cardio, minutes = minutes, rounds = rounds, work = work, rest = rest)),
+                        )
+                        rot -> joinOther(kind, ids, if (kind == "core" || kind == "iso") test else null)
                         strength -> joinOther("strength:$group", ids)
                         else -> joinOther(kind, ids.take(1))
                     },
@@ -1102,6 +1161,39 @@ private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone:
                 Modifier.heightIn(max = 420.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
+                if (end) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("steady" to "Long steady", "int" to "Intervals", "circuit" to "Circuit").forEach { (m, l) ->
+                            SetupChip(on = mode == m, label = l, onClick = { mode = m })
+                        }
+                    }
+                }
+                if (end && mode != "circuit") {
+                    Dropdown(
+                        label = "Cardio",
+                        selected = ENDURANCE_CARDIO.firstOrNull { it.first == cardio }?.second ?: "Row",
+                        options = ENDURANCE_CARDIO,
+                        onSelect = { cardio = it },
+                    )
+                    if (mode == "steady") {
+                        val mins = listOf(10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 75, 90, 120)
+                        Dropdown(label = "Minutes", selected = "$minutes min", options = mins.map { "$it" to "$it min" }, onSelect = { minutes = it.toInt() })
+                    } else {
+                        Dropdown(label = "Rounds", selected = "$rounds", options = (1..20).map { "$it" to "$it" }, onSelect = { rounds = it.toInt() })
+                        Dropdown(
+                            label = "Work",
+                            selected = clockOf(work),
+                            options = listOf(20, 30, 40, 45, 60, 90, 120, 180, 240, 300).map { "$it" to clockOf(it) },
+                            onSelect = { work = it.toInt() },
+                        )
+                        Dropdown(
+                            label = "Rest",
+                            selected = clockOf(rest),
+                            options = listOf(10, 15, 20, 30, 45, 60, 90, 120, 180).map { "$it" to clockOf(it) },
+                            onSelect = { rest = it.toInt() },
+                        )
+                    }
+                }
                 if (strength) {
                     Dropdown(
                         label = "Muscle group",
@@ -1113,7 +1205,9 @@ private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone:
                         },
                     )
                 }
-                if (list == null) {
+                if (end && mode != "circuit") {
+                    // Long steady and Intervals pick no workouts.
+                } else if (list == null) {
                     Text("Loading\u2026", style = MaterialTheme.typography.bodyMedium)
                 } else {
                     list.forEach { (id, name) ->
@@ -1143,7 +1237,7 @@ private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone:
                         }
                     }
                 }
-                if (rot && kind != "arms") {
+                if (kind == "core" || kind == "iso") {
                     Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             if (kind == "iso") "Monthly test" else "Plank test",
@@ -1181,12 +1275,66 @@ internal fun CardioStep(days: List<Int>, onDays: (List<Int>) -> Unit) {
     }
 }
 
-/** Finishers: conditioning days (picked on the day); none leaves it out. */
+/** Finishers: a Core, Holds or Carries rotation after the lifts on each lift
+ *  day (v0.548), and conditioning days (picked on the day); None leaves
+ *  either out. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun FinishersStep(days: List<Int>, onDays: (List<Int>) -> Unit) {
+internal fun FinishersStep(
+    days: List<Int>,
+    onDays: (List<Int>) -> Unit,
+    /** Lift days (v0.548): weekday and the program day's name. */
+    liftDays: List<Pair<Int, String>> = emptyList(),
+    finishers: Map<Int, String> = emptyMap(),
+    onFinisher: ((Int, String) -> Unit)? = null,
+) {
+    var win by remember { mutableStateOf<Pair<Int, String>?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Conditioning", style = MaterialTheme.typography.titleSmall)
+        if (liftDays.isNotEmpty() && onFinisher != null) {
+            Text("After the lifts", style = MaterialTheme.typography.titleSmall)
+            liftDays.forEachIndexed { i, (d, name) ->
+                if (i > 0) HorizontalDivider()
+                val raw = finishers[d] ?: "none"
+                val k = splitOther(raw).kind
+                Text("${SETUP_DAY[d]} \u00b7 $name", style = MaterialTheme.typography.bodyMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("none", "core", "iso", "carry").forEach { f ->
+                        SetupChip(on = k == f, label = FINISH_LABEL.getValue(f), onClick = {
+                            when {
+                                f == "none" -> onFinisher(d, "none")
+                                k == f -> win = d to raw
+                                else -> {
+                                    onFinisher(d, f)
+                                    win = d to f
+                                }
+                            }
+                        })
+                    }
+                }
+                if (k != "none") {
+                    Text(
+                        pickedWords(raw),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { win = d to raw }.padding(vertical = 4.dp),
+                    )
+                }
+            }
+        }
+        Text("Conditioning days", style = MaterialTheme.typography.titleSmall)
         DayChips(value = days, onToggle = { d -> onDays(toggled(days, d)) })
+    }
+    win?.let { (d, raw) ->
+        OtherDayWindow(
+            day = d,
+            raw = raw,
+            title = "${SETUP_DAY[d]} \u00b7 ${FINISH_LABEL[splitOther(raw).kind] ?: ""}",
+            onDismiss = { win = null },
+            onDone = { v ->
+                onFinisher?.invoke(d, v)
+                win = null
+            },
+        )
     }
 }
 
@@ -1302,6 +1450,10 @@ private fun ProgramSetup(
     var cardio by remember(program.key) { mutableStateOf<List<Int>?>(null) }
     var conditioning by remember(program.key) { mutableStateOf(current.conditioningDays) }
     var other by remember(program.key) { mutableStateOf(startOther(otherDays, editMode)) }
+    // Finishers after the lifts (v0.548), by weekday; the running program's own when changing it.
+    var finishers by remember(program.key) {
+        mutableStateOf(initial?.finishers.orEmpty().mapNotNull { (k, v) -> k.toIntOrNull()?.let { it to v } }.toMap())
+    }
     val maxText = remember(program.key) { mutableStateMapOf<String, String>() }
     var tmHelp by remember { mutableStateOf(false) }
     if (tmHelp) {
@@ -1332,6 +1484,8 @@ private fun ProgramSetup(
         buildList {
             if (warmup != "none" && work && k != "mobility" && k != "stretching") add("Warm-up")
             addAll(prog)
+            val fin = if (prog.isNotEmpty()) splitOther(finishers[d] ?: "none").kind else "none"
+            if (fin != "none") add(FINISH_LABEL[fin] ?: fin)
             if (prog.isEmpty() && k != "skip" && k != "cardio" && k != "conditioning") add(otherWords(k))
             if (d in payload.cardioDays) add("Cardio")
             if (d in payload.conditioningDays) add("Conditioning")
@@ -1459,7 +1613,16 @@ private fun ProgramSetup(
                 }
                 "Warm-up" -> WarmupStep(warmups = warmups, warmup = warmup, onWarmup = { warmup = it })
                 "Cardio" -> CardioStep(days = cardioDays, onDays = { cardio = it })
-                "Finishers" -> FinishersStep(days = conditioning, onDays = { conditioning = it })
+                "Finishers" -> FinishersStep(
+                    days = conditioning,
+                    onDays = { conditioning = it },
+                    liftDays = MONDAY_FIRST.mapNotNull { d ->
+                        program.days.filterIndexed { i, _ -> days.getOrNull(i) == d }.map { it.name }
+                            .takeIf { it.isNotEmpty() }?.let { d to it.joinToString(" + ") }
+                    },
+                    finishers = finishers,
+                    onFinisher = { d, v -> finishers = finishers + (d to v) },
+                )
                 "Maxes" -> {
                     if (mains.isEmpty()) {
                         Text("No main lifts.", style = MaterialTheme.typography.bodyMedium)
@@ -1543,6 +1706,7 @@ private fun ProgramSetup(
                                 cardioDays = payload.cardioDays,
                                 conditioningDays = payload.conditioningDays,
                                 other = payload.other,
+                                finishers = if (alongside) null else days.toSet().associate { d -> d.toString() to (finishers[d] ?: "none") },
                             ),
                         )
                     },
