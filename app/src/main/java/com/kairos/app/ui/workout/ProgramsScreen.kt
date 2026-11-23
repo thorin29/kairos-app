@@ -920,10 +920,24 @@ private val STRENGTH_GROUPS = listOf(
     "DEADLIFT" to "Deadlift", "ARMS" to "Arms", "FULL_BODY" to "Full body",
 )
 
+/** "arms@a,b|notest" → arms, [a, b], false (v0.547; the web's splitOther). */
+internal data class OtherPick(val kind: String, val ids: List<String>, val test: Boolean?)
+internal fun splitOther(v: String): OtherPick {
+    val at = v.indexOf('@')
+    if (at < 0) return OtherPick(kind = v, ids = emptyList(), test = null)
+    val parts = v.substring(at + 1).split('|')
+    val ids = parts[0].split(',').filter { it.isNotBlank() }.distinct().take(12)
+    val test = when (parts.getOrNull(1)) { "test" -> true; "notest" -> false; else -> null }
+    return OtherPick(kind = v.substring(0, at), ids = ids, test = test)
+}
+internal fun joinOther(kind: String, ids: List<String>, test: Boolean? = null): String =
+    if (ids.isEmpty()) kind else "$kind@${ids.joinToString(",")}" + when (test) { true -> "|test"; false -> "|notest"; null -> "" }
+
 /** A kind's words: "Core", "Strength · Legs", "As it is". */
-internal fun otherWords(kind: String): String =
+internal fun otherWords(raw: String): String = splitOther(raw).kind.let { kind ->
     if (kind.startsWith("strength:")) "Strength · " + (STRENGTH_GROUPS.firstOrNull { it.first == kind.removePrefix("strength:") }?.second ?: "")
     else OTHER_LABEL[kind] ?: kind
+}
 
 /** The other days to start from: the same program keeps what each day holds;
  *  a new one keeps the rest days only. */
@@ -967,6 +981,8 @@ internal fun OtherDaysStep(
     onChange: (Int, String) -> Unit,
     had: List<String>? = null,
 ) {
+    // An add's own window (v0.547): what to rotate, the routine, the movements.
+    var win by remember { mutableStateOf<Pair<Int, String>?>(null) }
     val open = MONDAY_FIRST.filter { it !in programDays }
     if (open.isEmpty()) {
         Text("Every day has the program.", style = MaterialTheme.typography.bodyMedium)
@@ -975,7 +991,9 @@ internal fun OtherDaysStep(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         open.forEachIndexed { i, d ->
             if (i > 0) HorizontalDivider()
-            val k = other[d] ?: "skip"
+            val raw = other[d] ?: "skip"
+            val k = splitOther(raw).kind
+            val picked = splitOther(raw).ids.size
             val added = k != "rest" && k != "skip"
             val custom = had?.getOrNull(d) == "custom"
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -992,26 +1010,152 @@ internal fun OtherDaysStep(
                 ) {
                     if (custom) SetupChip(on = k == "custom", label = OTHER_LABEL.getValue("custom"), onClick = { onChange(d, "custom") })
                     OTHER_ADDS.forEach { a ->
+                        val on = if (a == "strength") k.startsWith("strength:") else k == a
                         SetupChip(
-                            on = if (a == "strength") k.startsWith("strength:") else k == a,
+                            on = on,
                             label = OTHER_LABEL.getValue(a),
-                            onClick = { onChange(d, if (a == "strength") (if (k.startsWith("strength:")) k else "strength:CHEST") else a) },
+                            onClick = {
+                                if (on && hasOtherWindow(k)) {
+                                    win = d to raw
+                                } else {
+                                    val next = if (a == "strength") "strength:CHEST" else a
+                                    onChange(d, next)
+                                    if (hasOtherWindow(next)) win = d to next
+                                }
+                            },
                         )
                     }
                 }
-                if (k.startsWith("strength:")) {
-                    Box(Modifier.padding(start = 46.dp)) {
-                        Dropdown(
-                            label = "Muscle group",
-                            selected = otherWords(k).removePrefix("Strength · "),
-                            options = STRENGTH_GROUPS,
-                            onSelect = { onChange(d, "strength:$it") },
-                        )
-                    }
+                if (hasOtherWindow(k)) {
+                    Text(
+                        if (picked > 0) "${otherWords(k)} \u00b7 $picked picked" else "Choose",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(start = 46.dp)
+                            .clickable { win = d to raw }
+                            .padding(vertical = 4.dp),
+                    )
                 }
             }
         }
     }
+    win?.let { (d, raw) ->
+        OtherDayWindow(
+            day = d,
+            raw = raw,
+            onDismiss = { win = null },
+            onDone = { v ->
+                onChange(d, v)
+                win = null
+            },
+        )
+    }
+}
+
+private fun hasOtherWindow(k: String) = k in listOf("core", "arms", "iso", "mobility", "stretching") || k.startsWith("strength:")
+
+/**
+ * An added other day's own window (v0.547): the Core, Arms or Isometric
+ * workouts to rotate (with the monthly test), a Mobility or Stretching
+ * routine, or a muscle group and its movements. Done sends them with the
+ * day; Back keeps the day as it was.
+ */
+@Composable
+private fun OtherDayWindow(day: Int, raw: String, onDismiss: () -> Unit, onDone: (String) -> Unit) {
+    val session = rememberContainer().sessionRepository
+    val start = remember(raw) { splitOther(raw) }
+    val kind = start.kind
+    val rot = kind == "core" || kind == "arms" || kind == "iso"
+    var ids by remember { mutableStateOf(start.ids) }
+    var test by remember { mutableStateOf(start.test ?: (kind != "arms")) }
+    var group by remember { mutableStateOf(if (kind.startsWith("strength:")) kind.removePrefix("strength:") else "CHEST") }
+    var items by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
+    var pool by remember { mutableStateOf<List<com.kairos.app.data.remote.dto.PoolExerciseDto>?>(null) }
+    LaunchedEffect(kind) {
+        when {
+            rot -> items = runCatching { session.coreWorkouts(kind) }.getOrDefault(emptyList()).map { it.id to it.name }
+            kind == "mobility" || kind == "stretching" ->
+                items = runCatching { session.warmupRoutines(kind) }.getOrDefault(emptyList()).map { it.id to it.name }
+            else -> pool = runCatching { session.loadWorkoutPool().exercises }.getOrDefault(emptyList())
+        }
+    }
+    val strength = kind.startsWith("strength:")
+    val list = if (strength) pool?.filter { it.category == "WEIGHTS" && it.muscleGroup == group }?.map { it.id to it.name } else items
+    AnimatedDialog(
+        onDismissRequest = onDismiss,
+        title = "${SETUP_DAY[day]} \u00b7 ${otherWords(kind)}",
+        confirmButton = {
+            TextButton(onClick = {
+                onDone(
+                    when {
+                        rot -> joinOther(kind, ids, if (kind == "arms") null else test)
+                        strength -> joinOther("strength:$group", ids)
+                        else -> joinOther(kind, ids.take(1))
+                    },
+                )
+            }) { Text("Done") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Back") } },
+        content = {
+            Column(
+                Modifier.heightIn(max = 420.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                if (strength) {
+                    Dropdown(
+                        label = "Muscle group",
+                        selected = STRENGTH_GROUPS.firstOrNull { it.first == group }?.second ?: "",
+                        options = STRENGTH_GROUPS,
+                        onSelect = {
+                            group = it
+                            ids = emptyList()
+                        },
+                    )
+                }
+                if (list == null) {
+                    Text("Loading\u2026", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    list.forEach { (id, name) ->
+                        val n = ids.indexOf(id)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    ids = when {
+                                        !rot && !strength -> listOf(id)
+                                        n >= 0 -> ids - id
+                                        else -> ids + id
+                                    }
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            SetupChip(on = n >= 0, label = if (n >= 0 && (rot || strength)) "${n + 1}" else " ", onClick = {
+                                ids = when {
+                                    !rot && !strength -> listOf(id)
+                                    n >= 0 -> ids - id
+                                    else -> ids + id
+                                }
+                            })
+                            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                if (rot && kind != "arms") {
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (kind == "iso") "Monthly test" else "Plank test",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        androidx.compose.material3.Switch(checked = test, onCheckedChange = { test = it })
+                    }
+                }
+            }
+        },
+    )
 }
 
 /** Warm-up: None, a plain check, or a routine, on every workout day. */
@@ -1183,7 +1327,7 @@ private fun ProgramSetup(
     // The week before Start (v0.542).
     val review = MONDAY_FIRST.associateWith { d ->
         val prog = program.days.filterIndexed { i, _ -> days.getOrNull(i) == d }.map { it.name }
-        val k = other[d] ?: "skip"
+        val k = splitOther(other[d] ?: "skip").kind
         val work = prog.isNotEmpty() || (k != "rest" && k != "skip")
         buildList {
             if (warmup != "none" && work && k != "mobility" && k != "stretching") add("Warm-up")

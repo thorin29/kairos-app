@@ -564,7 +564,14 @@ private fun WeeklyTrainingCard(t: com.kairos.app.data.remote.dto.WeeklyTrainingD
                                 val k1 = d.kinds.firstOrNull()
                                 val k2 = d.kinds.getOrNull(1)
                                 val dayShape = RoundedCornerShape(6.dp)
-                                androidx.compose.foundation.Canvas(
+                                if (k1 == null && d.status == "rest") {
+                                    RestSquare(
+                                        modifier = Modifier
+                                            .padding(vertical = 3.dp)
+                                            .size(width = 34.dp, height = 28.dp)
+                                            .clip(dayShape),
+                                    )
+                                } else androidx.compose.foundation.Canvas(
                                     Modifier
                                         .padding(vertical = 3.dp)
                                         .size(width = 34.dp, height = 28.dp)

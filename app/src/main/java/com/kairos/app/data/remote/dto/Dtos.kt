@@ -1301,6 +1301,8 @@ data class HeatMapDto(
     val conditioningCharts: ConditioningChartsDto? = null,
     /** Sore spots (server 0.675+), until marked better. */
     val sore: List<SoreSpotDto> = emptyList(),
+    /** Days rested on purpose (server 0.753+): the moon on Workout days. */
+    val restDays: List<String> = emptyList(),
 )
 
 /** An area marked sore (server 0.675+): NECK, SHOULDER, ELBOW, WRIST,

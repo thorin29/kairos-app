@@ -1,4 +1,10 @@
 # Changelog
+## 0.547.0
+
+- Rest days get a moon on Workout days (a rest on a workout day) and in This week (a day that ended as a rest day). A missed day stays blank.
+- Setup's Other days: Core, Arms, Isometric, Mobility, Stretching and Strength open their own window to choose the workouts, routine or movements.
+- Needs server 0.753.
+
 ## 0.546.0
 
 - Plateau card under the plan card: two or more main muscle groups with no new best in 4 weeks. Try a program (preview), Light week, Swap the movements, or Keep going.

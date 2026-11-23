@@ -338,6 +338,7 @@ fun WorkoutChart(
             series = universe,
             planDays = planDays,
             extraDays = heat?.days.orEmpty(),
+            restDays = heat?.restDays.orEmpty(),
         )
     }
     val cardioCharts = heat?.cardioCharts
@@ -1249,7 +1250,10 @@ private fun ProgressSummaryCards(
     planDays: List<PlanWeekdayDto>,
     /** Days a group was trained without weights (a core day of planks), v0.443. */
     extraDays: List<com.kairos.app.data.remote.dto.HeatDayDto> = emptyList(),
+    /** Days rested on purpose (v0.547): the moon. A planned rest day has no row. */
+    restDays: List<String> = emptyList(),
 ) {
+    val restSet = remember(restDays) { restDays.toSet() }
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant
 
@@ -1359,7 +1363,9 @@ private fun ProgressSummaryCards(
                         val day = start.plusDays((w * 7 + d).toLong()).toString()
                         val hits = byDate[day].orEmpty()
                         val cs = hits.mapNotNull { colourOf[it] }
-                        Box(
+                        if (hits.isEmpty() && day in restSet) {
+                            RestSquare(modifier = Modifier.size(cell).clip(RoundedCornerShape(4.dp)))
+                        } else Box(
                             Modifier
                                 .size(cell)
                                 .clip(RoundedCornerShape(4.dp))

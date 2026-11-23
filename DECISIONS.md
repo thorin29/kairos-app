@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Rest days; Other days windows (v0.547.0, server 0.753.0)
+
+- `RestSquare` (Canvas: pale slate square, a moon cut from two circles), on
+  Workout days for `HeatMapDto.restDays` and in This week for `rest` days.
+- `OtherDaysStep` opens `OtherDayWindow` for an add: `coreWorkouts(kind)`,
+  `warmupRoutines(kind)` or the pool's WEIGHTS movements of a group. Picks go
+  on the kind (`splitOther` / `joinOther`, the web's format); labels and the
+  review read the kind without them.
+
 ## 2026-11 — Plateau card (v0.546.0, server 0.752.0)
 
 - `ProgramsDto.plateau` (`PlateauDto`); `PlateauCard` under the plan card on
