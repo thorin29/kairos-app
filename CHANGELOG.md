@@ -1,4 +1,8 @@
 # Changelog
+## 0.560.0
+
+- "Color", not "colour", in Settings and the workout timer.
+
 ## 0.559.0
 
 - Backpacking trips use this phone's GPS: turned on when you start a trip or say Yes to "Hiking today?". It saves battery (a fix every 30 seconds hiking, less at stops and camp), keeps points with no signal and sends them when it can.

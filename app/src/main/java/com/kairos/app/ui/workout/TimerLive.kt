@@ -209,7 +209,7 @@ internal val TIMER_FONTS = listOf(
  *  distance on the dark timer (v0.440). */
 internal val TIMER_COLORS = listOf(
     "PLAIN" to "Plain",
-    "ACCENT" to "Theme colour",
+    "ACCENT" to "Theme color",
     "GREEN" to "Neon green",
     "BLUE" to "Neon blue",
     "PINK" to "Neon pink",

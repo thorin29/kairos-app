@@ -265,7 +265,7 @@ fun AppearanceScreen(onBack: () -> Unit) {
                                 onPick = { v -> scope.launch { settings.setTimerFont(v) } },
                             )
                             Spacer(Modifier.height(12.dp))
-                            Text("Number colour", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Number color", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(6.dp))
                             com.kairos.app.ui.workout.TimerLookPicker(
                                 options = com.kairos.app.ui.workout.TIMER_COLORS,

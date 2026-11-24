@@ -93,7 +93,7 @@ fun SettingsScreen(
                 SettingRow(
                     icon = KairosIcons.Palette,
                     title = "Appearance",
-                    sub = "Theme, colours, widget, workout timer",
+                    sub = "Theme, colors, widget, workout timer",
                     onOpen = onOpenAppearance,
                 ),
             ),
@@ -210,7 +210,7 @@ private fun ProfileCard(person: PersonDto?, onOpen: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    "Photo, colour, birthday",
+                    "Photo, color, birthday",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
