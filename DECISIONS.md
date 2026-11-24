@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Work and backpacking behind the day (v0.565.0, server 0.788.0)
+
+- `DayColumn` lays out `background` events on their own and draws them first:
+  a 7% wash, diagonal stripes at 16% and a 3 dp edge, all in the event's color
+  (the server's grey when others are grey). Others' events are placed over
+  them as if they weren't there, set in 6 dp where they overlap one.
+- Names (`whoLabel`) under the title on others' events, never on an event
+  that's only yours.
+
 ## 2026-11 — Trip tile, Start a…, home edges (v0.564.0, server 0.787.0)
 
 - `BackpackCard` on a trip day is the trip tile: `TileHeader` (now internal)

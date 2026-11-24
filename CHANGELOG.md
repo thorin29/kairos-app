@@ -1,4 +1,11 @@
 # Changelog
+## 0.565.0
+
+- Work and backpacking events sit behind the day, striped, so other events go on top at full width.
+- Others' events show whose they are; your own don't.
+- A work feed's own title shows in the event's details.
+- Needs server 0.788.
+
 ## 0.564.0
 
 - Start a… (was Go for a…): Backpacking trip opens the calendar's New event on the Backpacking type.

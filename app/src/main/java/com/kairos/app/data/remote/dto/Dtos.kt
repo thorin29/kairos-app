@@ -2698,6 +2698,10 @@ data class CalEventDto(
     val external: Boolean = false,
     val schoolType: String? = null,
     val schoolClassName: String? = null,
+    /** Work or backpacking (server 0.788+): drawn behind the day. */
+    val background: Boolean = false,
+    /** A work feed's own title when `title` is the feed's name (server 0.788+). */
+    val feedTitle: String? = null,
 )
 
 @Serializable

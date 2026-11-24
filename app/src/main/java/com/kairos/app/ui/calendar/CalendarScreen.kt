@@ -1804,6 +1804,10 @@ private fun EventDetailScreen(
                     Icon(KairosIcons.Calendar, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(event.calendarName?.takeIf { it.isNotBlank() } ?: event.whoLabel.ifBlank { "Calendar" }, style = MaterialTheme.typography.bodyLarge)
                 }
+                // A work feed's own title, when the block shows the feed's name (v0.565).
+                event.feedTitle?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
 
                 ui.deleteError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

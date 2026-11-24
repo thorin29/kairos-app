@@ -236,7 +236,17 @@ private fun DayColumn(
     modifier: Modifier,
     compact: Boolean = false,
 ) {
-    val placed = remember(events) { placeEvents(events) }
+    // Work and backpacking sit behind the day (v0.565): striped in the event's
+    // color (grey when others are grey), with a solid left edge; the rest lay
+    // out on top at full width as if they weren't there.
+    val behind = remember(events) { placeEvents(events.filter { it.background }) }
+    val placed = remember(events) { placeEvents(events.filterNot { it.background }) }
+    // Names on others' events, never your own (v0.565).
+    val meId = com.kairos.app.ui.common.rememberContainer().let { c ->
+        remember { (c.sessionRepository.state.value as? com.kairos.app.data.session.SessionState.Ready)?.person?.id }
+    }
+    fun whoFor(e: CalEventDto): String? =
+        if (e.whoLabel.isBlank() || (e.ownerId == meId && e.memberIds.all { id -> id == meId })) null else e.whoLabel
     val nowMin = if (isToday) deviceNowMinutes() else -1
     val nowC = remember(nowColor) { parseGridColor(nowColor) }
     val todayTint = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent
@@ -254,22 +264,68 @@ private fun DayColumn(
             },
     ) {
         val colW = maxWidth
+        behind.forEach { p ->
+            val e = p.e
+            val c = parseGridColor(e.color)
+            val top = HOUR_H * (e.startMin / 60f)
+            val h = (HOUR_H * ((e.endMin - e.startMin) / 60f)).coerceAtLeast(22.dp)
+            val w = colW / p.cols
+            Box(
+                Modifier
+                    .offset(x = w * p.col + 1.dp, y = top)
+                    .width(w - 2.dp)
+                    .height(h)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(c.copy(alpha = 0.07f))
+                    .drawBehind {
+                        // Diagonal stripes, then the solid edge.
+                        val step = 9.dp.toPx()
+                        val stroke = 3.dp.toPx()
+                        var x0 = -size.height
+                        while (x0 < size.width) {
+                            drawLine(c.copy(alpha = 0.16f), Offset(x0, size.height), Offset(x0 + size.height, 0f), strokeWidth = stroke)
+                            x0 += step
+                        }
+                        drawRect(c, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height))
+                    }
+                    .clickable { onEventClick(e) }
+                    .padding(start = 6.dp, end = 3.dp, top = 2.dp, bottom = 2.dp),
+            ) {
+                Column {
+                    Text(
+                        e.title,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = if (compact) 10.sp else 11.sp, lineHeight = 12.sp),
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        color = c,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val who = whoFor(e)
+                    if (!compact && who != null && h > 34.dp) {
+                        Text(who, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp), color = c, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
         placed.forEach { p ->
             val e = p.e
             val top = HOUR_H * (e.startMin / 60f)
             val h = (HOUR_H * ((e.endMin - e.startMin) / 60f)).coerceAtLeast(22.dp)
             val w = colW / p.cols
-            val x = w * p.col
+            // Over a shift or trip: set in so its edge still shows.
+            val inset = if (p.col == 0 && behind.any { it.e.startMin < e.endMin && it.e.endMin > e.startMin }) 6.dp else 0.dp
+            val x = w * p.col + inset
             Box(
                 Modifier
                     .offset(x = x + 1.dp, y = top)
-                    .width(w - 2.dp)
+                    .width(w - inset - 2.dp)
                     .height(h)
                     .clip(RoundedCornerShape(4.dp))
                     .background(parseGridColor(e.color).copy(alpha = 0.9f))
                     .clickable { onEventClick(e) }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
+              Column {
                 Text(
                     e.title,
                     style = if (compact) {
@@ -287,6 +343,17 @@ private fun DayColumn(
                     maxLines = if (compact) 1 else if (h > 34.dp) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val who = whoFor(e)
+                if (!compact && who != null && h > 46.dp) {
+                    Text(
+                        who,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+              }
             }
         }
         if (nowMin >= 0) {
