@@ -233,7 +233,8 @@ private fun DashboardContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item(key = "header") { HeaderCard(person.name, d.percent) }
+            // The greeting with the day's progress and a chip per area (v0.566).
+            item(key = "header") { GreetingCard(name = person.name, dateISO = d.date, bars = d.categories) }
 
             if (staleDay != null) {
                 item(key = "stale-day") { StaleDayNotice(staleDay) }
@@ -245,24 +246,6 @@ private fun DashboardContent(
                 }
             }
 
-            // Shown for a goal (carried, chosen or earned), or while none is chosen
-            // when the server says there's something to nudge: a vote I haven't
-            // cast, or a parent's pick. Once I've voted, no card.
-            coop
-                ?.takeIf { c ->
-                    c.carried != null ||
-                        c.proposals.any { it.status == "SELECTED" || it.status == "GRANTED" } ||
-                        c.homeNudge != null
-                }
-                ?.let { c ->
-                    item(key = "family-goal") {
-                        FamilyGoalCard(c, coopBusy, onCheckOffGoal, onOpenCoop)
-                    }
-                }
-
-            if (d.categories.isNotEmpty()) {
-                item(key = "bars") { CategoryBars(d.categories) }
-            }
 
             if (d.sportPrompts.isNotEmpty() || ui.sportFeel.isNotEmpty()) {
                 item(key = "sport-prompts") {
@@ -310,74 +293,94 @@ private fun DashboardContent(
                 // School, Workouts, then anything else (in its arrival order).
                 val homeOrder =
                     listOf("BIBLE", "READING", "CHORE", "SCHOOL", "EXERCISE", "WORK", "APPOINTMENT", "OTHER")
+                // The areas as tiles (v0.566), two across, in the same order.
+                val tiles = mutableListOf<@Composable (Modifier) -> Unit>()
                 catOrder
                     .sortedBy { c ->
                         homeOrder.indexOf(c).let { if (it < 0) Int.MAX_VALUE else it }
                     }
                     .forEach { cat ->
-                    // School work and Chores are interactive, so they open a full
-                    // screen (like add-event / create-task) rather than render here.
-                    if (cat == "READING") {
-                        item(key = "reading-card") { ReadingHomeSection(d.reading, onOpenReading) }
-                        return@forEach
-                    }
-                    if (cat == "CHORE") {
-                        item(key = "chores-card") {
-                            WorkSummaryCard(
-                                title = "Chores",
-                                category = "CHORE",
-                                overdue = d.overdue.filter { it.category == "CHORE" },
-                                today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
-                                getAheadCount = d.getAhead.size,
-                                upForGrabs = d.upForGrabs,
-                                badges = d.choreBadges,
-                                onOpen = onOpenChores,
-                            )
-                        }
-                        return@forEach
-                    }
-                    if (cat == "SCHOOL") {
-                        item(key = "school-card") {
-                            WorkSummaryCard(
-                                title = "School",
-                                category = "SCHOOL",
-                                overdue = d.overdue.filter { it.category == "SCHOOL" },
-                                today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList(),
-                                getAheadCount = 0,
-                                onOpen = onOpenSchoolWork,
-                            )
-                        }
-                        return@forEach
-                    }
-                    if (cat == "EXERCISE") {
-                        item(key = "workouts-card") {
-                            WorkoutSummaryCard(
-                                today = d.groups.firstOrNull { it.category == "EXERCISE" }?.items ?: emptyList(),
-                                overdueCount = d.workoutOverdue,
-                                rest = d.workoutRest,
-                                extraLogged = d.workoutExtraLogged,
-                                remaining = d.workoutRemaining.orEmpty(),
-                                blocks = d.workoutBlocks,
-                                onOpen = { onLogWorkout(d.date) },
-                            )
-                        }
-                        return@forEach
-                    }
-                    val group = d.groups.firstOrNull { it.category == cat }
-                    val overdueItems = d.overdue.filter { it.category == cat }.sortedBy { it.dueDate }
-                    val todayItems = group?.items ?: emptyList()
-                    val label = group?.label ?: labelForCategory(cat)
-                    item(key = "cat-$cat") {
-                        SectionBlock(label, cat) {
-                            overdueItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm, onLogWorkout) }
-                            todayItems.forEach { task -> TaskRow(task, ui.busyIds.contains(task.id), vm, onLogWorkout) }
-                            if (cat == "BIBLE" && d.personalReading != null) {
-                                PersonalReadingRow(d.personalReading, ui.busyIds.contains("personal-reading"), vm)
+                        when (cat) {
+                            "READING" -> tiles.add { m -> ReadingHomeSection(d.reading, onOpenReading, modifier = m) }
+                            "CHORE" -> tiles.add { m ->
+                                WorkSummaryCard(
+                                    title = "Chores",
+                                    category = "CHORE",
+                                    overdue = d.overdue.filter { it.category == "CHORE" },
+                                    today = d.groups.firstOrNull { it.category == "CHORE" }?.items ?: emptyList(),
+                                    getAheadCount = d.getAhead.size,
+                                    upForGrabs = d.upForGrabs,
+                                    badges = d.choreBadges,
+                                    onOpen = onOpenChores,
+                                    modifier = m,
+                                )
+                            }
+                            "SCHOOL" -> tiles.add { m ->
+                                WorkSummaryCard(
+                                    title = "School",
+                                    category = "SCHOOL",
+                                    overdue = d.overdue.filter { it.category == "SCHOOL" },
+                                    today = d.groups.firstOrNull { it.category == "SCHOOL" }?.items ?: emptyList(),
+                                    getAheadCount = 0,
+                                    onOpen = onOpenSchoolWork,
+                                    modifier = m,
+                                )
+                            }
+                            "EXERCISE" -> tiles.add { m ->
+                                WorkoutSummaryCard(
+                                    today = d.groups.firstOrNull { it.category == "EXERCISE" }?.items ?: emptyList(),
+                                    overdueCount = d.workoutOverdue,
+                                    rest = d.workoutRest,
+                                    extraLogged = d.workoutExtraLogged,
+                                    remaining = d.workoutRemaining.orEmpty(),
+                                    blocks = d.workoutBlocks,
+                                    onOpen = { onLogWorkout(d.date) },
+                                    modifier = m,
+                                )
+                            }
+                            else -> {
+                                val group = d.groups.firstOrNull { it.category == cat }
+                                val label = when (cat) {
+                                    "BIBLE" -> "Bible"
+                                    "WORK" -> "Tasks"
+                                    else -> group?.label ?: labelForCategory(cat)
+                                }
+                                tiles.add { m ->
+                                    TaskTile(
+                                        category = cat,
+                                        label = label,
+                                        overdue = d.overdue.filter { it.category == cat }.sortedBy { it.dueDate },
+                                        today = group?.items ?: emptyList(),
+                                        personal = if (cat == "BIBLE") d.personalReading else null,
+                                        busyIds = ui.busyIds,
+                                        vm = vm,
+                                        onLogWorkout = onLogWorkout,
+                                        modifier = m,
+                                    )
+                                }
                             }
                         }
                     }
+                if (tiles.isNotEmpty()) {
+                    item(key = "tiles") { TileGrid(tiles) }
                 }
             }
+
+            // Shown for a goal (carried, chosen or earned), or while none is chosen
+            // when the server says there's something to nudge: a vote I haven't
+            // cast, or a parent's pick. Once I've voted, no card.
+            coop
+                ?.takeIf { c ->
+                    c.carried != null ||
+                        c.proposals.any { it.status == "SELECTED" || it.status == "GRANTED" } ||
+                        c.homeNudge != null
+                }
+                ?.let { c ->
+                    item(key = "family-goal") {
+                        FamilyGoalCard(c, coopBusy, onCheckOffGoal, onOpenCoop)
+                    }
+                }
+
 
             if (invite) {
                 item(key = "program-invite") {
@@ -413,7 +416,7 @@ private fun DashboardContent(
             }
 
             item(key = "schedule") {
-                SectionBlock("Today's schedule") {
+                SectionBlock("Today's schedule", category = "APPOINTMENT", edge = false) {
                     if (d.schedule.isEmpty()) {
                         Text(
                             "Nothing scheduled today.",
@@ -636,6 +639,7 @@ private fun WorkSummaryCard(
     upForGrabs: List<UpForGrabsDto> = emptyList(),
     badges: List<ChoreBadgeDto> = emptyList(),
     onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val pendingOverdue = overdue.filter { it.status != "COMPLETE" }
     val pendingToday = today.filter { it.status != "COMPLETE" }
@@ -659,32 +663,27 @@ private fun WorkSummaryCard(
         else -> null
     }
 
-    Column {
-        SectionHeader(title, category)
-        Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
-            Column(
-                Modifier.fillMaxWidth().sectionEdge(sectionKeyForCategory(category)).heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            if (completeForToday) "Complete for today!" else summary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (completeForToday) FontWeight.SemiBold else FontWeight.Normal,
-                            color = when {
-                                completeForToday -> ChoresGreen
-                                pendingOverdue.isNotEmpty() -> MaterialTheme.colorScheme.error
-                                else -> MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                        ChoreBadgesRow(badges)
-                    }
-                    Text("Open", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+    // A tile (v0.566): green when done, red with a count when overdue.
+    HomeTile(
+        sectionKey = sectionKeyForCategory(category),
+        label = title,
+        state = when {
+            completeForToday -> TileState.DONE
+            pendingOverdue.isNotEmpty() -> TileState.OVERDUE
+            else -> TileState.NORMAL
+        },
+        badge = pendingOverdue.size.takeIf { it > 0 }?.toString(),
+        onClick = onOpen,
+        modifier = modifier,
+    ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        if (completeForToday) "All caught up" else summary,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (completeForToday) ChoresGreen else MaterialTheme.colorScheme.onSurface,
+                    )
+                    ChoreBadgesRow(badges)
                 }
                 if (myTurn.isNotEmpty()) {
                     Row(
@@ -711,8 +710,6 @@ private fun WorkSummaryCard(
                 if (poolText != null) {
                     Text(poolText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
-        }
     }
 }
 
@@ -731,6 +728,7 @@ private fun WorkoutSummaryCard(
     /** Two or more workouts today (v0.540): "1 of 2 workouts"; a skipped one counts. */
     blocks: WorkoutBlocksDto? = null,
     onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // A rest day reads "Rest day!" (v0.460): the plan's Rest, or Rest / skip
     // pressed. A skipped day where something else got done (a game, another
@@ -757,17 +755,20 @@ private fun WorkoutSummaryCard(
             )
         }
     }
-    Column {
-        SectionHeader("Workouts", "EXERCISE")
-        Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
-            Row(
-                // At least the height of a two-line card (Chores), so the
-                // workout card isn't the short one (v0.436).
-                Modifier.fillMaxWidth().sectionEdge("workouts").heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    // A tile (v0.566): green when done, red with a count when overdue.
+    HomeTile(
+        sectionKey = "workouts",
+        label = "Workouts",
+        state = when {
+            completeForToday -> TileState.DONE
+            overdueCount > 0 -> TileState.OVERDUE
+            else -> TileState.NORMAL
+        },
+        badge = overdueCount.takeIf { it > 0 }?.toString(),
+        onClick = onOpen,
+        modifier = modifier,
+    ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (restDay) {
                         Text(
                             "Rest day",
@@ -846,39 +847,19 @@ private fun WorkoutSummaryCard(
                         }
                     }
                 }
-                Text(
-                    "Open",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> Unit) {
-    Column {
-        Row(
-            Modifier.padding(bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            // Reading's side-menu color (v0.566).
-            Icon(KairosIcons.Book, contentDescription = null, tint = sectionFor("reading").color, modifier = Modifier.size(18.dp))
-            Text(
-                "BOOK READING",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
-            Column(
-                Modifier.fillMaxWidth().sectionEdge("reading").heightIn(min = HOME_CARD_MIN).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
-            ) {
+private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    // A tile (v0.566): its books with their bars; behind is the red %.
+    HomeTile(
+        sectionKey = "reading",
+        label = "Reading",
+        state = TileState.NORMAL,
+        onClick = onOpen,
+        modifier = modifier,
+    ) {
                 reading.forEach { r ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -890,7 +871,7 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
                                 modifier = Modifier.weight(1f),
                             )
                             Text(
-                                "${r.pct}%",
+                                if (r.behind) "${kotlin.math.abs(r.pct)}% behind" else "${r.pct}%",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (r.behind) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (r.behind) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -899,8 +880,6 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
                         ReadingBar(r.pct, r.behind)
                     }
                 }
-            }
-        }
     }
 }
 
@@ -1549,14 +1528,19 @@ private fun homeDaysSince(iso: String): Long? =
 /** A titled section: a small uppercase header above a card holding the rows,
  *  matching the web home so sections read as distinct blocks. */
 @Composable
-private fun SectionBlock(header: String, category: String? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun SectionBlock(
+    header: String,
+    category: String? = null,
+    edge: Boolean = true,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
     Column {
         SectionHeader(header, category)
         Card(Modifier.fillMaxWidth()) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .then(if (category != null) Modifier.sectionEdge(sectionKeyForCategory(category)) else Modifier)
+                    .then(if (category != null && edge) Modifier.sectionEdge(sectionKeyForCategory(category)) else Modifier)
                     .heightIn(min = HOME_CARD_MIN)
                     .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.Center,
@@ -1566,69 +1550,200 @@ private fun SectionBlock(header: String, category: String? = null, content: @Com
     }
 }
 
+/** Maps a task category to the matching side-menu section (icon + brand color). */
+// --- The home page's tiles (v0.566) ------------------------------------------
+
+private enum class TileState { NORMAL, DONE, OVERDUE }
+
+private val TileGreen = Color(0xFF16A34A)
+private val TileRed = Color(0xFFDC2626)
+
+/**
+ * One area of the day as a tile: its icon in the section's color, its name,
+ * then what's left. Light green with a check when the day's part is done;
+ * light red with a count when something's overdue.
+ */
 @Composable
-private fun HeaderCard(name: String, percent: Int?) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp)) {
-            Text("Hi, $name", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.size(8.dp))
-            if (percent == null) {
-                Text(
-                    "Nothing scheduled yet today.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun HomeTile(
+    sectionKey: String,
+    label: String,
+    state: TileState,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    badge: String? = null,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    val section = sectionFor(sectionKey)
+    val shape = RoundedCornerShape(18.dp)
+    val (tint, edge) = when (state) {
+        TileState.DONE -> TileGreen.copy(alpha = 0.10f) to TileGreen.copy(alpha = 0.45f)
+        TileState.OVERDUE -> TileRed.copy(alpha = 0.06f) to TileRed.copy(alpha = 0.40f)
+        TileState.NORMAL -> Color.Transparent to MaterialTheme.colorScheme.outlineVariant
+    }
+    Column(
+        modifier
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .background(tint)
+            .border(1.dp, edge, shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(section.color.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(section.icon, contentDescription = null, tint = section.color, modifier = Modifier.size(16.dp))
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            when {
+                state == TileState.DONE -> Box(
+                    Modifier.size(22.dp).clip(CircleShape).background(TileGreen),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(KairosIcons.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(14.dp)) }
+                state == TileState.OVERDUE && badge != null -> Text(
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(TileRed).padding(horizontal = 7.dp, vertical = 1.dp),
                 )
+            }
+        }
+        content()
+    }
+}
+
+/** Tiles two across, the same width each; an odd one at the end spans the row. */
+@Composable
+private fun TileGrid(tiles: List<@Composable (Modifier) -> Unit>) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        tiles.chunked(2).forEach { pair ->
+            if (pair.size == 2) {
+                Row(
+                    Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    pair[0](Modifier.weight(1f).fillMaxHeight())
+                    pair[1](Modifier.weight(1f).fillMaxHeight())
+                }
             } else {
-                Text(
-                    "$percent% done today",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.size(8.dp))
-                LinearProgressIndicator(
-                    progress = { percent / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
+                pair[0](Modifier.fillMaxWidth())
             }
         }
     }
 }
 
+/**
+ * A list area (Bible reading, Tasks…) as a tile. One thing to do: tap the
+ * tile and it's done (tap again to undo). Several: each line taps on its own.
+ */
 @Composable
-private fun CategoryBars(bars: List<CategoryBarDto>) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            bars.forEach { bar ->
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            bar.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (bar.overdue > 0) {
-                            Text(
-                                "${bar.overdue} late",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(end = 8.dp),
-                            )
-                        }
-                        Text(
-                            "${bar.complete}/${bar.total}",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+private fun TaskTile(
+    category: String,
+    label: String,
+    overdue: List<TaskDto>,
+    today: List<TaskDto>,
+    personal: com.kairos.app.data.remote.dto.PersonalReadingDto?,
+    busyIds: Set<String>,
+    vm: HomeViewModel,
+    onLogWorkout: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    data class Line(val id: String, val title: String, val sub: String?, val done: Boolean, val late: Boolean, val tap: (() -> Unit)?)
+    val lines = buildList {
+        (overdue + today).forEach { t ->
+            val done = t.status == "COMPLETE"
+            val tap: (() -> Unit)? = when {
+                busyIds.contains(t.id) -> null
+                t.isWorkout -> ({ onLogWorkout(t.dueDate) })
+                t.completable -> ({ vm.toggle(t.id, done) })
+                else -> null
+            }
+            add(Line(id = t.id, title = t.title, sub = buildSecondary(t), done = done, late = t.isOverdue && !done, tap = tap))
+        }
+        personal?.let { pr ->
+            add(
+                Line(
+                    id = "personal-reading",
+                    title = "Personal bible reading",
+                    sub = pr.passage,
+                    done = pr.read,
+                    late = false,
+                    tap = if (busyIds.contains("personal-reading")) null else ({ vm.togglePersonalReading(pr.passage, pr.read) }),
+                ),
+            )
+        }
+    }
+    val late = lines.count { it.late }
+    val allDone = lines.isNotEmpty() && lines.all { it.done }
+    val single = lines.singleOrNull()
+    HomeTile(
+        sectionKey = sectionKeyForCategory(category),
+        label = label,
+        state = when {
+            allDone -> TileState.DONE
+            late > 0 -> TileState.OVERDUE
+            else -> TileState.NORMAL
+        },
+        badge = late.takeIf { it > 0 }?.toString(),
+        onClick = single?.tap,
+        modifier = modifier,
+    ) {
+        if (single != null) {
+            Text(
+                single.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (single.done) ChoresGreen else MaterialTheme.colorScheme.onSurface,
+            )
+            single.sub?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (single.late) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            val color = sectionFor(sectionKeyForCategory(category)).color
+            lines.forEach { l ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .then(if (l.tap != null) Modifier.clickable(onClick = l.tap) else Modifier)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (l.done) {
+                        Icon(KairosIcons.Check, contentDescription = "Done", tint = TileGreen, modifier = Modifier.size(18.dp))
+                    } else {
+                        Box(Modifier.size(18.dp).border(2.dp, if (l.late) TileRed else color, RoundedCornerShape(5.dp)))
                     }
-                    Spacer(Modifier.size(6.dp))
-                    LinearProgressIndicator(
-                        progress = { if (bar.total > 0) bar.complete / bar.total.toFloat() else 0f },
-                        modifier = Modifier.fillMaxWidth(),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    Text(
+                        l.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textDecoration = if (l.done) TextDecoration.LineThrough else null,
+                        color = when {
+                            l.done -> MaterialTheme.colorScheme.onSurfaceVariant
+                            l.late -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -1636,7 +1751,86 @@ private fun CategoryBars(bars: List<CategoryBarDto>) {
     }
 }
 
-/** Maps a task category to the matching side-menu section (icon + brand color). */
+/** "Morning" 4 AM – noon, "Afternoon" noon – 5 PM, "Evening" 5 PM – 4 AM (v0.566). */
+private fun partOfDay(hour: Int): String = when (hour) {
+    in 4..11 -> "Morning"
+    in 12..16 -> "Afternoon"
+    else -> "Evening"
+}
+
+/**
+ * The top card (v0.566): the date, a greeting, the day's progress as a bar
+ * with "N of M done", and a chip per area — green with a check when done,
+ * red when something's overdue.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun GreetingCard(name: String, dateISO: String, bars: List<CategoryBarDto>) {
+    val hour = remember { java.time.LocalTime.now().hour }
+    val date = remember(dateISO) {
+        runCatching {
+            java.time.LocalDate.parse(dateISO).format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d", java.util.Locale.US))
+        }.getOrDefault("")
+    }
+    val total = bars.sumOf { it.total }
+    val done = bars.sumOf { it.complete }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column {
+                if (date.isNotBlank()) {
+                    Text(date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text("${partOfDay(hour)}, $name", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            if (total == 0) {
+                Text("Nothing scheduled yet today.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LinearProgressIndicator(
+                        progress = { done / total.toFloat() },
+                        modifier = Modifier.weight(1f),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Text("$done of $total done", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    bars.filter { it.total > 0 || it.overdue > 0 }.forEach { b -> AreaChip(b) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AreaChip(b: CategoryBarDto) {
+    val section = sectionFor(sectionKeyForCategory(b.category))
+    val short = when (b.category) {
+        "BIBLE" -> "Bible"
+        "EXERCISE" -> "Workout"
+        "CHORE" -> "Chores"
+        "SCHOOL" -> "School"
+        "WORK" -> "Tasks"
+        else -> b.label
+    }
+    val complete = b.total > 0 && b.complete >= b.total && b.overdue == 0
+    val (color, text) = when {
+        b.overdue > 0 -> TileRed to "$short \u00b7 ${b.overdue} overdue"
+        complete -> TileGreen to short
+        else -> section.color to "$short ${b.complete}/${b.total}"
+    }
+    Row(
+        Modifier.clip(RoundedCornerShape(999.dp)).background(color.copy(alpha = 0.10f)).padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(if (complete) KairosIcons.Check else section.icon, contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
+        Text(text, style = MaterialTheme.typography.labelSmall, color = color)
+    }
+}
+
 /** A home card's left edge in its section's side-menu color (v0.563).
  *  Today's schedule has none: each event keeps its calendar's color. */
 private fun Modifier.sectionEdge(key: String): Modifier {
@@ -1685,7 +1879,8 @@ private fun SectionHeader(label: String, category: String? = null) {
         Text(
             label,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -1989,7 +2184,18 @@ private fun FamilyGoalCard(
         Modifier.fillMaxWidth().clickable { onOpen() },
         border = androidx.compose.foundation.BorderStroke(1.dp, sectionFor("summary").color.copy(alpha = 0.5f)),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // A soft gold wash from the left (v0.566), like a banner.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        listOf(sectionFor("summary").color.copy(alpha = 0.14f), Color.Transparent),
+                    ),
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     if (done) "Earned" else "Family goal",

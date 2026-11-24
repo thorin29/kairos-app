@@ -1,4 +1,10 @@
 # Changelog
+## 0.567.0
+
+- New home page: a greeting with the day's progress and a chip per area, then the areas as tiles two across (an odd one spans the row), the family goal, and today's schedule.
+- A tile turns light green with a check when its part of the day is done, and light red with a count when something's overdue. Tap the Bible tile to mark it read.
+- Works with server 0.788 or later.
+
 ## 0.566.0
 
 - Grey work and trips on the calendar have dark grey words.

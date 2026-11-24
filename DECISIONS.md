@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — The home page as tiles (v0.567.0)
+
+- Mockups "Kairos: Home page, chosen pieces" (layout 2) and "Kairos: Home
+  tiles, states and counts". `GreetingCard` replaces the header and the bars:
+  date, "Morning / Afternoon / Evening, name" (4–11, 12–4, 5 PM–3 AM), a bar
+  with "N of M done" from the categories, and an `AreaChip` per area.
+- Each area is a `HomeTile` in `TileGrid`: two across at equal width (a row
+  is `IntrinsicSize.Min` high so both match), an odd last one full width.
+  Chores, School, Workouts and Reading keep their own logic inside a tile;
+  list areas (Bible, Tasks…) are a `TaskTile`: one item and the tile taps to
+  toggle it, several and each line taps.
+- States: DONE (green 10% wash, check), OVERDUE (red 6% wash, red count);
+  reading behind is "N% behind" in red. Prompts sit under the greeting; the
+  family goal (now with a gold wash) follows the tiles; the schedule keeps no
+  colored edge.
+
 ## 2026-11 — Grey stripes' words; Summary gold (v0.566.0, server 0.789.0)
 
 - A background block whose color is nearly grey (`isGreyish`: channels
