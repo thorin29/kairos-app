@@ -1,4 +1,10 @@
 # Changelog
+## 0.562.0
+
+- Logging a movement returns to its workout, not the day's list.
+- The plan card says Program with its name and week, and its actions are buttons.
+- Needs server 0.784.
+
 ## 0.561.0
 
 - 5/3/1's 7th week: pick Deload or TM test when it starts.

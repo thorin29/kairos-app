@@ -131,7 +131,11 @@ fun WorkoutLogScreen(
     var editSport by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
     // Which of the day's workouts is open (v0.538): null lets the day decide,
     // "list" is Today's workouts, "plan" the planned workout, else a sport.
-    var pick by remember(uiAll.date) { mutableStateOf<String?>(null) }
+    // The workout opened on the day (v0.562): saved, so coming back from a
+    // movement returns to that workout, not the day's list. Kept per date.
+    val pickSaved = rememberSaveable { mutableStateOf<String?>(null) }
+    val pickDate = rememberSaveable { mutableStateOf<String?>(null) }
+    var pick by dayPick(saved = pickSaved, date = pickDate, day = uiAll.date)
     // Two programs today (v0.544): each is its own workout. The open one
     // narrows the day to its own entries.
     val viewProg = programInView(ui = uiAll, pick = pick)
@@ -2357,5 +2361,19 @@ private fun programInView(ui: WorkoutLogUiState, pick: String?): com.kairos.app.
         blocks.isEmpty() || ui.restPlanned || ui.rested -> null
         pick?.startsWith("prog:") == true -> blocks.firstOrNull { "prog:${it.programId}" == pick }
         else -> null
+    }
+}
+
+/** The workout opened on a day (v0.562), kept in saved state: back from a
+ *  movement it's still open; another day starts on its list. */
+private fun dayPick(
+    saved: androidx.compose.runtime.MutableState<String?>,
+    date: androidx.compose.runtime.MutableState<String?>,
+    day: String?,
+): kotlin.properties.ReadWriteProperty<Any?, String?> = object : kotlin.properties.ReadWriteProperty<Any?, String?> {
+    override fun getValue(thisRef: Any?, property: kotlin.reflect.KProperty<*>): String? = saved.value.takeIf { date.value == day }
+    override fun setValue(thisRef: Any?, property: kotlin.reflect.KProperty<*>, value: String?) {
+        saved.value = value
+        date.value = day
     }
 }

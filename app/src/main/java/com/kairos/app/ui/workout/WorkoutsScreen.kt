@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -677,25 +678,14 @@ private fun PlanCard(
     val plan = data.plan
     var ending by remember { mutableStateOf(false) }
     val links: @Composable () -> Unit = {
-        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TextButton(onClick = onEdit) { Text("Edit") }
-            TextButton(onClick = onChange) { Text("Change") }
-            TextButton(onClick = onSaved) { Text("Saved") }
-            TextButton(onClick = { ending = true }) { Text(text = "End", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
+        TileButtons(buttons = listOf("Edit" to onEdit, "Change" to onChange, "Saved" to onSaved, "End" to { ending = true }))
     }
     when {
         a != null -> OutlinedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The program tile (v0.562): a header band says it's the program.
+            TileHeader(kind = "Program", title = a.name, trailing = if (a.cycle > 1) "Cycle ${a.cycle} \u00b7 ${a.label}" else a.label)
+            Column(Modifier.padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.padding(end = 8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(a.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        Text(
-                            if (a.cycle > 1) "Cycle ${a.cycle} \u00b7 ${a.label}" else a.label,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                     if (plan != null && plan.others.isNotEmpty()) {
                         Text(
                             "With " + listWords(plan.others),
@@ -741,14 +731,16 @@ private fun PlanCard(
                     }
                 }
                 plan?.let { Box(Modifier.padding(end = 8.dp)) { WeekStrip(days = it.strip) } }
-                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = onEdit) { Text("Edit") }
-                    TextButton(onClick = onChange) { Text("Change") }
-                    TextButton(onClick = onAdd) { Text("Add program") }
-                    TextButton(onClick = onSaved) { Text("Saved") }
-                    TextButton(onClick = if (data.also.isEmpty()) ({ ending = true }) else onOpen) {
-                        Text(text = "End", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                Box(Modifier.padding(end = 8.dp)) {
+                    TileButtons(
+                        buttons = listOf(
+                            "Edit" to onEdit,
+                            "Change" to onChange,
+                            "Add program" to onAdd,
+                            "Saved" to onSaved,
+                            "End" to (if (data.also.isEmpty()) ({ ending = true }) else onOpen),
+                        ),
+                    )
                 }
             }
             if (ending) {
@@ -772,17 +764,10 @@ private fun PlanCard(
             }
         }
         plan != null && plan.hasPlan && !data.invite -> OutlinedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("My plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    Text(
-                        plan.ends?.let { "Ends " + planEndDay(it) } ?: "No end date",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            TileHeader(kind = "Plan", title = "My plan", trailing = plan.ends?.let { "Ends " + planEndDay(it) } ?: "No end date")
+            Column(Modifier.padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.padding(end = 8.dp)) { WeekStrip(days = plan.strip) }
-                links()
+                Box(Modifier.padding(end = 8.dp)) { links() }
             }
             if (ending) {
                 AnimatedDialog(
@@ -964,6 +949,52 @@ private fun PlateauRow(title: String, sub: String, action: String?, onClick: () 
             Text(action, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
         } else {
             Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** The plan tile's header band (v0.562): PROGRAM or PLAN, the name, and its
+ *  week (or end date) on the right. */
+@Composable
+private fun TileHeader(kind: String, title: String, trailing: String) {
+    val on = MaterialTheme.colorScheme.onPrimary
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            kind.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.5.sp,
+            color = on.copy(alpha = 0.85f),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = on,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text(trailing, style = MaterialTheme.typography.bodySmall, color = on.copy(alpha = 0.9f), maxLines = 1)
+    }
+}
+
+/** The plan tile's actions (v0.562): white outlined buttons, two to a row. */
+@Composable
+private fun TileButtons(buttons: List<Pair<String, () -> Unit>>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        buttons.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (label, click) -> ProgramPill(label = label, modifier = Modifier.weight(1f), onClick = click) }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
         }
     }
 }

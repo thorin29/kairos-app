@@ -1,6 +1,15 @@
 # Decisions
 
 
+
+## 2026-11 — Back to the workout; program tile (v0.562.0, server 0.784.0)
+
+- The day's opened workout (`pick`) is saved state (`dayPick` delegate over
+  two `rememberSaveable` values, kept per date). It was `remember`, lost when
+  a movement's screen replaced the day page, so Log came back to the list.
+- Program tile, option B: `TileHeader` (accent band: PROGRAM or PLAN, name,
+  week) and `TileButtons` (outlined, two to a row) on WorkoutsScreen.
+
 ## 2026-11 — 5/3/1's 7th week; the lift page line (v0.561.0, server 0.783.0)
 
 - `ProgramInfoDto.seventhAsk` → `WorkoutLogUiState.programAsk`: a card on the
