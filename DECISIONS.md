@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Start pages; backpacking trips (v0.558.0, server 0.778.0)
+
+- Every activity opens its Start page (no starting on the tap); the
+  long-press shortcuts open the same page.
+- Backpacking uses no phone GPS (owner's call): "Backpacking trip" in Go for
+  a… posts `workouts/backpacking { start, until }` (the server makes the
+  calendar event); `BackpackCard` on Workouts shows the day, miles and
+  "Hiking today?" (`{ hiking }`). The server logs each day from Family map
+  locations.
+
+
 ## 2026-11 — Go for a walk, run, ruck or hike (v0.557.0, server 0.777.0)
 
 - Tracked with the phone's own GPS (`LocationManager` GPS provider, 2 s) in a

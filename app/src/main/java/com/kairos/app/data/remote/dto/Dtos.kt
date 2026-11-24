@@ -683,6 +683,23 @@ data class TrackSaveRequest(
     val path: List<List<Double>> = emptyList(),
 )
 
+/** Today on a backpacking trip (server 0.778+): status asked, hiking, skip or null. */
+@Serializable
+data class BackpackTodayDto(
+    val date: String = "",
+    val day: Int = 0,
+    val of: Int = 0,
+    val status: String? = null,
+    val miles: Double = 0.0,
+)
+
+@Serializable
+data class BackpackDto(val today: BackpackTodayDto? = null)
+
+/** POST workouts/backpacking: hiking answers "Hiking today?"; start + until starts a trip. */
+@Serializable
+data class BackpackRequest(val hiking: Boolean? = null, val start: Boolean? = null, val until: String? = null)
+
 /** Saved, or queued offline ("{}": all defaults). */
 @Serializable
 data class TrackSavedDto(val sessionId: String = "", val date: String = "")

@@ -1,4 +1,11 @@
 # Changelog
+## 0.558.0
+
+- Walk, Run, Ruck and Hike each open a Start page first (Ruck asks the pack weight).
+- Go for a… → Backpacking trip: pick the day you're back and Start trip. It goes on the calendar; each day's hiking is logged from Family map as that day's workout.
+- On a trip, Workouts shows the day and miles so far, and asks "Hiking today?".
+- Needs server 0.778.
+
 ## 0.557.0
 
 - Workouts: Go for a walk, run, ruck or hike. Tap the new tile next to Log workout, or Additional on today's workout, or long-press the app icon. The time, distance, pace and route are tracked while you go, with a notification you can Finish from. Pause asks first.

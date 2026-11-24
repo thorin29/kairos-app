@@ -326,6 +326,8 @@ fun WorkoutsScreen(
                     // Nine tiles (v0.557): log, go for a…, routines; browse, HIIT,
                     // calculator; Family WOD, Pause, Recent. Edit plan (v0.540)
                     // and Saved plans (v0.557) are on the plan card.
+                    // On a backpacking trip (v0.558): the day, miles, "Hiking today?".
+                    BackpackCard(refreshKey)
                     var goFor by remember { mutableStateOf(false) }
                     val going by ActivityTrack.session.collectAsState()
                     Row(Modifier.tourTarget("workouts.plan"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -231,6 +231,13 @@ interface ApiService {
     @POST("workouts/track")
     suspend fun saveTrack(@Body body: com.kairos.app.data.remote.dto.TrackSaveRequest): Response<com.kairos.app.data.remote.dto.TrackSavedDto>
 
+    /** Today on a backpacking trip (server 0.778+). */
+    @GET("workouts/backpacking")
+    suspend fun backpacking(): Response<com.kairos.app.data.remote.dto.BackpackDto>
+
+    @POST("workouts/backpacking")
+    suspend fun answerBackpacking(@Body body: com.kairos.app.data.remote.dto.BackpackRequest): Response<com.kairos.app.data.remote.dto.BackpackDto>
+
     @POST("workouts/cardio/remove")
     suspend fun removeCardio(@Body body: com.kairos.app.data.remote.dto.CardioRemoveRequest): Response<com.kairos.app.data.remote.dto.CardioDayDto>
 
