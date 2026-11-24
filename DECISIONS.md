@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Workouts tabs and groups (v0.563.0, server 0.786.0)
+
+- Progress | Train tabs (`ChooserTabs`), Progress first; the tab is
+  `rememberSaveable` and each tab has its own scroll state. The tour's stops
+  switch to the tab they point at.
+- The page's loaded data (progress, week, training, programs) lives in
+  `WorkoutsHomeState`, a ViewModel on the nav entry. With plain `remember` the
+  page came back empty, the restored scroll was clamped to 0 and it opened at
+  the top. The spinner shows only before anything has loaded.
+- The nine buttons are three `ActionGroup`s (tinted `TileHeader`, a row of
+  `ActionCard`s with the accent outline). The plan card's actions are one row
+  of `TileButton`s, the icon over the label; `KairosIcons.Stop` is End's.
+- The week strip's labels match Workout days' (9 sp, two lines, centred).
+
 
 
 ## 2026-11 — Back to the workout; program tile (v0.562.0, server 0.784.0)

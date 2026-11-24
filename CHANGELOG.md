@@ -1,4 +1,12 @@
 # Changelog
+## 0.563.0
+
+- Workouts has two tabs: Progress and Train. Train has the plan card and the buttons in three groups.
+- The plan card's buttons are one row with icons; its week starts on Sunday and long day names fit.
+- Back from a Workouts button returns to where you were.
+- Saved plans sit on white cards.
+- Needs server 0.786.
+
 ## 0.562.0
 
 - Logging a movement returns to its workout, not the day's list.

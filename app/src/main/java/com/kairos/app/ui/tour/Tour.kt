@@ -151,26 +151,26 @@ val TOUR_STOPS: List<TourStop> = listOf(
         id = "programs", where = "section:workouts", target = "workouts.programs", title = "Your plan",
         lines = l(
             "Your program or your own plan, with the week at a glance.",
-            "Edit changes it, Change starts a new plan, End stops it.",
+            "Edit changes it, Change starts a new plan, Add runs a second program, Saved keeps plans to use again, End stops it.",
         ),
     ),
     TourStop(
-        id = "plan", where = "section:workouts", target = "workouts.plan", title = "Log workout",
+        id = "plan", where = "section:workouts", target = "workouts.plan", title = "Train",
         lines = l(
             "Log workout records today’s sets and warm-ups.",
-            "Routines holds your warm-ups and stretches.",
-            "Browse workouts to try one.",
+            "Go for a walk, run or ruck with GPS.",
+            "Family Workout of the Day (WOD) is a workout for everyone.",
         ),
     ),
     TourStop(
         id = "tools", where = "section:workouts", target = "workouts.tools", title = "More tools",
         lines = l(
+            "Browse workouts to try one.",
+            "Routines holds your warm-ups and stretches.",
             "Create your own HIIT or CrossFit workout.",
             "Calculator displays bars and plates for lifts.",
-            "Family Workout of the Day (WOD) is a workout for everyone.",
-            "Pause stops your plan for a period of time.",
             "Recent shows what you’ve logged.",
-            "Saved plans keeps plans to use again, share or export.",
+            "Pause stops your plan for a period of time.",
         ),
     ),
     TourStop(

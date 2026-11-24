@@ -109,10 +109,13 @@ fun WorkoutsScreen(
     val ui by vm.ui.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var progress by remember { mutableStateOf<WorkoutProgressDto?>(null) }
-    var week by remember { mutableStateOf<List<WeeklyActivityDto>>(emptyList()) }
-    var training by remember { mutableStateOf<com.kairos.app.data.remote.dto.WeeklyTrainingDto?>(null) }
-    var programs by remember { mutableStateOf<com.kairos.app.data.remote.dto.ProgramsDto?>(null) }
+    // Held past a trip to another page (v0.563): with plain remember the page
+    // came back empty, so its scroll position was lost and it opened at the top.
+    val home: WorkoutsHomeState = viewModel(factory = viewModelFactory { initializer { WorkoutsHomeState() } })
+    var progress by home.progress
+    var week by home.week
+    var training by home.training
+    var programs by home.programs
 
     // Fetch Progress + This Week and write both back to the cache. Shared by the
     // initial load and the manual refresh so every successful fetch updates BOTH
@@ -175,18 +178,38 @@ fun WorkoutsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         Box(Modifier.padding(inner).fillMaxSize()) {
-            if (ui.loading) {
+            // The spinner only before anything has loaded (v0.563): coming back
+            // from a page keeps what's on screen while it refreshes.
+            if (ui.loading && programs == null && progress == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
+              // Two tabs (v0.563): Progress (the charts) and Train (the program
+              // and the actions). Each keeps its own scroll; the tab survives a trip away.
+              var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("progress") }
+              // The tour's stops on Train open that tab (v0.563).
+              val stop = com.kairos.app.ui.tour.Tour.current?.target
+              LaunchedEffect(stop) {
+                  when (stop) {
+                      "workouts.programs", "workouts.plan", "workouts.tools" -> tab = "train"
+                      "workouts.progress", "workouts.heat", "workouts.weekly", "workouts.week" -> tab = "progress"
+                  }
+              }
+              val progressScroll = rememberScrollState()
+              val trainScroll = rememberScrollState()
+              Column(Modifier.fillMaxSize()) {
+                Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
+                    ChooserTabs(selected = tab, onSelect = { tab = it }, tabs = listOf("progress" to "Progress", "train" to "Train"))
+                }
                 Column(
                     Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(if (tab == "progress") progressScroll else trainScroll)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                  if (tab == "progress") {
                     progress?.takeIf { it.series.isNotEmpty() }?.let { p ->
                         OutlinedCard(Modifier.fillMaxWidth().tourTarget("workouts.progress")) {
                             Column(Modifier.padding(14.dp)) {
@@ -235,6 +258,7 @@ fun WorkoutsScreen(
                         }
                     }
 
+                  } else {
                     programs?.let { p ->
                       Box(Modifier.tourTarget("workouts.programs")) {
                         PlanCard(
@@ -324,14 +348,13 @@ fun WorkoutsScreen(
                         }
                     }
 
-                    // Nine tiles (v0.557): log, go for a…, routines; browse, HIIT,
-                    // calculator; Family WOD, Pause, Recent. Edit plan (v0.540)
-                    // and Saved plans (v0.557) are on the plan card.
+                    // Nine buttons in three groups (v0.563), built like the
+                    // program tile: Train, Find & build, Tools.
                     // On a backpacking trip (v0.558): the day, miles, "Hiking today?".
                     BackpackCard(refreshKey)
                     var goFor by remember { mutableStateOf(false) }
                     val going by ActivityTrack.session.collectAsState()
-                    Row(Modifier.tourTarget("workouts.plan"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ActionGroup(kind = "Train", title = "Today", modifier = Modifier.tourTarget("workouts.plan")) {
                         ActionCard(
                             KairosIcons.Dumbbell, "Log workout", Modifier.weight(1f),
                             highlighted = true,
@@ -351,47 +374,45 @@ fun WorkoutsScreen(
                                 else -> "In progress"
                             },
                         ) { if (g != null) onStartTrack("") else goFor = true }
-                        // Rest / skip moved to the day itself (v0.432).
-                        // No subtitle (v0.480): three words wrapped past the card's height.
-                        ActionCard(
-                            KairosIcons.Flame, "Routines", Modifier.weight(1f),
-                        ) { onOpenWarmups() }
-                    }
-                    if (goFor) {
-                        GoForDialog(onDismiss = { goFor = false }, onPick = { kind -> goFor = false; onStartTrack(kind) })
-                    }
-
-                  Column(Modifier.tourTarget("workouts.tools"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ActionCard(
-                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
-                        ) { onOpenBrowse() }
-                        ActionCard(
-                            KairosIcons.Plus, "HIIT / CrossFit", Modifier.weight(1f),
-                            subtitle = "Create / edit",
-                        ) { onOpenCreatePersonal() }
-                        ActionCard(
-                            KairosIcons.Dumbbell, "Calculator", Modifier.weight(1f),
-                        ) { onOpenCalculator() }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Family WOD and Pause say what's on under the label
-                        // (v0.494): the next WOD, a pause running or ahead.
+                        // Family WOD says what's on under the label (v0.494).
                         val fw = familyWodLine(refreshKey)
                         ActionCard(
                             KairosIcons.Users, "Family WOD", Modifier.weight(1f),
                             highlighted = fw?.second == true,
                             subtitle = fw?.first,
                         ) { onOpenFamilyWod() }
+                    }
+                    if (goFor) {
+                        GoForDialog(onDismiss = { goFor = false }, onPick = { kind -> goFor = false; onStartTrack(kind) })
+                    }
+                  Column(Modifier.tourTarget("workouts.tools"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    ActionGroup(kind = "Workouts", title = "Find & build") {
+                        ActionCard(
+                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
+                        ) { onOpenBrowse() }
+                        ActionCard(
+                            KairosIcons.Flame, "Routines", Modifier.weight(1f),
+                        ) { onOpenWarmups() }
+                        ActionCard(
+                            KairosIcons.Plus, "HIIT / CrossFit", Modifier.weight(1f),
+                            subtitle = "Create / edit",
+                        ) { onOpenCreatePersonal() }
+                    }
+                    ActionGroup(kind = "Tools", title = "") {
+                        ActionCard(
+                            KairosIcons.Dumbbell, "Calculator", Modifier.weight(1f),
+                        ) { onOpenCalculator() }
+                        ActionCard(
+                            KairosIcons.Clock, "Recent", Modifier.weight(1f),
+                        ) { onOpenRecent() }
                         ActionCard(
                             KairosIcons.Pause, "Pause", Modifier.weight(1f),
                             subtitle = pauseLine(refreshKey),
                         ) { onOpenPause() }
-                        ActionCard(
-                            KairosIcons.Clock, "Recent", Modifier.weight(1f),
-                        ) { onOpenRecent() }
                     }
                   }
+                  }
+                }
                 }
             }
         }
@@ -415,6 +436,8 @@ private fun ActionCard(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.height(88.dp),
+        // The accent outline every workout button has (v0.563).
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
     ) {
         Column(
             Modifier.fillMaxSize().padding(8.dp),
@@ -678,7 +701,14 @@ private fun PlanCard(
     val plan = data.plan
     var ending by remember { mutableStateOf(false) }
     val links: @Composable () -> Unit = {
-        TileButtons(buttons = listOf("Edit" to onEdit, "Change" to onChange, "Saved" to onSaved, "End" to { ending = true }))
+        TileButtons(
+            buttons = listOf(
+                TileButton(label = "Edit", icon = KairosIcons.Pencil, onClick = onEdit),
+                TileButton(label = "Change", icon = KairosIcons.Swap, onClick = onChange),
+                TileButton(label = "Saved", icon = KairosIcons.Bookmark, onClick = onSaved),
+                TileButton(label = "End", icon = KairosIcons.Stop, onClick = { ending = true }),
+            ),
+        )
     }
     when {
         a != null -> OutlinedCard(Modifier.fillMaxWidth()) {
@@ -734,11 +764,15 @@ private fun PlanCard(
                 Box(Modifier.padding(end = 8.dp)) {
                     TileButtons(
                         buttons = listOf(
-                            "Edit" to onEdit,
-                            "Change" to onChange,
-                            "Add program" to onAdd,
-                            "Saved" to onSaved,
-                            "End" to (if (data.also.isEmpty()) ({ ending = true }) else onOpen),
+                            TileButton(label = "Edit", icon = KairosIcons.Pencil, onClick = onEdit),
+                            TileButton(label = "Change", icon = KairosIcons.Swap, onClick = onChange),
+                            TileButton(label = "Add", icon = KairosIcons.Plus, onClick = onAdd),
+                            TileButton(label = "Saved", icon = KairosIcons.Bookmark, onClick = onSaved),
+                            TileButton(
+                                label = "End",
+                                icon = KairosIcons.Stop,
+                                onClick = if (data.also.isEmpty()) ({ ending = true }) else onOpen,
+                            ),
                         ),
                     )
                 }
@@ -860,11 +894,15 @@ private fun WeekStrip(days: List<com.kairos.app.data.remote.dto.StripDayDto>) {
                             if (d.kind == "none") Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50)) else Modifier,
                         ),
                 )
+                // Sized like Workout days' labels (v0.563): two lines, so
+                // Deadlift and Shoulders fit side by side.
                 Text(
                     d.label,
                     style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    fontSize = 9.sp,
+                    lineHeight = 11.sp,
                 )
             }
         }
@@ -956,12 +994,13 @@ private fun PlateauRow(title: String, sub: String, action: String?, onClick: () 
 /** The plan tile's header band (v0.562): PROGRAM or PLAN, the name, and its
  *  week (or end date) on the right. */
 @Composable
-private fun TileHeader(kind: String, title: String, trailing: String) {
-    val on = MaterialTheme.colorScheme.onPrimary
+private fun TileHeader(kind: String, title: String, trailing: String, solid: Boolean = true) {
+    // A group's band (v0.563) is the accent tint with accent type; the program's is solid.
+    val on = if (solid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
+            .background(if (solid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -986,15 +1025,60 @@ private fun TileHeader(kind: String, title: String, trailing: String) {
     }
 }
 
-/** The plan tile's actions (v0.562): white outlined buttons, two to a row. */
+/** One of the plan tile's buttons (v0.563). */
+private data class TileButton(val label: String, val icon: ImageVector, val onClick: () -> Unit)
+
+/** The plan tile's actions (v0.563, option B): one row of accent-outlined
+ *  buttons, the icon over the label. */
 @Composable
-private fun TileButtons(buttons: List<Pair<String, () -> Unit>>) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        buttons.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (label, click) -> ProgramPill(label = label, modifier = Modifier.weight(1f), onClick = click) }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+private fun TileButtons(buttons: List<TileButton>) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        buttons.forEach { b ->
+            val shape = RoundedCornerShape(14.dp)
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.primary, shape)
+                    .clickable(onClick = b.onClick)
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Icon(b.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                Text(
+                    b.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                )
             }
         }
     }
+}
+
+/** A group of the page's buttons (v0.563): a tinted band with the group's
+ *  name, then its buttons in a row, on a white card like the program tile. */
+@Composable
+private fun ActionGroup(
+    kind: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+) {
+    OutlinedCard(modifier.fillMaxWidth()) {
+        TileHeader(kind = kind, title = title, trailing = "", solid = false)
+        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
+}
+
+/** The page's loaded parts (v0.563), kept while you're on another page so
+ *  coming back lands where you were. */
+private class WorkoutsHomeState : androidx.lifecycle.ViewModel() {
+    val progress = mutableStateOf<WorkoutProgressDto?>(null)
+    val week = mutableStateOf<List<WeeklyActivityDto>>(emptyList())
+    val training = mutableStateOf<com.kairos.app.data.remote.dto.WeeklyTrainingDto?>(null)
+    val programs = mutableStateOf<com.kairos.app.data.remote.dto.ProgramsDto?>(null)
 }

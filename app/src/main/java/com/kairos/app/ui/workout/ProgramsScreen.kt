@@ -1831,12 +1831,27 @@ internal fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (mine) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // On a white card like every other section (v0.563).
+            val boxShape = RoundedCornerShape(16.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(boxShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, boxShape)
+                    .padding(12.dp),
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(60) },
                     placeholder = { Text("Name this plan") },
                     singleLine = true,
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    ),
                     modifier = Modifier.weight(1f),
                 )
                 ProgramPill(
@@ -1863,6 +1878,7 @@ internal fun PlanLibrary(mine: Boolean, onUsed: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(shape)
+                        .background(MaterialTheme.colorScheme.surface)
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
                         .clickable {
                             picked = p
