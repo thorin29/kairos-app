@@ -865,7 +865,8 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(KairosIcons.Book, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(18.dp))
+            // Reading's side-menu color (v0.566).
+            Icon(KairosIcons.Book, contentDescription = null, tint = sectionFor("reading").color, modifier = Modifier.size(18.dp))
             Text(
                 "BOOK READING",
                 style = MaterialTheme.typography.labelMedium,
@@ -1983,7 +1984,11 @@ private fun FamilyGoalCard(
     val meeting = if (carried != null) carried.childrenMeeting else c.childrenMeeting
     val done = carried == null && selected == null && granted != null
 
-    OutlinedCard(Modifier.fillMaxWidth().clickable { onOpen() }) {
+    // Outlined in Summary's gold (v0.566), where the goal's progress lives.
+    OutlinedCard(
+        Modifier.fillMaxWidth().clickable { onOpen() },
+        border = androidx.compose.foundation.BorderStroke(1.dp, sectionFor("summary").color.copy(alpha = 0.5f)),
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

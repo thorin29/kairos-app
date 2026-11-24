@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Grey stripes' words; Summary gold (v0.566.0, server 0.789.0)
+
+- A background block whose color is nearly grey (`isGreyish`: channels
+  within 0.12) gets #2B2F36 words. Summary's color is #CA8A04; the family goal
+  card's outline is it at 50%.
+
 ## 2026-11 — Work and backpacking behind the day (v0.565.0, server 0.788.0)
 
 - `DayColumn` lays out `background` events on their own and draws them first:

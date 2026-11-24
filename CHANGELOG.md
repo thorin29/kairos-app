@@ -1,4 +1,11 @@
 # Changelog
+## 0.566.0
+
+- Grey work and trips on the calendar have dark grey words.
+- Summary is gold; the family goal card has a gold outline.
+- Book reading's icon is Reading's color.
+- Works with server 0.788 or later.
+
 ## 0.565.0
 
 - Work and backpacking events sit behind the day, striped, so other events go on top at full width.

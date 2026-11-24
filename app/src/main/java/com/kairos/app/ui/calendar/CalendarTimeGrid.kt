@@ -267,6 +267,9 @@ private fun DayColumn(
         behind.forEach { p ->
             val e = p.e
             val c = parseGridColor(e.color)
+            // Grey (others shown in grey): the words go a dark grey so they
+            // read on the grey stripes (v0.566).
+            val ink = if (isGreyish(c)) Color(0xFF2B2F36) else c
             val top = HOUR_H * (e.startMin / 60f)
             val h = (HOUR_H * ((e.endMin - e.startMin) / 60f)).coerceAtLeast(22.dp)
             val w = colW / p.cols
@@ -296,13 +299,13 @@ private fun DayColumn(
                         e.title,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = if (compact) 10.sp else 11.sp, lineHeight = 12.sp),
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        color = c,
+                        color = ink,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     val who = whoFor(e)
                     if (!compact && who != null && h > 34.dp) {
-                        Text(who, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp), color = c, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(who, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp), color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -711,6 +714,13 @@ fun ThreeDayGrid(
 }
 
 private fun hourLabel(h: Int): String = TimeFmt.hour(h)
+
+/** Nearly no color: the grey others are shown in (v0.566). */
+private fun isGreyish(c: Color): Boolean {
+    val hi = maxOf(c.red, c.green, c.blue)
+    val lo = minOf(c.red, c.green, c.blue)
+    return hi - lo < 0.12f
+}
 
 private fun parseGridColor(hex: String?): Color {
     val s = hex?.trim()?.removePrefix("#") ?: return Color(0xFF64748B)
