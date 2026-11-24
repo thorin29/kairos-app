@@ -71,7 +71,7 @@ internal fun AdditionalMenu(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (onGoFor != null) {
-                AccentOutlinedButton(onClick = onGoFor, modifier = Modifier.fillMaxWidth()) { Text("Go for a walk, run or ruck") }
+                AccentOutlinedButton(onClick = onGoFor, modifier = Modifier.fillMaxWidth()) { Text("Start a walk, run, ruck or trip") }
             }
             AccentOutlinedButton(onClick = onConditioning, modifier = Modifier.fillMaxWidth()) { Text("Conditioning") }
             if (onFamilyWod != null) {

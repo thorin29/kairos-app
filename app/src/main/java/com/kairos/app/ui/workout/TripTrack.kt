@@ -84,6 +84,21 @@ internal object TripTrack {
         start(context, until)
     }
 
+    /** Camp for the night / back to hiking (the trip tile, v0.563). */
+    fun camp(context: Context) = action(context, TripService.ACTION_CAMP)
+    fun hike(context: Context) = action(context, TripService.ACTION_HIKING)
+    private fun action(context: Context, a: String) {
+        if (_state.value == null) return
+        runCatching { context.startService(Intent(context, TripService::class.java).setAction(a)) }
+    }
+
+    /** Finished on the trip's last day (v0.563): the tile stops offering buttons. */
+    fun finishedToday(context: Context): Boolean = prefs(context).getString("finished", null) == LocalDate.now().toString()
+    fun markFinished(context: Context) {
+        prefs(context).edit().putString("finished", LocalDate.now().toString()).apply()
+        end(context)
+    }
+
     /** End trip: the points still on the phone are sent first. */
     fun end(context: Context) {
         prefs(context).edit().remove("until").apply()
@@ -311,8 +326,8 @@ class TripService : Service() {
         private const val ASK_CHANNEL = "backpacking_ask"
         private const val NOTIFICATION_ID = 4109
         private const val ASK_ID = 4110
-        private const val ACTION_CAMP = "com.kairos.app.trip.CAMP"
-        private const val ACTION_HIKING = "com.kairos.app.trip.HIKING"
+        internal const val ACTION_CAMP = "com.kairos.app.trip.CAMP"
+        internal const val ACTION_HIKING = "com.kairos.app.trip.HIKING"
 
         private fun ensureChannels(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

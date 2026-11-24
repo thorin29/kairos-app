@@ -97,8 +97,12 @@ fun WorkoutsScreen(
     onAddProgram: () -> Unit = {},
     /** The plateau card's Try: that program's setup (v0.546). */
     onTryProgram: (String) -> Unit = {},
-    /** Go for a walk, run, ruck or hike (v0.557): tracked with GPS. */
+    /** Start a walk, run or ruck (v0.557): tracked with GPS; "backpack"
+     *  plans a trip on the calendar (v0.563). */
     onStartTrack: (String) -> Unit = {},
+    /** The trip tile's Map and Trip (v0.563). */
+    onOpenMap: () -> Unit = {},
+    onOpenTripEvent: (eventId: String, dayISO: String) -> Unit = { _, _ -> },
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -259,6 +263,8 @@ fun WorkoutsScreen(
                     }
 
                   } else {
+                    // On a backpacking trip (v0.563): the trip tile, first.
+                    BackpackCard(refreshKey = refreshKey, onOpenMap = onOpenMap, onOpenTrip = onOpenTripEvent)
                     programs?.let { p ->
                       Box(Modifier.tourTarget("workouts.programs")) {
                         PlanCard(
@@ -350,8 +356,6 @@ fun WorkoutsScreen(
 
                     // Nine buttons in three groups (v0.563), built like the
                     // program tile: Train, Find & build, Tools.
-                    // On a backpacking trip (v0.558): the day, miles, "Hiking today?".
-                    BackpackCard(refreshKey)
                     var goFor by remember { mutableStateOf(false) }
                     val going by ActivityTrack.session.collectAsState()
                     ActionGroup(kind = "Train", title = "Today", modifier = Modifier.tourTarget("workouts.plan")) {
@@ -364,23 +368,26 @@ fun WorkoutsScreen(
                         val g = going
                         ActionCard(
                             if (g != null) trackIcon(g.activity) else KairosIcons.Run,
-                            if (g != null) trackLabel(g.activity) else "Go for a\u2026",
+                            if (g != null) trackLabel(g.activity) else "Start a\u2026",
                             Modifier.weight(1f),
                             highlighted = g != null,
                             subtitle = when {
-                                g == null -> "Walk \u00b7 Run \u00b7 Ruck"
+                                g == null -> "Walk \u00b7 Run \u00b7 Ruck \u00b7 Trip"
                                 g.endedAt != null -> "Finished"
                                 g.paused -> "Paused"
                                 else -> "In progress"
                             },
                         ) { if (g != null) onStartTrack("") else goFor = true }
-                        // Family WOD says what's on under the label (v0.494).
+                        // Family WOD only on a day that has one (v0.563); a
+                        // parent makes one from Log workout's Add.
                         val fw = familyWodLine(refreshKey)
-                        ActionCard(
-                            KairosIcons.Users, "Family WOD", Modifier.weight(1f),
-                            highlighted = fw?.second == true,
-                            subtitle = fw?.first,
-                        ) { onOpenFamilyWod() }
+                        if (fw?.second == true) {
+                            ActionCard(
+                                KairosIcons.Users, "Family WOD", Modifier.weight(1f),
+                                highlighted = true,
+                                subtitle = fw.first,
+                            ) { onOpenFamilyWod() }
+                        }
                     }
                     if (goFor) {
                         GoForDialog(onDismiss = { goFor = false }, onPick = { kind -> goFor = false; onStartTrack(kind) })
@@ -994,7 +1001,7 @@ private fun PlateauRow(title: String, sub: String, action: String?, onClick: () 
 /** The plan tile's header band (v0.562): PROGRAM or PLAN, the name, and its
  *  week (or end date) on the right. */
 @Composable
-private fun TileHeader(kind: String, title: String, trailing: String, solid: Boolean = true) {
+internal fun TileHeader(kind: String, title: String, trailing: String, solid: Boolean = true) {
     // A group's band (v0.563) is the accent tint with accent type; the program's is solid.
     val on = if (solid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
     Row(
@@ -1026,12 +1033,12 @@ private fun TileHeader(kind: String, title: String, trailing: String, solid: Boo
 }
 
 /** One of the plan tile's buttons (v0.563). */
-private data class TileButton(val label: String, val icon: ImageVector, val onClick: () -> Unit)
+internal data class TileButton(val label: String, val icon: ImageVector, val onClick: () -> Unit)
 
 /** The plan tile's actions (v0.563, option B): one row of accent-outlined
  *  buttons, the icon over the label. */
 @Composable
-private fun TileButtons(buttons: List<TileButton>) {
+internal fun TileButtons(buttons: List<TileButton>) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         buttons.forEach { b ->
             val shape = RoundedCornerShape(14.dp)

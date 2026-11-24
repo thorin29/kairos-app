@@ -173,6 +173,10 @@ sealed interface CalendarOpen {
     data class ShowEvent(val event: com.kairos.app.data.remote.dto.CalEventDto) : CalendarOpen
     /** New event filled in from elsewhere (a Hockey session), with an event
      *  type to preselect when there is one. */
+    /** One event by id on a day (the trip tile's Trip, v0.563). */
+    data class ShowEventId(val eventId: String, val dayISO: String) : CalendarOpen
+    /** New event on the Backpacking type (Start a… → Backpacking trip, v0.563). */
+    data object NewTrip : CalendarOpen
     data class NewFromDraft(
         val draft: com.kairos.app.ui.calendar.IcsDraft,
         val eventTypeId: String? = null,

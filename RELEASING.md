@@ -32,7 +32,7 @@ is unchanged and is still just for your own testing.
    If you touched `NoteField.kt` or `IcsImport.kt`, run the web repo's
    `scripts/ics-parity/check.sh` against this clone.
 4. **Check the Kotlin you changed.** Run `python3 scripts/check-positional-args.py
-   app/src/main/java | grep -c "positional of"`. The count (237 at 0.501.0 and still 237 at 0.563.0)
+   app/src/main/java | grep -c "positional of"`. The count (237 at 0.501.0 and still 237 at 0.564.0)
    must not rise, so use named arguments. CI's Gradle build is the real
    compile.
 5. **Commit.**

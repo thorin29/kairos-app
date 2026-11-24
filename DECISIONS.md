@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Trip tile, Start a…, home edges (v0.564.0, server 0.787.0)
+
+- `BackpackCard` on a trip day is the trip tile: `TileHeader` (now internal)
+  on a 8% primary tint, `TileButtons`: Track/Pause (TripTrack start/end),
+  Camp/Hike (`TripTrack.camp`/`hike` send the service's actions), Finished on
+  the last day (`markFinished`, `{finish:true}`), Map (Family map), Trip
+  (`CalendarOpen.ShowEventId`, which moves the calendar to the day if needed).
+- Start a… → Backpacking trip: `CalendarOpen.NewTrip`, an all-day draft on the
+  type with `backpacking`. `BackpackStart` ("Back on") removed.
+- Home cards: `Modifier.sectionEdge(key)` draws a 4 dp edge in the section's
+  side-menu color; Today's schedule has none.
+
 ## 2026-11 — Workouts tabs and groups (v0.563.0, server 0.786.0)
 
 - Progress | Train tabs (`ChooserTabs`), Progress first; the tab is

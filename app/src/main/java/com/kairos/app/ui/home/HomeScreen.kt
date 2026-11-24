@@ -58,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
@@ -662,7 +663,7 @@ private fun WorkSummaryCard(
         SectionHeader(title, category)
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
             Column(
-                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().sectionEdge(sectionKeyForCategory(category)).heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -762,7 +763,7 @@ private fun WorkoutSummaryCard(
             Row(
                 // At least the height of a two-line card (Chores), so the
                 // workout card isn't the short one (v0.436).
-                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().sectionEdge("workouts").heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -874,7 +875,7 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
         }
         Card(Modifier.fillMaxWidth().clickable { onOpen() }) {
             Column(
-                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(12.dp),
+                Modifier.fillMaxWidth().sectionEdge("reading").heightIn(min = HOME_CARD_MIN).padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             ) {
                 reading.forEach { r ->
@@ -1552,7 +1553,11 @@ private fun SectionBlock(header: String, category: String? = null, content: @Com
         SectionHeader(header, category)
         Card(Modifier.fillMaxWidth()) {
             Column(
-                Modifier.fillMaxWidth().heightIn(min = HOME_CARD_MIN).padding(horizontal = 12.dp, vertical = 4.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .then(if (category != null) Modifier.sectionEdge(sectionKeyForCategory(category)) else Modifier)
+                    .heightIn(min = HOME_CARD_MIN)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.Center,
                 content = content,
             )
@@ -1631,6 +1636,13 @@ private fun CategoryBars(bars: List<CategoryBarDto>) {
 }
 
 /** Maps a task category to the matching side-menu section (icon + brand color). */
+/** A home card's left edge in its section's side-menu color (v0.563).
+ *  Today's schedule has none: each event keeps its calendar's color. */
+private fun Modifier.sectionEdge(key: String): Modifier {
+    val color = sectionFor(key).color
+    return drawBehind { drawRect(color = color, size = androidx.compose.ui.geometry.Size(4.dp.toPx(), size.height)) }
+}
+
 private fun sectionKeyForCategory(category: String): String = when (category) {
     "BIBLE" -> "bible"
     "CHORE" -> "chores"

@@ -691,6 +691,9 @@ data class BackpackTodayDto(
     val of: Int = 0,
     val status: String? = null,
     val miles: Double = 0.0,
+    /** The trip's calendar event (server 0.787+): Trip opens it. */
+    val eventId: String? = null,
+    val title: String? = null,
 )
 
 /** A finished trip's totals (server 0.779+). */
@@ -720,7 +723,7 @@ data class PhonePointsDto(val stored: Int = 0)
 
 /** POST workouts/backpacking: hiking answers "Hiking today?"; start + until starts a trip. */
 @Serializable
-data class BackpackRequest(val hiking: Boolean? = null, val start: Boolean? = null, val until: String? = null)
+data class BackpackRequest(val hiking: Boolean? = null, val start: Boolean? = null, val until: String? = null, val finish: Boolean? = null)
 
 /** Saved, or queued offline ("{}": all defaults). */
 @Serializable
@@ -2719,6 +2722,8 @@ data class CalEventTypeDto(
     val color: String = "#64748b",
     val defaultMinutes: Int? = null,
     val defaultReminder: Int? = null,
+    /** The Backpacking type (server 0.787+), for Start a… → Backpacking trip. */
+    val backpacking: Boolean = false,
 )
 
 @Serializable

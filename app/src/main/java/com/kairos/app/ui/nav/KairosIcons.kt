@@ -321,6 +321,10 @@ object KairosIcons {
         "M3 20h18l-6.921 -14.612a2.3 2.3 0 0 0 -4.158 0l-6.921 14.612z",
         "M7.5 11l2 2.5l2.5 -2.5l2 3l2.5 -2",
     )
+    /** The trip tile's Camp (v0.563): a tent. */
+    val Tent = stroked("Tent", "M3 20L12 4l9 16ZM12 4v16M9 20l3-6 3 6")
+    /** The trip tile's Finished (v0.563): a flag. */
+    val Flag = stroked("Flag", "M5 21V4M5 4h11l-2 4 2 4H5")
     /** End (v0.563): a rounded square. */
     val Stop = stroked("Stop", "M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z")
     val Bookmark = stroked("Bookmark", "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z")

@@ -1,4 +1,12 @@
 # Changelog
+## 0.564.0
+
+- Start a… (was Go for a…): Backpacking trip opens the calendar's New event on the Backpacking type.
+- On trip days the trip tile leads the Train tab: Track or Pause, Camp or Hike, Finished on the last day, Map and Trip.
+- Family WOD shows only on a day that has one.
+- Home cards have their section's color on the left edge.
+- Needs server 0.787.
+
 ## 0.563.0
 
 - Workouts has two tabs: Progress and Train. Train has the plan card and the buttons in three groups.

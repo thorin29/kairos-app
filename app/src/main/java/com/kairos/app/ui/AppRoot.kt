@@ -632,7 +632,20 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             refreshKey = dataRevision + programsChanged,
                             onOpenFamilyWod = { navController.navigate(Route.FamilyWod) },
                             onOpenPause = { navController.navigate(Route.WorkoutPause) },
-                            onStartTrack = { kind -> navController.navigate(Route.Track(kind)) },
+                            onStartTrack = { kind ->
+                                // Backpacking trip (v0.563): the calendar's New event on the Backpacking type.
+                                if (kind == "backpack") {
+                                    container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.NewTrip
+                                    go(Route.Section("calendar"), "calendar")
+                                } else {
+                                    navController.navigate(Route.Track(kind))
+                                }
+                            },
+                            onOpenMap = { go(Route.Section("places"), "places") },
+                            onOpenTripEvent = { id, day ->
+                                container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.ShowEventId(eventId = id, dayISO = day)
+                                go(Route.Section("calendar"), "calendar")
+                            },
                         )
                     } else if (key == "bible") {
                         BibleScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
@@ -981,7 +994,14 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         .getStateFlow("programsChanged", 0)
                         .collectAsState()
                     WorkoutLogScreen(
-                        onStartTrack = { kind -> navController.navigate(Route.Track(kind)) },
+                        onStartTrack = { kind ->
+                            if (kind == "backpack") {
+                                container.pendingCalendarOpen.value = com.kairos.app.di.CalendarOpen.NewTrip
+                                go(Route.Section("calendar"), "calendar")
+                            } else {
+                                navController.navigate(Route.Track(kind))
+                            }
+                        },
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
                         onOpenCalculator = { navController.navigate(Route.WeightCalculator(forLog = true)) },

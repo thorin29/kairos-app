@@ -168,8 +168,11 @@ fun CalendarScreen(
 
     // From the home-screen widget: New event, or one event's details. Waits
     // for the calendar to load, like a calendar file does.
+    var tripLookups by remember { mutableStateOf(0) }
     val pendingOpen by container.pendingCalendarOpen.collectAsState()
-    LaunchedEffect(pendingOpen, data != null, onScreen) {
+    // Keyed on the data itself (v0.563) so a trip's event is looked for again
+    // once its day has loaded.
+    LaunchedEffect(pendingOpen, data, onScreen) {
         if (!onScreen) return@LaunchedEffect
         val p = pendingOpen ?: return@LaunchedEffect
         if (data == null) return@LaunchedEffect
@@ -192,6 +195,40 @@ fun CalendarScreen(
             is com.kairos.app.di.CalendarOpen.ShowEvent -> {
                 showAdd = false
                 selectedEvent = p.event
+            }
+            // Start a… → Backpacking trip (v0.563): all day, today and tomorrow
+            // to start with, on the Backpacking type.
+            com.kairos.app.di.CalendarOpen.NewTrip -> {
+                selectedEvent = null
+                val start = LocalDate.parse(data.today.ifBlank { LocalDate.now().toString() })
+                importDraft = IcsDraft(
+                    title = "Backpacking",
+                    allDay = true,
+                    startDate = start.toString(),
+                    startTime = null,
+                    endDate = start.plusDays(1).toString(),
+                    endTime = null,
+                    location = null,
+                    notes = null,
+                    repeat = "NONE",
+                    repeatDropped = false,
+                )
+                importTypeId = data.options.eventTypes.firstOrNull { it.backpacking }?.id
+                showAdd = true
+            }
+            // The trip tile's Trip (v0.563): that event's details, from which
+            // it edits. Off the loaded days, go to its day and look again.
+            is com.kairos.app.di.CalendarOpen.ShowEventId -> {
+                showAdd = false
+                val hit = data.events.firstOrNull { it.eventId == p.eventId && it.dayISO == p.dayISO }
+                    ?: data.events.firstOrNull { it.eventId == p.eventId }
+                if (hit != null) {
+                    selectedEvent = hit
+                } else if (p.dayISO !in data.rangeDays && tripLookups < 1) {
+                    tripLookups++
+                    container.pendingCalendarOpen.value = p
+                    vm.goToDate(p.dayISO)
+                }
             }
         }
     }
