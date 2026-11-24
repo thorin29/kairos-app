@@ -68,8 +68,8 @@ import kotlinx.coroutines.launch
 
 /**
  * The Workouts page (launcher): progress, the plan card (v0.540: Edit /
- * Change / End) and nine buttons — log, routines, browse; HIIT, calculator,
- * Family WOD; Pause, Recent, Saved plans.
+ * Change / Saved / End) and nine buttons — log, go for a…, routines; browse,
+ * HIIT, calculator; Family WOD, Pause, Recent (v0.557).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,6 +96,8 @@ fun WorkoutsScreen(
     onAddProgram: () -> Unit = {},
     /** The plateau card's Try: that program's setup (v0.546). */
     onTryProgram: (String) -> Unit = {},
+    /** Go for a walk, run, ruck or hike (v0.557): tracked with GPS. */
+    onStartTrack: (String) -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -238,6 +240,7 @@ fun WorkoutsScreen(
                             data = p,
                             onOpen = onOpenPrograms,
                             onAdd = onAddProgram,
+                            onSaved = onOpenSavedPlans,
                             onEdit = onOpenEditPlan,
                             onChange = onChangeProgram,
                             onEndProgram = { restore ->
@@ -320,27 +323,46 @@ fun WorkoutsScreen(
                         }
                     }
 
-                    // The Edit plan button went to the plan card (v0.540): the
-                    // nine are log, routines, browse; HIIT, calculator, Family
-                    // WOD; Pause, Recent, Saved plans.
+                    // Nine tiles (v0.557): log, go for a…, routines; browse, HIIT,
+                    // calculator; Family WOD, Pause, Recent. Edit plan (v0.540)
+                    // and Saved plans (v0.557) are on the plan card.
+                    var goFor by remember { mutableStateOf(false) }
+                    val going by ActivityTrack.session.collectAsState()
                     Row(Modifier.tourTarget("workouts.plan"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
                             KairosIcons.Dumbbell, "Log workout", Modifier.weight(1f),
                             highlighted = true,
                             enabled = ui.date != null,
                         ) { ui.date?.let(onLogWorkout) }
+                        // One going: the tile says so and opens it.
+                        val g = going
+                        ActionCard(
+                            if (g != null) trackIcon(g.activity) else KairosIcons.Run,
+                            if (g != null) trackLabel(g.activity) else "Go for a\u2026",
+                            Modifier.weight(1f),
+                            highlighted = g != null,
+                            subtitle = when {
+                                g == null -> "Walk \u00b7 Run \u00b7 Ruck"
+                                g.endedAt != null -> "Finished"
+                                g.paused -> "Paused"
+                                else -> "In progress"
+                            },
+                        ) { if (g != null) onStartTrack("") else goFor = true }
                         // Rest / skip moved to the day itself (v0.432).
                         // No subtitle (v0.480): three words wrapped past the card's height.
                         ActionCard(
                             KairosIcons.Flame, "Routines", Modifier.weight(1f),
                         ) { onOpenWarmups() }
-                        ActionCard(
-                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
-                        ) { onOpenBrowse() }
+                    }
+                    if (goFor) {
+                        GoForDialog(onDismiss = { goFor = false }, onPick = { kind -> goFor = false; onStartTrack(kind) })
                     }
 
                   Column(Modifier.tourTarget("workouts.tools"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ActionCard(
+                            KairosIcons.Book, "Browse workouts", Modifier.weight(1f),
+                        ) { onOpenBrowse() }
                         ActionCard(
                             KairosIcons.Plus, "HIIT / CrossFit", Modifier.weight(1f),
                             subtitle = "Create / edit",
@@ -348,6 +370,8 @@ fun WorkoutsScreen(
                         ActionCard(
                             KairosIcons.Dumbbell, "Calculator", Modifier.weight(1f),
                         ) { onOpenCalculator() }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         // Family WOD and Pause say what's on under the label
                         // (v0.494): the next WOD, a pause running or ahead.
                         val fw = familyWodLine(refreshKey)
@@ -356,8 +380,6 @@ fun WorkoutsScreen(
                             highlighted = fw?.second == true,
                             subtitle = fw?.first,
                         ) { onOpenFamilyWod() }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
                             KairosIcons.Pause, "Pause", Modifier.weight(1f),
                             subtitle = pauseLine(refreshKey),
@@ -365,9 +387,6 @@ fun WorkoutsScreen(
                         ActionCard(
                             KairosIcons.Clock, "Recent", Modifier.weight(1f),
                         ) { onOpenRecent() }
-                        ActionCard(
-                            KairosIcons.Bookmark, "Saved plans", Modifier.weight(1f),
-                        ) { onOpenSavedPlans() }
                     }
                   }
                 }
@@ -649,14 +668,17 @@ private fun PlanCard(
     onAnswer: (String) -> Unit,
     /** Add a program beside the running one (v0.543). */
     onAdd: () -> Unit = {},
+    /** Saved plans (v0.557; was a tile of its own). */
+    onSaved: () -> Unit = {},
 ) {
     val a = data.active
     val plan = data.plan
     var ending by remember { mutableStateOf(false) }
     val links: @Composable () -> Unit = {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = onEdit) { Text("Edit") }
             TextButton(onClick = onChange) { Text("Change") }
+            TextButton(onClick = onSaved) { Text("Saved") }
             TextButton(onClick = { ending = true }) { Text(text = "End", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
@@ -721,6 +743,7 @@ private fun PlanCard(
                     TextButton(onClick = onEdit) { Text("Edit") }
                     TextButton(onClick = onChange) { Text("Change") }
                     TextButton(onClick = onAdd) { Text("Add program") }
+                    TextButton(onClick = onSaved) { Text("Saved") }
                     TextButton(onClick = if (data.also.isEmpty()) ({ ending = true }) else onOpen) {
                         Text(text = "End", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -792,12 +815,19 @@ private fun PlanCard(
                         modifier = Modifier.clickable { onAnswer("never") }.padding(8.dp),
                     )
                 }
+                Text(
+                    "Saved plans",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { onSaved() }.padding(vertical = 4.dp),
+                )
             }
         }
         else -> OutlinedCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("No plan yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 ProgramPill(label = "New plan", filled = true, modifier = Modifier.fillMaxWidth(), onClick = onChange)
+                ProgramPill(label = "Saved plans", modifier = Modifier.fillMaxWidth(), onClick = onSaved)
             }
         }
     }

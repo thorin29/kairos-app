@@ -116,6 +116,8 @@ fun WorkoutLogScreen(
     onWhatsNext: () -> Unit = onOpenPrograms,
     /** Bumped when Programs changed something, so the day reloads. */
     programsChanged: Int = 0,
+    /** + Additional → Go for a walk, run, ruck or hike (v0.557). */
+    onStartTrack: (String) -> Unit = {},
 ) {
     val container = rememberContainer()
     val vm: WorkoutLogViewModel = viewModel(
@@ -161,6 +163,7 @@ fun WorkoutLogScreen(
     var conditioningSheet by remember { mutableStateOf<String?>(null) }
     // "+ Additional" (v0.477): its menu, then a mobility, stretching or isometric picker.
     var addingMenu by remember { mutableStateOf(false) }
+    var goFor by remember { mutableStateOf(false) }
     LaunchedEffect(familyChanged) { if (familyChanged != 0) vm.load() }
     LaunchedEffect(programsChanged) { if (programsChanged != 0) vm.load() }
     var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
@@ -781,6 +784,14 @@ fun WorkoutLogScreen(
                 addingMenu = false
                 if (k == "cardio") addingCardio = true else logKind = k
             },
+            onGoFor = if ((ui.date ?: date) == LocalDate.now().toString()) {
+                {
+                    addingMenu = false
+                    goFor = true
+                }
+            } else {
+                null
+            },
             onFamilyWod = if (ui.familyWod == null && (ui.date ?: LocalDate.now().toString()) >= LocalDate.now().toString()) {
                 {
                     addingMenu = false
@@ -790,6 +801,10 @@ fun WorkoutLogScreen(
                 null
             },
         )
+    }
+
+    if (goFor) {
+        GoForDialog(onDismiss = { goFor = false }, onPick = { kind -> goFor = false; onStartTrack(kind) })
     }
 
     extraKind?.let { k ->

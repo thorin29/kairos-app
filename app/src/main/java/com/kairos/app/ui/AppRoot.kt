@@ -363,6 +363,8 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
         }
     }
     val notifCtx = androidx.compose.ui.platform.LocalContext.current
+    // A walk, run or ruck still going when the app was closed (v0.557).
+    LaunchedEffect(Unit) { com.kairos.app.ui.workout.ActivityTrack.restore(notifCtx) }
     LaunchedEffect(dataRevision) {
         if (dataRevision > 0) {
             com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(notifCtx)
@@ -465,6 +467,19 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
             }
             "tasks" -> {
                 go(Route.Section("tasks"), "tasks")
+                container.pendingRoute.value = null
+            }
+            // A walk, run or ruck (v0.557): the notification (open, Finish) and
+            // the long-press shortcuts.
+            "track", "track-finish", "track:walk", "track:run", "track:ruck", "track:hike" -> {
+                val p = pendingRoute ?: ""
+                if (p == "track-finish") com.kairos.app.ui.workout.ActivityTrack.finish(notifCtx)
+                val going = com.kairos.app.ui.workout.ActivityTrack.session.value != null
+                val kind = if (going) "" else p.substringAfter("track:", "")
+                if (going || kind.isNotBlank()) {
+                    go(Route.Section("workouts"), "workouts")
+                    navController.navigate(Route.Track(kind))
+                }
                 container.pendingRoute.value = null
             }
             "places", "money", "workouts", "chores" -> {
@@ -610,6 +625,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                             refreshKey = dataRevision + programsChanged,
                             onOpenFamilyWod = { navController.navigate(Route.FamilyWod) },
                             onOpenPause = { navController.navigate(Route.WorkoutPause) },
+                            onStartTrack = { kind -> navController.navigate(Route.Track(kind)) },
                         )
                     } else if (key == "bible") {
                         BibleScreen(onOpenDrawer = { openDrawer() }, refreshKey = dataRevision)
@@ -763,6 +779,16 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                 }
                 composable<Route.SavedPlans> {
                     SavedPlansScreen(onBack = { navController.popBackStack() })
+                }
+                composable<Route.Track> { entry ->
+                    com.kairos.app.ui.workout.TrackScreen(
+                        activity = entry.toRoute<Route.Track>().activity,
+                        onBack = { navController.popBackStack() },
+                        onSaved = {
+                            navController.popBackStack()
+                            homeRefresh++
+                        },
+                    )
                 }
                 composable<Route.Warmups> {
                     WarmupsScreen(onBack = { navController.popBackStack() })
@@ -948,6 +974,7 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
                         .getStateFlow("programsChanged", 0)
                         .collectAsState()
                     WorkoutLogScreen(
+                        onStartTrack = { kind -> navController.navigate(Route.Track(kind)) },
                         date = entry.toRoute<Route.WorkoutLog>().date,
                         onDone = { navController.popBackStack() },
                         onOpenCalculator = { navController.navigate(Route.WeightCalculator(forLog = true)) },

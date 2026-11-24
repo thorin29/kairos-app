@@ -729,6 +729,10 @@ class SessionRepository(
     suspend fun logCardio(body: com.kairos.app.data.remote.dto.CardioLogRequest): List<com.kairos.app.data.remote.dto.CardioEntryDto> =
         runAuthed { requireService().logCardio(body) }.cardio
 
+    /** Save a tracked walk, run, ruck or hike (v0.557); queued when offline. */
+    suspend fun saveTrack(body: com.kairos.app.data.remote.dto.TrackSaveRequest): com.kairos.app.data.remote.dto.TrackSavedDto =
+        runAuthed { requireService().saveTrack(body) }
+
     suspend fun removeCardio(date: String, sessionId: String): List<com.kairos.app.data.remote.dto.CardioEntryDto> =
         runAuthed { requireService().removeCardio(com.kairos.app.data.remote.dto.CardioRemoveRequest(date = date, sessionId = sessionId)) }.cardio
 
@@ -1485,6 +1489,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 628
+        const val CLIENT_BUILD = 629
     }
 }

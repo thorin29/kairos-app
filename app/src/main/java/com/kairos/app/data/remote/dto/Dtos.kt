@@ -670,6 +670,23 @@ data class CardioLogRequest(
     val completedOn: String? = null,
 )
 
+/** POST workouts/track (server 0.777+): path is [[lat, lng, ms], …]. */
+@Serializable
+data class TrackSaveRequest(
+    val clientId: String,
+    val activity: String,
+    val startAt: String,
+    val endAt: String,
+    val movingSec: Int,
+    val distanceM: Double,
+    val load: Double? = null,
+    val path: List<List<Double>> = emptyList(),
+)
+
+/** Saved, or queued offline ("{}": all defaults). */
+@Serializable
+data class TrackSavedDto(val sessionId: String = "", val date: String = "")
+
 @Serializable
 data class CardioRemoveRequest(val date: String, val sessionId: String)
 

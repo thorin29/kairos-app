@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
         com.kairos.app.data.notifications.NotificationWorker.enqueuePeriodic(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueueAfterMidnight(this)
         com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(this)
+        setTrackShortcuts()
         val settings = container.settingsStore
         // The floating timer window (v0.438): while a timer runs and Settings
         // allow it, leaving the app shrinks it to the time in a corner.
@@ -139,6 +140,32 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleIntent(intent, fresh = true)
+    }
+
+    /**
+     * Long-press the app icon (v0.557): Walk, Run and Ruck start tracking
+     * straight away. Each opens the app with a target the same way a
+     * notification does.
+     */
+    private fun setTrackShortcuts() {
+        val list = listOf(
+            Triple("walk", "Walk", R.drawable.ic_shortcut_walk),
+            Triple("run", "Run", R.drawable.ic_shortcut_run),
+            Triple("ruck", "Ruck", R.drawable.ic_shortcut_ruck),
+        ).map { (key, label, icon) ->
+            androidx.core.content.pm.ShortcutInfoCompat.Builder(this, "track_$key")
+                .setShortLabel(label)
+                .setLongLabel("Go for a ${label.lowercase()}")
+                .setIcon(androidx.core.graphics.drawable.IconCompat.createWithResource(this, icon))
+                .setIntent(
+                    Intent(this, MainActivity::class.java)
+                        .setAction(Intent.ACTION_VIEW)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        .putExtra(com.kairos.app.data.notifications.Notifications.EXTRA_OPEN, "track:$key"),
+                )
+                .build()
+        }
+        runCatching { androidx.core.content.pm.ShortcutManagerCompat.setDynamicShortcuts(this, list) }
     }
 
     /** A notification tap carries a target screen; hand it to AppRoot. */

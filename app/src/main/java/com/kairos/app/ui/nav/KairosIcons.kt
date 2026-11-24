@@ -294,6 +294,33 @@ object KairosIcons {
     val Plus = stroked("Plus", "M12 5v14", "M5 12h14")
 
     val Flame = filled("Flame", "M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z")
+    // Go for a… (v0.557), drawn after Tabler's walk, run, backpack and mountain.
+    val Walk = stroked(
+        "Walk",
+        "M12 4a1 1 0 1 0 2 0a1 1 0 1 0 -2 0",
+        "M7 21l3 -4",
+        "M16 21l-2 -4l-3 -3l1 -6",
+        "M6 12l2 -3l4 -1l3 3l3 1",
+    )
+    val Run = stroked(
+        "Run",
+        "M12 4a1 1 0 1 0 2 0a1 1 0 1 0 -2 0",
+        "M4 17l5 1l.75 -1.5",
+        "M15 21l0 -4l-4 -3l1 -6",
+        "M7 12l0 -3l5 -1l3 3l3 1",
+    )
+    val Backpack = stroked(
+        "Backpack",
+        "M5 18v-6a6 6 0 0 1 6 -6h2a6 6 0 0 1 6 6v6a3 3 0 0 1 -3 3h-8a3 3 0 0 1 -3 -3z",
+        "M10 6v-1a2 2 0 1 1 4 0v1",
+        "M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4",
+        "M11 10h2",
+    )
+    val Mountain = stroked(
+        "Mountain",
+        "M3 20h18l-6.921 -14.612a2.3 2.3 0 0 0 -4.158 0l-6.921 14.612z",
+        "M7.5 11l2 2.5l2.5 -2.5l2 3l2.5 -2",
+    )
     val Bookmark = stroked("Bookmark", "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z")
     val Search = stroked(
         "Search",

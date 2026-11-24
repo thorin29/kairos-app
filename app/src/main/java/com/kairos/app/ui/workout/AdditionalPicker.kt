@@ -61,6 +61,8 @@ internal fun AdditionalMenu(
     onFamilyWod: (() -> Unit)? = null,
     /** Strength, Cardio, Sport or "other": the log flow (v0.491). */
     onLog: ((String) -> Unit)? = null,
+    /** Go for a walk, run, ruck or hike, tracked now (v0.557; today only). */
+    onGoFor: (() -> Unit)? = null,
 ) {
     AnimatedDialog(
         onDismissRequest = onDismiss,
@@ -68,6 +70,9 @@ internal fun AdditionalMenu(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (onGoFor != null) {
+                AccentOutlinedButton(onClick = onGoFor, modifier = Modifier.fillMaxWidth()) { Text("Go for a walk, run or ruck") }
+            }
             AccentOutlinedButton(onClick = onConditioning, modifier = Modifier.fillMaxWidth()) { Text("Conditioning") }
             if (onFamilyWod != null) {
                 AccentOutlinedButton(onClick = onFamilyWod, modifier = Modifier.fillMaxWidth()) { Text("Family WOD") }

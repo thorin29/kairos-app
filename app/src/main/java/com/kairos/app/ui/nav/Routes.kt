@@ -154,6 +154,10 @@ sealed interface Route {
     @Serializable
     data object SavedPlans : Route
 
+    /** Go for a walk, run, ruck or hike (v0.557); blank = the one going. */
+    @Serializable
+    data class Track(val activity: String = "") : Route
+
     @Serializable
     data object AddGrocery : Route
 

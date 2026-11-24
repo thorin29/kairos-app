@@ -1,4 +1,11 @@
 # Changelog
+## 0.557.0
+
+- Workouts: Go for a walk, run, ruck or hike. Tap the new tile next to Log workout, or Additional on today's workout, or long-press the app icon. The time, distance, pace and route are tracked while you go, with a notification you can Finish from. Pause asks first.
+- Finish shows the summary: Save, Resume or Discard. A saved one counts as its own workout that day and shows on Family map History.
+- Saved plans moved to the plan card.
+- Needs server 0.777.
+
 ## 0.556.0
 
 - Your reminders on any event: tap to change them, or turn them all off to mute that event for you.

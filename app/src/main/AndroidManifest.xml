@@ -32,6 +32,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!-- Go for a walk, run, ruck or hike (v0.557): the phone's GPS while one is
+         tracked, asked for the first time someone starts one. Only while the
+         app started it (a foreground service), so no background location. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
         android:name=".KairosApp"
@@ -114,6 +121,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="A workout interval timer the person started, shown while they use other apps." />
         </service>
+
+        <!-- A walk, run, ruck or hike being tracked (v0.557): GPS and its notification. -->
+        <service
+            android:name=".ui.workout.TrackService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Home-screen widget: the week's events and tasks. -->
         <receiver

@@ -1,5 +1,26 @@
 # Decisions
 
+## 2026-11 — Go for a walk, run, ruck or hike (v0.557.0, server 0.777.0)
+
+- Tracked with the phone's own GPS (`LocationManager` GPS provider, 2 s) in a
+  `location` foreground service (`TrackService`), started only from the app,
+  so no background location permission. No Play Services dependency.
+- `ActivityTrack` holds the outing (start, pauses, points, distance) and
+  writes it to `filesDir/track.json` (every 15 s and on each change); the app
+  restores it on start and restarts the GPS if it was still going.
+- Points: fixes over 30 m accuracy, steps under 5 m, and jumps faster than
+  4.5 m/s (9 m/s running) are skipped; each resume starts a new segment and no
+  distance is counted across a pause.
+- Pause asks first; the notification has no Pause (it can't ask), only Finish,
+  which opens the summary (Resume is still there).
+- Saved with `POST workouts/track` (clientId makes a resend harmless; offline
+  it queues like any write). Route thinned to 4,000 points.
+- Entry points: a Workouts tile next to Log workout (Saved plans moved to the
+  plan card to keep nine tiles), + Additional on today's log page, and dynamic
+  long-press shortcuts (Walk, Run, Ruck) that route through `pendingRoute`
+  ("track:walk" …; "track" / "track-finish" from the notification).
+
+
 ## 2026-11 — Your reminders on any event (v0.556.0, server 0.774.0)
 
 - Event detail's "Your reminders" chips now show on every stored event (not

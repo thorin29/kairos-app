@@ -299,6 +299,11 @@ is what that rule exists to prevent.
   (what's running, `inPip`), `TimerService` (the foreground notification with
   a live countdown, a Live Update on Android 16+), `PipTimer` (the floating
   window) and the timer's number font and colour (`timerDigits`).
+- `ui/workout/ActivityTrack.kt`, `TrackService.kt`, `TrackScreen.kt` — Go
+  for a walk, run, ruck or hike (v0.557): the outing and its file
+  (`filesDir/track.json`), the GPS foreground service and its notification,
+  and the start / live / summary page with `GoForDialog`. Saved through
+  `POST workouts/track` (web: `src/lib/workouts/tracked.ts`).
 - `ui/common/AccentOutlinedButton.kt` — the accent-outlined secondary button.
 - `ui/workout/ProgramsScreen.kt` — programs: the running one and its
   end-of-cycle dialog, the chooser (Programs / My plans / Household via
