@@ -1,4 +1,11 @@
 # Changelog
+## 0.559.0
+
+- Backpacking trips use this phone's GPS: turned on when you start a trip or say Yes to "Hiking today?". It saves battery (a fix every 30 seconds hiking, less at stops and camp), keeps points with no signal and sends them when it can.
+- "At camp for the night?" in the afternoon once you've stopped.
+- After a trip, Workouts shows its summary: miles, time hiking, feet up and down.
+- Needs server 0.779.
+
 ## 0.558.0
 
 - Walk, Run, Ruck and Hike each open a Start page first (Ruck asks the pack weight).

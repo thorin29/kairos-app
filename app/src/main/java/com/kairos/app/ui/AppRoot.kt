@@ -364,7 +364,14 @@ private fun AuthenticatedApp(person: com.kairos.app.data.remote.dto.PersonDto) {
     }
     val notifCtx = androidx.compose.ui.platform.LocalContext.current
     // A walk, run or ruck still going when the app was closed (v0.557).
-    LaunchedEffect(Unit) { com.kairos.app.ui.workout.ActivityTrack.restore(notifCtx) }
+    LaunchedEffect(Unit) {
+        com.kairos.app.ui.workout.ActivityTrack.restore(notifCtx)
+        // A backpacking trip's GPS (v0.559): carry on, and send what's waiting.
+        com.kairos.app.ui.workout.TripTrack.restore(notifCtx)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.kairos.app.ui.workout.TripTrack.flush(notifCtx)
+        }
+    }
     LaunchedEffect(dataRevision) {
         if (dataRevision > 0) {
             com.kairos.app.data.notifications.NotificationWorker.enqueueOnce(notifCtx)

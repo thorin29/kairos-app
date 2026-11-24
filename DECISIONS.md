@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-11 — Trip GPS (v0.559.0, server 0.779.0)
+
+- `TripService` (location foreground service) runs through the trip's last
+  day: GPS every 30 s hiking, 5 min stopped (still 20 min), 15 min at camp
+  ("At camp for the night?" after 3 PM, once a day; actions go to the
+  service). Moving 150 m+ from a stop or camp is hiking again.
+- Points go to a line-per-point file (`trip-points.jsonl`) and are sent 400
+  at a time every 5 min with `X-Kairos-No-Queue` (the trip keeps its own
+  unsent points instead of the offline queue, which caps at 500 writes).
+- Started by Start trip, or Yes / Turn on on the Workouts trip card (until
+  the trip's last day from the server's day/of); restored on app start.
+- The card shows the last finished trip's summary for two weeks.
+
+
 ## 2026-11 — Start pages; backpacking trips (v0.558.0, server 0.778.0)
 
 - Every activity opens its Start page (no starting on the tap); the

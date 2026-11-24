@@ -348,9 +348,9 @@ private fun Stats(dist: Double, moving: Long, time: Boolean = false) {
 }
 
 @Composable
-private fun Stat(value: String, label: String, modifier: Modifier) {
+private fun Stat(value: String, label: String, modifier: Modifier, small: Boolean = false) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
+        Text(value, fontSize = if (small) 16.sp else 22.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace, maxLines = 1)
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -425,9 +425,16 @@ internal fun requestFor(s: TrackSession): TrackSaveRequest {
 @Composable
 private fun BackpackStart(onBack: () -> Unit, onStarted: () -> Unit) {
     val container = rememberContainer()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val today = remember { java.time.LocalDate.now() }
     var until by remember { mutableStateOf(today.plusDays(1)) }
+    // The phone's GPS for the trip (v0.559): asked for here; without it the
+    // trip still goes by Family map locations.
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) TripTrack.start(context, until.toString())
+        onStarted()
+    }
     var trip by remember { mutableStateOf<com.kairos.app.data.remote.dto.BackpackTodayDto?>(null) }
     var loaded by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -495,7 +502,16 @@ private fun BackpackStart(onBack: () -> Unit, onStarted: () -> Unit) {
                                 )
                             }
                             busy = false
-                            if (r.isSuccess) onStarted() else error = r.exceptionOrNull()?.message ?: "Couldn't start the trip."
+                            if (r.isSuccess) {
+                                if (TrackService.hasLocation(context)) {
+                                    TripTrack.start(context, until.toString())
+                                    onStarted()
+                                } else {
+                                    askLocation.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                            } else {
+                                error = r.exceptionOrNull()?.message ?: "Couldn't start the trip."
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -506,49 +522,119 @@ private fun BackpackStart(onBack: () -> Unit, onStarted: () -> Unit) {
 }
 
 /**
- * On a backpacking trip today (v0.558): the day and miles so far, and
- * "Hiking today?" until it's answered. Shown on Workouts.
+ * On a backpacking trip today (v0.558): the day and miles so far, "Hiking
+ * today?" until it's answered, and the phone's GPS for the trip (v0.559).
+ * After a trip, its summary for two weeks. Shown on Workouts.
  */
 @Composable
 internal fun BackpackCard(refreshKey: Int) {
     val container = rememberContainer()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var trip by remember { mutableStateOf<com.kairos.app.data.remote.dto.BackpackTodayDto?>(null) }
+    var data by remember { mutableStateOf<com.kairos.app.data.remote.dto.BackpackDto?>(null) }
+    val gps by TripTrack.state.collectAsState()
     LaunchedEffect(refreshKey) {
-        trip = runCatching { container.sessionRepository.backpacking() }.getOrNull()
+        data = runCatching { container.sessionRepository.backpackingAll() }.getOrNull()
     }
-    val t = trip ?: return
+    fun gpsOn(t: com.kairos.app.data.remote.dto.BackpackTodayDto) {
+        TripTrack.start(context, java.time.LocalDate.now().plusDays((t.of - t.day).toLong()).toString())
+    }
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        val t = data?.today
+        if (ok && t != null) gpsOn(t)
+    }
+    fun startGps(t: com.kairos.app.data.remote.dto.BackpackTodayDto) {
+        if (TrackService.hasLocation(context)) gpsOn(t) else askLocation.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
     fun answer(hiking: Boolean) {
         scope.launch {
             runCatching {
                 container.sessionRepository.answerBackpacking(com.kairos.app.data.remote.dto.BackpackRequest(hiking = hiking))
-            }.onSuccess { trip = it }
+            }.onSuccess { today -> data = data?.copy(today = today) ?: com.kairos.app.data.remote.dto.BackpackDto(today = today) }
         }
+        val t = data?.today
+        if (hiking && t != null && gps == null) startGps(t)
     }
+    val t = data?.today
+    val last = data?.lastTrip
+    if (t == null && last == null) return
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(KairosIcons.Backpack, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            if (t != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(KairosIcons.Backpack, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Text(
+                        "Backpacking \u00b7 Day ${t.day} of ${t.of}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f),
+                    )
+                    Text(String.format(Locale.US, "%.1f mi", t.miles), style = MaterialTheme.typography.bodyMedium)
+                }
+                when (t.status) {
+                    null, "asked" -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Hiking today?", modifier = Modifier.weight(1f))
+                        TextButton(onClick = { answer(false) }) { Text("No") }
+                        Button(onClick = { answer(true) }) { Text("Yes") }
+                    }
+                    "skip" -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Not hiking today", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { answer(true) }) { Text("I am") }
+                    }
+                    else -> {}
+                }
+                val g = gps
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        when {
+                            g == null -> "This phone's GPS is off"
+                            g.mode == TripMode.CAMP -> "GPS on \u00b7 at camp"
+                            g.mode == TripMode.STOPPED -> "GPS on \u00b7 stopped"
+                            else -> "GPS on \u00b7 recording"
+                        } + (if (g != null && g.unsent > 0) " \u00b7 ${g.unsent} to send" else ""),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (g == null) {
+                        TextButton(onClick = { startGps(t) }) { Text("Turn on") }
+                    } else {
+                        TextButton(onClick = { TripTrack.end(context) }) { Text("Turn off") }
+                    }
+                }
+            } else if (last != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(KairosIcons.Backpack, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Text(
+                        "Backpacking trip \u00b7 ${tripDates(last.from, last.to)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f),
+                    )
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    Stat(String.format(Locale.US, "%.1f", last.miles), "miles", Modifier.weight(1f), small = true)
+                    Stat(hoursMinutes(last.minutes), "hiking", Modifier.weight(1f), small = true)
+                    Stat(last.gainFt?.let { "%,d".format(Locale.US, it) } ?: "\u2013", "ft up", Modifier.weight(1f), small = true)
+                    Stat(last.lossFt?.let { "%,d".format(Locale.US, it) } ?: "\u2013", "ft down", Modifier.weight(1f), small = true)
+                }
                 Text(
-                    "Backpacking \u00b7 Day ${t.day} of ${t.of}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 8.dp).weight(1f),
+                    "${last.days} ${if (last.days == 1) "day" else "days"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(String.format(Locale.US, "%.1f mi", t.miles), style = MaterialTheme.typography.bodyMedium)
-            }
-            when (t.status) {
-                null, "asked" -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Hiking today?", modifier = Modifier.weight(1f))
-                    TextButton(onClick = { answer(false) }) { Text("No") }
-                    Button(onClick = { answer(true) }) { Text("Yes") }
-                }
-                "skip" -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Not hiking today", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { answer(true) }) { Text("I am") }
-                }
-                else -> {}
             }
         }
     }
 }
+
+/** "Dec 4 – 7" or "Nov 29 – Dec 2". */
+private fun tripDates(from: String, to: String): String = runCatching {
+    val a = java.time.LocalDate.parse(from)
+    val b = java.time.LocalDate.parse(to)
+    val m = DateTimeFormatter.ofPattern("MMM d", Locale.US)
+    if (a == b) a.format(m) else if (a.month == b.month) "${a.format(m)} \u2013 ${b.dayOfMonth}" else "${a.format(m)} \u2013 ${b.format(m)}"
+}.getOrDefault("$from \u2013 $to")
+
+/** "14 h 10 m". */
+private fun hoursMinutes(min: Int): String = if (min >= 60) "${min / 60} h ${min % 60} m" else "$min m"

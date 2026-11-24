@@ -693,8 +693,30 @@ data class BackpackTodayDto(
     val miles: Double = 0.0,
 )
 
+/** A finished trip's totals (server 0.779+). */
 @Serializable
-data class BackpackDto(val today: BackpackTodayDto? = null)
+data class TripSummaryDto(
+    val from: String = "",
+    val to: String = "",
+    val days: Int = 0,
+    val miles: Double = 0.0,
+    val minutes: Int = 0,
+    val gainFt: Int? = null,
+    val lossFt: Int? = null,
+)
+
+@Serializable
+data class BackpackDto(val today: BackpackTodayDto? = null, val lastTrip: TripSummaryDto? = null)
+
+/** POST places/phone-points (server 0.779+): t is wall-clock ms. */
+@Serializable
+data class PhonePointDto(val t: Long, val lat: Double, val lng: Double, val acc: Double? = null, val speed: Double? = null, val alt: Double? = null)
+
+@Serializable
+data class PhonePointsRequest(val points: List<PhonePointDto>)
+
+@Serializable
+data class PhonePointsDto(val stored: Int = 0)
 
 /** POST workouts/backpacking: hiking answers "Hiking today?"; start + until starts a trip. */
 @Serializable

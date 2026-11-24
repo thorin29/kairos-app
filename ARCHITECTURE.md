@@ -304,6 +304,9 @@ is what that rule exists to prevent.
   (`filesDir/track.json`), the GPS foreground service and its notification,
   and the start / live / summary page with `GoForDialog`. Saved through
   `POST workouts/track` (web: `src/lib/workouts/tracked.ts`).
+- `ui/workout/TripTrack.kt` — a backpacking trip's GPS (v0.559): `TripTrack`
+  (until, mode, unsent points file) and `TripService` (the location service,
+  camp question, sending to `places/phone-points`).
 - `ui/common/AccentOutlinedButton.kt` — the accent-outlined secondary button.
 - `ui/workout/ProgramsScreen.kt` — programs: the running one and its
   end-of-cycle dialog, the chooser (Programs / My plans / Household via

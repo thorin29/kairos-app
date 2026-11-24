@@ -127,6 +127,11 @@
             android:name=".ui.workout.TrackService"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <!-- A backpacking trip's GPS, over days (v0.559). -->
+        <service
+            android:name=".ui.workout.TripService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Home-screen widget: the week's events and tasks. -->
         <receiver

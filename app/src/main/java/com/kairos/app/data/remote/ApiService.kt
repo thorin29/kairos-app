@@ -238,6 +238,12 @@ interface ApiService {
     @POST("workouts/backpacking")
     suspend fun answerBackpacking(@Body body: com.kairos.app.data.remote.dto.BackpackRequest): Response<com.kairos.app.data.remote.dto.BackpackDto>
 
+    /** A backpacking trip's GPS points (server 0.779+). Never queued: the trip
+     *  keeps its own unsent points and tries again. */
+    @retrofit2.http.Headers("X-Kairos-No-Queue: 1")
+    @POST("places/phone-points")
+    suspend fun phonePoints(@Body body: com.kairos.app.data.remote.dto.PhonePointsRequest): Response<com.kairos.app.data.remote.dto.PhonePointsDto>
+
     @POST("workouts/cardio/remove")
     suspend fun removeCardio(@Body body: com.kairos.app.data.remote.dto.CardioRemoveRequest): Response<com.kairos.app.data.remote.dto.CardioDayDto>
 

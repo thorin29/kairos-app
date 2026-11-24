@@ -740,6 +740,14 @@ class SessionRepository(
     suspend fun answerBackpacking(body: com.kairos.app.data.remote.dto.BackpackRequest): com.kairos.app.data.remote.dto.BackpackTodayDto? =
         runAuthed { requireService().answerBackpacking(body) }.today
 
+    /** Today on a trip and the last finished trip (v0.559; server 0.779+). */
+    suspend fun backpackingAll(): com.kairos.app.data.remote.dto.BackpackDto =
+        runAuthed { requireService().backpacking() }
+
+    /** Send a trip's GPS points (v0.559); throws when it couldn't. */
+    suspend fun sendPhonePoints(points: List<com.kairos.app.data.remote.dto.PhonePointDto>): Int =
+        runAuthed { requireService().phonePoints(com.kairos.app.data.remote.dto.PhonePointsRequest(points = points)) }.stored
+
     suspend fun removeCardio(date: String, sessionId: String): List<com.kairos.app.data.remote.dto.CardioEntryDto> =
         runAuthed { requireService().removeCardio(com.kairos.app.data.remote.dto.CardioRemoveRequest(date = date, sessionId = sessionId)) }.cardio
 
@@ -1496,6 +1504,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 630
+        const val CLIENT_BUILD = 631
     }
 }
