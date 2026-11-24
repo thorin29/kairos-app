@@ -1,4 +1,10 @@
 # Changelog
+## 0.561.0
+
+- 5/3/1's 7th week: pick Deload or TM test when it starts.
+- A lift's page shows the program, week and cycle without the "Today" sets line.
+- Needs server 0.783.
+
 ## 0.560.0
 
 - "Color", not "colour", in Settings and the workout timer.

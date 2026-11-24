@@ -901,7 +901,16 @@ data class ProgramInfoDto(
     val harder: HarderProgramDto? = null,
     /** In `also` only: the program's setup, for Change movements (server 0.749+). */
     val setup: CurrentSetupDto? = null,
+    /** 5/3/1's 7th week under way, not picked yet (server 0.783+). */
+    val seventhAsk: Boolean = false,
 )
+
+/** POST workouts/programs/seventh (server 0.783+). */
+@Serializable
+data class SeventhWeekRequest(val programId: String? = null, val kind: String)
+
+@Serializable
+data class SeventhWeekDto(val kind: String = "")
 
 @Serializable
 data class LiftCheckDto(val poolExerciseId: String = "", val suggest: Double = 0.0, val reason: String = "")

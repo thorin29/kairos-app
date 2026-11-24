@@ -494,6 +494,10 @@ class SessionRepository(
 
     /** Skip or un-skip one planned movement for [date]; "" = the whole plan. */
     /** Skips (or unskips) one program's workout on a day two programs share. */
+    /** Pick 5/3/1's 7th week (v0.561): "deload" or "test". */
+    suspend fun seventhWeek(programId: String?, kind: String): com.kairos.app.data.remote.dto.SeventhWeekDto =
+        runAuthed { requireService().seventhWeek(com.kairos.app.data.remote.dto.SeventhWeekRequest(programId = programId, kind = kind)) }
+
     suspend fun workoutProgramSkip(date: String, programId: String, skipped: Boolean): WorkoutAckDto =
         runAuthed {
             requireService().workoutProgramSkip(
@@ -1504,6 +1508,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 632
+        const val CLIENT_BUILD = 633
     }
 }

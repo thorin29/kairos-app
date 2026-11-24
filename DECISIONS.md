@@ -1,5 +1,13 @@
 # Decisions
 
+
+## 2026-11 — 5/3/1's 7th week; the lift page line (v0.561.0, server 0.783.0)
+
+- `ProgramInfoDto.seventhAsk` → `WorkoutLogUiState.programAsk`: a card on the
+  day page with Deload and TM test (`POST workouts/programs/seventh`).
+- The lift page shows `targetTitle` (the program line), or the sets when
+  there's none, without "Today".
+
 ## 2026-11 — Trip GPS (v0.559.0, server 0.779.0)
 
 - `TripService` (location foreground service) runs through the trip's last

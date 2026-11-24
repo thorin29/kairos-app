@@ -429,6 +429,18 @@ fun WorkoutLogScreen(
                         }
                         return@Column
                     }
+                    // 5/3/1's 7th week, not picked yet (v0.561).
+                    ui.programAsk?.takeIf { !future }?.let { (id, name) ->
+                        androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("$name \u00b7 7th week", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ProgramPill(label = "Deload", onClick = { vm.pickSeventhWeek(programId = id, kind = "deload") })
+                                    ProgramPill(label = "TM test", filled = true, onClick = { vm.pickSeventhWeek(programId = id, kind = "test") })
+                                }
+                            }
+                        }
+                    }
                     // A paused day (v0.488): household or the person's own.
                     ui.paused?.let { line ->
                         Text(line, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)

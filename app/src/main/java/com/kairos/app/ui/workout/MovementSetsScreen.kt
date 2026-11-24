@@ -303,8 +303,6 @@ fun MovementSetsScreen(
 
                     // Best weight at the usual rep counts; a chip turns green
                     // with today's weight once it's beaten.
-                    // The program's plan for today: "Today Work up to a top set ·
-                    // Strength waves · Week 2 of 4".
                     ui.suggestion?.takeIf { !ui.skipped && !preview }?.let { sg ->
                         SuggestionCard(
                             title = sg.title,
@@ -319,15 +317,11 @@ fun MovementSetsScreen(
                         }
                     }
 
-                    if (ui.targetScheme.isNotBlank()) {
-                        Text(
-                            buildString {
-                                append("Today ")
-                                append(ui.targetScheme)
-                                if (ui.targetTitle.isNotBlank()) append(" · ").append(ui.targetTitle)
-                            },
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                    // The program, its week and cycle (v0.561: no "Today <sets>"
+                    // on a program's lift); a lift without a program shows its sets.
+                    val targetLine = ui.targetTitle.ifBlank { ui.targetScheme }
+                    if (targetLine.isNotBlank()) {
+                        Text(targetLine, style = MaterialTheme.typography.labelLarge)
                     }
                     if (ui.targetUp.isNotBlank()) {
                         Text(

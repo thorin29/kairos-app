@@ -132,6 +132,8 @@ data class WorkoutLogUiState(
     /** A program day after its cycle ended, before What's next was chosen
      *  (v0.542): the program's name; the day waits for the choice. */
     val programWait: String? = null,
+    /** 5/3/1's 7th week, not picked yet (v0.561): its program id and name. */
+    val programAsk: Pair<String, String>? = null,
     /** One per program when two run today (v0.544): each its own workout. */
     val programBlocks: List<com.kairos.app.data.remote.dto.DayProgramBlockDto> = emptyList(),
     /** The day's suggestion card, hidden once answered (server 0.612+). */
@@ -382,6 +384,7 @@ class WorkoutLogViewModel(
                 // The title is the program's name (server, v0.625); this line is its week.
                 programLine = plan.program?.label ?: "",
                 programWait = plan.program?.takeIf { it.blockDone }?.name,
+                programAsk = plan.program?.takeIf { it.seventhAsk }?.let { it.id to it.name },
                 programBlocks = plan.programBlocks.takeIf { it.size >= 2 }.orEmpty(),
                 suggestion = plan.suggestion,
                 sore = plan.sore,
@@ -646,6 +649,15 @@ class WorkoutLogViewModel(
         val d = date ?: return
         viewModelScope.launch {
             runCatching { session.workoutProgramSkip(date = d, programId = programId, skipped = skipped) }
+                .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't save that.") } }
+            load()
+        }
+    }
+
+    /** Pick 5/3/1's 7th week (v0.561). */
+    fun pickSeventhWeek(programId: String, kind: String) {
+        viewModelScope.launch {
+            runCatching { session.seventhWeek(programId = programId, kind = kind) }
                 .onFailure { e -> _ui.update { it.copy(actionError = (e as? ApiException)?.error?.message ?: "Couldn't save that.") } }
             load()
         }
