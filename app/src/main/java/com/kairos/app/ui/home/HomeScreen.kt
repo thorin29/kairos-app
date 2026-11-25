@@ -962,7 +962,7 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
     if (owner == null) {
         // Should not happen inside a NavHost, but never leave a blank surface —
         // show a recoverable scaffold instead of a white screen.
-        WorkDetailScaffold("Chores", KairosIcons.Chores, Color(0xFFD97706), onBack) {
+        WorkDetailScaffold("Chores", KairosIcons.Chores, sectionFor("chores").color, onBack) {
             Text(
                 "Couldn't open this screen. Go back and try again.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -978,7 +978,7 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
 
-    WorkDetailScaffold("Chores", KairosIcons.Chores, Color(0xFFD97706), onBack) {
+    WorkDetailScaffold("Chores", KairosIcons.Chores, sectionFor("chores").color, onBack) {
         if (d == null) {
             Text("Loading\u2026", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {

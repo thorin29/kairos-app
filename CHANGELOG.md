@@ -1,4 +1,8 @@
 # Changelog
+## 0.571.0
+
+- New area colors: Workouts deep crimson, Game time magenta, Ice time navy, Chores orange.
+
 ## 0.570.0
 
 - Home: every book's reading bar is the same length, whatever its %.

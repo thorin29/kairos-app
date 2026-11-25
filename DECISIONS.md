@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Area colors made distinct (v0.571.0, server 0.792.0)
+
+- `APP_SECTIONS`: Workouts `0xFF9F1239` (was the late red `0xFFDC2626`),
+  Game time `0xFFA21CAF` (was nearly School's indigo), Ice time `0xFF1E3A8A`
+  (was nearly Reading's cyan), Chores `0xFFEA580C` (was close to Summary's
+  gold). The Chores detail screen takes `sectionFor("chores").color` instead
+  of its own literal. Same values as the web sidebar.
+- The doubled readings/workouts at midnight were server-side duplicate rows,
+  fixed in server 0.792; nothing changed in the app for it.
+
 ## 2026-11 — Reading bars the same length (v0.570.0)
 
 - The % after each home reading bar has a fixed 36dp width (right-aligned),

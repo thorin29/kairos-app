@@ -16,19 +16,22 @@ data class AppSection(
     val built: Boolean = false,
 )
 
+// Area colors (v0.571): no two alike, and none the late red — Workouts is a
+// deep crimson, Game time magenta, Ice time navy, Chores orange (apart from
+// Summary's gold). Keep in step with the web's sidebar.
 val APP_SECTIONS: List<AppSection> = listOf(
     AppSection("home", "Home", Color(0xFF0F5C63), KairosIcons.Home, built = true),
     AppSection("tasks", "Tasks", Color(0xFF334155), KairosIcons.Tasks, built = true),
     AppSection("calendar", "Calendar", Color(0xFF2563EB), KairosIcons.Calendar),
-    AppSection("chores", "Chores", Color(0xFFD97706), KairosIcons.Chores),
+    AppSection("chores", "Chores", Color(0xFFEA580C), KairosIcons.Chores),
     AppSection("bible", "Bible reading", Color(0xFF7C3AED), KairosIcons.Bible),
     AppSection("reading", "Reading", Color(0xFF0891B2), KairosIcons.Book, built = true),
     AppSection("school", "School", Color(0xFF4F46E5), KairosIcons.School),
-    AppSection("workouts", "Workouts", Color(0xFFDC2626), KairosIcons.Dumbbell),
+    AppSection("workouts", "Workouts", Color(0xFF9F1239), KairosIcons.Dumbbell),
     AppSection("groceries", "Shopping", Color(0xFF0D9488), KairosIcons.Cart),
     AppSection("money", "Money", Color(0xFF15803D), KairosIcons.Dollar, built = true),
-    AppSection("games", "Game time", Color(0xFF4338CA), KairosIcons.Gamepad, built = true),
-    AppSection("hockey", "Ice time", Color(0xFF0E7490), KairosIcons.Hockey, built = true),
+    AppSection("games", "Game time", Color(0xFFA21CAF), KairosIcons.Gamepad, built = true),
+    AppSection("hockey", "Ice time", Color(0xFF1E3A8A), KairosIcons.Hockey, built = true),
     // Places (v0.550): the web's map in a WebView; hidden until the server has it set up.
     AppSection(key = "places", label = "Family map", color = Color(0xFF4D7C0F), icon = KairosIcons.Map, built = true),
     AppSection("characters", "Characters", Color(0xFFDB2777), KairosIcons.Trophy),
