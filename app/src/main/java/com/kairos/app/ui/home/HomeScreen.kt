@@ -895,6 +895,10 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (r.behind) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                // A fixed width (v0.570), so every book's bar is the same length.
+                                textAlign = TextAlign.End,
+                                maxLines = 1,
+                                modifier = Modifier.width(36.dp),
                             )
                         }
                     }

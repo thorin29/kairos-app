@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Reading bars the same length (v0.570.0)
+
+- The % after each home reading bar has a fixed 36dp width (right-aligned),
+  so "0%" and "68%" no longer give the bars different lengths.
+
 ## 2026-11 — Plates on bar lifts; Log with missed sets (v0.569.0, server 0.791.0)
 
 - `MovementLogDto.bar` ("barbell" / "ez" / null, server 0.791) goes into

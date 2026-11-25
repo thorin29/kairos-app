@@ -1,4 +1,9 @@
 # Changelog
+## 0.570.0
+
+- Home: every book's reading bar is the same length, whatever its %.
+- Works with server 0.788 or later.
+
 ## 0.569.0
 
 - Every lift on a barbell or EZ bar has the plate calculator on each set instead of the remove X.
