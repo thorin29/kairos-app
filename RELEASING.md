@@ -32,7 +32,7 @@ is unchanged and is still just for your own testing.
    If you touched `NoteField.kt` or `IcsImport.kt`, run the web repo's
    `scripts/ics-parity/check.sh` against this clone.
 4. **Check the Kotlin you changed.** Run `python3 scripts/check-positional-args.py
-   app/src/main/java | grep -c "positional of"`. The count (237 at 0.501.0 and still 237 at 0.572.0)
+   app/src/main/java | grep -c "positional of"`. The count (237 at 0.501.0 and still 237 at 0.573.0)
    must not rise, so use named arguments. CI's Gradle build is the real
    compile.
 5. **Commit.**
@@ -53,6 +53,9 @@ The APK is signed with the same key as always, so updates install **in place**
 ## Notes
 
 - Re-running for an existing tag refreshes the assets in place (`--clobber`).
+- The publish step retries GitHub errors and always ends by publishing the
+  release (`--draft=false`), so a failed run's leftover draft doesn't hide the
+  update (0.573.0).
 - This is independent of how signing is wired on push builds. If you ever move
   signing off the push build (so the key is only used at release time), this
   workflow is its natural home — but that's an optional, separate decision.

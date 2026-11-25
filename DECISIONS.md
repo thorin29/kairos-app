@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Release publishing survives GitHub errors (v0.573.0, server 0.795.0)
+
+- 0.572.0's Release run failed twice with HTTP 500 from GitHub on creating the
+  release. The publish step now retries (4 tries, 15/30/45 s apart), treats a
+  half-made release as existing (uploads with `--clobber`), and finishes with
+  `gh release edit --draft=false`, so a leftover draft gets published — the
+  in-app updater reads only published releases.
+- The Places page and the map-style button are the web pages' (server 0.795);
+  the app shows them in the Family map as they come. No Kotlin changed.
+
 ## 2026-11 — Menu swipe below the Family map (v0.572.0, server 0.793.0)
 
 - `PlacesScreen` adds a `KairosPlaces` JS interface (`MapEdge.mapBottom`, CSS px,

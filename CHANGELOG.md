@@ -1,4 +1,9 @@
 # Changelog
+## 0.573.0
+
+- Family map: a search button opens Places — find where anyone went, and confirm places once.
+- One map-style button cycles map, satellite and terrain.
+
 ## 0.572.0
 
 - Family map: swipe right on the people list to open the menu; the map stays put while the list scrolls.
