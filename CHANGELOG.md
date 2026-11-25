@@ -1,4 +1,9 @@
 # Changelog
+## 0.577.0
+
+- Home: workouts on the tile get small bullets, green once done.
+- Chores: the get-ahead note is gone.
+
 ## 0.576.0
 
 - School and Chores: late work is a red card at the top with the count, how far back it goes and what it's in. Tap it for the Late page, oldest first, filtered by class.

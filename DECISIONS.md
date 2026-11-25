@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Workout bullets (0.577.0)
+
+- The tile's workout lines use a 5dp bullet (green when done) instead of a
+  ring and check. The Chores page's get-ahead explanation is removed.
+
 ## 2026-11 — Late work gets its own page (0.576.0)
 
 - School and Chores no longer list overdue work inline: `LateCard` (red

@@ -66,7 +66,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -902,24 +901,16 @@ private fun WorkoutSummaryCard(
     }
 }
 
-/** One workout on the home tile (v0.574): a ring, or a green check once done. */
+/** One workout on the home tile (v0.574): a small bullet (v0.577), green once done. */
 @Composable
 private fun WorkoutNameLine(name: String, done: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (done) {
-            Box(
-                modifier = Modifier.size(12.dp).clip(CircleShape).background(ChoresGreen),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("\u2713", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, lineHeight = 8.sp), color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .border(width = 1.5.dp, color = MaterialTheme.colorScheme.outline, shape = CircleShape),
-            )
-        }
+        Box(
+            Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(if (done) ChoresGreen else MaterialTheme.colorScheme.onSurface),
+        )
         Text(
             name,
             style = MaterialTheme.typography.bodyMedium,
@@ -1097,11 +1088,6 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
                         ChoreAheadRow(c, ui.busyIds.contains(c.taskId), vm)
                     }
                 }
-                Text(
-                    "Jump on an upcoming chore for a small bonus \u2014 it still counts toward its own week; the bonus is on top, this week.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             if (overdue.isEmpty() && today.isEmpty() && d.getAhead.isEmpty() && d.alwaysOpen.isEmpty() && d.upForGrabs.isEmpty()) {
                 Text("No chores right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
