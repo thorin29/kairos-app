@@ -67,6 +67,8 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
     var reopen by remember { mutableIntStateOf(0) }
     var renewals by remember { mutableIntStateOf(0) }
     val origin = remember { container.sessionRepository.serverOrigin() }
+    val openDrawer by androidx.compose.runtime.rememberUpdatedState(onOpenDrawer)
+    val edge = remember { MapEdge() }
     val webView = remember {
         WebView(context).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -77,10 +79,32 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
             // Every touch on the page belongs to the page (panning the map,
             // scrolling the list). Without this the menu's swipe-to-open took
             // over any sideways drift and cancelled the page's gesture. The
-            // menu still opens from the logo or by swiping the top bar.
+            // menu still opens from the logo or by swiping the top bar — and
+            // (v0.572) by a rightward swipe below the map, which the page
+            // reports through `KairosPlaces.mapBottom`.
+            addJavascriptInterface(edge, "KairosPlaces")
+            var downX = 0f
+            var downY = 0f
+            var belowMap = false
+            var fired = false
             setOnTouchListener { v, event ->
-                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
-                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                val density = v.resources.displayMetrics.density
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                        downX = event.x
+                        downY = event.y
+                        belowMap = edge.bottomCss > 0 && event.y > edge.bottomCss * density
+                        fired = false
+                    }
+                    android.view.MotionEvent.ACTION_MOVE -> if (belowMap && !fired) {
+                        val dx = event.x - downX
+                        val dy = event.y - downY
+                        if (dx > 56 * density && dx > 2 * kotlin.math.abs(dy)) {
+                            fired = true
+                            v.post { openDrawer() }
+                        }
+                    }
                 }
                 false
             }
@@ -208,5 +232,19 @@ private fun Message(text: String, onRetry: () -> Unit) {
     ) {
         Text(text = text, textAlign = TextAlign.Center)
         Button(onClick = onRetry) { Text("Try again") }
+    }
+}
+
+/**
+ * Where the page's map ends, in CSS px from the top (v0.572). The page calls
+ * `KairosPlaces.mapBottom(px)` on load and resize; touches below it can swipe
+ * the menu open. Called on the WebView's JS thread, so the value is volatile.
+ */
+private class MapEdge {
+    @Volatile var bottomCss: Float = 0f
+
+    @android.webkit.JavascriptInterface
+    fun mapBottom(px: Double) {
+        bottomCss = px.toFloat()
     }
 }

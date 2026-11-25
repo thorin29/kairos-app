@@ -1,4 +1,9 @@
 # Changelog
+## 0.572.0
+
+- Family map: swipe right on the people list to open the menu; the map stays put while the list scrolls.
+- Family map history: a compact top with miles, top speed and stops; only the timeline scrolls.
+
 ## 0.571.0
 
 - New area colors: Workouts deep crimson, Game time magenta, Ice time navy, Chores orange.

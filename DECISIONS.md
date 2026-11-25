@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Menu swipe below the Family map (v0.572.0, server 0.793.0)
+
+- `PlacesScreen` adds a `KairosPlaces` JS interface (`MapEdge.mapBottom`, CSS px,
+  volatile) that the embed pages call with the map's bottom edge. The WebView's
+  touch listener still keeps every touch for the page, but a drag that starts
+  below the map and goes right more than 56dp (and over twice its vertical
+  drift) calls `onOpenDrawer`. Swipes on the map still pan it.
+- The locked map / scrolling list and the history page's compact top are the
+  web pages' own layout (server 0.793); the app shows them as they come.
+
 ## 2026-11 — Area colors made distinct (v0.571.0, server 0.792.0)
 
 - `APP_SECTIONS`: Workouts `0xFF9F1239` (was the late red `0xFFDC2626`),
