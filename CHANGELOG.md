@@ -1,4 +1,9 @@
 # Changelog
+## 0.574.0
+
+- Home: with two or more workouts, each is on its own line with a ring (a check once done); the kinds go underneath. No times.
+- Works with server 0.798 or later.
+
 ## 0.573.0
 
 - Family map: a search button opens Places — find where anyone went, and confirm places once.

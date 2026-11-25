@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -77,6 +78,7 @@ import com.kairos.app.data.remote.dto.ReadingProgressDto
 import com.kairos.app.data.remote.dto.SchoolCardProgressDto
 import com.kairos.app.data.remote.dto.TaskDto
 import com.kairos.app.data.remote.dto.WorkoutBlocksDto
+import com.kairos.app.data.remote.dto.WorkoutCardDto
 import com.kairos.app.data.remote.dto.UpForGrabsDto
 import com.kairos.app.ui.common.LogoMenuButton
 import com.kairos.app.ui.common.AnimatedDialog
@@ -333,6 +335,7 @@ private fun DashboardContent(
                                     extraLogged = d.workoutExtraLogged,
                                     remaining = d.workoutRemaining.orEmpty(),
                                     blocks = d.workoutBlocks,
+                                    card = d.workoutCard,
                                     onOpen = { onLogWorkout(d.date) },
                                     modifier = m,
                                 )
@@ -726,6 +729,8 @@ private fun WorkoutSummaryCard(
     remaining: List<String> = emptyList(),
     /** Two or more workouts today (v0.540): "1 of 2 workouts"; a skipped one counts. */
     blocks: WorkoutBlocksDto? = null,
+    /** Two or more workouts (server 0.798+): each by name, and the plan's kinds. */
+    card: WorkoutCardDto? = null,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -812,6 +817,36 @@ private fun WorkoutSummaryCard(
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
+                    } else if (card != null && card.items.size >= 2) {
+                        blocksLine()
+                        // Each workout on its own line (v0.574), a ring before it
+                        // (a check once done). Three fit; past that, two and "+N more".
+                        val shown = if (card.items.size > 3) card.items.take(2) else card.items
+                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done) }
+                        if (card.items.size > 3) {
+                            Text(
+                                "+${card.items.size - 2} more",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (card.kinds.isNotEmpty()) {
+                            Text(
+                                card.kinds.joinToString(" \u00b7 "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (overdueCount > 0) {
+                            Text(
+                                "$overdueCount overdue",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     } else {
                         blocksLine()
                         val one = todayNames.singleOrNull()
@@ -864,6 +899,35 @@ private fun WorkoutSummaryCard(
                         }
                     }
                 }
+    }
+}
+
+/** One workout on the home tile (v0.574): a ring, or a green check once done. */
+@Composable
+private fun WorkoutNameLine(name: String, done: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (done) {
+            Box(
+                modifier = Modifier.size(12.dp).clip(CircleShape).background(ChoresGreen),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("\u2713", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, lineHeight = 8.sp), color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .border(width = 1.5.dp, color = MaterialTheme.colorScheme.outline, shape = CircleShape),
+            )
+        }
+        Text(
+            name,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

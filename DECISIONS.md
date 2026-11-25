@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Workouts tile lists each workout (0.574.0)
+
+- With server 0.798's `workoutCard`, two or more workouts read one per line
+  at the title size, each with a ring that turns into a green check when done,
+  then the plan's kinds ("Core · Cardio · Isometric") on one line. No event
+  times (they're in Today's schedule). Over three: the first two and
+  "+N more", so the tile doesn't grow. Older servers fall back to the old lines.
+
 ## 2026-11 — Release publishing survives GitHub errors (v0.573.0, server 0.795.0)
 
 - 0.572.0's Release run failed twice with HTTP 500 from GitHub on creating the

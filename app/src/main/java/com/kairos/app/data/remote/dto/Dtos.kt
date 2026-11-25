@@ -153,6 +153,8 @@ data class DashboardDto(
     val workoutRemaining: List<String>? = null,
     /** Two or more workouts today (server 0.745+): how many are done or skipped. */
     val workoutBlocks: WorkoutBlocksDto? = null,
+    /** The home tile (server 0.798+): each workout by name, and the plan's kinds. */
+    val workoutCard: WorkoutCardDto? = null,
     val reading: List<ReadingProgressDto> = emptyList(),
     val groups: List<TaskGroupDto> = emptyList(),
     val personalReading: PersonalReadingDto? = null,
@@ -1508,6 +1510,12 @@ data class SoreListDto(val sore: List<SoreSpotDto> = emptyList())
 
 @Serializable
 data class WorkoutBlocksDto(val done: Int = 0, val total: Int = 0)
+
+@Serializable
+data class WorkoutCardItemDto(val name: String = "", val done: Boolean = false)
+
+@Serializable
+data class WorkoutCardDto(val items: List<WorkoutCardItemDto> = emptyList(), val kinds: List<String> = emptyList())
 
 /** Cardio by activity (server 0.674+). */
 @Serializable
