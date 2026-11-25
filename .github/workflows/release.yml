@@ -100,12 +100,28 @@ jobs:
           set -euo pipefail
           TAG="${{ steps.meta.outputs.tag }}"
           VNAME="${{ steps.meta.outputs.vname }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            # Re-run for an existing tag: refresh the assets in place.
-            gh release upload "$TAG" "kairos-$VNAME.apk" latest.json --clobber
-          else
-            gh release create "$TAG" \
-              --title "Kairos $VNAME" \
-              --notes-file notes.md \
-              "kairos-$VNAME.apk" latest.json
-          fi
+          # GitHub's API sometimes answers 500 (0.572.0 hit it twice). Try each
+          # step a few times, and make sure a release left as a draft by a
+          # failed run ends up published — the app only sees published ones.
+          retry() {
+            local n=1
+            until "$@"; do
+              if [ "$n" -ge 4 ]; then return 1; fi
+              echo "Attempt $n failed; retrying in $((n * 15))s"
+              sleep $((n * 15))
+              n=$((n + 1))
+            done
+          }
+          publish() {
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              # Re-run, or a half-made release from a failed try: refresh its files.
+              gh release upload "$TAG" "kairos-$VNAME.apk" latest.json --clobber
+            else
+              gh release create "$TAG" \
+                --title "Kairos $VNAME" \
+                --notes-file notes.md \
+                "kairos-$VNAME.apk" latest.json
+            fi
+          }
+          retry publish
+          retry gh release edit "$TAG" --draft=false
