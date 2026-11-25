@@ -84,6 +84,8 @@ data class MovementSetsUi(
     val holdUnit: String? = null,
     /** Done a side at a time (server 0.642+): its timer switches sides. */
     val sides: Boolean = false,
+    /** Loaded on a bar (server 0.791+): "barbell" or "ez" (v0.569). */
+    val bar: String? = null,
 )
 
 /**
@@ -142,6 +144,7 @@ class MovementSetsViewModel(
                     repsUnit = log.repsUnit,
                     holdUnit = log.holdUnit,
                     sides = log.sides,
+                    bar = log.bar,
                     targetTitle = log.target?.title ?: "",
                     targetUp = log.target?.up.orEmpty(),
                     lastSets = last,
@@ -638,6 +641,7 @@ class MovementSetsViewModel(
                     lastDate = log.last?.date,
                     records = log.records,
                     about = log.about,
+                    bar = log.bar,
                     rows = u.rows.mapIndexed { i, r ->
                         if (r.saved || typed(r)) r
                         else r.copy(hintW = last.getOrNull(i)?.weight, hintR = last.getOrNull(i)?.reps, hintS = last.getOrNull(i)?.seconds)

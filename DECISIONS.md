@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Plates on bar lifts; Log with missed sets (v0.569.0, server 0.791.0)
+
+- `MovementLogDto.bar` ("barbell" / "ez" / null, server 0.791) goes into
+  `MovementSetsUi.bar` (and follows a swap). A WEIGHT movement with a bar sets
+  `SetCard(strict = …)`, which only decides plates vs remove; the VM's
+  `strict()` (program-fixed weights) is unchanged. `bar == "ez"` also picks
+  the EZ bar in the calculator alongside the name check.
+- "Finish early?" became "Log with missed sets?" with Keep going / Log; Log
+  is the old `leave(logTyped = true)` (finishing, `open = false`).
+  `CoreWorkoutScreen` now asks the same before `finish(true)` when any
+  non-skipped movement has sets not done.
+
 ## 2026-11 — Home page corrected to the chosen mockup (v0.568.0)
 
 - 0.567 used layout 2 (greeting with a bar); the owner chose layout 1,

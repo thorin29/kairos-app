@@ -1,4 +1,10 @@
 # Changelog
+## 0.569.0
+
+- Every lift on a barbell or EZ bar has the plate calculator on each set instead of the remove X.
+- Log with sets not done asks "Log with missed sets?"; Log saves the done sets and finishes the movement. The multi-movement workout screen asks the same.
+- Needs server 0.791 for the calculator on bar lifts; works with 0.788 or later otherwise.
+
 ## 0.568.0
 
 - The home page's top card is the greeting with a ring: date, greeting and area chips on the left, the day's progress as a ring on the right.

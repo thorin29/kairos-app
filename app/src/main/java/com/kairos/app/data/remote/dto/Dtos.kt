@@ -823,6 +823,8 @@ data class MovementLogDto(
     val holdUnit: String? = null,
     /** Done a side at a time, a set per side (server 0.642+): its timer switches sides. */
     val sides: Boolean = false,
+    /** Loaded on a bar (server 0.791+): "barbell" or "ez"; null otherwise. */
+    val bar: String? = null,
 )
 
 /** A suggestion: what, why, and the choices. Never applied on its own. */

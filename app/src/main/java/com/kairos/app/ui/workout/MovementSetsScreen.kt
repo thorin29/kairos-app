@@ -119,13 +119,14 @@ fun MovementSetsScreen(
     val preview = date > java.time.LocalDate.now().toString()
     var swapping by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
-    // Log with sets still to do asks first (v0.439); finishing early keeps them.
+    // Log with sets still to do asks first (v0.439); yes logs without them and
+    // finishes the movement (v0.569).
     var confirmLeave by remember { mutableStateOf(false) }
     if (confirmLeave) {
         val left = vm.unfinishedCount()
         AnimatedDialog(
             onDismissRequest = { confirmLeave = false },
-            title = "Finish early?",
+            title = "Log with missed sets?",
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { confirmLeave = false }) { Text("Keep going") }
             },
@@ -133,10 +134,10 @@ fun MovementSetsScreen(
                 androidx.compose.material3.TextButton(onClick = {
                     confirmLeave = false
                     vm.leave(logTyped = true)
-                }) { Text("Finish for now") }
+                }) { Text("Log") }
             },
         ) {
-            Text("$left ${if (left == 1) "set isn't" else "sets aren't"} logged yet. They'll still be here when you come back.")
+            Text("$left ${if (left == 1) "set isn't" else "sets aren't"} done. ${if (left == 1) "It won't" else "They won't"} be logged, and this movement will be finished.")
         }
     }
     // A timed movement's timer (v0.427): its time fills the set.
@@ -154,7 +155,9 @@ fun MovementSetsScreen(
 
     val isWeight = metric == "WEIGHT"
     // An EZ bar movement (v0.515): plates instead of remove, on the EZ bar.
-    val ez = isEzBar(name = ui.doingName ?: name, metric = metric)
+    val ez = isEzBar(name = ui.doingName ?: name, metric = metric) || (metric == "WEIGHT" && ui.bar == "ez")
+    // A lift on a bar (v0.569): plates in place of remove, like a program's fixed sets.
+    val onBar = metric == "WEIGHT" && ui.bar != null
     val swapped = ui.doingId != null && ui.doingId != slotId
 
     Scaffold(
@@ -386,7 +389,7 @@ fun MovementSetsScreen(
                             newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
                             jump = vm.jumpFor(r),
                             enabled = !ui.skipped,
-                            strict = vm.strict() || ez,
+                            strict = vm.strict() || ez || onBar,
                             onPlates = { w ->
                                 vm.openToolFor(r.key)
                                 onOpenCalculator("Use for set ${i + 1}", w, if (ez) "ez" else "")
@@ -484,7 +487,8 @@ private fun SetCard(
     /** Percent over the recent top, when it's a big jump. */
     jump: Int? = null,
     enabled: Boolean,
-    /** A program fixed this set's weight: plates instead of remove (v0.427). */
+    /** A program fixed this set's weight, or it's on a bar (v0.569): plates
+     *  instead of remove. */
     strict: Boolean = false,
     onPlates: (Double) -> Unit = {},
     /** A carry's reps are a distance (v0.447): "yd" / "m". */
@@ -1245,6 +1249,27 @@ fun CoreWorkoutScreen(
         }
     }
     BackHandler { finish(false) }
+    // Log with sets still to do (v0.569): yes logs what's done and finishes
+    // the workout; the rest aren't logged.
+    var confirmMissed by remember { mutableStateOf(false) }
+    if (confirmMissed) {
+        val left = vms.indices.sumOf { j -> if (states[j].skipped) 0 else vms[j].unfinishedCount() }
+        AnimatedDialog(
+            onDismissRequest = { confirmMissed = false },
+            title = "Log with missed sets?",
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmMissed = false }) { Text("Keep going") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    confirmMissed = false
+                    finish(true)
+                }) { Text("Log") }
+            },
+        ) {
+            Text("$left ${if (left == 1) "set isn't" else "sets aren't"} done. ${if (left == 1) "It won't" else "They won't"} be logged, and the workout will be finished.")
+        }
+    }
     // One answer for the workout, saved against each movement.
     var effort by remember { mutableStateOf<String?>(null) }
     var hurt by remember { mutableStateOf<String?>(null) }
@@ -1299,7 +1324,11 @@ fun CoreWorkoutScreen(
                             loading = finishing,
                             filled = true,
                             fixedHeight = 64.dp,
-                        ) { finish(true) }
+                        ) {
+                            // Sets still to do ask first (v0.569), as on one movement.
+                            if (vms.indices.sumOf { j -> if (states[j].skipped) 0 else vms[j].unfinishedCount() } > 0) confirmMissed = true
+                            else finish(true)
+                        }
                     }
                 }
             }
@@ -1403,7 +1432,8 @@ private fun CoreMoveSection(
     val ui by vm.ui.collectAsState()
     var showInfo by remember { mutableStateOf(false) }
     val shown = ui.doingName ?: name
-    val ez = isEzBar(name = shown, metric = metric)
+    val ez = isEzBar(name = shown, metric = metric) || (metric == "WEIGHT" && ui.bar == "ez")
+    val onBar = metric == "WEIGHT" && ui.bar != null
     Row(
         Modifier.fillMaxWidth().padding(top = if (first) 0.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1451,7 +1481,7 @@ private fun CoreMoveSection(
                     newBest = if (r.saved && vm.isNewBest(r)) vm.valueOf(r).reps else null,
                     jump = vm.jumpFor(r),
                     enabled = true,
-                    strict = vm.strict() || ez,
+                    strict = vm.strict() || ez || onBar,
                     onPlates = { w ->
                         vm.openToolFor(r.key)
                         onPlates("Use for set ${i + 1}", w, if (ez) "ez" else "")
