@@ -1041,6 +1041,18 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
     )
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
+    // Late work has its own page (v0.576), opened from the Late card.
+    var showLate by remember { mutableStateOf(false) }
+    val lateChores = d?.overdue?.filter { it.category == "CHORE" }?.sortedBy { it.dueDate }.orEmpty()
+    if (showLate && lateChores.isNotEmpty()) {
+        androidx.activity.compose.BackHandler { showLate = false }
+        LateWorkPage(
+            items = lateChores,
+            groupOf = { null },
+            onBack = { showLate = false },
+        ) { t -> ChoreCheckRow(t, ui.busyIds, vm) }
+        return
+    }
 
     WorkDetailScaffold("Chores", KairosIcons.Chores, sectionFor("chores").color, onBack) {
         if (d == null) {
@@ -1053,14 +1065,7 @@ fun ChoresDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit) {
             if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
                 Text("Complete for today!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
             }
-            if (overdue.isNotEmpty()) {
-                DetailSection("Overdue") {
-                    overdue.forEachIndexed { i, t ->
-                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        ChoreCheckRow(t, ui.busyIds, vm)
-                    }
-                }
-            }
+            LateCard(items = overdue, groups = overdue.map { it.title }) { showLate = true }
             if (today.isNotEmpty()) {
                 DetailSection("Today") {
                     today.forEachIndexed { i, t ->
@@ -1262,6 +1267,19 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
     val ui by vm.ui.collectAsState()
     val d = ui.dashboard
     var extraSubject by remember { mutableStateOf<String?>(null) }
+    // Late work has its own page (v0.576), opened from the Late card, with the
+    // classes to filter by.
+    var showLate by remember { mutableStateOf(false) }
+    val lateSchool = d?.overdue?.filter { it.category == "SCHOOL" }?.sortedBy { it.dueDate }.orEmpty()
+    if (showLate && lateSchool.isNotEmpty()) {
+        androidx.activity.compose.BackHandler { showLate = false }
+        LateWorkPage(
+            items = lateSchool,
+            groupOf = { schoolClassOf(it) },
+            onBack = { showLate = false },
+        ) { t -> SchoolCheckRow(t, ui.busyIds.contains(t.id), vm) }
+        return
+    }
 
     WorkDetailScaffold(
         title = "School",
@@ -1289,14 +1307,7 @@ fun SchoolWorkDetailScreen(parentEntry: NavBackStackEntry?, onBack: () -> Unit, 
             if (pending == 0 && (overdue.isNotEmpty() || today.isNotEmpty())) {
                 Text("Complete for today!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = ChoresGreen)
             }
-            if (overdue.isNotEmpty()) {
-                DetailSection("Overdue") {
-                    overdue.forEachIndexed { i, t ->
-                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        SchoolCheckRow(t, ui.busyIds.contains(t.id), vm)
-                    }
-                }
-            }
+            LateCard(items = overdue, groups = overdue.map { schoolClassOf(it) }) { showLate = true }
             if (today.isNotEmpty()) {
                 DetailSection("Today") {
                     today.forEachIndexed { i, t ->
@@ -1381,6 +1392,119 @@ private fun DetailSection(label: String, content: @Composable androidx.compose.f
         )
         OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.fillMaxWidth(), content = content) }
     }
+}
+
+/** A school row's class: the first part of its subtitle, else its title. */
+private fun schoolClassOf(task: TaskDto): String =
+    (task.subtitle ?: "").split(" \u00b7 ").firstOrNull()?.takeIf { it.isNotBlank() } ?: task.title
+
+/**
+ * Late work at the top of an area page (v0.576): red, with the count, how far
+ * back it goes and what it's in. Tap it for the Late page. Nothing still
+ * late, no card.
+ */
+@Composable
+private fun LateCard(items: List<TaskDto>, groups: List<String>, onClick: () -> Unit) {
+    val open = items.filter { it.status != "COMPLETE" }
+    if (open.isEmpty()) return
+    val red = MaterialTheme.colorScheme.error
+    val oldest = open.minOf { it.dueDate }
+    val names = groups.filterIndexed { i, _ -> items[i].status != "COMPLETE" }.distinct()
+    val what = names.take(3).joinToString(", ") + if (names.size > 3) " +${names.size - 3}" else ""
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, red.copy(alpha = 0.45f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                Modifier.size(32.dp).clip(CircleShape).background(red),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("${open.size}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+            Column(Modifier.weight(1f)) {
+                Text("Late work", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = red)
+                Text(
+                    "Oldest from ${homeShortDate(oldest)}" + if (what.isNotBlank()) " \u00b7 $what" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(KairosIcons.ChevronRight, contentDescription = "Open late work", tint = red, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/**
+ * The Late page (v0.576): every late item, oldest first, filtered by class
+ * when [groupOf] gives one. Checking one off leaves it in place until the
+ * next refresh, so the list doesn't jump under a finger.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LateWorkPage(
+    items: List<TaskDto>,
+    groupOf: (TaskDto) -> String?,
+    onBack: () -> Unit,
+    row: @Composable (TaskDto) -> Unit,
+) {
+    val red = MaterialTheme.colorScheme.error
+    val open = items.count { it.status != "COMPLETE" }
+    val groups = items.mapNotNull(groupOf).groupingBy { it }.eachCount().entries.sortedByDescending { it.value }
+    var filter by remember { mutableStateOf<String?>(null) }
+    val shown = if (filter == null) items else items.filter { groupOf(it) == filter }
+    WorkDetailScaffold(
+        title = "Late work",
+        icon = KairosIcons.Clock,
+        iconColor = red,
+        onBack = onBack,
+        actions = {
+            Text(
+                "$open",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(end = 12.dp).clip(RoundedCornerShape(999.dp)).background(red).padding(horizontal = 10.dp, vertical = 2.dp),
+            )
+        },
+    ) {
+        if (groups.size > 1) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LateChip("All ${items.size}", filter == null) { filter = null }
+                groups.forEach { (g, n) -> LateChip("$g $n", filter == g) { filter = g } }
+            }
+        }
+        DetailSection("Oldest first") {
+            shown.forEachIndexed { i, t ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                row(t)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LateChip(label: String, on: Boolean, onClick: () -> Unit) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = if (on) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
 }
 
 @Composable

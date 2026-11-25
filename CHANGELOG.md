@@ -1,4 +1,8 @@
 # Changelog
+## 0.576.0
+
+- School and Chores: late work is a red card at the top with the count, how far back it goes and what it's in. Tap it for the Late page, oldest first, filtered by class.
+
 ## 0.575.0
 
 - Workouts: "Log another workout" sits under today's workouts, not at the bottom of the planned workout.

@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Late work gets its own page (0.576.0)
+
+- School and Chores no longer list overdue work inline: `LateCard` (red
+  outline, count, oldest date, up to three classes or chores) opens
+  `LateWorkPage`, shown in place of the area page with Back returning to it.
+  School filters by class (the subtitle's first part); checked rows stay put
+  until the next refresh. No card once nothing is still late.
+
 ## 2026-11 — Log another workout up front; how it felt (0.575.0)
 
 - The day's Add button (now "Log another workout") and what was logged
