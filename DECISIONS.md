@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-11 — Home page corrected to the chosen mockup (v0.568.0)
+
+- 0.567 used layout 2 (greeting with a bar); the owner chose layout 1,
+  "Greeting with the ring", in "Kairos: Home page, chosen pieces". Fixed per
+  "Kairos: Home page, corrected" (reading B, family goal B).
+- `GreetingCard` is a row: date, greeting and `AreaChip`s on the left,
+  `DayRing` (a 56dp drawn ring, "done/total") on the right. No Material
+  `LinearProgressIndicator` on the home page any more: its end-stop dot read
+  as a progress marker at the wrong end, so bars are plain filled boxes.
+- Tiles: `TILE_MIN` (124dp) minimum height on every tile so all rows match;
+  title `bodyLarge` SemiBold in `onSurface`, text under it `bodyMedium` /
+  `bodySmall` / `labelSmall`.
+- Workouts: a single workout titled "Program · Lifts" shows the lifts as the
+  line and the program plus the day's extras under it.
+- Reading: per book, the title on its own line, then the bar with the % at its
+  end (red when behind).
+- Family goal: surface white, 1.5dp gold outline at 35%, an inner glow from
+  three stacked edge strokes at 5% (clipped to the shape), trophy, "N ideas
+  waiting" and a gold Pick/Vote pill that opens the goal page.
+
 ## 2026-11 — The home page as tiles (v0.567.0)
 
 - Mockups "Kairos: Home page, chosen pieces" (layout 2) and "Kairos: Home

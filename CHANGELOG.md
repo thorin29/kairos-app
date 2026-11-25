@@ -1,4 +1,13 @@
 # Changelog
+## 0.568.0
+
+- The home page's top card is the greeting with a ring: date, greeting and area chips on the left, the day's progress as a ring on the right.
+- Every tile is the same height. Tile titles are larger; the text under them is smaller.
+- Workouts shows the lift as its main line, with the program and the day's extras under it.
+- Reading shows each book's full title, then its bar with the % at the end — red when behind.
+- The family goal is white with a light gold outline and a soft gold glow at the edges, with a Pick (or Vote) button when ideas are waiting.
+- Works with server 0.788 or later.
+
 ## 0.567.0
 
 - New home page: a greeting with the day's progress and a chip per area, then the areas as tiles two across (an odd one spans the row), the family goal, and today's schedule.

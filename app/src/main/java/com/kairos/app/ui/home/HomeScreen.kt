@@ -35,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -679,7 +678,7 @@ private fun WorkSummaryCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         if (completeForToday) "All caught up" else summary,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = if (completeForToday) ChoresGreen else MaterialTheme.colorScheme.onSurface,
                     )
@@ -695,7 +694,7 @@ private fun WorkSummaryCard(
                         Column {
                             Text(
                                 "Your turn: ${myTurn.joinToString { it.title }}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -779,7 +778,7 @@ private fun WorkoutSummaryCard(
                         if (overdueCount > 0) {
                             Text(
                                 "$overdueCount overdue",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
@@ -802,26 +801,44 @@ private fun WorkoutSummaryCard(
                         remaining.chunked(2).forEach { pair ->
                             Text(
                                 pair.joinToString(" \u00b7 "),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                         if (overdueCount > 0) {
                             Text(
                                 "$overdueCount overdue",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
                     } else {
                         blocksLine()
-                        // Today's workout names, up to two per line, "·"-separated.
-                        todayNames.chunked(2).forEach { pair ->
+                        val one = todayNames.singleOrNull()
+                        if (one != null && one.contains(" \u00b7 ")) {
+                            // One workout (v0.568): its lifts as the line ("Bench press"),
+                            // the program under it with the day's extras ("5/3/1 · Rowing").
                             Text(
-                                pair.joinToString(" \u00b7 "),
+                                one.substringAfter(" \u00b7 "),
                                 style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
+                            Text(
+                                (listOf(one.substringBefore(" \u00b7 ")) + extras).joinToString(" \u00b7 "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            // Today's workout names, up to two per line, "·"-separated.
+                            todayNames.chunked(2).forEach { pair ->
+                                Text(
+                                    pair.joinToString(" \u00b7 "),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                         if (todayNames.isEmpty() && overdueCount == 0 && blocks == null) {
                             Text(
@@ -830,7 +847,7 @@ private fun WorkoutSummaryCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        extras.forEach { line ->
+                        if (one == null || !one.contains(" \u00b7 ")) extras.forEach { line ->
                             Text(
                                 line,
                                 style = MaterialTheme.typography.labelSmall,
@@ -841,7 +858,7 @@ private fun WorkoutSummaryCard(
                         if (overdueCount > 0) {
                             Text(
                                 "$overdueCount overdue",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
@@ -860,24 +877,26 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
         onClick = onOpen,
         modifier = modifier,
     ) {
+                // Each book (v0.568): the full title on its own line, then its bar
+                // with the % at the end — red when behind.
                 reading.forEach { r ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            r.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(Modifier.weight(1f)) { ReadingBar(r.pct, r.behind) }
                             Text(
-                                r.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                if (r.behind) "${kotlin.math.abs(r.pct)}% behind" else "${r.pct}%",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (r.behind) FontWeight.SemiBold else FontWeight.Normal,
+                                "${kotlin.math.abs(r.pct)}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
                                 color = if (r.behind) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        ReadingBar(r.pct, r.behind)
                     }
                 }
     }
@@ -1590,18 +1609,19 @@ private fun HomeTile(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // The area name is the tile's title (v0.568): larger than the text under it.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
-                Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(section.color.copy(alpha = 0.12f)),
+                Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(section.color.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(section.icon, contentDescription = null, tint = section.color, modifier = Modifier.size(16.dp))
+                Icon(section.icon, contentDescription = null, tint = section.color, modifier = Modifier.size(17.dp))
             }
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -1624,6 +1644,9 @@ private fun HomeTile(
     }
 }
 
+/** Every home tile is at least this tall (v0.568), so the rows match. */
+private val TILE_MIN = 124.dp
+
 /** Tiles two across, the same width each; an odd one at the end spans the row. */
 @Composable
 private fun TileGrid(tiles: List<@Composable (Modifier) -> Unit>) {
@@ -1634,11 +1657,11 @@ private fun TileGrid(tiles: List<@Composable (Modifier) -> Unit>) {
                     Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    pair[0](Modifier.weight(1f).fillMaxHeight())
-                    pair[1](Modifier.weight(1f).fillMaxHeight())
+                    pair[0](Modifier.weight(1f).heightIn(min = TILE_MIN).fillMaxHeight())
+                    pair[1](Modifier.weight(1f).heightIn(min = TILE_MIN).fillMaxHeight())
                 }
             } else {
-                pair[0](Modifier.fillMaxWidth())
+                pair[0](Modifier.fillMaxWidth().heightIn(min = TILE_MIN))
             }
         }
     }
@@ -1703,7 +1726,7 @@ private fun TaskTile(
         if (single != null) {
             Text(
                 single.title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (single.done) ChoresGreen else MaterialTheme.colorScheme.onSurface,
             )
@@ -1735,7 +1758,7 @@ private fun TaskTile(
                     }
                     Text(
                         l.title,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         textDecoration = if (l.done) TextDecoration.LineThrough else null,
                         color = when {
                             l.done -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -1759,9 +1782,9 @@ private fun partOfDay(hour: Int): String = when (hour) {
 }
 
 /**
- * The top card (v0.566): the date, a greeting, the day's progress as a bar
- * with "N of M done", and a chip per area — green with a check when done,
- * red when something's overdue.
+ * The top card (v0.568): the date, a greeting and a chip per area on the left
+ * (green with a check when done, red when something's overdue), the day's
+ * progress as a ring on the right.
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
@@ -1775,32 +1798,55 @@ private fun GreetingCard(name: String, dateISO: String, bars: List<CategoryBarDt
     val total = bars.sumOf { it.total }
     val done = bars.sumOf { it.complete }
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column {
-                if (date.isNotBlank()) {
-                    Text(date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column {
+                    if (date.isNotBlank()) {
+                        Text(date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text("${partOfDay(hour)}, $name", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-                Text("${partOfDay(hour)}, $name", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            if (total == 0) {
-                Text("Nothing scheduled yet today.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    LinearProgressIndicator(
-                        progress = { done / total.toFloat() },
-                        modifier = Modifier.weight(1f),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                    Text("$done of $total done", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                androidx.compose.foundation.layout.FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    bars.filter { it.total > 0 || it.overdue > 0 }.forEach { b -> AreaChip(b) }
+                if (total == 0) {
+                    Text("Nothing scheduled yet today.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        bars.filter { it.total > 0 || it.overdue > 0 }.forEach { b -> AreaChip(b) }
+                    }
                 }
             }
+            if (total > 0) DayRing(done = done, total = total)
         }
+    }
+}
+
+/** The day's progress as a ring with "done/total" inside (v0.568). */
+@Composable
+private fun DayRing(done: Int, total: Int) {
+    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val fill = KairosThemeState.accent
+    val frac = (done.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    Box(
+        Modifier.size(56.dp).drawBehind {
+            val w = 6.dp.toPx()
+            val inset = w / 2f
+            val arcSize = androidx.compose.ui.geometry.Size(size.width - w, size.height - w)
+            val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+            val stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = w, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawArc(color = track, startAngle = 0f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = stroke)
+            if (frac > 0f) {
+                drawArc(color = fill, startAngle = -90f, sweepAngle = 360f * frac, useCenter = false, topLeft = topLeft, size = arcSize, style = stroke)
+            }
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("$done/$total", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -2179,67 +2225,89 @@ private fun FamilyGoalCard(
     val meeting = if (carried != null) carried.childrenMeeting else c.childrenMeeting
     val done = carried == null && selected == null && granted != null
 
-    // Outlined in Summary's gold (v0.566), where the goal's progress lives.
-    OutlinedCard(
-        Modifier.fillMaxWidth().clickable { onOpen() },
-        border = androidx.compose.foundation.BorderStroke(1.dp, sectionFor("summary").color.copy(alpha = 0.5f)),
-    ) {
-        // A soft gold wash from the left (v0.566), like a banner.
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    androidx.compose.ui.graphics.Brush.horizontalGradient(
-                        listOf(sectionFor("summary").color.copy(alpha = 0.14f), Color.Transparent),
-                    ),
-                )
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (done) "Earned" else "Family goal",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    monthLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (carried != null) Color(0xFFB45309) else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            if (title == null) {
-                Text(
-                    "${c.proposals.size} idea${if (c.proposals.size == 1) "" else "s"} waiting \u2014 " +
-                        if (c.homeNudge == "pick") "pick this month\u2019s goal." else "vote for the one you want.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                return@Column
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (done) {
-                    Icon(
-                        KairosIcons.Trophy,
-                        contentDescription = null,
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(18.dp),
+    // White with a light gold outline and a soft gold glow at the edges
+    // (v0.568) — Summary's gold, where the goal's progress lives.
+    val gold = sectionFor("summary").color
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .drawBehind {
+                // Strokes centred on the edge; the clip keeps only the inner half,
+                // so stacking them fades the gold inward.
+                listOf(28.dp, 18.dp, 10.dp).forEach { w ->
+                    drawRoundRect(
+                        color = gold.copy(alpha = 0.05f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(18.dp.toPx()),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w.toPx()),
                     )
                 }
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            .border(1.5.dp, gold.copy(alpha = 0.35f), shape)
+            .clickable { onOpen() }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(
+                    KairosIcons.Trophy,
+                    contentDescription = null,
+                    tint = if (done) Color(0xFF10B981) else gold,
+                    modifier = Modifier.size(22.dp),
+                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (done) "Earned" else "Family goal",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        when {
+                            title != null -> title
+                            else -> "${c.proposals.size} idea${if (c.proposals.size == 1) "" else "s"} waiting"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+                if (title == null) {
+                    // Picking or voting is on the goal page; the pill opens it.
+                    Text(
+                        if (c.homeNudge == "pick") "Pick" else "Vote",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(gold)
+                            .clickable { onOpen() }
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                } else {
+                    Text(
+                        monthLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (carried != null) Color(0xFFB45309) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
-            if (!done) {
-                LinearProgressIndicator(
-                    progress = {
-                        if (c.childrenTotal > 0) meeting.toFloat() / c.childrenTotal.toFloat() else 0f
-                    },
-                    color = if (gateMet) Color(0xFF10B981) else KairosThemeState.accent,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            if (title != null && !done) {
+                // A plain bar that fills from the left (v0.568) — no end dot.
+                val frac = if (c.childrenTotal > 0) (meeting.toFloat() / c.childrenTotal.toFloat()).coerceIn(0f, 1f) else 0f
+                Box(
+                    Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
+                ) {
+                    Box(
+                        Modifier.fillMaxWidth(frac).fillMaxHeight().clip(RoundedCornerShape(999.dp))
+                            .background(if (gateMet) Color(0xFF10B981) else gold),
+                    )
+                }
                 Text(
                     if (gateMet) "$meeting of ${c.childrenTotal} finished \u2014 ready to check off"
                     else "$meeting of ${c.childrenTotal} finished their month",
@@ -2259,6 +2327,5 @@ private fun FamilyGoalCard(
                     }
                 }
             }
-        }
     }
 }
