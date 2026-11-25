@@ -305,6 +305,56 @@ fun WorkoutLogScreen(
                     if (dayBlocks.isNotEmpty() && view != "list") {
                         TextButton(onClick = { pick = "list" }) { Text("\u2190 Today\u2019s workouts") }
                     }
+                    // What was logged besides the plan, and the button to log
+                    // another workout (v0.575: under Today's workouts, not at the
+                    // bottom of the planned workout where it was hard to find).
+                    val additional: @Composable () -> Unit = {
+                        // What was logged outside the day's plans (an older plan, a
+                        // one-off), so a past day shows what was done (v0.431).
+                        if (ui.loggedOther.isNotEmpty()) {
+                            Text(
+                                "ADDITIONAL",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                            // Name only (v0.482); tap for what was done.
+                            ui.loggedOther.forEach { g ->
+                                OutlinedCard(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { if (g.sport != null) editSport = g else otherOpen = g },
+                                ) {
+                                    Row(
+                                        Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(g.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                            Text(
+                                                if (g.lines.size == 1 && g.lines[0].name == g.name) g.lines[0].summary
+                                                else "${g.lines.size} " + if (g.lines.size == 1) "movement" else "movements",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                        // The day's one Add button (v0.491): a short pop-up of kinds,
+                        // each opening a full page.
+                        AccentOutlinedButton(onClick = { addingMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("Log another workout", modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
                     if (view == "list") {
                         ui.date?.let { d ->
                             DayHeader(
@@ -332,6 +382,7 @@ fun WorkoutLogScreen(
                             onOpen = { pick = it },
                             onAnswer = { id, went -> vm.answerSport(eventId = id, went = went) },
                         )
+                        if (!future) additional()
                         return@Column
                     }
                     val openSport = ui.sports.firstOrNull { it.eventId == view }
@@ -706,46 +757,6 @@ fun WorkoutLogScreen(
                         }
                     }
 
-                    // What was logged outside the day's plans (an older plan, a
-                    // one-off), so a past day shows what was done (v0.431).
-                    if (ui.loggedOther.isNotEmpty()) {
-                        Text(
-                            "ADDITIONAL",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                        // Name only (v0.482); tap for what was done.
-                        ui.loggedOther.forEach { g ->
-                            OutlinedCard(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { if (g.sport != null) editSport = g else otherOpen = g },
-                            ) {
-                                Row(
-                                    Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 14.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Icon(KairosIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(g.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                        Text(
-                                            if (g.lines.size == 1 && g.lines[0].name == g.name) g.lines[0].summary
-                                            else "${g.lines.size} " + if (g.lines.size == 1) "movement" else "movements",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                    Icon(KairosIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
-                    }
-
                     if (ui.actionError != null) {
                         Text(
                             ui.actionError!!,
@@ -754,13 +765,11 @@ fun WorkoutLogScreen(
                         )
                     }
 
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
-
-                    // The day's one Add button (v0.491): a short pop-up of kinds,
-                    // each opening a full page.
-                    AccentOutlinedButton(onClick = { addingMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text("Additional", modifier = Modifier.padding(start = 6.dp))
+                    // With no workouts listed, what was logged and the Add
+                    // button sit here; otherwise on Today's workouts (v0.575).
+                    if (dayBlocks.isEmpty()) {
+                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        additional()
                     }
                 }
             }

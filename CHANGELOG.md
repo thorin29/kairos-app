@@ -1,4 +1,10 @@
 # Changelog
+## 0.575.0
+
+- Workouts: "Log another workout" sits under today's workouts, not at the bottom of the planned workout.
+- Logging another workout now asks how it felt, like cardio and conditioning.
+- The Log it page is on a white card, and the picked chip fills in.
+
 ## 0.574.0
 
 - Home: with two or more workouts, each is on its own line with a ring (a check once done); the kinds go underneath. No times.

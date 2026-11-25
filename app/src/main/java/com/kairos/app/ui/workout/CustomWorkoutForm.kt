@@ -1,6 +1,7 @@
 package com.kairos.app.ui.workout
 import com.kairos.app.ui.nav.KairosIcons
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -82,8 +83,13 @@ fun LogWorkoutPage(date: String, kind: String, onLogged: () -> Unit, onDismiss: 
         WizardStep.VALUE -> !ui.isHiit && !ui.isWeights && ui.category?.isPool != true
         WizardStep.TYPE -> true
     }
-    val back: () -> Unit = { if (ui.step == WizardStep.TYPE || (single && backToType)) onDismiss() else vm.back() }
-    val title = if (ui.step == WizardStep.TYPE) {
+    val back: () -> Unit = {
+        if (ui.feedbackSlot != null) vm.finish()
+        else if (ui.step == WizardStep.TYPE || (single && backToType)) onDismiss() else vm.back()
+    }
+    val title = if (ui.feedbackSlot != null) {
+        "How did it go?"
+    } else if (ui.step == WizardStep.TYPE) {
         LOG_KINDS.firstOrNull { it.first == kind }?.second ?: stepTitle(ui)
     } else {
         stepTitle(ui)
@@ -92,6 +98,19 @@ fun LogWorkoutPage(date: String, kind: String, onLogged: () -> Unit, onDismiss: 
     FullPage(title = title, onBack = back) {
         if (ui.loading) {
             CircularProgressIndicator(Modifier.padding(32.dp).align(Alignment.CenterHorizontally))
+        } else if (ui.feedbackSlot != null) {
+            // Logged: how did it feel? (v0.575) Optional; Done leaves either way.
+            androidx.compose.material3.Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("Logged", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    EffortChooser(question = "How did it feel?", effort = ui.effort, hurt = ui.hurt, onChange = { e, h -> vm.feedback(effort = e, hurt = h) })
+                    Button(onClick = { vm.finish() }, modifier = Modifier.fillMaxWidth()) { Text("Done") }
+                }
+            }
         } else if (ui.step == WizardStep.VALUE) {
             ValueStep(ui, vm)
         } else androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth()) {
@@ -140,7 +159,13 @@ fun LogWorkoutPage(date: String, kind: String, onLogged: () -> Unit, onDismiss: 
 
 @Composable
 private fun ValueStep(ui: CustomUiState, vm: CustomWorkoutViewModel) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    // On a white card (v0.575) so the fields and chips don't sink into the page.
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         val what = when {
             ui.isHiit -> ui.selectedHiit?.name ?: ""
             ui.isWeights || ui.category?.isPool == true -> ui.exercisesForStep.firstOrNull { it.id == ui.exerciseId }?.name ?: ""
@@ -156,15 +181,18 @@ private fun ValueStep(ui: CustomUiState, vm: CustomWorkoutViewModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 metrics.forEach { m ->
                     val sel = ui.metricKey == m.key
+                    // The picked one filled in the accent (v0.575), like the app's other chips.
                     Text(
                         m.label,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
+                            .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
                             .border(
                                 1.dp,
-                                if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                                 RoundedCornerShape(20.dp),
                             )
                             .clickable { vm.pickMetric(m.key) }
@@ -244,6 +272,7 @@ private fun ValueStep(ui: CustomUiState, vm: CustomWorkoutViewModel) {
             }
             Text("Log it")
         }
+    }
     }
 }
 

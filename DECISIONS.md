@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Log another workout up front; how it felt (0.575.0)
+
+- The day's Add button (now "Log another workout") and what was logged
+  besides the plan moved to Today's workouts, under the list. The day page
+  keeps them only when there's no list (nothing planned).
+- The log flow ends on "How did it go?": `EffortChooser`, saved with the
+  existing feedback endpoint. Slot: the pool movement's id, `hiit:<id>`, or
+  `custom:<category>`. Done or Back leaves.
+- Log it's value step is on a surface card; the picked metric chip is filled.
+
 ## 2026-11 — Workouts tile lists each workout (0.574.0)
 
 - With server 0.798's `workoutCard`, two or more workouts read one per line

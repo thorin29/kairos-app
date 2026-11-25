@@ -40,6 +40,10 @@ data class CustomUiState(
     val error: String? = null,
     val done: Boolean = false,
     val conflict: WorkoutConflictDto? = null,
+    /** Logged (v0.575): "How did it feel?" is asked for this feedback slot. */
+    val feedbackSlot: String? = null,
+    val effort: String? = null,
+    val hurt: String? = null,
 ) {
     val category: LogCategoryDto? get() = categories.firstOrNull { it.key == categoryKey }
     val metric: MetricOptionDto? get() = category?.metrics?.firstOrNull { it.key == metricKey }
@@ -193,7 +197,14 @@ class CustomWorkoutViewModel(
                 if (ack.status == "conflict" && ack.conflict != null) {
                     _ui.update { it.copy(saving = false, conflict = ack.conflict) }
                 } else {
-                    _ui.update { it.copy(saving = false, done = true) }
+                    // Then "How did it feel?" (v0.575), like cardio and conditioning:
+                    // a pool movement by its id, a HIIT workout, else the category.
+                    val slot = when {
+                        s.isHiit -> "hiit:${s.hiitWorkoutId}"
+                        s.category?.isPool == true -> s.exerciseId
+                        else -> "custom:${s.categoryKey}"
+                    }
+                    _ui.update { it.copy(saving = false, feedbackSlot = slot) }
                 }
             } catch (e: ApiException) {
                 _ui.update { it.copy(saving = false, error = e.error.message) }
@@ -208,4 +219,19 @@ class CustomWorkoutViewModel(
     }
 
     fun dismissConflict() = _ui.update { it.copy(conflict = null) }
+
+    /** How it felt (v0.575): saved as it's picked; the whole answer each time. */
+    fun feedback(effort: String?, hurt: String?) {
+        val slot = _ui.value.feedbackSlot ?: return
+        _ui.update { it.copy(effort = effort, hurt = hurt) }
+        viewModelScope.launch {
+            runCatching {
+                session.saveFeedback(
+                    com.kairos.app.data.remote.dto.FeedbackRequest(date = date, slot = slot, effort = effort, hurt = hurt),
+                )
+            }
+        }
+    }
+
+    fun finish() = _ui.update { it.copy(done = true) }
 }
