@@ -360,7 +360,9 @@ fun WorkoutLogScreen(
                             DayHeader(
                                 date = d,
                                 today = today,
-                                title = if (dayBlocks.size == 1) "1 workout" else "${dayBlocks.size} workouts",
+                                // An event you didn't go to stays listed (to change the
+                                // answer) but isn't counted (v0.580).
+                                title = dayBlocks.count { it.sport?.state != "skipped" }.let { n -> if (n == 1) "1 workout" else "$n workouts" },
                                 progress = 0 to 0,
                                 late = lateDay,
                                 strip = ui.strip,

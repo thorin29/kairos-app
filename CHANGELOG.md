@@ -1,4 +1,8 @@
 # Changelog
+## 0.580.0
+
+- Workouts: a practice or game you said you didn't go to no longer counts in the day's "N workouts".
+
 ## 0.579.0
 
 - Home: a workout's details on the tile are in a smaller font.

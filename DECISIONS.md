@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Didn't go isn't a workout (0.580.0)
+
+- The day page's heading counts blocks except a sport answered "didn't go";
+  that event stays listed so the answer can be changed. The tile and the
+  greeting chip come from the server (0.808).
+
 ## 2026-11 — Smaller workout details (0.579.0)
 
 - The detail under a workout's name on the tile is 10sp.
