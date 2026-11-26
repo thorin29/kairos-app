@@ -102,13 +102,13 @@ internal class TimerSettings(private val prefs: SharedPreferences) {
     var lookFamily by mutableStateOf(prefs.getString("t_look_family", "COLOR") ?: "COLOR")
         private set
 
-    fun saveSound(v: Boolean) { sound = v; prefs.edit().putBoolean("t_sound", v).apply() }
-    fun saveVibrate(v: Boolean) { vibrate = v; prefs.edit().putBoolean("t_vibrate", v).apply() }
-    fun saveLead(v: Int) { lead = v; prefs.edit().putInt("t_lead", v).apply() }
-    fun saveSideGap(v: Int) { sideGap = v; prefs.edit().putInt("t_side_gap", v).apply() }
-    fun saveRightFirst(v: Boolean) { rightFirst = v; prefs.edit().putBoolean("t_right_first", v).apply() }
-    fun saveLook(v: String) { look = v; prefs.edit().putString("t_look", v).apply() }
-    fun saveLookFamily(v: String) { lookFamily = v; prefs.edit().putString("t_look_family", v).apply() }
+    fun setSound(v: Boolean) { sound = v; prefs.edit().putBoolean("t_sound", v).apply() }
+    fun setVibrate(v: Boolean) { vibrate = v; prefs.edit().putBoolean("t_vibrate", v).apply() }
+    fun setLead(v: Int) { lead = v; prefs.edit().putInt("t_lead", v).apply() }
+    fun setSideGap(v: Int) { sideGap = v; prefs.edit().putInt("t_side_gap", v).apply() }
+    fun setRightFirst(v: Boolean) { rightFirst = v; prefs.edit().putBoolean("t_right_first", v).apply() }
+    fun setLook(v: String) { look = v; prefs.edit().putString("t_look", v).apply() }
+    fun setLookFamily(v: String) { lookFamily = v; prefs.edit().putString("t_look_family", v).apply() }
 
     fun lookFor(family: Boolean) = if (family) lookFamily else look
 }
@@ -217,7 +217,7 @@ internal fun TimerFace(
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Back", color = ink.soft, fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { settings.saveSound(!settings.sound) }) {
+            TextButton(onClick = { settings.setSound(!settings.sound) }) {
                 Text(if (settings.sound) "Sound on" else "Sound off", color = ink.soft)
             }
             IconButton(onClick = { showSettings = true }) {
@@ -384,19 +384,19 @@ internal fun TimerSettingsSheet(settings: TimerSettings, onDismiss: () -> Unit) 
     ) {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TkLabel("Look for my workouts")
-            TkSegment(listOf("RING" to "Ring", "COLOR" to "Full color"), settings.look) { settings.saveLook(it) }
+            TkSegment(listOf("RING" to "Ring", "COLOR" to "Full color"), settings.look) { settings.setLook(it) }
             TkLabel("Look for Family WOD")
-            TkSegment(listOf("RING" to "Ring", "COLOR" to "Full color"), settings.lookFamily) { settings.saveLookFamily(it) }
+            TkSegment(listOf("RING" to "Ring", "COLOR" to "Full color"), settings.lookFamily) { settings.setLookFamily(it) }
             TkLabel("Background")
             TkSegment(listOf("DARK" to "Dark", "LIGHT" to "Light", "APP" to "Match app"), theme) { v -> scope.launch { store.setTimerTheme(v) } }
-            TkSwitchRow("Sound", settings.sound) { settings.saveSound(it) }
-            TkSwitchRow("Vibration", settings.vibrate) { settings.saveVibrate(it) }
+            TkSwitchRow("Sound", settings.sound) { settings.setSound(it) }
+            TkSwitchRow("Vibration", settings.vibrate) { settings.setVibrate(it) }
             TkLabel("Get ready")
-            TkSegment(TIMER_LEADS.map { it.toString() to "${it}s" }, settings.lead.toString()) { settings.saveLead(it.toInt()) }
+            TkSegment(TIMER_LEADS.map { it.toString() to "${it}s" }, settings.lead.toString()) { settings.setLead(it.toInt()) }
             TkLabel("Pause between sides")
-            TkSegment(SIDE_GAPS.map { it.toString() to "${it}s" }, settings.sideGap.toString()) { settings.saveSideGap(it.toInt()) }
+            TkSegment(SIDE_GAPS.map { it.toString() to "${it}s" }, settings.sideGap.toString()) { settings.setSideGap(it.toInt()) }
             TkLabel("Start side")
-            TkSegment(listOf("L" to "Left", "R" to "Right"), if (settings.rightFirst) "R" else "L") { settings.saveRightFirst(it == "R") }
+            TkSegment(listOf("L" to "Left", "R" to "Right"), if (settings.rightFirst) "R" else "L") { settings.setRightFirst(it == "R") }
             TkLabel("Numbers")
             TimerLookPicker(
                 options = TIMER_FONTS,
