@@ -81,11 +81,12 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
             // over any sideways drift and cancelled the page's gesture. The
             // menu still opens from the logo or by swiping the top bar — and
             // (v0.572) by a rightward swipe below the map, which the page
-            // reports through `KairosPlaces.mapBottom`.
+            // reports through `KairosPlaces.mapBottom`. v0.584: anywhere off
+            // the map (`mapBand`), so pages with no map swipe everywhere.
             addJavascriptInterface(edge, "KairosPlaces")
             var downX = 0f
             var downY = 0f
-            var belowMap = false
+            var offMap = false
             var fired = false
             setOnTouchListener { v, event ->
                 val density = v.resources.displayMetrics.density
@@ -94,10 +95,10 @@ fun PlacesScreen(onOpenDrawer: () -> Unit) {
                         v.parent?.requestDisallowInterceptTouchEvent(true)
                         downX = event.x
                         downY = event.y
-                        belowMap = edge.bottomCss > 0 && event.y > edge.bottomCss * density
+                        offMap = edge.swipeAt(event.y / density)
                         fired = false
                     }
-                    android.view.MotionEvent.ACTION_MOVE -> if (belowMap && !fired) {
+                    android.view.MotionEvent.ACTION_MOVE -> if (offMap && !fired) {
                         val dx = event.x - downX
                         val dy = event.y - downY
                         if (dx > 56 * density && dx > 2 * kotlin.math.abs(dy)) {
@@ -236,15 +237,30 @@ private fun Message(text: String, onRetry: () -> Unit) {
 }
 
 /**
- * Where the page's map ends, in CSS px from the top (v0.572). The page calls
- * `KairosPlaces.mapBottom(px)` on load and resize; touches below it can swipe
- * the menu open. Called on the WebView's JS thread, so the value is volatile.
+ * Where the page's map is, in CSS px from the top (v0.572; a band v0.584).
+ * The page calls `KairosPlaces.mapBand(top, bottom)` (0, 0 = no map) on load,
+ * resize and scroll; a touch off the band can swipe the menu open. Older pages
+ * call `mapBottom(px)`, a map from the top. Nothing reported yet: no swipe.
+ * Called on the WebView's JS thread, so the values are volatile.
  */
 private class MapEdge {
-    @Volatile var bottomCss: Float = 0f
+    @Volatile private var known: Boolean = false
+    @Volatile private var topCss: Float = 0f
+    @Volatile private var bottomCss: Float = 0f
+
+    fun swipeAt(yCss: Float): Boolean = known && (bottomCss <= topCss || yCss < topCss || yCss > bottomCss)
 
     @android.webkit.JavascriptInterface
     fun mapBottom(px: Double) {
+        topCss = 0f
         bottomCss = px.toFloat()
+        known = px > 0
+    }
+
+    @android.webkit.JavascriptInterface
+    fun mapBand(top: Double, bottom: Double) {
+        topCss = top.toFloat()
+        bottomCss = bottom.toFloat()
+        known = true
     }
 }

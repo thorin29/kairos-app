@@ -1,4 +1,8 @@
 # Changelog
+## 0.584.0
+
+- Family map: swipe right to open the menu anywhere off a map, so History and other pages with no map swipe everywhere.
+
 ## 0.583.0
 
 - Warm-ups: every step has an ⓘ with Watch how.

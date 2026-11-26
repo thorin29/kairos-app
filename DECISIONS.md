@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Menu swipe off the map (0.584.0, web 0.812.2)
+
+- The Family map page now reports the band its map takes (`KairosPlaces.mapBand(top, bottom)`,
+  0,0 for none) instead of only where the map ends. A rightward swipe anywhere off the band opens
+  the menu, so History, All places and the place lists swipe everywhere; the place sheet's map and
+  the add-stop pin picker keep their swipes for panning. Older pages still call `mapBottom`.
+
 ## 2026-11 — Watch how on warm-up steps (0.583.0)
 
 - A warm-up step's ⓘ shows on every step and opens `MovementInfoDialog`
