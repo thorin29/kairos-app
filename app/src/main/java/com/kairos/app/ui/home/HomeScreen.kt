@@ -750,7 +750,7 @@ private fun WorkoutSummaryCard(
             !restDay && todayNames.isEmpty() && overdueCount == 0 && (hadWork || (rest == "skipped" && extraLogged))
         }
     val blocksLine: @Composable () -> Unit = {
-        if (blocks != null) {
+        if (blocks != null && blocks.total >= 2) {
             Text(
                 "${blocks.done} of ${blocks.total} workouts",
                 style = MaterialTheme.typography.labelSmall,
@@ -787,19 +787,12 @@ private fun WorkoutSummaryCard(
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
-                    } else if (completeForToday) {
-                        Text(
-                            "Complete for today!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ChoresGreen,
-                        )
                     } else if (card != null && card.items.size >= 2) {
                         blocksLine()
                         // Each workout on its own line (v0.574), a ring before it
                         // (a check once done). Three fit; past that, two and "+N more".
                         val shown = if (card.items.size > 3) card.items.take(2) else card.items
-                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done, detail = item.detail, inProgress = remaining.isNotEmpty()) }
+                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done, detail = item.detail, inProgress = remaining.isNotEmpty(), skipped = item.skipped) }
                         if (card.items.size > 3) {
                             Text(
                                 "+${card.items.size - 2} more",
@@ -825,6 +818,13 @@ private fun WorkoutSummaryCard(
                                 color = MaterialTheme.colorScheme.error,
                             )
                         }
+                    } else if (completeForToday) {
+                        Text(
+                            "Complete for today!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChoresGreen,
+                        )
                     } else if (remaining.isNotEmpty()) {
                         // Started, not finished (v0.581): the workout and "In
                         // progress" in italics, not its remaining parts.
@@ -912,21 +912,29 @@ private fun WorkoutSummaryCard(
  * "In progress" in italics there while it's started and not done.
  */
 @Composable
-private fun WorkoutNameLine(name: String, done: Boolean, detail: String?, inProgress: Boolean) {
+private fun WorkoutNameLine(name: String, done: Boolean, detail: String?, inProgress: Boolean, skipped: Boolean = false) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             Modifier
                 .padding(top = 9.dp)
                 .size(3.dp)
                 .clip(CircleShape)
-                .background(if (done) ChoresGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
+                .background(
+                    if (done) ChoresGreen
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (skipped) 0.3f else 0.5f),
+                ),
         )
         Column {
+            // Didn't go (v0.582): greyed out, still listed.
             Text(
                 name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (done) ChoresGreen else MaterialTheme.colorScheme.onSurface,
+                color = when {
+                    done -> ChoresGreen
+                    skipped -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

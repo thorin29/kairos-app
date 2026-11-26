@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — The list stays; didn't-go greyed (0.582.0)
+
+- With a `workoutCard`, the tile shows its list before "Complete for today!",
+  so a finished day still reads each workout (done in green). A skipped
+  practice or game (`skipped`) is greyed; "N of M workouts" only shows with two
+  or more counted.
+
 ## 2026-11 — In progress; green when done (0.581.0)
 
 - The Workouts tile no longer lists the remaining parts of a started
