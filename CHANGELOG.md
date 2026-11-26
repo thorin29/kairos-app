@@ -1,4 +1,8 @@
 # Changelog
+## 0.579.0
+
+- Home: a workout's details on the tile are in a smaller font.
+
 ## 0.578.0
 
 - Home: workout bullets are tiny, and each workout's details sit under its own name (server 0.805+).

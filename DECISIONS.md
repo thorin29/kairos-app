@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-11 — Smaller workout details (0.579.0)
+
+- The detail under a workout's name on the tile is 10sp.
+
 ## 2026-11 — Details under the workout (0.578.0)
 
 - `WorkoutCardItemDto.detail` shows under its workout's name, lined up with
