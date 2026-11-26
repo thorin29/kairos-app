@@ -438,6 +438,9 @@ data class WorkoutPlanDto(
     /** What was logged that day outside its plans, so a past day shows what
      *  was done (server 0.623+). */
     val loggedOther: List<LoggedOtherDto> = emptyList(),
+    /** Walks, runs, rucks and hikes tracked in the app, listed with the day's
+     *  workouts (server 0.813+). */
+    val tracked: List<TrackedItemDto> = emptyList(),
     /** Anything at all logged that day (server 0.623+). */
     val loggedAny: Boolean = false,
     /** Marked a rest day (server 0.624+). */
@@ -4230,3 +4233,15 @@ data class NotifyPrefsRequest(val prefs: NotifyPrefsDto = NotifyPrefsDto())
 
 @Serializable
 data class NotifyPrefsSavedDto(val prefs: NotifyPrefsDto = NotifyPrefsDto())
+
+/** A walk, run, ruck or hike tracked in the app, or a trip day (server 0.813+). */
+@Serializable
+data class TrackedItemDto(
+    val sessionId: String? = null,
+    val activity: String = "",
+    val name: String = "",
+    val label: String = "",
+    val distance: String? = null,
+    val minutes: Int? = null,
+    val startAt: String? = null,
+)

@@ -328,10 +328,14 @@ is what that rule exists to prevent.
   card) and `ConditioningCard.kt` (the day's planned conditioning workout).
   `PlanFileSheets.kt` — export, import and household plans as full pages (web
   `plan-file-panel.tsx`).
-- `ui/workout/AdditionalPicker.kt` — the day's single **+ Additional**
-  (`AdditionalMenu`: Conditioning, Family WOD, Strength, Cardio, Sport,
-  Mobility, Stretching, Isometrics, something else), `ExtraPickerPage`, and
-  `logCategoriesFor` (which log categories each kind offers).
+- `ui/workout/AdditionalPicker.kt` — `logCategoriesFor` (which log
+  categories each kind offers).
+- `ui/workout/DayTools.kt` (0.585) — the workout day's Train and Tools tiles
+  (`DayTiles`), Log another (`LogAnotherPage`), `RoutinesPage` and the free
+  Timer (`FreeTimerPage`).
+- `ui/workout/TimerKit.kt` (0.585) — one timer for every timer: `TimerFace`
+  (Ring or Full color, bar, now/next), `TimerSettings`, `TimerCues`,
+  `TimerSettingsSheet`.
 - `ui/workout/FamilyWod.kt` — Family WOD: the day card, the board, the
   screen (`FamilyWodScreen`; the person on the device first, nobody selected
   by default) and the parent's edit page (web `family-wod.tsx`).

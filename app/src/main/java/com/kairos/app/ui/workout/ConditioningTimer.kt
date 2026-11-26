@@ -112,24 +112,27 @@ internal fun timerPalette(): TimerPalette {
 }
 
 /**
- * The full-screen conditioning timer (the web's ConditioningTimer and the
- * mockup's Timer): get ready, then the format's clock with tones on the alarm
- * stream (audible over music) and vibration, "+1 round" on an AMRAP, Done on a
- * stopwatch, and the result filled in at the end. The screen stays on while
- * it runs. Sound and the get-ready length are kept on this phone.
+ * The full-screen conditioning timer (the web's ConditioningTimer): get ready,
+ * then the format's clock with the shared face, cues and settings (v0.585,
+ * TimerKit), "+1 round" on an AMRAP, Done on a stopwatch, and the result
+ * filled in at the end. [custom] runs a timer of its own (the free Timer) and
+ * [logging] false leaves out the result. A Family WOD uses its own look.
  */
 @Composable
 internal fun ConditioningTimer(
     workout: ConditioningPlanDto,
     onLog: (Int, String) -> Unit,
     onClose: () -> Unit,
+    custom: TimerPlan? = null,
+    logging: Boolean = true,
 ) {
     val context = LocalContext.current
     val pal = timerPalette()
-    val prefs = remember { context.getSharedPreferences("kairos_timer", Context.MODE_PRIVATE) }
-    val plan = remember(workout) { timerPlanFor(workout.type, workout.capSec, workout.movements.map { it.name }) }
-    var sound by remember { mutableStateOf(prefs.getBoolean("sound", true)) }
-    var lead by remember { mutableIntStateOf(prefs.getInt("lead", 10).takeIf { it in TIMER_LEADS } ?: 10) }
+    val settings = rememberTimerSettings()
+    val cues = rememberTimerCues(settings)
+    val plan = remember(workout, custom) { custom ?: timerPlanFor(workout.type, workout.capSec, workout.movements.map { it.name }) }
+    val family = workout.plannedWorkoutId.startsWith("fwod_")
+    val lead = settings.lead
     // idle, lead, run, paused, done
     var phase by remember { mutableStateOf("idle") }
     var elapsed by remember { mutableIntStateOf(0) }
@@ -144,27 +147,12 @@ internal fun ConditioningTimer(
     var banked by remember { mutableLongStateOf(0L) }
     var leadStart by remember { mutableLongStateOf(0L) }
 
-    val tones = remember { runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 90) }.getOrNull() }
-    val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    DisposableEffect(Unit) { onDispose { tones?.release() } }
-    fun tone(kind: Int, ms: Int) {
-        if (sound) runCatching { tones?.startTone(kind, ms) }
-    }
-    fun buzz(ms: Long) {
-        runCatching { vibrator?.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)) }
-    }
-    fun cue(c: String) = when (c) {
-        "TICK" -> tone(ToneGenerator.TONE_PROP_BEEP, 150)
-        "CHANGE" -> { tone(ToneGenerator.TONE_PROP_ACK, 450); buzz(250) }
-        "HALF" -> { tone(ToneGenerator.TONE_PROP_BEEP2, 300); buzz(150) }
-        else -> { tone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1400); buzz(700) }
-    }
-
-    val view = LocalView.current
-    val running = phase == "run" || phase == "lead"
-    DisposableEffect(running) {
-        view.keepScreenOn = running
-        onDispose { view.keepScreenOn = false }
+    fun cue(c: String, second: Int) = when (c) {
+        "TICK" -> cues.tick()
+        // Into work high, into rest low (v0.585, as the warm-up timer).
+        "CHANGE" -> if (timerAt(plan, second).work) cues.work() else cues.rest()
+        "HALF" -> cues.half()
+        else -> cues.finish()
     }
 
     fun finish(at: Int) {
@@ -186,21 +174,20 @@ internal fun ConditioningTimer(
                 val left = lead - ((SystemClock.elapsedRealtime() - leadStart) / 1000).toInt()
                 if (left != leadLeft) {
                     if (left <= 0) {
-                        tone(ToneGenerator.TONE_PROP_ACK, 700)
-                        buzz(300)
+                        cues.work()
                         runStart = SystemClock.elapsedRealtime()
                         banked = 0L
                         leadLeft = 0
                         phase = "run"
                     } else {
-                        if (left <= 3) tone(ToneGenerator.TONE_PROP_BEEP, 150)
+                        if (left <= 3) cues.tick()
                         leadLeft = left
                     }
                 }
             } else {
                 val sec = nowRun()
                 if (sec != lastSecond) {
-                    for (s in (lastSecond + 1)..sec) cuesAt(plan, s).forEach { cue(it) }
+                    for (s in (lastSecond + 1)..sec) cuesAt(plan, s).forEach { cue(it, s) }
                     lastSecond = sec
                     elapsed = sec
                     val total = plan.totalSec
@@ -217,7 +204,7 @@ internal fun ConditioningTimer(
                 leadLeft = lead
                 phase = "lead"
             } else {
-                tone(ToneGenerator.TONE_PROP_ACK, 700)
+                cues.work()
                 runStart = SystemClock.elapsedRealtime()
                 banked = 0L
                 phase = "run"
@@ -268,15 +255,14 @@ internal fun ConditioningTimer(
         phase == "idle" -> "Ready"
         leading -> "Get ready"
         phase == "paused" -> "Paused"
-        phase == "done" -> "Time"
-        else -> at.label.ifBlank { "Go" }
+        phase == "done" -> if (plan.kind == "STOPWATCH") "Done" else "Time"
+        plan.kind == "INTERVALS" -> if (at.work) "Work" else "Rest"
+        else -> "Go"
     }
-    val restNow = phase == "run" && !at.work
+    val clock = if (leading) leadLeft.toString() else clockText(at.clock)
 
     // Outside the app (v0.438): the notification and floating window show the
     // timer; published when its part changes, as the notification ticks itself.
-    val digits = timerDigits(pal)
-    val inPip by TimerLive.inPip.collectAsState()
     LaunchedEffect(phase, at.index, leading) {
         if (phase == "idle" || phase == "done") {
             TimerLive.clear(context)
@@ -296,7 +282,7 @@ internal fun ConditioningTimer(
             LiveTimer(
                 title = workout.name,
                 status = status,
-                clock = if (leading) leadLeft.toString() else clockText(at.clock),
+                clock = clock,
                 endAt = endAt,
                 startedAt = if (phase == "run" && plan.kind == "STOPWATCH") System.currentTimeMillis() - runMs else null,
                 running = phase == "run" || phase == "lead",
@@ -305,92 +291,89 @@ internal fun ConditioningTimer(
     }
     DisposableEffect(Unit) { onDispose { TimerLive.clear(context) } }
 
+    // What the face shows: how much of this part is left, the bar of work
+    // parts, and what's now and next (v0.585).
+    val seg = plan.segments.getOrNull(at.index)
+    val progress: Float? = when {
+        leading -> if (lead > 0) leadLeft / lead.toFloat() else 1f
+        phase == "idle" -> 1f
+        plan.kind == "STOPWATCH" -> null
+        plan.kind == "COUNTDOWN" -> plan.totalSec?.takeIf { it > 0 }?.let { at.clock / it.toFloat() }
+        else -> seg?.sec?.takeIf { it > 0 }?.let { at.clock / it.toFloat() }
+    }
+    val works = plan.segments.count { it.work }
+    val bar = if (plan.kind == "INTERVALS" && works > 1) {
+        val before = plan.segments.take(at.index).count { it.work }
+        (if (phase == "done") works else before) to works
+    } else {
+        null
+    }
+    val showsList = plan.kind == "INTERVALS" && phase != "done"
+    val nowText = if (showsList) (if (phase == "idle") plan.segments.firstOrNull()?.label else at.label)?.takeIf { it.isNotBlank() } else null
+    val nextText = if (showsList) plan.segments.getOrNull(if (phase == "idle") 1 else at.index + 1)?.label?.takeIf { it.isNotBlank() } else null
+    val state = when {
+        phase == "idle" -> TimerState.IDLE
+        leading -> TimerState.READY
+        phase == "paused" -> TimerState.PAUSED
+        phase == "done" -> TimerState.DONE
+        at.work -> TimerState.WORK
+        else -> TimerState.REST
+    }
+    val buttons = buildList {
+        add(TimerButton(label = "Reset", onClick = { reset() }))
+        if (phase != "done") {
+            add(
+                TimerButton(
+                    label = when (phase) {
+                        "idle" -> "Start"
+                        "paused" -> "Resume"
+                        else -> "Pause"
+                    },
+                    filled = true,
+                    weight = 1.4f,
+                    onClick = { if (phase == "run" || phase == "lead") pause() else start() },
+                ),
+            )
+        }
+        if (phase == "run" || phase == "paused") {
+            add(
+                TimerButton(
+                    label = if (plan.kind == "STOPWATCH") "Done" else "End",
+                    onClick = {
+                        val now = if (phase == "run") nowRun() else elapsed
+                        if (plan.kind == "STOPWATCH") cues.finish()
+                        elapsed = now
+                        finish(now)
+                    },
+                ),
+            )
+        }
+    }
+
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
     ) {
-        if (inPip) {
-            PipTimer(
-                clock = if (leading) leadLeft.toString() else clockText(at.clock),
-                status = status,
-                color = if (leading) pal.ready else if (restNow) pal.rest else pal.ink,
-                pal = pal,
-                digits = digits,
-            )
-            return@Dialog
-        }
-        Column(
-            Modifier
-                .fillMaxSize()
-                .background(pal.bg)
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState()),
-        ) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onClose) { Text("‹ Back", color = pal.accent, fontWeight = FontWeight.SemiBold) }
-                Spacer(Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = {
-                        sound = !sound
-                        prefs.edit().putBoolean("sound", sound).apply()
-                    },
-                    border = BorderStroke(1.dp, pal.line),
-                ) { Text(if (sound) "Sound on" else "Sound off", color = pal.soft) }
-            }
-
-            Column(
-                Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text("${workout.name} · ${plan.title}", color = pal.soft, fontSize = 13.sp, textAlign = TextAlign.Center)
-                Text(
-                    if (leading) leadLeft.toString() else clockText(at.clock),
-                    color = if (leading) pal.ready else if (restNow) pal.rest else digits.color ?: pal.ink,
-                    fontFamily = digits.font,
-                    fontSize = 84.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(status, color = if (leading) pal.ready else pal.soft, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            }
-
-            if (phase == "idle") {
-                Row(
-                    Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Get ready", color = pal.soft, fontSize = 13.sp)
-                    TIMER_LEADS.forEach { v ->
-                        val on = lead == v
-                        Box(
-                            Modifier
-                                .padding(start = 6.dp)
-                                .heightIn(min = 36.dp)
-                                .width(48.dp)
-                                .background(if (on) pal.accent else Color.Transparent, RoundedCornerShape(999.dp))
-                                .border(1.dp, if (on) pal.accent else pal.line, RoundedCornerShape(999.dp))
-                                .clickable {
-                                    lead = v
-                                    leadLeft = v
-                                    prefs.edit().putInt("lead", v).apply()
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) { Text("${v}s", color = if (on) pal.onAccent else pal.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
-                    }
-                }
-            }
-
-            if (workout.movements.isNotEmpty()) {
+        TimerFace(
+            family = family,
+            caption = if (logging) "${workout.name} \u00b7 ${plan.title}" else plan.title,
+            heading = if (logging) null else workout.name.takeIf { it.isNotBlank() && it != plan.title },
+            clock = clock,
+            state = state,
+            word = status,
+            progress = progress,
+            bar = bar,
+            now = nowText,
+            next = nextText,
+            buttons = buttons,
+            onBack = onClose,
+        ) { ink ->
+            if (workout.movements.isNotEmpty() && !showsList) {
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .background(pal.panel, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 18.dp)
+                        .border(1.dp, ink.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -398,61 +381,56 @@ internal fun ConditioningTimer(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 m.reps?.toString() ?: m.distance?.let { MovementSetsViewModel.fmt(it) } ?: "",
-                                color = pal.ink,
+                                color = ink.text,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 modifier = Modifier.width(40.dp),
                             )
-                            Text(m.name, color = pal.ink, fontSize = 16.sp, modifier = Modifier.weight(1f))
-                            m.weight?.let { Text("${MovementSetsViewModel.fmt(it)} lb", color = pal.soft, fontSize = 13.sp) }
+                            Text(m.name, color = ink.text, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                            m.weight?.let { Text("${MovementSetsViewModel.fmt(it)} lb", color = ink.soft, fontSize = 13.sp) }
                         }
                     }
                 }
             }
-
-            Column(
-                Modifier.fillMaxWidth().padding(vertical = 18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (plan.rounds) {
-                    Text(
-                        ("Rounds" + (workout.last?.let { " · last time $it" } ?: "")).uppercase(),
-                        color = pal.soft,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.sp,
-                    )
-                    Box(
-                        Modifier
-                            .size(160.dp)
-                            .background(pal.strong, CircleShape)
-                            .border(3.dp, pal.accent, CircleShape)
-                            .clickable { rounds += 1 },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(rounds.toString(), color = pal.ink, fontSize = 60.sp, fontWeight = FontWeight.Bold)
-                            Text("+1 round", color = pal.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                    TextButton(onClick = { rounds = maxOf(0, rounds - 1) }) { Text("Undo round", color = pal.soft) }
-                } else {
-                    workout.last?.let { Text("Last time $it", color = pal.soft, fontSize = 14.sp) }
-                }
-            }
-
-            if (phase == "done") {
-                val fieldColors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = pal.ink,
-                    unfocusedTextColor = pal.ink,
-                    focusedBorderColor = pal.accent,
-                    unfocusedBorderColor = pal.line,
-                    focusedLabelColor = pal.soft,
-                    unfocusedLabelColor = pal.soft,
-                    focusedContainerColor = pal.panel,
-                    unfocusedContainerColor = pal.panel,
+            if (plan.rounds) {
+                Spacer(Modifier.heightIn(min = 14.dp))
+                Text(
+                    ("Rounds" + (workout.last?.takeIf { logging }?.let { " \u00b7 last time $it" } ?: "")).uppercase(),
+                    color = ink.soft,
+                    fontSize = 12.sp,
+                    letterSpacing = 1.sp,
                 )
-                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    Modifier
+                        .padding(top = 8.dp)
+                        .size(150.dp)
+                        .background(ink.text.copy(alpha = 0.08f), CircleShape)
+                        .border(3.dp, ink.state, CircleShape)
+                        .clickable { rounds += 1 },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(rounds.toString(), color = ink.text, fontSize = 56.sp, fontWeight = FontWeight.Bold)
+                        Text("+1 round", color = ink.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                TextButton(onClick = { rounds = maxOf(0, rounds - 1) }) { Text("Undo round", color = ink.soft) }
+            } else if (logging) {
+                workout.last?.let { Text("Last time $it", color = ink.soft, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
+            }
+
+            if (logging && phase == "done") {
+                val fieldColors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = ink.text,
+                    unfocusedTextColor = ink.text,
+                    focusedBorderColor = ink.state,
+                    unfocusedBorderColor = ink.line,
+                    focusedLabelColor = ink.soft,
+                    unfocusedLabelColor = ink.soft,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                )
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
                             value = result,
@@ -475,56 +453,13 @@ internal fun ConditioningTimer(
                             )
                         }
                     }
-                    workout.today?.let { Text("Logging replaces today's $it.", color = pal.ready, fontSize = 13.sp) }
+                    workout.today?.let { Text("Logging replaces today's $it.", color = ink.soft, fontSize = 13.sp) }
                     error?.let { Text(it, color = pal.rest, fontSize = 13.sp) }
                     Button(
                         onClick = { save() },
-                        colors = ButtonDefaults.buttonColors(containerColor = pal.accent, contentColor = pal.onAccent),
+                        colors = ButtonDefaults.buttonColors(containerColor = ink.text, contentColor = ink.bg),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     ) { Text("Log", fontWeight = FontWeight.Bold) }
-                }
-            }
-
-            Row(
-                Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                OutlinedButton(
-                    onClick = { reset() },
-                    border = BorderStroke(1.dp, pal.line),
-                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                ) { Text("Reset", color = pal.ink) }
-                if (phase != "done") {
-                    Button(
-                        onClick = { if (phase == "run" || phase == "lead") pause() else start() },
-                        colors = ButtonDefaults.buttonColors(containerColor = pal.ink, contentColor = pal.bg),
-                        modifier = Modifier.weight(2f).heightIn(min = 52.dp),
-                    ) {
-                        Text(
-                            when (phase) {
-                                "idle" -> "Start"
-                                "paused" -> "Resume"
-                                else -> "Pause"
-                            },
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-                if (phase == "run" || phase == "paused") {
-                    Button(
-                        onClick = {
-                            val now = if (phase == "run") nowRun() else elapsed
-                            if (plan.kind == "STOPWATCH") tone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 900)
-                            elapsed = now
-                            finish(now)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (plan.kind == "STOPWATCH") pal.accent else Color.Transparent,
-                            contentColor = if (plan.kind == "STOPWATCH") pal.bg else pal.ink,
-                        ),
-                        border = if (plan.kind == "STOPWATCH") null else BorderStroke(1.dp, pal.line),
-                        modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    ) { Text(if (plan.kind == "STOPWATCH") "Done" else "End", fontWeight = FontWeight.Bold) }
                 }
             }
         }

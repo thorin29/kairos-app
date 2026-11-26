@@ -171,9 +171,11 @@ fun WorkoutLogScreen(
     LaunchedEffect(familyChanged) { if (familyChanged != 0) vm.load() }
     LaunchedEffect(programsChanged) { if (programsChanged != 0) vm.load() }
     var otherOpen by remember { mutableStateOf<com.kairos.app.data.remote.dto.LoggedOtherDto?>(null) }
-    var extraKind by remember { mutableStateOf<String?>(null) }
     var logKind by remember { mutableStateOf<String?>(null) }
     var addingCardio by remember { mutableStateOf(false) }
+    // The day's Timer and Routines pages (v0.585).
+    var freeTimer by remember { mutableStateOf(false) }
+    var routinesPage by remember { mutableStateOf(false) }
     var openWorkoutId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(ui.conditioningTick) { conditioningSheet = null }
 
@@ -291,7 +293,11 @@ fun WorkoutLogScreen(
                     }
                     val dayBlocks = orderDayBlocks(
                         planBlocks +
-                            ui.sports.map { DayBlockUi(key = it.eventId, time = it.start, sport = it) },
+                            ui.sports.map { DayBlockUi(key = it.eventId, time = it.start, sport = it) } +
+                            // Tracked walks, runs, rucks and hikes (v0.585), done.
+                            ui.tracked.mapIndexed { i, t ->
+                                DayBlockUi(key = "track:${t.sessionId ?: i}", time = trackedMinutes(t.startAt), tracked = t)
+                            },
                     )
                     // The day always opens on its workouts (v0.545), even with only one.
                     val view = when {
@@ -348,12 +354,22 @@ fun WorkoutLogScreen(
                                 }
                             }
                         }
-                        // The day's one Add button (v0.491): a short pop-up of kinds,
-                        // each opening a full page.
-                        AccentOutlinedButton(onClick = { addingMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(KairosIcons.Plus, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Log another workout", modifier = Modifier.padding(start = 6.dp))
-                        }
+                        // The day's buttons (v0.585): Train and Tools tiles, as on
+                        // the Workouts page; Log another opens its own page.
+                        val isToday = (ui.date ?: date) == LocalDate.now().toString()
+                        DayTiles(
+                            showFamilyWod = ui.familyWod != null,
+                            onStart = {
+                                if (ActivityTrack.session.value != null) onStartTrack("")
+                                else if (isToday) goFor = true
+                                else addingCardio = true
+                            },
+                            onFamilyWod = { onOpenFamilyWod(ui.date ?: LocalDate.now().toString()) },
+                            onLogAnother = { addingMenu = true },
+                            onTimer = { freeTimer = true },
+                            onRoutines = { routinesPage = true },
+                            onCalculator = { onOpenCalculator() },
+                        )
                     }
                     if (view == "list") {
                         ui.date?.let { d ->
@@ -796,37 +812,30 @@ fun WorkoutLogScreen(
     }
 
     if (addingMenu) {
-        AdditionalMenu(
-            onConditioning = {
+        // Log another workout (v0.585): five choices on a page of its own.
+        LogAnotherPage(
+            onPick = { k ->
                 addingMenu = false
-                openWorkoutId = null
-                conditioningSheet = "pick"
-            },
-            onKind = {
-                addingMenu = false
-                extraKind = it
-            },
-            onDismiss = { addingMenu = false },
-            onLog = { k ->
-                addingMenu = false
-                if (k == "cardio") addingCardio = true else logKind = k
-            },
-            onGoFor = if ((ui.date ?: date) == LocalDate.now().toString()) {
-                {
-                    addingMenu = false
-                    goFor = true
+                when (k) {
+                    "conditioning" -> {
+                        openWorkoutId = null
+                        conditioningSheet = "pick"
+                    }
+                    "cardio" -> addingCardio = true
+                    else -> logKind = k
                 }
-            } else {
-                null
             },
-            onFamilyWod = if (ui.familyWod == null && (ui.date ?: LocalDate.now().toString()) >= LocalDate.now().toString()) {
-                {
-                    addingMenu = false
-                    onOpenFamilyWod(ui.date ?: LocalDate.now().toString())
-                }
-            } else {
-                null
+            onBack = { addingMenu = false },
+        )
+    }
+    if (freeTimer) FreeTimerPage(onBack = { freeTimer = false })
+    if (routinesPage) {
+        RoutinesPage(
+            onAdd = { k, ref ->
+                routinesPage = false
+                vm.addExtra(kind = k, ref = ref)
             },
+            onBack = { routinesPage = false },
         )
     }
 
@@ -834,19 +843,6 @@ fun WorkoutLogScreen(
         GoForDialog(onDismiss = { goFor = false }, onPick = { kind -> goFor = false; onStartTrack(kind) })
     }
 
-    extraKind?.let { k ->
-        ExtraPickerPage(
-            kind = k,
-            onPick = { ref ->
-                extraKind = null
-                vm.addExtra(kind = k, ref = ref)
-            },
-            onBack = {
-                extraKind = null
-                addingMenu = true
-            },
-        )
-    }
     // Cardio is added one way (v0.491): the same page as the Cardio card's Add.
     if (addingCardio) {
         AddCardioPage(
@@ -2387,4 +2383,12 @@ private fun dayPick(
         saved.value = value
         date.value = day
     }
+}
+
+/** A tracked workout's start as minutes from local midnight, or null. */
+private fun trackedMinutes(iso: String?): Int? = iso?.let {
+    runCatching {
+        val t = java.time.Instant.parse(it).atZone(java.time.ZoneId.systemDefault()).toLocalTime()
+        t.hour * 60 + t.minute
+    }.getOrNull()
 }

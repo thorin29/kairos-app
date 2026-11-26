@@ -1,4 +1,11 @@
 # Changelog
+## 0.585.0
+
+- One timer everywhere: Ring or Full color (the Family WOD in Full color), a bar of rounds, now and next, and one ⚙ settings sheet. The each-side timer gets a get-ready and the floating timer.
+- Workout day: Train (Start a…, Family WOD, Log another) and Tools (Timer, Routines, Calculator). Log another is a page of five choices.
+- A free Timer: Stopwatch, Countdown, AMRAP, EMOM, Tabata or Intervals.
+- Tracked walks, runs and rucks are listed with the day's workouts, with distance and minutes.
+
 ## 0.584.0
 
 - Family map: swipe right to open the menu anywhere off a map, so History and other pages with no map swipe everywhere.

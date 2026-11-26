@@ -427,7 +427,7 @@ fun WorkoutsScreen(
 }
 
 @Composable
-private fun ActionCard(
+internal fun ActionCard(
     icon: ImageVector,
     label: String,
     modifier: Modifier = Modifier,
@@ -1069,7 +1069,7 @@ internal fun TileButtons(buttons: List<TileButton>) {
 /** A group of the page's buttons (v0.563): a tinted band with the group's
  *  name, then its buttons in a row, on a white card like the program tile. */
 @Composable
-private fun ActionGroup(
+internal fun ActionGroup(
     kind: String,
     title: String,
     modifier: Modifier = Modifier,

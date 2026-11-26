@@ -85,10 +85,16 @@ internal fun warmupIntervals(steps: List<WarmupStepDto>, from: Int, rightFirst: 
     return out
 }
 
-internal fun warmupSchedule(intervals: List<WarmupInterval>, lead: Int, gap: Int): List<WarmupSegment> {
+/** [sideGap] (v0.585): the pause when an each-side step switches sides,
+ *  the same as the each-side timer's; [gap] between steps. */
+internal fun warmupSchedule(intervals: List<WarmupInterval>, lead: Int, gap: Int, sideGap: Int = gap): List<WarmupSegment> {
     val out = mutableListOf<WarmupSegment>()
     intervals.forEachIndexed { i, iv ->
-        val wait = if (i == 0) lead else gap
+        val wait = when {
+            i == 0 -> lead
+            intervals[i - 1].step == iv.step -> sideGap
+            else -> gap
+        }
         if (wait > 0) out += WarmupSegment(kind = "READY", interval = i, seconds = wait)
         out += WarmupSegment(kind = "WORK", interval = i, seconds = iv.seconds)
     }
@@ -108,9 +114,11 @@ internal fun warmupAt(schedule: List<WarmupSegment>, elapsed: Int): WarmupPos {
 }
 
 /**
- * The full-screen warm-up countdown in the timer's colours: the step's name
- * and time, "Next: …", 3-2-1 tones and a buzz at each change, Pause and
- * Skip. [onFinished] gets the steps it ran, to tick off.
+ * The full-screen warm-up countdown on the shared timer face (v0.585,
+ * TimerKit): the step and its time, a bar of steps, now and next, 3-2-1
+ * tones and a buzz at each change, Reset, Pause and Skip. Get ready, the
+ * side to start on and the pause between sides come from Timer settings;
+ * the rest between steps is chosen here. [onFinished] gets the steps it ran.
  */
 @Composable
 internal fun WarmupTimer(
@@ -120,62 +128,39 @@ internal fun WarmupTimer(
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
-    val pal = timerPalette()
     val prefs = remember { context.getSharedPreferences("kairos_timer", Context.MODE_PRIVATE) }
-    var rightFirst by remember { mutableStateOf(prefs.getBoolean("warmup_right_first", false)) }
+    val settings = rememberTimerSettings()
+    val cues = rememberTimerCues(settings)
+    val rightFirst = settings.rightFirst
     val intervals = remember(steps, from, rightFirst) { warmupIntervals(steps = steps, from = from, rightFirst = rightFirst) }
-    // Each-side steps in this run: the timer asks which side to start on.
-    val hasSides = intervals.withIndex().any { (i, iv) -> intervals.getOrNull(i + 1)?.step == iv.step }
-    var sound by remember { mutableStateOf(prefs.getBoolean("warmup_sound", true)) }
-    var lead by remember { mutableIntStateOf(prefs.getInt("warmup_lead", 5).takeIf { it in TIMER_LEADS } ?: 5) }
+    val lead = settings.lead
     var gap by remember { mutableIntStateOf(prefs.getInt("warmup_gap", 10).takeIf { it in WARMUP_GAPS } ?: 10) }
     // idle, run, paused, done
     var phase by remember { mutableStateOf("idle") }
     var elapsed by remember { mutableIntStateOf(0) }
     var runStart by remember { mutableLongStateOf(0L) }
     var banked by remember { mutableLongStateOf(0L) }
-    val schedule = remember(intervals, lead, gap) { warmupSchedule(intervals = intervals, lead = lead, gap = gap) }
+    val schedule = remember(intervals, lead, gap, settings.sideGap) {
+        warmupSchedule(intervals = intervals, lead = lead, gap = gap, sideGap = settings.sideGap)
+    }
     val total = schedule.sumOf { it.seconds }
-
-    val tones = remember { runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 90) }.getOrNull() }
-    val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    DisposableEffect(Unit) { onDispose { tones?.release() } }
-    fun tone(kind: Int, ms: Int) {
-        if (sound) runCatching { tones?.startTone(kind, ms) }
-    }
-    fun buzz(ms: Long) {
-        runCatching { vibrator?.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)) }
-    }
-
-    val view = LocalView.current
-    DisposableEffect(phase) {
-        view.keepScreenOn = phase == "run"
-        onDispose { view.keepScreenOn = false }
-    }
 
     fun finish() {
         phase = "done"
         elapsed = total
-        tone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1400)
-        buzz(700)
+        cues.finish()
         onFinished(intervals.map { it.step }.distinct())
     }
-    // A second's cues: a high tone and a buzz into work, a low one out of it,
-    // and a tick for each of the last three seconds.
+    // A second's cues: high into work, low into a pause, a tick for each of
+    // the last three seconds.
     fun cuesFor(sec: Int) {
         val now = warmupAt(schedule = schedule, elapsed = sec)
         val prev = warmupAt(schedule = schedule, elapsed = sec - 1)
         if (now.done) return
         if (now.segment != prev.segment) {
-            if (schedule[now.segment].kind == "WORK") {
-                tone(ToneGenerator.TONE_PROP_ACK, 600)
-                buzz(250)
-            } else {
-                tone(ToneGenerator.TONE_PROP_BEEP2, 700)
-                buzz(250)
-            }
+            if (schedule[now.segment].kind == "WORK") cues.work() else cues.rest()
         } else if (now.left <= 3) {
-            tone(ToneGenerator.TONE_PROP_BEEP, 150)
+            cues.tick()
         }
     }
 
@@ -184,7 +169,7 @@ internal fun WarmupTimer(
         while (phase == "run") {
             val sec = ((banked + (SystemClock.elapsedRealtime() - runStart)) / 1000).toInt()
             if (sec != elapsed) {
-                for (s in (elapsed + 1)..sec) cuesFor(s)
+                for (x in (elapsed + 1)..sec) cuesFor(x)
                 elapsed = sec
                 if (sec >= total) {
                     finish()
@@ -199,12 +184,7 @@ internal fun WarmupTimer(
         if (phase == "idle") {
             banked = 0L
             elapsed = 0
-            if (schedule.firstOrNull()?.kind == "WORK") {
-                tone(ToneGenerator.TONE_PROP_ACK, 600)
-                buzz(250)
-            } else {
-                tone(ToneGenerator.TONE_PROP_BEEP, 80)
-            }
+            if (schedule.firstOrNull()?.kind == "WORK") cues.work()
         }
         runStart = SystemClock.elapsedRealtime()
         phase = "run"
@@ -212,6 +192,11 @@ internal fun WarmupTimer(
     fun pause() {
         banked += SystemClock.elapsedRealtime() - runStart
         phase = "paused"
+    }
+    fun reset() {
+        phase = "idle"
+        elapsed = 0
+        banked = 0L
     }
     // Straight on to the next interval's work (from a get-ready, its own).
     fun skip() {
@@ -228,7 +213,7 @@ internal fun WarmupTimer(
         banked = to * 1000L
         runStart = SystemClock.elapsedRealtime()
         elapsed = to
-        tone(ToneGenerator.TONE_PROP_ACK, 600)
+        cues.work()
     }
 
     if (intervals.isEmpty()) return
@@ -236,28 +221,28 @@ internal fun WarmupTimer(
     val seg = schedule[at.segment]
     val current = intervals[seg.interval]
     val ready = (phase == "run" || phase == "paused") && seg.kind == "READY"
-    val next = when {
-        phase == "idle" -> intervals.getOrNull(1)
-        seg.kind == "READY" -> null
-        else -> intervals.getOrNull(seg.interval + 1)
-    }
     val shown = when (phase) {
         "idle" -> intervals[0].seconds
         "done" -> 0
         else -> at.left
     }
+    val sideSwitch = ready && seg.interval > 0 && intervals[seg.interval - 1].step == current.step
     val status = when {
         phase == "idle" -> "Ready"
         phase == "done" -> "Done"
         phase == "paused" -> "Paused"
+        sideSwitch -> "Switch sides"
         ready -> "Get ready"
-        else -> "Go"
+        else -> "Work"
+    }
+    val nextIv = when {
+        phase == "idle" -> intervals.getOrNull(1)
+        seg.kind == "READY" -> intervals.getOrNull(seg.interval + 1)
+        else -> intervals.getOrNull(seg.interval + 1)
     }
 
     // Outside the app (v0.438): the notification and floating window show the
     // step; published when it changes, as the notification's clock ticks itself.
-    val digits = timerDigits(pal)
-    val inPip by TimerLive.inPip.collectAsState()
     LaunchedEffect(phase, at.segment, rightFirst) {
         if (phase == "idle" || phase == "done") {
             TimerLive.clear(context)
@@ -270,7 +255,7 @@ internal fun WarmupTimer(
             LiveTimer(
                 title = current.name,
                 status = status,
-                next = next?.name,
+                next = nextIv?.name,
                 clock = clockText(at.left),
                 endAt = if (phase == "run") System.currentTimeMillis() + (segEnd - runMs) else null,
                 running = phase == "run",
@@ -279,166 +264,76 @@ internal fun WarmupTimer(
     }
     DisposableEffect(Unit) { onDispose { TimerLive.clear(context) } }
 
+    val state = when {
+        phase == "idle" -> TimerState.IDLE
+        phase == "done" -> TimerState.DONE
+        phase == "paused" -> TimerState.PAUSED
+        ready -> TimerState.READY
+        else -> TimerState.WORK
+    }
+    val progress = when (phase) {
+        "idle" -> 1f
+        "done" -> 0f
+        else -> seg.seconds.takeIf { it > 0 }?.let { at.left / it.toFloat() } ?: 0f
+    }
+    val buttons = if (phase == "done") {
+        listOf(TimerButton(label = "Close", filled = true, onClick = onClose))
+    } else {
+        buildList {
+            add(TimerButton(label = "Reset", enabled = phase != "idle", onClick = { reset() }))
+            add(
+                TimerButton(
+                    label = when (phase) {
+                        "idle" -> "Start"
+                        "paused" -> "Resume"
+                        else -> "Pause"
+                    },
+                    filled = true,
+                    weight = 1.4f,
+                    onClick = { if (phase == "run") pause() else start() },
+                ),
+            )
+            if (phase != "idle") add(TimerButton(label = "Skip", onClick = { skip() }))
+        }
+    }
+
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
     ) {
-        if (inPip) {
-            PipTimer(clock = clockText(shown), status = status, color = if (ready) pal.ready else pal.ink, pal = pal, digits = digits)
-            return@Dialog
-        }
-        Column(
-            Modifier
-                .fillMaxSize()
-                .background(pal.bg)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-        ) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onClose) { Text("‹ Back", color = pal.accent, fontWeight = FontWeight.SemiBold) }
-                Spacer(Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = {
-                        sound = !sound
-                        prefs.edit().putBoolean("warmup_sound", sound).apply()
-                    },
-                    border = BorderStroke(1.dp, pal.line),
-                ) { Text(if (sound) "Sound on" else "Sound off", color = pal.soft) }
-            }
-
-            Column(
-                Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
-            ) {
-                if (intervals.size > 1 && phase != "done") {
-                    Text("${seg.interval + 1} of ${intervals.size}", color = pal.soft, fontSize = 14.sp)
-                }
-                Text(
-                    if (phase == "done") "Warm-up done" else current.name,
-                    color = pal.ink,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    clockText(shown),
-                    color = if (ready) pal.ready else digits.color ?: pal.ink,
-                    fontFamily = digits.font,
-                    fontSize = 96.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(status, color = if (ready) pal.ready else pal.soft, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                if (next != null && phase != "done") {
-                    Text(
-                        "Next: ${next.name} · ${clockText(next.seconds)}",
-                        color = pal.ink,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .background(pal.panel, RoundedCornerShape(999.dp))
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                    )
-                }
-            }
-
-            if (phase == "idle") {
-                ChipRow(label = "Get ready", values = TIMER_LEADS, chosen = lead, pal = pal) { v ->
-                    lead = v
-                    prefs.edit().putInt("warmup_lead", v).apply()
-                }
-                if (hasSides) {
-                    ChipRow(
-                        label = "Start on",
-                        values = listOf(0, 1),
-                        chosen = if (rightFirst) 1 else 0,
-                        pal = pal,
-                        text = { if (it == 1) "Right" else "Left" },
-                        chipWidth = 72,
-                    ) { v ->
-                        rightFirst = v == 1
-                        prefs.edit().putBoolean("warmup_right_first", rightFirst).apply()
+        TimerFace(
+            family = false,
+            caption = if (intervals.size > 1 && phase != "done") "${seg.interval + 1} of ${intervals.size}" else "",
+            heading = if (phase == "done") "Warm-up done" else current.name,
+            clock = clockText(shown),
+            state = state,
+            word = status,
+            progress = progress,
+            bar = if (intervals.size > 1) (if (phase == "done") intervals.size else seg.interval) to intervals.size else null,
+            now = if (phase == "done") null else "${current.name} \u00b7 ${clockText(current.seconds)}",
+            next = if (phase == "done") null else nextIv?.let { "${it.name} \u00b7 ${clockText(it.seconds)}" },
+            buttons = buttons,
+            onBack = onClose,
+        ) { ink ->
+            if (phase == "idle" && intervals.size > 1) {
+                Text("Rest between steps", color = ink.soft, fontSize = 13.sp)
+                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    WARMUP_GAPS.forEach { v ->
+                        val on = gap == v
+                        Box(
+                            Modifier
+                                .heightIn(min = 36.dp)
+                                .width(46.dp)
+                                .background(if (on) ink.text else Color.Transparent, RoundedCornerShape(999.dp))
+                                .border(1.dp, if (on) ink.text else ink.line, RoundedCornerShape(999.dp))
+                                .clickable {
+                                    gap = v
+                                    prefs.edit().putInt("warmup_gap", v).apply()
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) { Text("${v}s", color = if (on) ink.bg else ink.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
-                if (intervals.size > 1) {
-                    ChipRow(label = "Between", values = WARMUP_GAPS, chosen = gap, pal = pal) { v ->
-                        gap = v
-                        prefs.edit().putInt("warmup_gap", v).apply()
-                    }
-                }
-            }
-
-            Row(
-                Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (phase == "done") {
-                    Button(
-                        onClick = onClose,
-                        colors = ButtonDefaults.buttonColors(containerColor = pal.accent, contentColor = pal.onAccent),
-                        modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    ) { Text("Close", fontWeight = FontWeight.Bold) }
-                } else {
-                    Button(
-                        onClick = { if (phase == "run") pause() else start() },
-                        colors = ButtonDefaults.buttonColors(containerColor = pal.accent, contentColor = pal.onAccent),
-                        modifier = Modifier.weight(2f).heightIn(min = 52.dp),
-                    ) {
-                        Text(
-                            when (phase) {
-                                "idle" -> "Start"
-                                "paused" -> "Resume"
-                                else -> "Pause"
-                            },
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                    if (phase != "idle") {
-                        OutlinedButton(
-                            onClick = { skip() },
-                            border = BorderStroke(1.dp, pal.accent),
-                            modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                        ) { Text("Skip", color = pal.accent, fontWeight = FontWeight.SemiBold) }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** A label over a row of second choices ("0s", "5s" …), the chosen one filled. */
-@Composable
-private fun ChipRow(
-    label: String,
-    values: List<Int>,
-    chosen: Int,
-    pal: TimerPalette,
-    text: (Int) -> String = { "${it}s" },
-    chipWidth: Int = 46,
-    onPick: (Int) -> Unit,
-) {
-    Column(
-        Modifier.fillMaxWidth().padding(bottom = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(label, color = pal.soft, fontSize = 13.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            values.forEach { v ->
-                val on = chosen == v
-                Box(
-                    Modifier
-                        .heightIn(min = 36.dp)
-                        .width(chipWidth.dp)
-                        .background(if (on) pal.accent else Color.Transparent, RoundedCornerShape(999.dp))
-                        .border(1.dp, if (on) pal.accent else pal.line, RoundedCornerShape(999.dp))
-                        .clickable { onPick(v) },
-                    contentAlignment = Alignment.Center,
-                ) { Text(text(v), color = if (on) pal.onAccent else pal.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
     }

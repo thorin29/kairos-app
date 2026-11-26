@@ -55,6 +55,8 @@ internal data class DayBlockUi(
     val time: Int?,
     val sport: DaySportDto? = null,
     val program: com.kairos.app.data.remote.dto.DayProgramBlockDto? = null,
+    /** A walk, run, ruck or hike tracked in the app (v0.585): done, nothing to open. */
+    val tracked: com.kairos.app.data.remote.dto.TrackedItemDto? = null,
 )
 
 /** Timed blocks by time; a block without one after them, in the order given. */
@@ -75,14 +77,19 @@ private fun DoneChip(label: String, positive: Boolean = true) = StatusChip(label
 
 /** A card with a coloured left edge for its workout type. */
 @Composable
-private fun BlockCard(color: Color, onClick: () -> Unit, content: @Composable () -> Unit) {
-    OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+private fun BlockCard(color: Color, onClick: (() -> Unit)?, content: @Composable () -> Unit) {
+    val inner: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
                 .drawBehind { drawRect(color = color, size = androidx.compose.ui.geometry.Size(5.dp.toPx(), size.height)) }
                 .padding(start = 19.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
         ) { content() }
+    }
+    if (onClick != null) {
+        OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) { inner() }
+    } else {
+        OutlinedCard(modifier = Modifier.fillMaxWidth()) { inner() }
     }
 }
 
@@ -120,7 +127,27 @@ internal fun DayWorkoutsList(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         blocks.forEach { b ->
             val sp = b.sport
-            if (sp == null) {
+            val tr = b.tracked
+            if (tr != null) {
+                BlockCard(color = CARDIO_COLOR, onClick = null) {
+                    b.time?.let { t ->
+                        Text(
+                            timeOfDayText(t) + " \u00b7 tracked",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(tr.label.ifBlank { tr.name }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        listOfNotNull(tr.distance, tr.minutes?.let { "$it min" }).joinToString(" \u00b7 ").ifBlank { "Logged" },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DoneChip(label = "Complete")
+                }
+            } else if (sp == null) {
                 val pg = b.program
                 val parts = pg?.parts ?: planParts
                 val done = pg?.doneCount ?: planDone

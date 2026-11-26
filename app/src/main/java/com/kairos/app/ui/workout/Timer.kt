@@ -128,6 +128,56 @@ internal fun timerAt(plan: TimerPlan, elapsed: Int): TimerAt {
     return TimerAt(clock = 0, done = true, index = plan.segments.size - 1, label = last?.label ?: "", work = last?.work ?: true)
 }
 
+/** The free Timer's kinds (v0.585): label and whether it takes a length. */
+internal val FREE_TIMERS = listOf(
+    "STOPWATCH" to "Stopwatch",
+    "COUNTDOWN" to "Countdown",
+    "AMRAP" to "AMRAP",
+    "EMOM" to "EMOM",
+    "TABATA" to "Tabata",
+    "INTERVALS" to "Intervals",
+)
+
+/**
+ * A timer of its own from the Timer button (v0.585; the web's freeTimerPlan):
+ * [minutes] for Countdown, AMRAP and EMOM; [work], [rest] (seconds) and
+ * [rounds] for Intervals. Tabata is 8 rounds of 20 s on, 10 s off.
+ */
+internal fun freeTimerPlan(type: String, minutes: Int, work: Int, rest: Int, rounds: Int): TimerPlan {
+    val sec = maxOf(1, minutes) * 60
+    return when (type) {
+        "COUNTDOWN" -> TimerPlan(
+            kind = "COUNTDOWN",
+            totalSec = sec,
+            segments = listOf(TimerSegment(label = "", sec = sec, work = true)),
+            result = "TIME",
+            rounds = false,
+            title = "Countdown \u00b7 ${mins(sec)}",
+        )
+        "AMRAP" -> timerPlanFor("AMRAP", sec, emptyList())
+        "EMOM" -> timerPlanFor("EMOM", sec, emptyList())
+        "TABATA" -> timerPlanFor("TABATA", null, emptyList())
+        "INTERVALS" -> {
+            val n = rounds.coerceIn(1, 50)
+            val segs = buildList {
+                for (r in 1..n) {
+                    add(TimerSegment(label = "Round $r of $n", sec = work.coerceIn(5, 3600), work = true))
+                    if (r < n && rest > 0) add(TimerSegment(label = "Rest", sec = rest.coerceIn(0, 3600), work = false))
+                }
+            }
+            TimerPlan(
+                kind = "INTERVALS",
+                totalSec = segs.sumOf { it.sec },
+                segments = segs,
+                result = "REPS",
+                rounds = false,
+                title = "Intervals \u00b7 $n \u00d7 ${work}s" + if (rest > 0) " / ${rest}s" else "",
+            )
+        }
+        else -> TimerPlan(kind = "STOPWATCH", totalSec = null, segments = emptyList(), result = "TIME", rounds = false, title = "Stopwatch")
+    }
+}
+
 /** TICK, CHANGE, HALF or END for the second just reached (timer.ts cuesAt). */
 internal fun cuesAt(plan: TimerPlan, second: Int): List<String> {
     if (second <= 0) return emptyList()

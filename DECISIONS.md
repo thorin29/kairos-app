@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-11 — One timer, the workout day's buttons, tracked workouts (0.585.0, web 0.813.0)
+
+- `TimerKit.kt`: every timer (Conditioning, warm-ups, each-side, the free
+  Timer, the Family WOD) draws `TimerFace` and plays `TimerCues`, with one
+  `TimerSettings` in the `kairos_timer` prefs (`t_*` keys, read from the old
+  per-timer keys once). Looks: Ring and Full color, chosen separately for
+  your workouts and the Family WOD (a card whose plannedWorkoutId starts
+  "fwod_"). The floating window and notification work for every timer,
+  the each-side one included.
+- Fixed with it: one Sound and one Get ready (Conditioning 10 s, warm-ups 5 s,
+  each-side none before); 3-2-1 into each side; vibration only at changes;
+  one end tone; one Start side and Pause between sides (warm-ups use it when
+  a step switches sides); into work high, into rest low on every timer.
+- The day's buttons are `DayTiles` (the Workouts page's `ActionCard` /
+  `ActionGroup`, now internal). `AdditionalMenu` and `ExtraPickerPage` are
+  gone: Log another is `LogAnotherPage`, routines are `RoutinesPage`.
+- Tracked walks, runs, rucks and hikes come from the day's `tracked` (server
+  0.813) as done cards in `CARDIO_COLOR`; nothing to open.
+
 ## 2026-11 — Menu swipe off the map (0.584.0, web 0.812.2)
 
 - The Family map page now reports the band its map takes (`KairosPlaces.mapBand(top, bottom)`,
