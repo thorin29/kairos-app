@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — Details under the workout (0.578.0)
+
+- `WorkoutCardItemDto.detail` shows under its workout's name, lined up with
+  the name; the 3dp bullet is faint, green once done. With an older server
+  (no detail) the kinds line stays at the end.
+
 ## 2026-11 — Workout bullets (0.577.0)
 
 - The tile's workout lines use a 5dp bullet (green when done) instead of a

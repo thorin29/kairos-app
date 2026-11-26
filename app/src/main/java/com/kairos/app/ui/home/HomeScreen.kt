@@ -821,7 +821,7 @@ private fun WorkoutSummaryCard(
                         // Each workout on its own line (v0.574), a ring before it
                         // (a check once done). Three fit; past that, two and "+N more".
                         val shown = if (card.items.size > 3) card.items.take(2) else card.items
-                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done) }
+                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done, detail = item.detail) }
                         if (card.items.size > 3) {
                             Text(
                                 "+${card.items.size - 2} more",
@@ -830,7 +830,8 @@ private fun WorkoutSummaryCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        if (card.kinds.isNotEmpty()) {
+                        // Older servers send no detail: the kinds go at the end.
+                        if (card.kinds.isNotEmpty() && card.items.none { it.detail != null }) {
                             Text(
                                 card.kinds.joinToString(" \u00b7 "),
                                 style = MaterialTheme.typography.labelSmall,
@@ -901,24 +902,39 @@ private fun WorkoutSummaryCard(
     }
 }
 
-/** One workout on the home tile (v0.574): a small bullet (v0.577), green once done. */
+/**
+ * One workout on the home tile (v0.574): a tiny bullet, green once done
+ * (v0.578), and its details under its name, lined up with the name.
+ */
 @Composable
-private fun WorkoutNameLine(name: String, done: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun WorkoutNameLine(name: String, done: Boolean, detail: String?) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             Modifier
-                .size(5.dp)
+                .padding(top = 9.dp)
+                .size(3.dp)
                 .clip(CircleShape)
-                .background(if (done) ChoresGreen else MaterialTheme.colorScheme.onSurface),
+                .background(if (done) ChoresGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
         )
-        Text(
-            name,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Column {
+            Text(
+                name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (detail != null) {
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 

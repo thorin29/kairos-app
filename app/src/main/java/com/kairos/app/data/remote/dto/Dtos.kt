@@ -1512,7 +1512,7 @@ data class SoreListDto(val sore: List<SoreSpotDto> = emptyList())
 data class WorkoutBlocksDto(val done: Int = 0, val total: Int = 0)
 
 @Serializable
-data class WorkoutCardItemDto(val name: String = "", val done: Boolean = false)
+data class WorkoutCardItemDto(val name: String = "", val done: Boolean = false, val detail: String? = null)
 
 @Serializable
 data class WorkoutCardDto(val items: List<WorkoutCardItemDto> = emptyList(), val kinds: List<String> = emptyList())

@@ -1,4 +1,8 @@
 # Changelog
+## 0.578.0
+
+- Home: workout bullets are tiny, and each workout's details sit under its own name (server 0.805+).
+
 ## 0.577.0
 
 - Home: workouts on the tile get small bullets, green once done.
