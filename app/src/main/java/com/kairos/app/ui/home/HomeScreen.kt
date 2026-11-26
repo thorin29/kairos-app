@@ -794,35 +794,12 @@ private fun WorkoutSummaryCard(
                             fontWeight = FontWeight.SemiBold,
                             color = ChoresGreen,
                         )
-                    } else if (remaining.isNotEmpty()) {
-                        blocksLine()
-                        // Started, not finished: what's remaining, two per line.
-                        Text(
-                            "Remaining",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        remaining.chunked(2).forEach { pair ->
-                            Text(
-                                pair.joinToString(" \u00b7 "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        if (overdueCount > 0) {
-                            Text(
-                                "$overdueCount overdue",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
                     } else if (card != null && card.items.size >= 2) {
                         blocksLine()
                         // Each workout on its own line (v0.574), a ring before it
                         // (a check once done). Three fit; past that, two and "+N more".
                         val shown = if (card.items.size > 3) card.items.take(2) else card.items
-                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done, detail = item.detail) }
+                        shown.forEach { item -> WorkoutNameLine(name = item.name, done = item.done, detail = item.detail, inProgress = remaining.isNotEmpty()) }
                         if (card.items.size > 3) {
                             Text(
                                 "+${card.items.size - 2} more",
@@ -841,6 +818,32 @@ private fun WorkoutSummaryCard(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        if (overdueCount > 0) {
+                            Text(
+                                "$overdueCount overdue",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    } else if (remaining.isNotEmpty()) {
+                        // Started, not finished (v0.581): the workout and "In
+                        // progress" in italics, not its remaining parts.
+                        blocksLine()
+                        val one = todayNames.singleOrNull()
+                        Text(
+                            one?.substringAfter(" \u00b7 ") ?: todayNames.firstOrNull() ?: "Workout",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            "In progress",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         if (overdueCount > 0) {
                             Text(
                                 "$overdueCount overdue",
@@ -904,11 +907,12 @@ private fun WorkoutSummaryCard(
 }
 
 /**
- * One workout on the home tile (v0.574): a tiny bullet, green once done
- * (v0.578), and its details under its name, lined up with the name.
+ * One workout on the home tile (v0.574): a tiny bullet and the name, both
+ * green once done (v0.581), and its details under the name, lined up with it;
+ * "In progress" in italics there while it's started and not done.
  */
 @Composable
-private fun WorkoutNameLine(name: String, done: Boolean, detail: String?) {
+private fun WorkoutNameLine(name: String, done: Boolean, detail: String?, inProgress: Boolean) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             Modifier
@@ -922,14 +926,16 @@ private fun WorkoutNameLine(name: String, done: Boolean, detail: String?) {
                 name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                color = if (done) ChoresGreen else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (detail != null) {
+                val started = inProgress && !done
                 Text(
-                    detail,
+                    if (started) "In progress" else detail,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 13.sp),
+                    fontStyle = if (started) androidx.compose.ui.text.font.FontStyle.Italic else null,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

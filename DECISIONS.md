@@ -1,5 +1,11 @@
 # Decisions
 
+## 2026-11 — In progress; green when done (0.581.0)
+
+- The Workouts tile no longer lists the remaining parts of a started
+  workout: the name and "In progress" (italic, where its details go). With
+  several workouts the finished one's name and bullet are green.
+
 ## 2026-11 — Didn't go isn't a workout (0.580.0)
 
 - The day page's heading counts blocks except a sport answered "didn't go";
