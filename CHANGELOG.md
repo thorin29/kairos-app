@@ -1,4 +1,8 @@
 # Changelog
+## 0.583.0
+
+- Warm-ups: every step has an ⓘ with Watch how.
+
 ## 0.582.0
 
 - Home: a day with two workouts keeps its list after one is done or skipped: the finished one green, a practice you didn't go to greyed out.

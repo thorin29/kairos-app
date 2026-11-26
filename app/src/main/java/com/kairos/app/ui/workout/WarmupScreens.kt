@@ -115,13 +115,8 @@ private fun WarmupSteps(steps: List<WarmupStepDto>, storeKey: String? = null) {
     }
     var timing by remember(steps) { mutableStateOf<Int?>(null) }
     var cue by remember(steps) { mutableStateOf<WarmupStepDto?>(null) }
-    cue?.let { st ->
-        AnimatedDialog(
-            onDismissRequest = { cue = null },
-            title = st.name,
-            confirmButton = { TextButton(onClick = { cue = null }) { Text("Close") } },
-        ) { Text(st.cue.orEmpty(), style = MaterialTheme.typography.bodyMedium) }
-    }
+    // The how-to and "Watch how" (v0.583), like every movement's ⓘ.
+    cue?.let { st -> MovementInfoDialog(name = st.name, about = st.cue, onDismiss = { cue = null }) }
     timing?.let { from ->
         WarmupTimer(
             steps = steps,
@@ -160,11 +155,10 @@ private fun WarmupSteps(steps: List<WarmupStepDto>, storeKey: String? = null) {
                     )
                     Text(stepAmount(s), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                // How to do it (v0.469), behind an ⓘ.
-                if (!s.cue.isNullOrBlank()) {
-                    IconButton(onClick = { cue = s }) {
-                        Icon(KairosIcons.Info, contentDescription = "How to do ${s.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                    }
+                // How to do it (v0.469), behind an ⓘ; every step has one for
+                // "Watch how" (v0.583), even without a written how-to.
+                IconButton(onClick = { cue = s }) {
+                    Icon(KairosIcons.Info, contentDescription = "How to do ${s.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
                 if (s.kind == "TIME") {
                     AccentOutlinedButton(onClick = { timing = i }) {

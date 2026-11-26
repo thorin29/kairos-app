@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Watch how on warm-up steps (0.583.0)
+
+- A warm-up step's ⓘ shows on every step and opens `MovementInfoDialog`
+  (its cue and Watch how).
+
 ## 2026-11 — The list stays; didn't-go greyed (0.582.0)
 
 - With a `workoutCard`, the tile shows its list before "Complete for today!",
