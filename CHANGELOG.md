@@ -1,4 +1,8 @@
 # Changelog
+## 0.586.1
+
+- Pick lists (Assign a task, Add school work, Create a workout, Block builder, saved workouts) open over the page instead of pushing it down.
+
 ## 0.586.0
 
 - Cardio page: activities as icon buttons, most recent first; past five, More opens a menu over the page with the rest (older ones under Older).

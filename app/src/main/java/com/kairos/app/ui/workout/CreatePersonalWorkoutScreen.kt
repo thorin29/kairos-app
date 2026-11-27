@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -50,6 +51,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -393,7 +395,10 @@ private fun NameCombo(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
-    Column {
+    var widthPx by remember { mutableStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    // Saved workouts open as a menu over the form (0.586.1), not pushing it down.
+    Box {
         OutlinedTextField(
             value = name,
             onValueChange = onName,
@@ -407,32 +412,30 @@ private fun NameCombo(
                     Icon(KairosIcons.ChevronDown, "Saved workouts", Modifier.rotate(if (expanded) 180f else 0f))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().onSizeChanged { widthPx = it.width },
         )
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = if (widthPx > 0) Modifier.width(with(density) { widthPx.toDp() }) else Modifier,
         ) {
-            Surface(
-                tonalElevation = 2.dp,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            ) {
-                Column {
-                    OptionRow("\uFF0B New workout") { focusManager.clearFocus(); onNew(); expanded = false }
-                    existing.forEach { (id, label) ->
-                        OptionRow(label) { focusManager.clearFocus(); onPickExisting(id); expanded = false }
-                    }
-                    if (existing.isEmpty()) {
-                        Text(
-                            "No saved workouts yet",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp),
-                        )
-                    }
-                }
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text("\uFF0B New workout", fontWeight = FontWeight.SemiBold) },
+                onClick = { focusManager.clearFocus(); onNew(); expanded = false },
+            )
+            existing.forEach { (id, label) ->
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = { focusManager.clearFocus(); onPickExisting(id); expanded = false },
+                )
+            }
+            if (existing.isEmpty()) {
+                Text(
+                    "No saved workouts yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(12.dp),
+                )
             }
         }
     }
@@ -548,16 +551,4 @@ private fun AddCustomExerciseDialog(onDismiss: () -> Unit, onAdd: (name: String)
             modifier = Modifier.fillMaxWidth(),
         )
     }
-}
-
-@Composable
-private fun OptionRow(label: String, onClick: () -> Unit) {
-    Text(
-        label,
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-    )
 }

@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Pick lists open over the page (0.586.1)
+
+- `RollPicker` (Assign a task's For and Ends, Add school work's For and Type,
+  Create a workout's Type and Add an exercise, the block builder's Garage
+  length) and Create a workout's saved-workouts list are `DropdownMenu`s as
+  wide as their field, over the page, instead of expanding in place. Sections
+  that open in place on purpose (Completed tasks, hockey sections, the
+  calendar's month) stay as they are.
+
 ## 2026-11 — The Cardio page's activity picker (0.586.0, web 0.814.0)
 
 - `ActivityPicker` in `EnduranceCharts.kt`: icon-over-name segments ordered by
