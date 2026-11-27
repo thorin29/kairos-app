@@ -1,4 +1,8 @@
 # Changelog
+## 0.586.2
+
+- Home: a check you tap stays put; a slow refresh that started before the tap no longer puts the old state back.
+
 ## 0.586.1
 
 - Pick lists (Assign a task, Add school work, Create a workout, Block builder, saved workouts) open over the page instead of pushing it down.

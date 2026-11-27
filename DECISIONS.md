@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-11 — Home: stale refreshes no longer undo a tap (0.586.2)
+
+- Seen: tap Bible reading, the check shows then vanishes, the next tap does
+  nothing, and after a restart it's done. A refresh that began before the tap
+  (on resume, or `tasksChanged`) came back after it with the old state and
+  replaced the optimistic one; the second tap was ignored because the first
+  was still saving. `HomeViewModel` now keeps the time of the last tap start
+  or finish (`touched()`, on every `busyIds` change) and `freshIfCurrent()`
+  drops a fetch that began before it, or while another tap is saving. Only
+  one load runs at a time; a refresh asked for meanwhile rides on it.
+- The thin bar along the top is any GET in flight (`RefreshTracker`), not a
+  sync; it stays as long as a request is slow.
+
 ## 2026-11 — Pick lists open over the page (0.586.1)
 
 - `RollPicker` (Assign a task's For and Ends, Add school work's For and Type,

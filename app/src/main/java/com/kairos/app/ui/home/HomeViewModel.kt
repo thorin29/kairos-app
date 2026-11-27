@@ -92,10 +92,13 @@ class HomeViewModel(
 
     fun load() {
         _ui.update { it.copy(loading = it.dashboard == null, loadError = null) }
-        viewModelScope.launch {
+        // One load at a time (0.586.2): a refresh asked for while one is out
+        // rides on it instead of racing it.
+        if (loadJob?.isActive == true) return
+        loadJob = viewModelScope.launch {
             try {
-                val data = freshDashboard()
-                _ui.update { it.copy(loading = false, refreshing = false, dashboard = data, loadError = null) }
+                val data = freshIfCurrent(null)
+                _ui.update { it.copy(loading = false, refreshing = false, dashboard = data ?: it.dashboard, loadError = null) }
             } catch (e: ApiException) {
                 // The fetch failed. If what's on screen is some OTHER day — the app
                 // sat open across midnight, or this is a cold start seeded before
@@ -128,6 +131,32 @@ class HomeViewModel(
                     )
                 }
             }
+        }
+    }
+
+    private var loadJob: kotlinx.coroutines.Job? = null
+
+    /** When a tap last started or finished (0.586.2). */
+    @Volatile private var localChangeAt = 0L
+    private fun touched() { localChangeAt = System.nanoTime() }
+
+    /**
+     * A fresh dashboard, or null when it may already be out of date (0.586.2):
+     * another tap started or finished while it was being fetched, or one is
+     * still saving. Before, a slow fetch that began before a tap came back
+     * after it and put the old state back — the check appeared, then vanished,
+     * and the next tap was ignored as still busy. [own] is the caller's own
+     * busy key, which doesn't count. The screen keeps what it shows; the later
+     * tap's own fetch brings the server's state.
+     */
+    private suspend fun freshIfCurrent(own: String?): DashboardDto? {
+        val started = System.nanoTime()
+        val data = freshDashboard()
+        val othersBusy = _ui.value.busyIds.any { it != own }
+        return if (localChangeAt > started || othersBusy) {
+            if (_ui.value.dashboard == null) data else null
+        } else {
+            data
         }
     }
 
@@ -312,7 +341,7 @@ class HomeViewModel(
         val newStatus = if (currentlyComplete) "PENDING" else "COMPLETE"
         _ui.update {
             it.copy(
-                busyIds = it.busyIds + taskId,
+                busyIds = (it.busyIds + taskId).also { touched() },
                 actionError = null,
                 dashboard = it.dashboard?.let { d -> mutateTaskStatus(d, taskId, newStatus) },
             )
@@ -322,14 +351,14 @@ class HomeViewModel(
                 if (currentlyComplete) session.uncompleteTask(taskId)
                 else session.completeTask(taskId)
                 if (session.isOnline()) {
-                    val data = freshDashboard()
-                    _ui.update { it.copy(dashboard = data, busyIds = it.busyIds - taskId) }
+                    val data = freshIfCurrent(taskId)
+                    _ui.update { it.copy(dashboard = data ?: it.dashboard, busyIds = (it.busyIds - taskId).also { touched() }) }
                 } else {
-                    _ui.update { it.copy(busyIds = it.busyIds - taskId) }
+                    _ui.update { it.copy(busyIds = (it.busyIds - taskId).also { touched() }) }
                 }
             } catch (e: ApiException) {
                 _ui.update {
-                    it.copy(dashboard = before, busyIds = it.busyIds - taskId, actionError = e.error.message)
+                    it.copy(dashboard = before, busyIds = (it.busyIds - taskId).also { touched() }, actionError = e.error.message)
                 }
             }
         }
@@ -347,7 +376,7 @@ class HomeViewModel(
     fun answerSport(eventId: String, dateISO: String, done: Boolean) {
         val key = "sport-$eventId-$dateISO"
         if (_ui.value.busyIds.contains(key)) return
-        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        _ui.update { it.copy(busyIds = (it.busyIds + key).also { touched() }, actionError = null) }
         // Answer for the occurrence the prompt is about (may be a carried-over
         // earlier day), falling back to the dashboard day.
         val date = if (dateISO.isNotBlank()) dateISO else _ui.value.dashboard?.date
@@ -355,11 +384,11 @@ class HomeViewModel(
             try {
                 if (done) session.sportConfirm(eventId, date) else session.sportDecline(eventId, date)
                 val title = _ui.value.dashboard?.sportPrompts?.firstOrNull { it.eventId == eventId }?.title.orEmpty()
-                val data = freshDashboard()
+                val data = freshIfCurrent(key)
                 _ui.update {
                     it.copy(
-                        dashboard = data,
-                        busyIds = it.busyIds - key,
+                        dashboard = data ?: it.dashboard,
+                        busyIds = (it.busyIds - key).also { touched() },
                         // Yes asks how hard it was; the check mark saves and
                         // clears it (v0.467, no Done step).
                         sportFeel = if (done && date != null) {
@@ -370,7 +399,7 @@ class HomeViewModel(
                     )
                 }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(busyIds = (it.busyIds - key).also { touched() }, actionError = e.error.message) }
             }
         }
     }
@@ -404,7 +433,7 @@ class HomeViewModel(
         val before = _ui.value.dashboard
         _ui.update {
             it.copy(
-                busyIds = it.busyIds + key,
+                busyIds = (it.busyIds + key).also { touched() },
                 actionError = null,
                 dashboard = it.dashboard?.let { d -> d.copy(upForGrabs = d.upForGrabs.filterNot { g -> g.id == taskId }) },
             )
@@ -413,12 +442,12 @@ class HomeViewModel(
             try {
                 session.claimAndCompleteChore(taskId)
                 if (session.isOnline()) {
-                    _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                    freshIfCurrent(key).let { fresh -> _ui.update { it.copy(dashboard = fresh ?: it.dashboard, busyIds = (it.busyIds - key).also { touched() }) } }
                 } else {
-                    _ui.update { it.copy(busyIds = it.busyIds - key) }
+                    _ui.update { it.copy(busyIds = (it.busyIds - key).also { touched() }) }
                 }
             } catch (e: ApiException) {
-                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = (it.busyIds - key).also { touched() }, actionError = e.error.message) }
             }
         }
     }
@@ -430,7 +459,7 @@ class HomeViewModel(
         val before = _ui.value.dashboard
         _ui.update {
             it.copy(
-                busyIds = it.busyIds + key,
+                busyIds = (it.busyIds + key).also { touched() },
                 actionError = null,
                 dashboard = it.dashboard?.let { d -> bumpAlwaysOpen(d, choreId) },
             )
@@ -439,12 +468,12 @@ class HomeViewModel(
             try {
                 session.completeAlwaysOpen(choreId)
                 if (session.isOnline()) {
-                    _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                    freshIfCurrent(key).let { fresh -> _ui.update { it.copy(dashboard = fresh ?: it.dashboard, busyIds = (it.busyIds - key).also { touched() }) } }
                 } else {
-                    _ui.update { it.copy(busyIds = it.busyIds - key) }
+                    _ui.update { it.copy(busyIds = (it.busyIds - key).also { touched() }) }
                 }
             } catch (e: ApiException) {
-                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = (it.busyIds - key).also { touched() }, actionError = e.error.message) }
             }
         }
     }
@@ -454,13 +483,13 @@ class HomeViewModel(
     fun addSchoolToToday(taskId: String) {
         val key = "add-$taskId"
         if (_ui.value.busyIds.contains(key)) return
-        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        _ui.update { it.copy(busyIds = (it.busyIds + key).also { touched() }, actionError = null) }
         viewModelScope.launch {
             try {
                 session.addSchoolToToday(taskId)
-                _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                freshIfCurrent(key).let { fresh -> _ui.update { it.copy(dashboard = fresh ?: it.dashboard, busyIds = (it.busyIds - key).also { touched() }) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(busyIds = (it.busyIds - key).also { touched() }, actionError = e.error.message) }
             }
         }
     }
@@ -469,13 +498,13 @@ class HomeViewModel(
     fun releaseChore(taskId: String) {
         val key = "release-$taskId"
         if (_ui.value.busyIds.contains(key)) return
-        _ui.update { it.copy(busyIds = it.busyIds + key, actionError = null) }
+        _ui.update { it.copy(busyIds = (it.busyIds + key).also { touched() }, actionError = null) }
         viewModelScope.launch {
             try {
                 session.releaseChore(taskId)
-                _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                freshIfCurrent(key).let { fresh -> _ui.update { it.copy(dashboard = fresh ?: it.dashboard, busyIds = (it.busyIds - key).also { touched() }) } }
             } catch (e: ApiException) {
-                _ui.update { it.copy(busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(busyIds = (it.busyIds - key).also { touched() }, actionError = e.error.message) }
             }
         }
     }
@@ -496,7 +525,7 @@ class HomeViewModel(
         val newRead = !currentlyRead
         _ui.update {
             it.copy(
-                busyIds = it.busyIds + key,
+                busyIds = (it.busyIds + key).also { touched() },
                 actionError = null,
                 dashboard = it.dashboard?.let { d -> d.copy(personalReading = d.personalReading?.copy(read = newRead)) },
             )
@@ -505,12 +534,12 @@ class HomeViewModel(
             try {
                 session.markReading(passage, newRead)
                 if (session.isOnline()) {
-                    _ui.update { it.copy(dashboard = freshDashboard(), busyIds = it.busyIds - key) }
+                    freshIfCurrent(key).let { fresh -> _ui.update { it.copy(dashboard = fresh ?: it.dashboard, busyIds = (it.busyIds - key).also { touched() }) } }
                 } else {
-                    _ui.update { it.copy(busyIds = it.busyIds - key) }
+                    _ui.update { it.copy(busyIds = (it.busyIds - key).also { touched() }) }
                 }
             } catch (e: ApiException) {
-                _ui.update { it.copy(dashboard = before, busyIds = it.busyIds - key, actionError = e.error.message) }
+                _ui.update { it.copy(dashboard = before, busyIds = (it.busyIds - key).also { touched() }, actionError = e.error.message) }
             }
         }
     }
