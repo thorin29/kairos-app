@@ -2484,9 +2484,10 @@ private fun FamilyGoalCard(
                     )
                 }
                 if (title == null) {
-                    // Picking or voting is on the goal page; the pill opens it.
+                    // Voting is on the goal page; the pill opens it. Always
+                    // "Vote" (0.585.3, as the web since 0.804).
                     Text(
-                        if (c.homeNudge == "pick") "Pick" else "Vote",
+                        "Vote",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,

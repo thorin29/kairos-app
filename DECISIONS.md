@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-11 — Family goal pill says Vote (0.585.3)
+
+- The home Family goal pill said Pick when the server's `homeNudge` was
+  "pick"; the web has said Vote either way since 0.804. Now the app does too.
+
 ## 2026-11 — Family WOD always a button; no Something else (0.585.2, web 0.813.1)
 
 - `DayTiles` always shows Family WOD (`hasFamilyWod` adds Today) and opens

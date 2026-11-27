@@ -1,4 +1,8 @@
 # Changelog
+## 0.585.3
+
+- Home: the Family goal pill always says Vote, as on the web.
+
 ## 0.585.2
 
 - Workout day: Family WOD is always a button; Log another drops Something else.
