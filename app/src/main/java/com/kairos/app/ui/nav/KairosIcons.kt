@@ -304,6 +304,18 @@ object KairosIcons {
     )
     /** Lightning bolt (v0.585): conditioning. */
     val Bolt = stroked("Bolt", "M13 3 5 14h6l-1 7 8-11h-6l1-7z")
+    /** Rower, bicycle, jump rope and heart (0.585.5): the Cardio page's activities. */
+    val Rower = stroked("Rower", "M3 18h18", "M6 18l4-8 4 3 4-6", "M11.6 6.5a1.6 1.6 0 1 0 -3.2 0a1.6 1.6 0 1 0 3.2 0z")
+    val Bike = stroked(
+        "Bike",
+        "M9.5 16.5a3.5 3.5 0 1 0 -7 0a3.5 3.5 0 1 0 7 0z",
+        "M21.5 16.5a3.5 3.5 0 1 0 -7 0a3.5 3.5 0 1 0 7 0z",
+        "M6 16.5l4 -7.5h5l3 7.5",
+        "M10 9l2 7.5",
+        "M13.5 6h2",
+    )
+    val JumpRope = stroked("JumpRope", "M6 3v5", "M18 3v5", "M6 8c0 10 12 10 12 0")
+    val Heart = stroked("Heart", "M12 20s-7 -4.5 -7 -10a4 4 0 0 1 7 -2.6a4 4 0 0 1 7 2.6c0 5.5 -7 10 -7 10z")
 
     val Flame = filled("Flame", "M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z")
     // Go for a… (v0.557), drawn after Tabler's walk, run, backpack and mountain.

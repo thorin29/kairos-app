@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-11 — The Cardio page's activity picker (0.586.0, web 0.814.0)
+
+- `ActivityPicker` in `EnduranceCharts.kt`: icon-over-name segments ordered by
+  last done (`orderActivities`, the web's); up to five recent ones as
+  buttons, else four and More. More is a `DropdownMenu` (over the page) with
+  Last 12 weeks and Older. New icons: Rower, Bike, JumpRope, Heart; hiking
+  uses Mountain.
+
+## 2026-11 — Weekly bars you can read (0.585.4)
+
+- `WeekBars` takes a `tip`: each bar gets its value on top (2.5k, 800, 12.4)
+  and a tap picks a week, dims the others and spells it out underneath
+  ("Week of Nov 16 · 2,500 m"; this week to start). Used for the Cardio
+  page's distance or minutes per week and Conditioning's sessions per week;
+  the web's charts already show the same on tap or hover.
+
 ## 2026-11 — Family goal pill says Vote (0.585.3)
 
 - The home Family goal pill said Pick when the server's `homeNudge` was

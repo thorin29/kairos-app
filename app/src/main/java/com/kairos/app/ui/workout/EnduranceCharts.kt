@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -57,6 +58,10 @@ import com.kairos.app.data.remote.dto.ConditioningChartsDto
 import com.kairos.app.ui.nav.KairosIcons
 import java.time.LocalDate
 import java.time.format.TextStyle
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -119,6 +124,14 @@ private fun split(sec: Double): String {
 private fun num(v: Double): String =
     if (v % 1.0 == 0.0) String.format(Locale.US, "%,d", v.toLong()) else String.format(Locale.US, "%,.1f", v)
 
+/** "m", "min", "km" or "mi" in words for a week's total (0.585.4). */
+private fun unitWord(measure: String): String = when (measure) {
+    "m" -> "m"
+    "min" -> "min"
+    "km" -> "km"
+    else -> "mi"
+}
+
 private fun hoursText(min: Int): String = if (min >= 60) "${min / 60} h ${min % 60} m" else "$min m"
 
 @Composable
@@ -140,16 +153,52 @@ private fun WeekBars(
     height: Dp,
     /** Each week split by kind, bottom first (v0.540): white lines between. */
     parts: List<List<Pair<Double, Color>>> = emptyList(),
+    /** A week's value in words (0.585.4): each bar gets its number on top,
+     *  and a tap picks a week and spells it out underneath. */
+    tip: ((Double) -> String)? = null,
 ) {
     val max = maxOf(1.0, values.maxOrNull() ?: 1.0)
     val line = MaterialTheme.colorScheme.outlineVariant
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    var picked by remember(values) { mutableStateOf(values.lastIndex) }
     Column(Modifier.fillMaxWidth()) {
-        Canvas(Modifier.fillMaxWidth().height(height)) {
+        if (tip != null) {
+            Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                values.forEachIndexed { i, v ->
+                    Text(
+                        if (v > 0) shortNum(v) else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
+                        fontWeight = if (i == picked) FontWeight.Bold else FontWeight.Normal,
+                        color = if (i == picked) MaterialTheme.colorScheme.onSurface else muted,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(height)
+                .then(
+                    if (tip == null) Modifier
+                    else Modifier.pointerInput(values) {
+                        detectTapGestures { o ->
+                            val n = values.size.coerceAtLeast(1)
+                            picked = (o.x / size.width * n).toInt().coerceIn(0, n - 1)
+                        }
+                    },
+                ),
+        ) {
             val n = values.size.coerceAtLeast(1)
             val gap = 4.dp.toPx()
             val bw = (size.width - gap * (n - 1)) / n
             val seam = 1.dp.toPx()
             values.forEachIndexed { i, v ->
+                val dim = tip != null && i != picked
+                val barColor = if (dim) color.copy(alpha = 0.45f) else color
                 val h = (v / max).toFloat() * size.height
                 val split = parts.getOrNull(i).orEmpty().filter { it.first > 0 }
                 val sum = split.sumOf { it.first }
@@ -157,12 +206,12 @@ private fun WeekBars(
                     var bottom = size.height
                     split.forEachIndexed { j, (amount, c) ->
                         val sh = (amount / sum).toFloat() * maxOf(h, 2f)
-                        drawRect(c, topLeft = Offset(i * (bw + gap), bottom - sh), size = androidx.compose.ui.geometry.Size(bw, sh))
+                        drawRect(if (dim) c.copy(alpha = 0.45f) else c, topLeft = Offset(i * (bw + gap), bottom - sh), size = androidx.compose.ui.geometry.Size(bw, sh))
                         if (j > 0) drawRect(Color.White, topLeft = Offset(i * (bw + gap), bottom - seam / 2), size = androidx.compose.ui.geometry.Size(bw, seam))
                         bottom -= sh
                     }
                 } else if (v > 0) {
-                    drawRect(color, topLeft = Offset(i * (bw + gap), size.height - h), size = androidx.compose.ui.geometry.Size(bw, maxOf(h, 2f)))
+                    drawRect(barColor, topLeft = Offset(i * (bw + gap), size.height - h), size = androidx.compose.ui.geometry.Size(bw, maxOf(h, 2f)))
                 }
             }
             drawLine(line, Offset(0f, size.height), Offset(size.width, size.height), 1.5f)
@@ -171,7 +220,25 @@ private fun WeekBars(
             listOf(0, 4, 8).forEach { i -> starts.getOrNull(i)?.let { Text(md(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
             Text("This week", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        if (tip != null) {
+            values.getOrNull(picked)?.let { v ->
+                Text(
+                    (if (picked == values.lastIndex) "This week" else starts.getOrNull(picked)?.let { "Week of ${md(it)}" } ?: "") + " \u00b7 " + tip(v),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+        }
     }
+}
+
+/** A bar's number in a few characters: 2.5k, 800, 12.4 (0.585.4). */
+private fun shortNum(v: Double): String = when {
+    v >= 10_000 -> "${(v / 1000).roundToInt()}k"
+    v >= 1000 -> String.format(Locale.US, "%.1fk", v / 1000).replace(".0k", "k")
+    v % 1.0 == 0.0 -> v.toLong().toString()
+    else -> String.format(Locale.US, "%.1f", v)
 }
 
 @Composable
@@ -287,8 +354,9 @@ private fun PaceChart(a: CardioActivityDto) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
-    var pick by remember { mutableStateOf(data.activities.firstOrNull()?.key) }
-    val a = data.activities.firstOrNull { it.key == pick } ?: data.activities.firstOrNull() ?: return
+    val ordered = remember(data) { orderActivities(data.activities) }
+    var pick by remember { mutableStateOf(ordered.all.firstOrNull()?.key) }
+    val a = data.activities.firstOrNull { it.key == pick } ?: ordered.all.firstOrNull() ?: return
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val volTitle = when (a.measure) {
         "m" -> "Meters per week"
@@ -299,23 +367,7 @@ internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
     val pace = a.pace
     FullPage(title = "Cardio", onDismiss = onDismiss) {
         if (data.activities.size > 1) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                data.activities.forEach { x ->
-                    val on = x.key == a.key
-                    val shape = RoundedCornerShape(18.dp)
-                    Box(
-                        Modifier
-                            .heightIn(min = 36.dp)
-                            .clip(shape)
-                            .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .border(1.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, shape)
-                            .clickable { pick = x.key }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                    ) {
-                        Text(x.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
+            ActivityPicker(ordered = ordered, value = a.key, onPick = { pick = it })
         }
         OutlinedCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
@@ -340,7 +392,13 @@ internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
                 } else {
                     SmallCaps(volTitle)
                     Spacer(Modifier.height(8.dp))
-                    WeekBars(values = a.weeks.map { it.value }, starts = a.weeks.map { it.start }, color = if (a.color.isEmpty()) CARDIO_COLOR else cardioKindColor(a.color), height = 90.dp)
+                    WeekBars(
+                        values = a.weeks.map { it.value },
+                        starts = a.weeks.map { it.start },
+                        color = if (a.color.isEmpty()) CARDIO_COLOR else cardioKindColor(a.color),
+                        height = 90.dp,
+                        tip = { v -> "${num(v)} ${unitWord(a.measure)}" },
+                    )
                 }
             }
         }
@@ -399,7 +457,13 @@ internal fun CardioPageDialog(data: CardioChartsDto, onDismiss: () -> Unit) {
                 Column(Modifier.padding(12.dp)) {
                     SmallCaps(volTitle)
                     Spacer(Modifier.height(8.dp))
-                    WeekBars(values = a.weeks.map { it.value }, starts = a.weeks.map { it.start }, color = if (a.color.isEmpty()) CARDIO_COLOR else cardioKindColor(a.color), height = 90.dp)
+                    WeekBars(
+                        values = a.weeks.map { it.value },
+                        starts = a.weeks.map { it.start },
+                        color = if (a.color.isEmpty()) CARDIO_COLOR else cardioKindColor(a.color),
+                        height = 90.dp,
+                        tip = { v -> "${num(v)} ${unitWord(a.measure)}" },
+                    )
                 }
             }
         }
@@ -481,7 +545,13 @@ internal fun ConditioningPageDialog(data: ConditioningChartsDto, onDismiss: () -
             Column(Modifier.padding(12.dp)) {
                 SmallCaps("Sessions per week")
                 Spacer(Modifier.height(8.dp))
-                WeekBars(values = data.weeks.map { it.count.toDouble() }, starts = data.weeks.map { it.start }, color = CONDITIONING_COLOR, height = 70.dp)
+                WeekBars(
+                    values = data.weeks.map { it.count.toDouble() },
+                    starts = data.weeks.map { it.start },
+                    color = CONDITIONING_COLOR,
+                    height = 70.dp,
+                    tip = { v -> if (v == 1.0) "1 session" else "${v.toLong()} sessions" },
+                )
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -578,4 +648,145 @@ internal fun ConditioningPageDialog(data: ConditioningChartsDto, onDismiss: () -
             }
         }
     }
+}
+
+/** Each Cardio activity's icon (0.585.5). */
+private fun activityIcon(key: String): androidx.compose.ui.graphics.vector.ImageVector = when (key) {
+    "ROWING" -> KairosIcons.Rower
+    "RUNNING" -> KairosIcons.Run
+    "RUCKING" -> KairosIcons.Backpack
+    "HIKING" -> KairosIcons.Mountain
+    "WALKING" -> KairosIcons.Walk
+    "CYCLING" -> KairosIcons.Bike
+    "JUMP_ROPE" -> KairosIcons.JumpRope
+    "SPORT" -> KairosIcons.Hockey
+    else -> KairosIcons.Heart
+}
+
+/** The Cardio page's activities in order (0.585.5; the web's orderActivities). */
+private data class OrderedActivities(
+    val all: List<CardioActivityDto>,
+    val shown: List<CardioActivityDto>,
+    val moreRecent: List<CardioActivityDto>,
+    val older: List<CardioActivityDto>,
+)
+
+/**
+ * Done in the chart's twelve weeks, most recent first, then the older ones.
+ * Up to five recent ones are buttons; past that (or with any older one) four
+ * buttons and More, which opens over the page with the rest.
+ */
+private fun orderActivities(list: List<CardioActivityDto>): OrderedActivities {
+    val from = list.firstOrNull()?.weeks?.firstOrNull()?.start.orEmpty()
+    val lastOf = { x: CardioActivityDto -> x.last?.date.orEmpty() }
+    val recent = list.filter { lastOf(it) >= from }.sortedByDescending(lastOf)
+    val older = list.filter { lastOf(it) < from }.sortedByDescending(lastOf)
+    val allFit = older.isEmpty() && recent.size <= 5
+    return OrderedActivities(
+        all = recent + older,
+        shown = if (allFit) recent else recent.take(4),
+        moreRecent = if (allFit) emptyList() else recent.drop(4),
+        older = older,
+    )
+}
+
+private fun agoText(date: String): String {
+    val weeks = runCatching { java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(date), java.time.LocalDate.now()) / 7 }.getOrDefault(0L)
+    return when {
+        weeks <= 0 -> "This week"
+        weeks == 1L -> "1 wk ago"
+        else -> "$weeks wk ago"
+    }
+}
+
+private fun monthText(date: String): String = runCatching {
+    val d = java.time.LocalDate.parse(date)
+    val m = d.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.US)
+    if (d.year == java.time.LocalDate.now().year) m else "$m ${d.year}"
+}.getOrDefault("")
+
+/** Icon-over-name segments, and More as a menu over the page (0.585.5). */
+@Composable
+private fun ActivityPicker(ordered: OrderedActivities, value: String, onPick: (String) -> Unit) {
+    val c = MaterialTheme.colorScheme
+    var open by remember { mutableStateOf(false) }
+    val extra = ordered.moreRecent + ordered.older
+    val pickedExtra = extra.firstOrNull { it.key == value }
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(c.surfaceVariant).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        @Composable
+        fun Seg(on: Boolean, icon: androidx.compose.ui.graphics.vector.ImageVector?, label: String, modifier: Modifier, onClick: () -> Unit) {
+            Column(
+                modifier
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(if (on) c.surface else Color.Transparent)
+                    .clickable(onClick = onClick)
+                    .padding(top = 6.dp, bottom = 5.dp, start = 2.dp, end = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (icon != null) {
+                    Icon(icon, contentDescription = null, tint = if (on) c.primary else c.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                } else {
+                    Text("\u00b7\u00b7\u00b7", fontWeight = FontWeight.Bold, color = c.onSurfaceVariant, modifier = Modifier.height(18.dp))
+                }
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (on) c.onSurface else c.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        ordered.shown.forEach { x ->
+            Seg(on = x.key == value, icon = activityIcon(x.key), label = x.label, modifier = Modifier.weight(1f), onClick = { onPick(x.key) })
+        }
+        if (extra.isNotEmpty()) {
+            Box(Modifier.weight(1f)) {
+                Seg(
+                    on = pickedExtra != null,
+                    icon = pickedExtra?.let { activityIcon(it.key) },
+                    label = (pickedExtra?.label ?: "More") + " \u25be",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { open = true },
+                )
+                // A menu over the page, not a list that pushes it down.
+                androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                    if (ordered.moreRecent.isNotEmpty()) {
+                        MenuHeading("Last 12 weeks")
+                        ordered.moreRecent.forEach { x -> MenuRow(x = x, on = x.key == value, sub = agoText(x.last?.date.orEmpty())) { onPick(x.key); open = false } }
+                    }
+                    if (ordered.older.isNotEmpty()) {
+                        if (ordered.moreRecent.isNotEmpty()) androidx.compose.material3.HorizontalDivider()
+                        MenuHeading("Older")
+                        ordered.older.forEach { x -> MenuRow(x = x, on = x.key == value, sub = monthText(x.last?.date.orEmpty())) { onPick(x.key); open = false } }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuHeading(text: String) =
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+    )
+
+@Composable
+private fun MenuRow(x: CardioActivityDto, on: Boolean, sub: String, onClick: () -> Unit) {
+    androidx.compose.material3.DropdownMenuItem(
+        text = { Text(x.label, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal) },
+        leadingIcon = { Icon(activityIcon(x.key), contentDescription = null, modifier = Modifier.size(18.dp)) },
+        trailingIcon = { Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+        onClick = onClick,
+        modifier = Modifier.widthIn(min = 230.dp),
+    )
 }

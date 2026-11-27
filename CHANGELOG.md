@@ -1,4 +1,12 @@
 # Changelog
+## 0.586.0
+
+- Cardio page: activities as icon buttons, most recent first; past five, More opens a menu over the page with the rest (older ones under Older).
+
+## 0.585.4
+
+- Cardio and Conditioning: each week's bar shows its number; tap a bar for the week and its total.
+
 ## 0.585.3
 
 - Home: the Family goal pill always says Vote, as on the web.
