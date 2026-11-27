@@ -1,4 +1,12 @@
 # Changelog
+## 0.585.2
+
+- Workout day: Family WOD is always a button; Log another drops Something else.
+
+## 0.585.1
+
+- Build fix for 0.585.0 (the timer settings).
+
 ## 0.585.0
 
 - One timer everywhere: Ring or Full color (the Family WOD in Full color), a bar of rounds, now and next, and one ⚙ settings sheet. The each-side timer gets a get-ready and the floating timer.

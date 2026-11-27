@@ -48,7 +48,8 @@ import com.kairos.app.ui.nav.KairosIcons
  */
 @Composable
 internal fun DayTiles(
-    showFamilyWod: Boolean,
+    /** The day has a Family WOD: the tile says Today (0.585.2: always shown). */
+    hasFamilyWod: Boolean,
     onStart: () -> Unit,
     onFamilyWod: () -> Unit,
     onLogAnother: () -> Unit,
@@ -73,9 +74,7 @@ internal fun DayTiles(
                 },
                 onClick = onStart,
             )
-            if (showFamilyWod) {
-                ActionCard(KairosIcons.Users, "Family WOD", Modifier.weight(1f), subtitle = "Today", onClick = onFamilyWod)
-            }
+            ActionCard(KairosIcons.Users, "Family WOD", Modifier.weight(1f), subtitle = if (hasFamilyWod) "Today" else null, onClick = onFamilyWod)
             ActionCard(KairosIcons.Plus, "Log another", Modifier.weight(1f), highlighted = true, onClick = onLogAnother)
         }
         ActionGroup(kind = "Tools", title = "") {
@@ -94,12 +93,11 @@ private val LOG_CHOICES = listOf(
     LogChoice(key = "cardio", name = "Cardio", sub = "Run, row, ruck or bike · distance and time", icon = KairosIcons.Run),
     LogChoice(key = "sport", name = "Sport", sub = "Practice, game or open skate", icon = KairosIcons.Hockey),
     LogChoice(key = "conditioning", name = "Conditioning", sub = "Pick a WOD or make one, with the timer", icon = KairosIcons.Bolt),
-    LogChoice(key = "other", name = "Something else", sub = "Search every movement", icon = KairosIcons.More),
 )
 
 /**
- * Log another workout (v0.585): a full page of five choices instead of the
- * pop-up. Starting a walk or run and the Family WOD are their own buttons;
+ * Log another workout (v0.585): a full page of choices instead of the
+ * pop-up (0.585.2: four; Something else only repeated them). Starting a walk or run and the Family WOD are their own buttons;
  * Mobility, Stretching and Isometrics are under Routines.
  */
 @Composable

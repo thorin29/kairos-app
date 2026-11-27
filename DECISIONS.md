@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — Family WOD always a button; no Something else (0.585.2, web 0.813.1)
+
+- `DayTiles` always shows Family WOD (`hasFamilyWod` adds Today) and opens
+  the Family WOD screen. `LogAnotherPage` has four choices; Something else
+  only repeated them.
+
+## 2026-11 — Timer settings build fix (0.585.1)
+
+- `TimerSettings` had `var sound … private set` beside `fun setSound()`: the
+  JVM names clash. The setters are `saveSound()` and so on. A Compose state
+  property with a private setter can't also have a hand-written `setX`.
+
 ## 2026-11 — One timer, the workout day's buttons, tracked workouts (0.585.0, web 0.813.0)
 
 - `TimerKit.kt`: every timer (Conditioning, warm-ups, each-side, the free

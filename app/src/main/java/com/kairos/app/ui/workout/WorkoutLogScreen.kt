@@ -358,7 +358,7 @@ fun WorkoutLogScreen(
                         // the Workouts page; Log another opens its own page.
                         val isToday = (ui.date ?: date) == LocalDate.now().toString()
                         DayTiles(
-                            showFamilyWod = ui.familyWod != null,
+                            hasFamilyWod = ui.familyWod != null,
                             onStart = {
                                 if (ActivityTrack.session.value != null) onStartTrack("")
                                 else if (isToday) goFor = true
