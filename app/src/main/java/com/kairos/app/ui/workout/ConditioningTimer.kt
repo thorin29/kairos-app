@@ -116,7 +116,8 @@ internal fun timerPalette(): TimerPalette {
  * then the format's clock with the shared face, cues and settings (v0.585,
  * TimerKit), "+1 round" on an AMRAP, Done on a stopwatch, and the result
  * filled in at the end. [custom] runs a timer of its own (the free Timer) and
- * [logging] false leaves out the result. A Family WOD uses its own look.
+ * [logging] false leaves out the result; [autoStart] begins at once. A Family
+ * WOD uses its own look.
  */
 @Composable
 internal fun ConditioningTimer(
@@ -125,6 +126,7 @@ internal fun ConditioningTimer(
     onClose: () -> Unit,
     custom: TimerPlan? = null,
     logging: Boolean = true,
+    autoStart: Boolean = false,
 ) {
     val context = LocalContext.current
     val pal = timerPalette()
@@ -218,6 +220,8 @@ internal fun ConditioningTimer(
             }
         }
     }
+    // The free Timer's Start already chose to go (0.587).
+    LaunchedEffect(Unit) { if (autoStart) start() }
     fun pause() {
         if (phase == "run") banked += SystemClock.elapsedRealtime() - runStart
         phase = "paused"

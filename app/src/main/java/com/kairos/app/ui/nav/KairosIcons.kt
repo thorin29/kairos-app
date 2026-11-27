@@ -304,6 +304,9 @@ object KairosIcons {
     )
     /** Lightning bolt (v0.585): conditioning. */
     val Bolt = stroked("Bolt", "M13 3 5 14h6l-1 7 8-11h-6l1-7z")
+    /** Hourglass and stepped bars (0.587): the free Timer's Countdown and Intervals. */
+    val Hourglass = stroked("Hourglass", "M6 3h12", "M6 21h12", "M7 3c0 5 10 5 10 9s-10 4-10 9", "M17 3c0 5-10 5-10 9s10 4 10 9")
+    val Intervals = stroked("Intervals", "M3 17h4V8h4v9h4V5h4v12h2")
     /** Rower, bicycle, jump rope and heart (0.585.5): the Cardio page's activities. */
     val Rower = stroked("Rower", "M3 18h18", "M6 18l4-8 4 3 4-6", "M11.6 6.5a1.6 1.6 0 1 0 -3.2 0a1.6 1.6 0 1 0 3.2 0z")
     val Bike = stroked(

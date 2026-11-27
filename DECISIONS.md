@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-11 — The Timer button sets up on the timer's face (0.587.0)
+
+- `FreeTimerPage` is a full-screen `Dialog` with the idle `TimerFace`
+  (new `top` slot above the clock): a 3×2 grid of type tiles
+  (`TypeTile`, icons Timer / Hourglass / Refresh / Clock / Bolt /
+  Intervals), the total and rounds on the clock, `FaceStepper` rows in a
+  panel, Start along the bottom. No explanatory text.
+- Start opens `ConditioningTimer(autoStart = true)` already running; Back
+  returns to the setup.
+- The warm-up timer shows Get ready (`SecondChips`, `TIMER_LEADS`) above
+  Rest between steps before Start; it's the ⚙ setting, so both change.
+
 ## 2026-11 — Home: stale refreshes no longer undo a tap (0.586.2)
 
 - Seen: tap Bible reading, the check shows then vanishes, the next tap does

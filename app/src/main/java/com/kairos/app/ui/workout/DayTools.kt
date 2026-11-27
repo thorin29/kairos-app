@@ -1,6 +1,12 @@
 package com.kairos.app.ui.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,10 +18,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -226,10 +230,10 @@ internal fun RoutinesPage(onAdd: (kind: String, id: String) -> Unit, onBack: () 
 }
 
 /**
- * The free Timer (v0.585): pick a kind and a length, then the shared timer
- * runs it. Nothing is logged. The last choices are kept on this phone.
+ * The free Timer (v0.585; on the timer's own face 0.587): pick a type from
+ * the tiles and set its length, then Start runs it at once. Nothing is
+ * logged. The last choices are kept on this phone.
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun FreeTimerPage(onBack: () -> Unit) {
     val context = LocalContext.current
@@ -242,65 +246,73 @@ internal fun FreeTimerPage(onBack: () -> Unit) {
     var running by remember { mutableStateOf(false) }
     fun save() = prefs.edit().putString("free_type", type).putInt("free_min", minutes).putInt("free_work", work).putInt("free_rest", rest).putInt("free_rounds", rounds).apply()
     val plan = freeTimerPlan(type = type, minutes = minutes, work = work, rest = rest, rounds = rounds)
-    FullPage(title = "Timer", onBack = onBack) {
-        Text("TYPE", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        androidx.compose.foundation.layout.FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            FREE_TIMERS.forEach { (k, label) ->
-                val on = k == type
-                val c = MaterialTheme.colorScheme
-                Box(
-                    Modifier
-                        .heightIn(min = 36.dp)
-                        .background(if (on) c.onSurface else Color.Transparent, RoundedCornerShape(10.dp))
-                        .border(1.dp, if (on) c.onSurface else c.outlineVariant, RoundedCornerShape(10.dp))
-                        .clickable { type = k; save() }
-                        .padding(horizontal = 13.dp),
-                    contentAlignment = Alignment.Center,
-                ) { Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) c.surface else c.onSurface) }
+    val word = when (type) {
+        "EMOM" -> "$minutes rounds"
+        "AMRAP" -> "AMRAP"
+        "TABATA" -> "8 rounds"
+        "INTERVALS" -> "$rounds rounds"
+        "COUNTDOWN" -> "Countdown"
+        else -> "Stopwatch"
+    }
+    Dialog(
+        onDismissRequest = onBack,
+        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
+    ) {
+        TimerFace(
+            family = false,
+            caption = "",
+            heading = null,
+            clock = clockText(plan.totalSec ?: 0),
+            state = TimerState.IDLE,
+            word = word,
+            progress = null,
+            bar = null,
+            now = null,
+            next = null,
+            buttons = listOf(TimerButton(label = "Start", filled = true, onClick = { running = true })),
+            onBack = onBack,
+            top = { ink ->
+                FREE_TIMERS.chunked(3).forEach { row ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        row.forEach { (k, label) ->
+                            TypeTile(label = label, icon = freeTimerIcon(k), on = k == type, ink = ink, modifier = Modifier.weight(1f)) {
+                                type = k
+                                save()
+                            }
+                        }
+                    }
+                }
+            },
+        ) { ink ->
+            val shape = RoundedCornerShape(16.dp)
+            when (type) {
+                "COUNTDOWN", "AMRAP", "EMOM" -> Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(ink.text.copy(alpha = 0.07f), shape)) {
+                    FaceStepper(label = "Length", value = minutes, text = "$minutes min", min = 1, max = 90, ink = ink) { minutes = it; save() }
+                }
+                "INTERVALS" -> Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(ink.text.copy(alpha = 0.07f), shape)) {
+                    FaceStepper(label = "Work", value = work, text = "$work s", min = 5, max = 600, step = 5, ink = ink) { work = it; save() }
+                    HorizontalDivider(color = ink.line)
+                    FaceStepper(label = "Rest", value = rest, text = "$rest s", min = 0, max = 600, step = 5, ink = ink) { rest = it; save() }
+                    HorizontalDivider(color = ink.line)
+                    FaceStepper(label = "Rounds", value = rounds, text = "$rounds", min = 1, max = 50, ink = ink) { rounds = it; save() }
+                }
+                "TABATA" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("20 s on", "10 s off", "8 rounds").forEach {
+                        Text(
+                            it,
+                            color = ink.soft,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.background(ink.text.copy(alpha = 0.07f), RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                else -> {}
             }
         }
-        when (type) {
-            "COUNTDOWN", "AMRAP", "EMOM" -> OutlinedCard(Modifier.fillMaxWidth()) {
-                Stepper(label = "Length", value = minutes, text = "$minutes min", min = 1, max = 90) { minutes = it; save() }
-                Text(
-                    when (type) {
-                        "EMOM" -> "A new minute every 60 seconds, $minutes rounds."
-                        "AMRAP" -> "As many rounds as you can; tap +1 round as you go."
-                        else -> "Counts down from $minutes:00."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
-                )
-            }
-            "INTERVALS" -> OutlinedCard(Modifier.fillMaxWidth()) {
-                Stepper(label = "Work", value = work, text = "$work s", min = 5, max = 600, step = 5) { work = it; save() }
-                HorizontalDivider()
-                Stepper(label = "Rest", value = rest, text = "$rest s", min = 0, max = 600, step = 5) { rest = it; save() }
-                HorizontalDivider()
-                Stepper(label = "Rounds", value = rounds, text = "$rounds", min = 1, max = 50) { rounds = it; save() }
-            }
-            "TABATA" -> Text("8 rounds of 20 seconds on, 10 seconds off.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else -> Text("Counts up until you tap Done.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Text(
-            clockText(plan.totalSec ?: 0),
-            fontSize = 64.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
-        )
-        Button(onClick = { running = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-            Text("Start", fontWeight = FontWeight.Bold)
-        }
-        Text(
-            "Same clock, beeps and get-ready as every timer. Nothing is logged.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
     }
     if (running) {
         ConditioningTimer(
@@ -309,16 +321,53 @@ internal fun FreeTimerPage(onBack: () -> Unit) {
             onClose = { running = false },
             custom = plan,
             logging = false,
+            autoStart = true,
         )
     }
 }
 
+private fun freeTimerIcon(type: String): ImageVector = when (type) {
+    "STOPWATCH" -> KairosIcons.Timer
+    "COUNTDOWN" -> KairosIcons.Hourglass
+    "AMRAP" -> KairosIcons.Refresh
+    "EMOM" -> KairosIcons.Clock
+    "TABATA" -> KairosIcons.Bolt
+    else -> KairosIcons.Intervals
+}
+
 @Composable
-private fun Stepper(label: String, value: Int, text: String, min: Int, max: Int, step: Int = 1, onChange: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        IconButton(onClick = { onChange((value - step).coerceAtLeast(min)) }, enabled = value > min) { Text("−", fontSize = 22.sp) }
-        Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
-        IconButton(onClick = { onChange((value + step).coerceAtMost(max)) }, enabled = value < max) { Text("+", fontSize = 22.sp) }
+private fun TypeTile(label: String, icon: ImageVector, on: Boolean, ink: TimerInk, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val fg = if (on) ink.bg else ink.soft
+    Column(
+        modifier
+            .background(if (on) ink.text else ink.text.copy(alpha = 0.07f), RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(22.dp))
+        Text(label, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
     }
+}
+
+@Composable
+private fun FaceStepper(label: String, value: Int, text: String, min: Int, max: Int, step: Int = 1, ink: TimerInk, onChange: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = ink.text, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        StepButton(text = "\u2212", enabled = value > min, ink = ink) { onChange((value - step).coerceAtLeast(min)) }
+        Text(text, color = ink.text, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.width(76.dp))
+        StepButton(text = "+", enabled = value < max, ink = ink) { onChange((value + step).coerceAtMost(max)) }
+    }
+}
+
+@Composable
+private fun StepButton(text: String, enabled: Boolean, ink: TimerInk, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(36.dp)
+            .border(1.dp, ink.line, CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.4f),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = ink.soft, fontSize = 18.sp) }
 }

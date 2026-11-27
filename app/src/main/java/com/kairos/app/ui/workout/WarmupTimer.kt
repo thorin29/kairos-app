@@ -315,26 +315,37 @@ internal fun WarmupTimer(
             buttons = buttons,
             onBack = onClose,
         ) { ink ->
-            if (phase == "idle" && intervals.size > 1) {
-                Text("Rest between steps", color = ink.soft, fontSize = 13.sp)
-                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    WARMUP_GAPS.forEach { v ->
-                        val on = gap == v
-                        Box(
-                            Modifier
-                                .heightIn(min = 36.dp)
-                                .width(46.dp)
-                                .background(if (on) ink.text else Color.Transparent, RoundedCornerShape(999.dp))
-                                .border(1.dp, if (on) ink.text else ink.line, RoundedCornerShape(999.dp))
-                                .clickable {
-                                    gap = v
-                                    prefs.edit().putInt("warmup_gap", v).apply()
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) { Text("${v}s", color = if (on) ink.bg else ink.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+            if (phase == "idle") {
+                // Get ready (0.587): the same choice as ⚙ Timer settings.
+                Text("Get ready", color = ink.soft, fontSize = 13.sp)
+                SecondChips(options = TIMER_LEADS, value = settings.lead, ink = ink) { settings.saveLead(it) }
+                if (intervals.size > 1) {
+                    Text("Rest between steps", color = ink.soft, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))
+                    SecondChips(options = WARMUP_GAPS, value = gap, ink = ink) {
+                        gap = it
+                        prefs.edit().putInt("warmup_gap", it).apply()
                     }
                 }
             }
+        }
+    }
+}
+
+/** A row of second choices on the timer face (0s, 5s, …). */
+@Composable
+internal fun SecondChips(options: List<Int>, value: Int, ink: TimerInk, onPick: (Int) -> Unit) {
+    Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        options.forEach { v ->
+            val on = value == v
+            Box(
+                Modifier
+                    .heightIn(min = 36.dp)
+                    .width(46.dp)
+                    .background(if (on) ink.text else Color.Transparent, RoundedCornerShape(999.dp))
+                    .border(1.dp, if (on) ink.text else ink.line, RoundedCornerShape(999.dp))
+                    .clickable { onPick(v) },
+                contentAlignment = Alignment.Center,
+            ) { Text("${v}s", color = if (on) ink.bg else ink.soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
         }
     }
 }

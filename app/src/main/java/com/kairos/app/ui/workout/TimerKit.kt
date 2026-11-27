@@ -170,7 +170,8 @@ private val READY_FULL = Color(0xFFD97706)
  * The timer's screen. [progress] is how much of the current part is left
  * (0–1; null for a stopwatch, which shows a full ring). [bar] is the current
  * part and how many there are. [now] and [next] are what's being done and
- * what comes after. [extra] sits under them (rounds, a result to log).
+ * what comes after. [extra] sits under them (rounds, a result to log); [top]
+ * sits above the clock (the free Timer's types, 0.587).
  */
 @Composable
 internal fun TimerFace(
@@ -186,6 +187,7 @@ internal fun TimerFace(
     next: String?,
     buttons: List<TimerButton>,
     onBack: () -> Unit,
+    top: @Composable ColumnScope.(TimerInk) -> Unit = {},
     extra: @Composable ColumnScope.(TimerInk) -> Unit = {},
 ) {
     val settings = rememberTimerSettings()
@@ -228,6 +230,7 @@ internal fun TimerFace(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            top(ink)
             if (caption.isNotBlank()) Text(caption, color = ink.soft, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
             if (!heading.isNullOrBlank()) {
                 Text(

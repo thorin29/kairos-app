@@ -1,4 +1,9 @@
 # Changelog
+## 0.587.0
+
+- Timer button: set up on the timer's own screen, types as tiles, Start runs it at once.
+- Warm-up timer: Get ready can be set before Start.
+
 ## 0.586.2
 
 - Home: a check you tap stays put; a slow refresh that started before the tap no longer puts the old state back.
