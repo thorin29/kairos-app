@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — One set of timer settings (0.592.1)
+
+- Seen: pause between sides set to 3 s, but the switch counted 1 s. Each
+  timer and the ⚙ sheet on its face called `rememberTimerSettings()`, which
+  built its own `TimerSettings` from SharedPreferences. The sheet saved the
+  new value and its face showed it, but the running timer's copy kept the
+  value it was opened with. Now every caller gets one shared instance
+  (`sharedTimerSettings`), whose state is Compose state, so a change
+  reaches the timer at once. The web already shared changes (the
+  "kairos-timer-settings" event).
+
 ## 2026-11 — Start or Stop pressed late (0.592.0)
 
 - After a tracked walk saves, `TrackScreen` asks the server

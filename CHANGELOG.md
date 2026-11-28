@@ -1,4 +1,8 @@
 # Changelog
+## 0.592.1
+
+- Timers: a change in ⚙ (pause between sides, get ready) now applies to the timer that's open, not only the next one.
+
 ## 0.592.0
 
 - Tracked walks: after Save, if Home Assistant saw you leave before Start or get back before Stop, you're asked whether to fix the walk.

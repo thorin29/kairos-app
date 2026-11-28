@@ -116,8 +116,17 @@ internal class TimerSettings(private val prefs: SharedPreferences) {
 @Composable
 internal fun rememberTimerSettings(): TimerSettings {
     val context = LocalContext.current
-    return remember { TimerSettings(context.getSharedPreferences("kairos_timer", Context.MODE_PRIVATE)) }
+    // One set of settings for the whole app (0.592.1). Each timer and the ⚙
+    // sheet on its face used to hold their own copy, so a change in the sheet
+    // (pause between sides 3s) reached the face but not the timer running —
+    // it kept the old value until it was opened again.
+    return remember { sharedTimerSettings(context.applicationContext) }
 }
+
+private var timerSettingsOnce: TimerSettings? = null
+
+private fun sharedTimerSettings(context: Context): TimerSettings =
+    timerSettingsOnce ?: TimerSettings(context.getSharedPreferences("kairos_timer", Context.MODE_PRIVATE)).also { timerSettingsOnce = it }
 
 /**
  * The same sounds everywhere (v0.585): a short tick for each of the last three
