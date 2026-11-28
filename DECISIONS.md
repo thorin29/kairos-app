@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11 — Adding readings at a pace (0.590.0)
+
+- `AddReadingsPage` is What → Pace → Where (server 0.816.0): whole books
+  (`ReadingItem.whole`), chapters toggled per book, or typed passages;
+  pace as chapters a day (`CountStepper`, `ReadingDayChips`, or a count per
+  weekday tapped 0–5) or finish by a date; "Even out by verses"; Alongside
+  or Insert, with a review of each day and its verses.
+- Every preview comes from the server (`previewReadings`, quiet: its error
+  shows on the page) 300 ms after a change. The first one brings the plan's
+  weekdays, which become the starting reading days unless already changed.
+
 ## 2026-11 — Rotation days read as rotations (0.589.0)
 
 - The plan's Core / Arms / Isometric entry is titled "<Kind> rotation" and

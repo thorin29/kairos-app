@@ -1,4 +1,10 @@
 # Changelog
+## 0.590.0
+
+- Add readings: whole books in one tap.
+- Add readings: a pace — chapters a day (different on some days) or finish by a date, on days you pick.
+- Add readings: even the days out by verses, so short chapters share a day.
+
 ## 0.589.0
 
 - Your plan: rotation days read "Arms rotation", with "Up now: Dumbbell pump · 2 of 7".

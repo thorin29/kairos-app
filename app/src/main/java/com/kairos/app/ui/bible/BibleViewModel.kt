@@ -136,6 +136,17 @@ class BibleViewModel(
     }
 
     /** Preview (nothing saved) or save readings added to a plan. Null on error. */
+    /** A preview of added readings (0.590), quietly: its error comes back
+     *  for the page to show rather than as a message over the screen. */
+    suspend fun previewReadings(
+        body: com.kairos.app.data.remote.dto.AddReadingsRequest,
+    ): Pair<com.kairos.app.data.remote.dto.AddReadingsDto?, String?> =
+        try {
+            session.addReadings(body.copy(preview = true)) to null
+        } catch (e: ApiException) {
+            null to e.error.message
+        }
+
     suspend fun addReadings(
         body: com.kairos.app.data.remote.dto.AddReadingsRequest,
     ): com.kairos.app.data.remote.dto.AddReadingsDto? =

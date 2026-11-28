@@ -2480,6 +2480,28 @@ data class AddReadingsRequest(
     val mode: String,
     val ownDays: Int = 0,
     val preview: Boolean = false,
+    /** 0.590: what to read, at [pace]; then [readings] is ignored. */
+    val passages: List<String>? = null,
+    val pace: ReadingPaceDto? = null,
+    val byVerses: Boolean? = null,
+)
+
+/** A reading pace (0.590): "weekly" with chapters per weekday ("0" = Sunday;
+ *  absent = none), or "finish" by [endISO] on [weekdays]. */
+@Serializable
+data class ReadingPaceDto(
+    val kind: String,
+    val perWeekday: Map<String, Int>? = null,
+    val endISO: String? = null,
+    val weekdays: List<Int>? = null,
+)
+
+/** One day's added reading and its verses (0.590). */
+@Serializable
+data class AddedReadingDto(
+    val iso: String = "",
+    val passage: String = "",
+    val verses: Int = 0,
 )
 
 @Serializable
@@ -2496,6 +2518,10 @@ data class AddReadingsDto(
     val oldEndISO: String? = null,
     val endISO: String? = null,
     val rows: List<EditedDayDto> = emptyList(),
+    val added: List<AddedReadingDto> = emptyList(),
+    val planWeekdays: List<Int> = emptyList(),
+    val chapters: Int = 0,
+    val verses: Int = 0,
 )
 
 @Serializable
