@@ -131,6 +131,9 @@ internal fun GoForDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
 private fun timeOfDay(ms: Long): String =
     DateTimeFormatter.ofPattern("h:mm a", Locale.US).format(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()))
 
+private fun isoTime(iso: String): String =
+    runCatching { timeOfDay(Instant.parse(iso).toEpochMilli()) }.getOrDefault("")
+
 private const val PREFS = "track"
 private const val RUCK_KEY = "ruck_lb"
 
@@ -164,6 +167,9 @@ fun TrackScreen(activity: String, onBack: () -> Unit, onSaved: () -> Unit) {
     var askDiscard by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    // Start or Stop pressed late (0.592): asked once the walk is saved.
+    var fixFor by remember { mutableStateOf<String?>(null) }
+    var fix by remember { mutableStateOf<com.kairos.app.data.remote.dto.TrackFixDto?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     fun begin() {
@@ -291,7 +297,16 @@ fun TrackScreen(activity: String, onBack: () -> Unit, onSaved: () -> Unit) {
                                 saving = false
                                 if (r.isSuccess) {
                                     ActivityTrack.clear(context)
-                                    onSaved()
+                                    // Did Home Assistant see it begin before Start, or
+                                    // end before Stop? Ask before leaving (0.592).
+                                    val id = r.getOrNull()?.trackId.orEmpty()
+                                    val f = if (id.isNotEmpty()) runCatching { container.sessionRepository.trackFix(id).fix }.getOrNull() else null
+                                    if (f != null && (f.start != null || f.end != null)) {
+                                        fixFor = id
+                                        fix = f
+                                    } else {
+                                        onSaved()
+                                    }
                                 } else {
                                     error = r.exceptionOrNull()?.message ?: "Couldn't save. Try again."
                                 }
@@ -311,6 +326,51 @@ fun TrackScreen(activity: String, onBack: () -> Unit, onSaved: () -> Unit) {
         }
     }
 
+    val pending = fix
+    val pendingId = fixFor
+    if (pending != null && pendingId != null) {
+        val start = pending.start
+        val end = pending.end
+        fun next(applyStart: Boolean, applyEnd: Boolean) {
+            scope.launch {
+                if (applyStart || applyEnd) {
+                    runCatching {
+                        container.sessionRepository.applyTrackFix(
+                            com.kairos.app.data.remote.dto.TrackFixRequest(id = pendingId, start = applyStart, end = applyEnd),
+                        )
+                    }
+                }
+                fix = null
+                fixFor = null
+                onSaved()
+            }
+        }
+        AnimatedDialog(
+            onDismissRequest = { next(applyStart = false, applyEnd = false) },
+            title = if (start != null) "Started earlier?" else "Back earlier?",
+            confirmButton = {
+                TextButton(onClick = { next(applyStart = start != null, applyEnd = end != null) }) {
+                    Text(if (start != null && end != null) "Fix both" else if (start != null) "Add ${start.addMin} min" else "End it there")
+                }
+            },
+            dismissButton = { TextButton(onClick = { next(applyStart = false, applyEnd = false) }) { Text("Keep as is") } },
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    start?.let {
+                        Text("It looks like you left at ${isoTime(it.fromISO)}. Add the ${it.addMin} min before you pressed Start?")
+                    }
+                    end?.let {
+                        Text("It looks like you were back at ${isoTime(it.toISO)}. End the walk there?")
+                    }
+                    Text(
+                        "You can also do this later from the walk on the Family map.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+    }
     if (askPause) {
         AnimatedDialog(
             onDismissRequest = { askPause = false },

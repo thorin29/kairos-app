@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-11 — Start or Stop pressed late (0.592.0)
+
+- After a tracked walk saves, `TrackScreen` asks the server
+  (`GET workouts/track/fix?id=`, server 0.818) whether Home Assistant saw it
+  begin before Start or end before Stop. If so, one dialog — "Add 3 min" /
+  "End it there" / "Fix both", or "Keep as is" — before leaving; yes posts
+  `workouts/track/fix`. The same offer stays on the walk in the Family map.
+
 ## 2026-11 — Book goals as pages a day (0.591.0)
 
 - Home's Reading tile shows each book's `pace.perDay` ("6/day", "ch/day"

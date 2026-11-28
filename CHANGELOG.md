@@ -1,4 +1,8 @@
 # Changelog
+## 0.592.0
+
+- Tracked walks: after Save, if Home Assistant saw you leave before Start or get back before Stop, you're asked whether to fix the walk.
+
 ## 0.591.1
 
 - Home: the Reading tile keeps to pages a day; how far behind is on the Reading page, so tiles stay even.

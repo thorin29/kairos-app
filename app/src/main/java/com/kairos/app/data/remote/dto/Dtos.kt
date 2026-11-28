@@ -755,7 +755,23 @@ data class BackpackRequest(val hiking: Boolean? = null, val start: Boolean? = nu
 
 /** Saved, or queued offline ("{}": all defaults). */
 @Serializable
-data class TrackSavedDto(val sessionId: String = "", val date: String = "")
+data class TrackSavedDto(val sessionId: String = "", val date: String = "", val trackId: String = "")
+
+/** Start or Stop pressed late (server 0.818): what Home Assistant saw. */
+@Serializable
+data class TrackFixStartDto(val fromISO: String = "", val addMin: Int = 0, val addM: Int = 0)
+
+@Serializable
+data class TrackFixEndDto(val toISO: String = "", val cutMin: Int = 0, val cutM: Int = 0)
+
+@Serializable
+data class TrackFixDto(val start: TrackFixStartDto? = null, val end: TrackFixEndDto? = null)
+
+@Serializable
+data class TrackFixResponse(val fix: TrackFixDto? = null)
+
+@Serializable
+data class TrackFixRequest(val id: String, val start: Boolean? = null, val end: Boolean? = null)
 
 @Serializable
 data class CardioRemoveRequest(val date: String, val sessionId: String)

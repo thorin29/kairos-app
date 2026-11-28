@@ -737,6 +737,13 @@ class SessionRepository(
     suspend fun saveTrack(body: com.kairos.app.data.remote.dto.TrackSaveRequest): com.kairos.app.data.remote.dto.TrackSavedDto =
         runAuthed { requireService().saveTrack(body) }
 
+    suspend fun trackFix(id: String): com.kairos.app.data.remote.dto.TrackFixResponse =
+        runAuthed { requireService().trackFix(id) }
+
+    suspend fun applyTrackFix(body: com.kairos.app.data.remote.dto.TrackFixRequest) {
+        runAuthed { requireService().applyTrackFix(body) }
+    }
+
     /** Today on a backpacking trip, or null (v0.558; server 0.778+). */
     suspend fun backpacking(): com.kairos.app.data.remote.dto.BackpackTodayDto? =
         runAuthed { requireService().backpacking() }.today
@@ -1508,6 +1515,6 @@ class SessionRepository(
 
     private companion object {
         /** This client's build number; compared against the server's minClient. */
-        const val CLIENT_BUILD = 670
+        const val CLIENT_BUILD = 671
     }
 }
