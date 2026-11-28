@@ -1,4 +1,8 @@
 # Changelog
+## 0.591.1
+
+- Home: the Reading tile keeps to pages a day; how far behind is on the Reading page, so tiles stay even.
+
 ## 0.591.0
 
 - Reading: books with goals show pages a day to finish on time, catch-up included.

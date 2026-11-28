@@ -964,7 +964,8 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
         modifier = modifier,
     ) {
                 // Each book: the full title, then its bar and pages a day (0.591) —
-                // red, with how far behind, when below steady reading for today.
+                // red when below steady reading for today. The pages behind are on
+                // the Reading page (0.591.1), so every tile keeps its height.
                 reading.forEach { r ->
                     val p = r.pace
                     val late = p != null && p.behind > 0
@@ -993,15 +994,6 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
                                 textAlign = TextAlign.End,
                                 maxLines = 1,
                                 modifier = Modifier.width(52.dp),
-                            )
-                        }
-                        if (late) {
-                            Text(
-                                "${p!!.behind} ${if (r.unit == "CHAPTERS") "chapters" else "pages"} behind" +
-                                    (p.missedDue?.let { " the ${shortMonthDay(it)} goal" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.error,
                             )
                         }
                     }
