@@ -1380,7 +1380,8 @@ private fun DaySectionView(
     vm: WorkoutLogViewModel,
     onOpenCalculatorFor: (String, String) -> Unit,
     onOpenSets: (WorkoutBlock, MovementInput) -> Unit,
-    /** A day still to come: only a movement opens (read-only); nothing else reacts. */
+    /** A day still to come: a movement or a whole workout opens read-only (a
+     *  workout too since 0.588); nothing else reacts. */
     preview: Boolean = false,
     onOpenCore: (WorkoutBlock) -> Unit = {},
 ) {
@@ -1405,17 +1406,17 @@ private fun DaySectionView(
                         MovementCard(
                             m = tests[0].copy(name = testName, swappedFromName = null),
                             overdue = overdue,
-                            onOpen = { if (!preview) onOpenCore(testBlock) },
+                            onOpen = { onOpenCore(testBlock) },
                         )
                     } else {
-                        CoreDayCard(block = testBlock, overdue = overdue, onOpen = { if (!preview) onOpenCore(testBlock) })
+                        CoreDayCard(block = testBlock, overdue = overdue, onOpen = { onOpenCore(testBlock) })
                     }
                 }
                 val workout = if (tests.isNotEmpty()) block.copy(inputs = block.inputs - tests.toSet(), coreTest = null, coreTests = emptyList()) else block
                 CoreDayCard(
                     block = workout,
                     overdue = overdue,
-                    onOpen = { if (!preview) onOpenCore(workout) },
+                    onOpen = { onOpenCore(workout) },
                     onRemove = if (block.extra && !preview) ({ vm.removeExtra(id = block.plannedWorkoutId) }) else null,
                 )
             } else if (opensSetLogger(block)) {

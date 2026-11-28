@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11 — Previewing a whole workout on a future day (0.588.0)
+
+- A day still to come let single movements open read-only (v0.527) but not
+  a workout shown as one card (Arms, Core): `CoreDayCard` ignored the tap in
+  preview. It now opens `CoreWorkoutScreen`, which on a future date shows
+  "Preview · <day>" under the title, fades and swallows presses on the sets
+  (`swallowPresses`, shared with the single-movement preview), hides the
+  Skip/Timer/Log bar, Add set and the feedback card, and Back leaves without
+  `leave()`, so nothing is saved.
+
 ## 2026-11 — The Timer button sets up on the timer's face (0.587.0)
 
 - `FreeTimerPage` is a full-screen `Dialog` with the idle `TimerFace`

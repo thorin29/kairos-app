@@ -280,14 +280,7 @@ fun MovementSetsScreen(
                             if (preview) {
                                 Modifier
                                     .alpha(0.55f)
-                                    .pointerInput(Unit) {
-                                        awaitPointerEventScope {
-                                            while (true) {
-                                                awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
-                                                    .changes.forEach { if (it.pressed != it.previousPressed) it.consume() }
-                                            }
-                                        }
-                                    }
+                                    .pointerInput(Unit) { swallowPresses() }
                             } else {
                                 Modifier
                             },
@@ -1225,6 +1218,9 @@ fun CoreWorkoutScreen(
         }
     }
     val states = vms.map { it.ui.collectAsState().value }
+    // A day still to come (0.588): the planned sets and weights, read-only,
+    // as one movement's preview (v0.527) — nothing to log, and Back saves nothing.
+    val preview = date > java.time.LocalDate.now().toString()
     var calcFor by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(-1) }
     LaunchedEffect(usedWeight) {
         val w = usedWeight
@@ -1248,7 +1244,7 @@ fun CoreWorkoutScreen(
             vms.forEach { it.leave(logTyped = logTyped) }
         }
     }
-    BackHandler { finish(false) }
+    BackHandler { if (preview) onDone() else finish(false) }
     // Log with sets still to do (v0.569): yes logs what's done and finishes
     // the workout; the rest aren't logged.
     var confirmMissed by remember { mutableStateOf(false) }
@@ -1279,14 +1275,25 @@ fun CoreWorkoutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = {
+                    Column {
+                        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (preview) {
+                            Text(
+                                "Preview \u00b7 ${dayName(date)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = { finish(false) }) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = { if (preview) onDone() else finish(false) }) { Icon(KairosIcons.ArrowBack, contentDescription = "Back") }
                 },
             )
         },
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface) {
+            if (!preview) Surface(color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.navigationBarsPadding()) {
                     HorizontalDivider()
                     Row(
@@ -1339,7 +1346,8 @@ fun CoreWorkoutScreen(
                 .padding(inner)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(16.dp)
+                .then(if (preview) Modifier.alpha(0.55f).pointerInput(Unit) { swallowPresses() } else Modifier),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (late && states.none { st -> st.rows.any { it.saved } }) {
@@ -1363,13 +1371,14 @@ fun CoreWorkoutScreen(
                     metric = m.metric,
                     unit = m.unit,
                     first = i == 0,
+                    preview = preview,
                     onPlates = { label, w, bar ->
                         calcFor = i
                         onOpenCalculator(label, w, bar)
                     },
                 )
             }
-            if (!allSkipped) {
+            if (!allSkipped && !preview) {
                 Box(Modifier.padding(top = 12.dp)) {
                     FeedbackCard(
                         name = title.removePrefix("Core · "),
@@ -1427,6 +1436,7 @@ private fun CoreMoveSection(
     metric: String,
     unit: String,
     first: Boolean,
+    preview: Boolean = false,
     onPlates: (String, Double, String) -> Unit = { _, _, _ -> },
 ) {
     val ui by vm.ui.collectAsState()
@@ -1490,7 +1500,7 @@ private fun CoreMoveSection(
                     holdUnit = ui.holdUnit,
                 )
             }
-            PillButton(label = "Add set", icon = true) { vm.addSet() }
+            if (!preview) PillButton(label = "Add set", icon = true) { vm.addSet() }
         }
     }
     ui.confirmKey?.let { k ->
@@ -1505,5 +1515,15 @@ private fun CoreMoveSection(
     }
     if (showInfo) {
         MovementInfoDialog(name = shown, about = ui.about, onDismiss = { showInfo = false })
+    }
+}
+
+/** A preview's content (v0.527): presses never reach it, scrolling still works. */
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.swallowPresses() {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                .changes.forEach { if (it.pressed != it.previousPressed) it.consume() }
+        }
     }
 }

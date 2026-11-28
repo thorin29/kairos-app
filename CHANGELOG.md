@@ -1,4 +1,8 @@
 # Changelog
+## 0.588.0
+
+- Log workout: a workout on a day still to come opens as a preview of its sets and weights.
+
 ## 0.587.0
 
 - Timer button: set up on the timer's own screen, types as tiles, Start runs it at once.
