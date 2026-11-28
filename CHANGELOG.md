@@ -1,4 +1,10 @@
 # Changelog
+## 0.591.0
+
+- Reading: books with goals show pages a day to finish on time, catch-up included.
+- Reading: red when behind steady reading for today, with how many pages behind.
+- Reading: the bar only grows as you read; a tick marks where on pace would be today.
+
 ## 0.590.0
 
 - Add readings: whole books in one tap.

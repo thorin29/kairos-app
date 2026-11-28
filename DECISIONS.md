@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-11 — Book goals as pages a day (0.591.0)
+
+- Home's Reading tile shows each book's `pace.perDay` ("6/day", "ch/day"
+  for chapters) where the % was, with `PaceBar` (read so far plus a tick
+  for on pace today) and, when behind, "68 pages behind the Nov 30 goal".
+  Falls back to the old % if the server sends no `pace`.
+- Reading page: a book with goals gets `PaceBlock` — the big number, a
+  behind/ahead note and Now / Goal / Pages left / On pace today.
+
 ## 2026-11 — Adding readings at a pace (0.590.0)
 
 - `AddReadingsPage` is What → Pace → Where (server 0.816.0): whole books

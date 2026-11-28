@@ -69,6 +69,8 @@ import com.kairos.app.data.remote.dto.AddBookRequest
 import com.kairos.app.data.remote.dto.BookDto
 import com.kairos.app.data.remote.dto.BooksDto
 import com.kairos.app.data.remote.dto.GoalInputDto
+import com.kairos.app.ui.home.PaceBar
+import com.kairos.app.ui.home.shortMonthDay
 import com.kairos.app.data.remote.dto.UpdateBookRequest
 import com.kairos.app.ui.common.AnimatedDialog
 import com.kairos.app.ui.common.LogoMenuButton
@@ -261,6 +263,8 @@ private fun BookCard(
                 }
             }
 
+            if (!done) book.pace?.let { PaceBlock(it, book.unit) }
+
             Spacer(Modifier.height(8.dp))
             ProgressBar(pct)
             Text(
@@ -325,6 +329,51 @@ private fun BookCard(
                         modifier = Modifier.size(18.dp),
                     )
                 }
+            }
+        }
+    }
+}
+
+/** A book with goals (0.591): pages a day to the goal in play — catch-up
+ *  included — how far on or off pace, the stretch as a bar with a tick where
+ *  steady reading would be today, and the numbers behind it. */
+@Composable
+private fun PaceBlock(p: com.kairos.app.data.remote.dto.BookPaceDto, unit: String) {
+    val late = p.behind > 0
+    val word = if (unit == "CHAPTERS") "chapters" else "pages"
+    val at = if (unit == "CHAPTERS") "chapter" else "page"
+    val tone = if (late) MaterialTheme.colorScheme.error else KairosThemeState.accent
+    Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.weight(1f)) { PaceBar(barPct = p.barPct, tickPct = p.tickPct, late = late, thick = true) }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("${p.perDay}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = tone)
+                Text("$word a day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        val note = when {
+            late -> "${p.behind} $word behind" + (p.missedDue?.let { " the ${shortMonthDay(it)} goal" } ?: " pace")
+            p.ahead >= 5 -> "${p.ahead} $word ahead"
+            else -> null
+        }
+        note?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = tone,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(tone.copy(alpha = 0.1f)).padding(horizontal = 10.dp, vertical = 7.dp),
+            )
+        }
+        listOf(
+            "Now" to "$at ${p.position}",
+            "Goal" to "$at ${p.target} by ${shortMonthDay(p.dueDate)}",
+            "${word.replaceFirstChar { it.uppercase() }} left" to "${p.left} in ${p.daysLeft} ${if (p.daysLeft == 1) "day" else "days"}",
+            "On pace today" to "$at ${p.onPace}",
+        ).forEach { (k, v) ->
+            Row(Modifier.fillMaxWidth()) {
+                Text(k, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Text(v, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -963,9 +963,11 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
         onClick = onOpen,
         modifier = modifier,
     ) {
-                // Each book (v0.568): the full title on its own line, then its bar
-                // with the % at the end — red when behind.
+                // Each book: the full title, then its bar and pages a day (0.591) —
+                // red, with how far behind, when below steady reading for today.
                 reading.forEach { r ->
+                    val p = r.pace
+                    val late = p != null && p.behind > 0
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(
                             r.title,
@@ -975,22 +977,67 @@ private fun ReadingHomeSection(reading: List<ReadingProgressDto>, onOpen: () -> 
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(Modifier.weight(1f)) { ReadingBar(r.pct, r.behind) }
+                            Box(Modifier.weight(1f)) {
+                                if (p != null) PaceBar(barPct = p.barPct, tickPct = p.tickPct, late = late) else ReadingBar(r.pct, r.behind)
+                            }
                             Text(
-                                "${kotlin.math.abs(r.pct)}%",
+                                when {
+                                    p == null -> "${kotlin.math.abs(r.pct)}%"
+                                    p.perDay == 0 -> "Done"
+                                    else -> "${p.perDay}${if (r.unit == "CHAPTERS") "ch" else ""}/day"
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (r.behind) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (late || (p == null && r.behind)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                 // A fixed width (v0.570), so every book's bar is the same length.
                                 textAlign = TextAlign.End,
                                 maxLines = 1,
-                                modifier = Modifier.width(36.dp),
+                                modifier = Modifier.width(52.dp),
+                            )
+                        }
+                        if (late) {
+                            Text(
+                                "${p!!.behind} ${if (r.unit == "CHAPTERS") "chapters" else "pages"} behind" +
+                                    (p.missedDue?.let { " the ${shortMonthDay(it)} goal" } ?: ""),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error,
                             )
                         }
                     }
                 }
     }
 }
+
+/** A goal's bar (0.591): what's read so far, and a tick where steady reading
+ *  would have you today. */
+@Composable
+internal fun PaceBar(barPct: Int, tickPct: Int, late: Boolean, thick: Boolean = false) {
+    val h = if (thick) 10.dp else 6.dp
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().height(h + 8.dp), contentAlignment = Alignment.CenterStart) {
+        val w = maxWidth
+        Box(
+            Modifier.fillMaxWidth().height(h).clip(RoundedCornerShape(999.dp))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
+        ) {
+            Box(
+                Modifier.fillMaxWidth(barPct.coerceIn(0, 100) / 100f).fillMaxHeight().clip(RoundedCornerShape(999.dp))
+                    .background(if (late) MaterialTheme.colorScheme.error else KairosThemeState.accent),
+            )
+        }
+        Box(
+            Modifier
+                .padding(start = (w - 2.dp) * (tickPct.coerceIn(0, 100) / 100f))
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)),
+        )
+    }
+}
+
+/** "Nov 30" from an ISO date (0.591). */
+internal fun shortMonthDay(iso: String): String =
+    runCatching { java.time.LocalDate.parse(iso.take(10)).format(java.time.format.DateTimeFormatter.ofPattern("MMM d", java.util.Locale.US)) }.getOrDefault(iso)
 
 @Composable
 private fun ReadingBar(pct: Int, behind: Boolean) {

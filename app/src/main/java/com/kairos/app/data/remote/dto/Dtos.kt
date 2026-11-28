@@ -176,6 +176,29 @@ data class ReadingProgressDto(
     val behind: Boolean = false,
     val target: Int = 0,
     val dueDate: String = "",
+    /** 0.591: pages a day and how far on or off pace. */
+    val pace: BookPaceDto? = null,
+)
+
+/** A book's goal as pages a day (server 0.817): the pages left to the goal in
+ *  play (catch-up included) over the days left, where steady reading would
+ *  have you today, and how far behind (short of [missedDue]'s goal if one was
+ *  missed) or ahead. [barPct] is read so far across the stretch; [tickPct]
+ *  where on pace sits on it. */
+@Serializable
+data class BookPaceDto(
+    val perDay: Int = 0,
+    val left: Int = 0,
+    val daysLeft: Int = 0,
+    val target: Int = 0,
+    val dueDate: String = "",
+    val position: Int = 0,
+    val onPace: Int = 0,
+    val behind: Int = 0,
+    val missedDue: String? = null,
+    val ahead: Int = 0,
+    val barPct: Int = 0,
+    val tickPct: Int = 0,
 )
 
 @Serializable
@@ -3034,6 +3057,7 @@ data class BookDto(
     val finished: Boolean = false,
     val shelved: Boolean = false,
     val goals: List<ReadingGoalDto> = emptyList(),
+    val pace: BookPaceDto? = null,
 )
 
 @Serializable
