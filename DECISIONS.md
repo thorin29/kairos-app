@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-11 — Rotation days read as rotations (0.589.0)
+
+- The plan's Core / Arms / Isometric entry is titled "<Kind> rotation" and
+  its link reads "Up now: <workout> · <n> of <total> ›" (`CorePlanLine`),
+  so the workout shown isn't taken for a fixed one. Days ahead now show the
+  workout due then (server 0.815.3); nothing else changed in the app.
+
 ## 2026-11 — Previewing a whole workout on a future day (0.588.0)
 
 - A day still to come let single movements open read-only (v0.527) but not

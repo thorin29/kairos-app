@@ -1,4 +1,8 @@
 # Changelog
+## 0.589.0
+
+- Your plan: rotation days read "Arms rotation", with "Up now: Dumbbell pump · 2 of 7".
+
 ## 0.588.0
 
 - Log workout: a workout on a day still to come opens as a preview of its sets and weights.

@@ -242,7 +242,12 @@ internal fun CoreRotationPicker(
 internal fun CorePlanLine(w: PlanWorkoutDto, onRotation: () -> Unit) {
     if (w.core == null) return
     Text(
-        "${w.name.removePrefix("Core · ").removePrefix("Arms · ").ifBlank { "Pick workouts" }} ›",
+        // The workout in place and where it is in the order (0.589), so it reads
+        // as a rotation, not one fixed workout.
+        w.core.rotation.size.let { n ->
+            val now = w.name.substringAfter(" · ", "").ifBlank { null }
+            if (now == null) "Pick workouts ›" else "Up now: $now · ${w.core.at + 1} of $n ›"
+        },
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,

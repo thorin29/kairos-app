@@ -392,7 +392,7 @@ private fun DayCard(
                     Text(
                         when {
                             // Like Warm-up: the kind, then the workout as a link (v0.453).
-                            w.core != null -> rotationWord(w.core.kind)
+                            w.core != null -> "${rotationWord(w.core.kind)} rotation"
                             kindLabel != null -> "${w.name}  ·  $kindLabel"
                             else -> w.name
                         },
